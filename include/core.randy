@@ -6,3 +6,6 @@
 proc exit code do
     syscall(SYS_exit, code);
 end
+
+extern puts cstr;
+extern printf cstr, ...;

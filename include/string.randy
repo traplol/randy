@@ -1,4 +1,6 @@
 
+#include memory
+
 const TSTRING_buffer = 0;
 const TSTRING_length = 8;
 const TSTRING_capacity = 16;

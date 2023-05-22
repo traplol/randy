@@ -1,0 +1,4 @@
+
+extern malloc size;
+extern free ptr;
+extern memcpy dest, src, n;

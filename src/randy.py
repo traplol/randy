@@ -39,6 +39,7 @@ class TK(Enum):
     KW_u32w   = auto()
     KW_u64w   = auto()
     KW_const  = auto()
+    KW_extern = auto()
     Plus      = auto()
     Minus     = auto()
     Star      = auto()
@@ -59,6 +60,7 @@ class TK(Enum):
     Bar       = auto()
     Amper     = auto()
     Caret     = auto()
+    Ellipsis  = auto()
     
 
 class Token:
@@ -180,6 +182,7 @@ keywords : dict[str, TK] = {
     "u64!": TK.KW_u64w,
     #"syscall": TK.KW_syscall,
     "const": TK.KW_const,
+    "extern": TK.KW_extern,
 }
 def ident_kind(tok: str) -> TK:
     if tok in keywords:
@@ -406,6 +409,10 @@ def lex(filename: str, code: str) -> List[Token]:
             tokens.append(Token(TK.Tilde, "~", (filename, line_no, col_no)))
             i += 1
             col_no += 1
+        elif c == ".":
+            if code[i+1] == "." and code[i+2] == ".":
+                token = Token(TK.Ellipsis, "...", (filename, line_no, col_no))
+                i += 3
         elif c == "<":
             if code[i+1] == "=":
                 token = Token(TK.LessEq, "<=", (filename, line_no, col_no))
@@ -439,7 +446,6 @@ def lex(filename: str, code: str) -> List[Token]:
             i += len(token.value)
             col_no += len(token.value)
         else:
-            print(tokens)
             assert False, f"Cannot lex L{line_no}:{col_no}, {repr(c)} ({ord(c)}) yet"
     return tokens
 
@@ -464,10 +470,12 @@ class AstK(Enum):
     PointerOp = auto()
     Prefix    = auto()
     Const     = auto()
+    Extern    = auto()
 
 class Ast:
-    def __init__(self, kind: AstK, **kwargs):
+    def __init__(self, kind: AstK, token: Token, **kwargs):
         self.kind: AstK = kind
+        self.token: Token = token
         self.ident: Any = None
         self.value: Any = None
         self.args: Any = None
@@ -500,19 +508,21 @@ def parse_primary(tokens: TokenStream) -> Optional[Ast]:
         expr = parse_expression(tokens)
         tokens.expect(TK.RParen)
         return expr
+    peek = tokens.peek()
     if tokens.peekk(TK.Ident):
-        return Ast(AstK.Ident, ident=tokens.next().value)
+        return Ast(AstK.Ident, peek, ident=tokens.next().value)
     if tokens.peekk(TK.Integer):
-        return Ast(AstK.Integer, value=tokens.next().value)
+        return Ast(AstK.Integer, peek, value=tokens.next().value)
     if tokens.peekk(TK.Char):
-        return Ast(AstK.Integer, value=ord(tokens.next().value))
+        return Ast(AstK.Integer, peek, value=ord(tokens.next().value))
     if tokens.peekk(TK.String):
-        return Ast(AstK.String, value=tokens.next().value)
+        return Ast(AstK.String, peek, value=tokens.next().value)
     if tokens.peekk_one_of([TK.KW_u8r, TK.KW_u16r, TK.KW_u32r, TK.KW_u64r]):
         return parse_pointer_op(tokens)
     return None
 
 def parse_postfix(tokens: TokenStream) -> Optional[Ast]:
+    peek = tokens.peek()
     expr = parse_primary(tokens)
     if expr is None:
         return None
@@ -534,16 +544,16 @@ def parse_postfix(tokens: TokenStream) -> Optional[Ast]:
                 print(f"{tokens.peek().fmt_src_loc()}")
                 exit(1)
     tokens.expect(TK.RParen)
-    return Ast(AstK.Call, expr=expr, args=args)
+    return Ast(AstK.Call, peek, expr=expr, args=args)
 
 def parse_prefix(tokens: TokenStream) -> Optional[Ast]:
     postfix = parse_postfix(tokens)
     if postfix: return postfix
 
     if tokens.peekk_one_of([TK.Tilde, TK.KW_not]):
-        tk = tokens.next().kind
+        tok = tokens.next()
         prefix = parse_prefix(tokens)
-        return Ast(AstK.Prefix, op=tk, expr=prefix)
+        return Ast(AstK.Prefix, tok, op=tok.kind, expr=prefix)
     return None
         
 
@@ -553,11 +563,11 @@ def parse_binary_multiplicative(tokens: TokenStream) -> Optional[Ast]:
         return None
 
     while tokens.peekk_one_of([TK.Star, TK.Slash, TK.Percent]):
-        tok = tokens.next().kind
+        tok = tokens.next()
         rhs = parse_prefix(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=tok, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_binary_additive(tokens: TokenStream) -> Optional[Ast]:
@@ -566,11 +576,11 @@ def parse_binary_additive(tokens: TokenStream) -> Optional[Ast]:
         return None
 
     while tokens.peekk_one_of([TK.Plus, TK.Minus]):
-        tok = tokens.next().kind
+        tok = tokens.next()
         rhs = parse_binary_multiplicative(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=tok, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_binary_relational(tokens: TokenStream) -> Optional[Ast]:
@@ -579,11 +589,11 @@ def parse_binary_relational(tokens: TokenStream) -> Optional[Ast]:
         return None
 
     while tokens.peekk_one_of([TK.Less, TK.Greater, TK.LessEq, TK.GreaterEq]):
-        tok = tokens.next().kind
+        tok = tokens.next()
         rhs = parse_binary_additive(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=tok, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_binary_equality(tokens: TokenStream) -> Optional[Ast]:
@@ -592,11 +602,11 @@ def parse_binary_equality(tokens: TokenStream) -> Optional[Ast]:
         return None
 
     while tokens.peekk_one_of([TK.EqEq, TK.NotEq]):
-        tok = tokens.next().kind
+        tok = tokens.next()
         rhs = parse_binary_relational(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=tok, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_binary_land(tokens: TokenStream) -> Optional[Ast]:
@@ -604,11 +614,12 @@ def parse_binary_land(tokens: TokenStream) -> Optional[Ast]:
     if lhs is None:
         return None
 
-    while tokens.accept(TK.KW_and):
+    while tokens.peekk(TK.KW_and):
+        tok = tokens.next()
         rhs = parse_binary_equality(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=TK.KW_and, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_binary_lor(tokens: TokenStream) -> Optional[Ast]:
@@ -617,41 +628,46 @@ def parse_binary_lor(tokens: TokenStream) -> Optional[Ast]:
         return None
 
     while tokens.accept(TK.KW_or):
+        tok = tokens.next()
         rhs = parse_binary_land(tokens)
         if rhs is None:
             return None
-        lhs = Ast(AstK.BinOp, lhs=lhs, op=TK.KW_or, rhs=rhs)
+        lhs = Ast(AstK.BinOp, tok, lhs=lhs, op=tok.kind, rhs=rhs)
     return lhs
 
 def parse_expression(tokens: TokenStream) -> Optional[Ast]:
     return parse_binary_lor(tokens)
 
 def parse_if_stmt(tokens: TokenStream) -> Optional[Ast]:
+    peek = tokens.peek()
     test = parse_expression(tokens)
     if test is None:
         return None
     tokens.expect(TK.KW_then)
     conseq = parse_statements_until(tokens, [TK.KW_else, TK.KW_end])
     if tokens.accept(TK.KW_end):
-        return Ast(AstK.IfElse, test=test, consequence=conseq, alternative=[])
+        return Ast(AstK.IfElse, peek, test=test, consequence=conseq, alternative=[])
     tokens.expect(TK.KW_else)
-    if tokens.accept(TK.KW_if):
+    if tokens.peekk(TK.KW_if):
+        peek = tokens.next()
         altern = [parse_if_stmt(tokens)]
-        return Ast(AstK.IfElse, test=test, consequence=conseq, alternative=altern)
+        return Ast(AstK.IfElse, peek, test=test, consequence=conseq, alternative=altern)
     altern = parse_statements_until(tokens, [TK.KW_end])
     tokens.accept(TK.KW_end)
-    return Ast(AstK.IfElse, test=test, consequence=conseq, alternative=altern)
+    return Ast(AstK.IfElse, peek, test=test, consequence=conseq, alternative=altern)
 
 def parse_while_stmt(tokens: TokenStream) -> Optional[Ast]:
+    peek = tokens.peek()
     test = parse_expression(tokens)
     if test is None:
         return None
     tokens.expect(TK.KW_do)
     body = parse_statements_until(tokens, [TK.KW_done])
     tokens.expect(TK.KW_done)
-    return Ast(AstK.While, test=test, body=body)
+    return Ast(AstK.While, peek, test=test, body=body)
 
 def parse_pointer_op(tokens: TokenStream) -> Optional[Ast]:
+    peek = tokens.peek()
     if tokens.accept(TK.KW_u8w):
         size = 8
         op = "WRITE"
@@ -702,35 +718,36 @@ def parse_pointer_op(tokens: TokenStream) -> Optional[Ast]:
         print(f"{tokens.peek().fmt_src_loc()}")
         exit(1)
         
-    return Ast(AstK.PointerOp, size=size, op=op, args=args)
+    return Ast(AstK.PointerOp, peek, size=size, op=op, args=args)
 
 def parse_statement(tokens: TokenStream) -> Optional[Ast]:
+    peek = tokens.peek()
     if tokens.accept(TK.KW_var):
         ident = tokens.expect(TK.Ident)
         if tokens.accept(TK.Semicolon):
-            return Ast(AstK.VarDecl, ident=ident)
+            return Ast(AstK.VarDecl, peek, ident=ident)
         tokens.expect(TK.Assign)
         expr = parse_expression(tokens)
         if expr is None:
             return None
         tokens.expect(TK.Semicolon)
-        return Ast(AstK.VarAssign, ident=ident, expr=expr)
+        return Ast(AstK.VarAssign, peek, ident=ident, expr=expr)
     if tokens.accept(TK.KW_if):
         return parse_if_stmt(tokens)
     if tokens.accept(TK.KW_while):
         return parse_while_stmt(tokens)
     if tokens.accept(TK.KW_return):
         if tokens.accept(TK.Semicolon):
-            return Ast(AstK.Return, expr=None)
+            return Ast(AstK.Return, peek, expr=None)
         expr = parse_expression(tokens)
         tokens.expect(TK.Semicolon)
-        return Ast(AstK.Return, expr=expr)
+        return Ast(AstK.Return, peek, expr=expr)
     if tokens.peekks([TK.Ident, TK.Assign]):
         ident = tokens.expect(TK.Ident)
         tokens.expect(TK.Assign)
         expr = parse_expression(tokens)
         tokens.expect(TK.Semicolon)
-        return Ast(AstK.Assign, ident=ident, expr=expr)
+        return Ast(AstK.Assign, peek, ident=ident, expr=expr)
     if tokens.peekk_one_of([TK.KW_u8w, TK.KW_u16w, TK.KW_u32w,  TK.KW_u64w]):
         stmt = parse_pointer_op(tokens)
         tokens.expect(TK.Semicolon)
@@ -766,14 +783,25 @@ def parse_proc(tokens: TokenStream) -> Optional[Ast]:
     body = parse_statements_until(tokens, [TK.KW_end])
 
     if tokens.expect(TK.KW_end):
-        return Ast(AstK.Procedure, name=ident, params=params, body=body)
+        return Ast(AstK.Procedure, ident, name=ident, params=params, body=body)
     return None
 
 def parse_const(tokens: TokenStream) -> Optional[Ast]:
     ident = tokens.expect(TK.Ident)
     tokens.expect(TK.Assign)
     value = tokens.expect_one_of([TK.Ident, TK.Integer, TK.String, TK.Char])
-    return Ast(AstK.Const, ident=ident, val_tok=value)
+    return Ast(AstK.Const, ident, ident=ident, val_tok=value)
+
+def parse_extern(tokens: TokenStream) -> Optional[Ast]:
+    ident = tokens.expect(TK.Ident)
+    params = []
+    while tokens.peekk(TK.Ident):
+        params.append(tokens.expect(TK.Ident))
+        if tokens.peekk(TK.Semicolon):
+            break
+        tokens.expect(TK.Comma)
+    return Ast(AstK.Extern, ident, ident=ident, params=params)
+    
 
 def parse(tokens: TokenStream) -> List[Optional[Ast]]:
     roots: List[Optional[Ast]] = []
@@ -784,6 +812,11 @@ def parse(tokens: TokenStream) -> List[Optional[Ast]]:
                 roots.append(p)
         elif tokens.accept(TK.KW_const):
             p = parse_const(tokens)
+            if p:
+                roots.append(p)
+                tokens.expect(TK.Semicolon)
+        elif tokens.accept(TK.KW_extern):
+            p = parse_extern(tokens)
             if p:
                 roots.append(p)
                 tokens.expect(TK.Semicolon)
@@ -1006,8 +1039,10 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
             ir_compile(ast.expr, ir)
             ir.append(IRK.PopCall)
         else:
-            ir.add_extern(ident)
-            ir.append(IRK.Call, label=ident)
+            print(f"ERROR: Undeclared identifier: `{ident}`")
+            print(f"    did you forget to declare 'extern {ident} ...;'?")
+            print(ast.token.fmt_src_loc())
+            exit(1)
     else:
         ir_compile(ast.expr, ir)
         ir.append(IRK.PopCall)
@@ -1145,6 +1180,9 @@ def ir_emit_const(ast: Ast, ir: IRContext) -> None:
         print(ast.ident.fmt_src_loc())
         exit(1)
     ir.add_const(ast.ident.value, val)
+
+def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
+    ir.add_extern(ast.ident.value)
     
 def ir_compile(ast: Ast, ir: IRContext) -> None:
     k = ast.kind
@@ -1163,6 +1201,7 @@ def ir_compile(ast: Ast, ir: IRContext) -> None:
     elif k == AstK.PointerOp: ir_emit_pointer_op(ast, ir)
     elif k == AstK.Prefix: ir_emit_prefix_op(ast, ir)
     elif k == AstK.Const: ir_emit_const(ast, ir)
+    elif k == AstK.Extern: ir_emit_extern(ast, ir)
     else: assert False, f"TODO: compile Ast({k})"
 
 ########################################################################################
