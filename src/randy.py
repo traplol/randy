@@ -412,6 +412,7 @@ def lex(filename: str, code: str) -> List[Token]:
         elif c == ".":
             if code[i+1] == "." and code[i+2] == ".":
                 token = Token(TK.Ellipsis, "...", (filename, line_no, col_no))
+                tokens.append(token)
                 i += 3
         elif c == "<":
             if code[i+1] == "=":
@@ -491,6 +492,7 @@ class Ast:
         self.consequence: Any = None
         self.alternative: Any = None
         self.size: Any = None
+        self.varargs: Any = None
         self.keys = []
         for k, v in kwargs.items():
             self.keys.append(k)
@@ -795,13 +797,16 @@ def parse_const(tokens: TokenStream) -> Optional[Ast]:
 def parse_extern(tokens: TokenStream) -> Optional[Ast]:
     ident = tokens.expect(TK.Ident)
     params = []
+    varargs = False
     while tokens.peekk(TK.Ident):
         params.append(tokens.expect(TK.Ident))
         if tokens.peekk(TK.Semicolon):
             break
         tokens.expect(TK.Comma)
-    return Ast(AstK.Extern, ident, ident=ident, params=params)
-    
+    if tokens.peekk(TK.Ellipsis):
+        tokens.next()
+        varargs = True
+    return Ast(AstK.Extern, ident, ident=ident, params=params, varargs=varargs)
 
 def parse(tokens: TokenStream) -> List[Optional[Ast]]:
     roots: List[Optional[Ast]] = []
@@ -877,6 +882,7 @@ class IRInstr:
         self.label: Any = None
         self.value: Any = None
         self.size: Any = None
+        self.varargs: Any = None
         self.keys = []
         for k, v in kwargs.items():
             self.keys.append(k)
@@ -894,7 +900,7 @@ class IRContext:
         self.procs = {}
         self.label_id = 0
         self.data = []
-        self.externs = set()
+        self.externs = {}
         self.labels = set()
         self.constants = {}
         self.instructions = []
@@ -951,13 +957,13 @@ class IRContext:
         self.add_data(str_label, len(str_bytes), str_bytes)
         return str_label
 
-    def add_extern(self, ident: str) -> None:
-        self.externs.add(ident)
+    def add_extern(self, ident: str, is_varargs: bool) -> None:
+        self.externs[ident] = (ident, is_varargs)
 
-    def get_extern(self, ident: str) -> Optional[str]:
+    def get_extern(self, ident: str) -> Tuple[Optional[str], Optional[bool]]:
         if ident in self.externs:
-            return ident
-        return None
+            return self.externs[ident]
+        return None, None
 
     def new_label(self, hint: str) -> str:
         label = f".L{hint}_{self.label_id}"
@@ -1030,11 +1036,14 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.FreeTemps, n=len(ast.args))
     if ast.expr.kind == AstK.Ident:
         ident = ast.expr.ident
-        if ident in ir.procs:
+        if ident in ir.externs:
+            id, varargs = ir.externs[ident]
+            ir.append(IRK.Call, label=id, varargs=varargs)
+        elif ident in ir.procs:
             proc_name, _ = ir.procs[ident]
-            ir.append(IRK.Call, label=proc_name)
+            ir.append(IRK.Call, label=proc_name, varargs=False)
         elif ir.is_label(ident):
-            ir.append(IRK.Call, label=ident)
+            ir.append(IRK.Call, label=ident, varargs=False)
         elif ir.is_local(ident):
             ir_compile(ast.expr, ir)
             ir.append(IRK.PopCall)
@@ -1182,7 +1191,7 @@ def ir_emit_const(ast: Ast, ir: IRContext) -> None:
     ir.add_const(ast.ident.value, val)
 
 def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
-    ir.add_extern(ast.ident.value)
+    ir.add_extern(ast.ident.value, ast.varargs)
     
 def ir_compile(ast: Ast, ir: IRContext) -> None:
     k = ast.kind
@@ -1381,7 +1390,8 @@ def emit_set_arg_temp(ctx: CompilerContext, ir: IRInstr) -> None:
 
 def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"#{ir}")
-    ctx.out(f"    xor %al, %al")
+    if ir.varargs:
+        ctx.out(f"    xor %al, %al")
     ctx.out(f"    call {ir.label}")
     ctx.out(f"    pushq %rax")
     
@@ -1630,8 +1640,8 @@ def main():
     ctx = CompilerContext(quiet=True, no_comments=True)
     ir = IRContext(quiet=True)
 
-    for ext in ["stdout", "stderr", "stdin", "fflush", "printf"]:
-        ir.add_extern(ext)
+    for ext, va in [("stdout", False), ("stderr", False), ("stdin", False), ("fflush", False), ("printf", True)]:
+        ir.add_extern(ext, va)
 
     for intrin in ["print", "syscall"]:
         ir.declare_intrinsic(intrin)
