@@ -1,0 +1,15 @@
+extern printf cstr, ...;
+
+asm test_asm do
+"
+    pushq %rbp
+    movq %rsp, %rbp
+    movq $123, %rax
+    leave
+    ret
+"
+end
+
+proc main do
+    printf("test_asm = %d\n", test_asm());
+end

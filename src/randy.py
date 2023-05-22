@@ -40,6 +40,7 @@ class TK(Enum):
     KW_u64w   = auto()
     KW_const  = auto()
     KW_extern = auto()
+    KW_asm    = auto()
     Plus      = auto()
     Minus     = auto()
     Star      = auto()
@@ -183,6 +184,7 @@ keywords : dict[str, TK] = {
     #"syscall": TK.KW_syscall,
     "const": TK.KW_const,
     "extern": TK.KW_extern,
+    "asm": TK.KW_asm,
 }
 def ident_kind(tok: str) -> TK:
     if tok in keywords:
@@ -472,6 +474,7 @@ class AstK(Enum):
     Prefix    = auto()
     Const     = auto()
     Extern    = auto()
+    InlineAsm = auto()
 
 class Ast:
     def __init__(self, kind: AstK, token: Token, **kwargs):
@@ -493,6 +496,7 @@ class Ast:
         self.alternative: Any = None
         self.size: Any = None
         self.varargs: Any = None
+        self.asm: Any = None
         self.keys = []
         for k, v in kwargs.items():
             self.keys.append(k)
@@ -808,6 +812,13 @@ def parse_extern(tokens: TokenStream) -> Optional[Ast]:
         varargs = True
     return Ast(AstK.Extern, ident, ident=ident, params=params, varargs=varargs)
 
+def parse_asm(tokens: TokenStream) -> Optional[Ast]:
+    ident = tokens.expect(TK.Ident)
+    tokens.expect(TK.KW_do)
+    asmcode = tokens.expect(TK.String)
+    tokens.expect(TK.KW_end)
+    return Ast(AstK.InlineAsm, ident, name=ident, asm=asmcode)
+
 def parse(tokens: TokenStream) -> List[Optional[Ast]]:
     roots: List[Optional[Ast]] = []
     while not tokens.empty():
@@ -825,6 +836,10 @@ def parse(tokens: TokenStream) -> List[Optional[Ast]]:
             if p:
                 roots.append(p)
                 tokens.expect(TK.Semicolon)
+        elif tokens.accept(TK.KW_asm):
+            p = parse_asm(tokens)
+            if p:
+                roots.append(p)
         else:
             tk = tokens.peek()
             print(f"Error: Unexpected token in top-level: {repr(tk.kind)} : {repr(tk.value)}")
@@ -870,6 +885,7 @@ class IRK(Enum):
     PtrWrite    = auto()
     BitNot      = auto()
     LogicNot    = auto()
+    InlineAsm   = auto()
 
 class IRInstr:
     def __init__(self, kind: IRK, **kwargs):
@@ -883,6 +899,7 @@ class IRInstr:
         self.value: Any = None
         self.size: Any = None
         self.varargs: Any = None
+        self.asm: Any = None
         self.keys = []
         for k, v in kwargs.items():
             self.keys.append(k)
@@ -1040,8 +1057,8 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
             id, varargs = ir.externs[ident]
             ir.append(IRK.Call, label=id, varargs=varargs)
         elif ident in ir.procs:
-            proc_name, _ = ir.procs[ident]
-            ir.append(IRK.Call, label=proc_name, varargs=False)
+            proc_name, varargs = ir.procs[ident]
+            ir.append(IRK.Call, label=proc_name, varargs=varargs)
         elif ir.is_label(ident):
             ir.append(IRK.Call, label=ident, varargs=False)
         elif ir.is_local(ident):
@@ -1192,6 +1209,11 @@ def ir_emit_const(ast: Ast, ir: IRContext) -> None:
 
 def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
     ir.add_extern(ast.ident.value, ast.varargs)
+
+def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
+    # FIXME: move this to IRContext
+    ir.procs[ast.name.value] = (ast.name.value, ast.params)
+    ir.append(IRK.InlineAsm, name=ast.name.value, asm=ast.asm)
     
 def ir_compile(ast: Ast, ir: IRContext) -> None:
     k = ast.kind
@@ -1211,6 +1233,7 @@ def ir_compile(ast: Ast, ir: IRContext) -> None:
     elif k == AstK.Prefix: ir_emit_prefix_op(ast, ir)
     elif k == AstK.Const: ir_emit_const(ast, ir)
     elif k == AstK.Extern: ir_emit_extern(ast, ir)
+    elif k == AstK.InlineAsm: ir_emit_asm(ast, ir)
     else: assert False, f"TODO: compile Ast({k})"
 
 ########################################################################################
@@ -1332,6 +1355,7 @@ def sized_register(size: int, reg: str) -> str:
 def emit_new_proc(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.new_proc(ir.name, ir.params, ir.locals)
     ctx.out(f".globl {ir.name}")
+    ctx.out(f".align 16")
     ctx.out(f"{ir.name}: # params={ir.params}")
     ctx.out(f"#{ir}")
     ctx.out(f"    pushq %rbp")
@@ -1514,11 +1538,13 @@ def emit_ptr_read(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    movq %rdx, %rax")
     ctx.out(f"    pushq %rax")
 
-    # register = sized_register(ir.size, "%rax")
-    # ctx.out(f"    popq %rax") # -- ptr
-    # #ctx.out(f"    xorl %edx, %edx")
-    # ctx.out(f"    mov{suffix} (%rax), {register}")
-    # ctx.out(f"    pushq %rax")
+def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
+    code = [line.strip() for line in ir.asm.value.split("\n")]
+    ctx.out(f".align 16")
+    ctx.out(f"{ir.name}:")
+    for asm in code:
+        if asm != "":
+            ctx.out(f"    {asm}")
 
 emitters = {
     IRK.NewProc: emit_new_proc,
@@ -1552,6 +1578,7 @@ emitters = {
     IRK.GotoFalse: emit_goto_false,
     IRK.PtrWrite: emit_ptr_write,
     IRK.PtrRead: emit_ptr_read,
+    IRK.InlineAsm: emit_inline_asm,
 }
 def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
     k = ir.kind
@@ -1561,6 +1588,7 @@ def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
 
 def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
     ctx.out(".globl _start")
+    ctx.out(f".align 16")
     ctx.out("_start:")
     for arg in systemv_args:
         ctx.out(f"    xorq {arg}, {arg}")
@@ -1578,6 +1606,7 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
 def emit_intrinsics(ctx: CompilerContext) -> None:
     intrin = "print"
     ctx.out(f".globl {intrin}")
+    ctx.out(f".align 16")
     ctx.out(f"{intrin}:")
     ctx.out(f"    pushq %rbp")
     ctx.out(f"    movq %rsp, %rbp")
@@ -1593,6 +1622,7 @@ def emit_intrinsics(ctx: CompilerContext) -> None:
 
     intrin = "syscall"
     ctx.out(f".globl {intrin}")
+    ctx.out(f".align 16")
     ctx.out(f"{intrin}:")
     ctx.out(f"    movq %rdi, %rax")
     ctx.out(f"    movq %rsi, %rdi")
@@ -1672,10 +1702,12 @@ def main():
     ctx.out("\n")
 
     ctx.out(".data")
+    ctx.out(f".align 8")
     ctx.out('_fmt: .asciz  "num=%ld\\n"')
     for data in ir.data:
         label, size, bytes = data
         bytestr = ", ".join([hex(x) for x in bytes])
+        ctx.out(f".align 8")
         ctx.out(f"{label}: .byte {bytestr}")
 
     ctx.out("\n")
