@@ -931,9 +931,6 @@ class IRContext:
         self.instructions.append(instr)
         return instr
 
-    def declare_intrinsic(self, intrinsic) -> None:
-        self.procs[intrinsic] = (intrinsic, [])
-
     def declare_proc(self, name: str, params: List[str]) -> str:
         label = "_proc_" + name
         self.labels.add(label)
@@ -1603,39 +1600,6 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
     ctx.out(f"    syscall")
     ctx.out(f"    int3")
 
-def emit_intrinsics(ctx: CompilerContext) -> None:
-    intrin = "print"
-    ctx.out(f".globl {intrin}")
-    ctx.out(f".align 16")
-    ctx.out(f"{intrin}:")
-    ctx.out(f"    pushq %rbp")
-    ctx.out(f"    movq %rsp, %rbp")
-    ctx.out(f"    subq $16, %rsp")
-    ctx.out(f"    movq %rdi, %rsi")
-    ctx.out(f"    leaq _fmt, %rdi")
-    ctx.out(f"    xorl %eax, %eax")
-    ctx.out(f"    call printf")
-    ctx.out(f"    leave")
-    ctx.out(f"    ret")
-    ctx.out(f"    int3")
-    ctx.out("\n")
-
-    intrin = "syscall"
-    ctx.out(f".globl {intrin}")
-    ctx.out(f".align 16")
-    ctx.out(f"{intrin}:")
-    ctx.out(f"    movq %rdi, %rax")
-    ctx.out(f"    movq %rsi, %rdi")
-    ctx.out(f"    movq %rdx, %rsi")
-    ctx.out(f"    movq %rcx, %rdx")
-    ctx.out(f"    movq %r8, %r10")
-    ctx.out(f"    movq %r9, %r8")
-    ctx.out(f"    movq 8(%rsp), %r9")
-    ctx.out(f"    syscall")
-    ctx.out(f"    ret")
-    ctx.out(f"    int3")
-    ctx.out("\n")
-
 def assemble_and_link(path: str) -> None:
     without_ext = os.path.splitext(path)[0]
     obj_path = f"{without_ext}.o"
@@ -1673,9 +1637,6 @@ def main():
     for ext, va in [("stdout", False), ("stderr", False), ("stdin", False), ("fflush", False), ("printf", True)]:
         ir.add_extern(ext, va)
 
-    for intrin in ["print", "syscall"]:
-        ir.declare_intrinsic(intrin)
-
     for ast in roots:
         ir_compile(ast, ir)
 
@@ -1684,8 +1645,6 @@ def main():
 
     for insn in ir.instructions:
         emit_instruction(ctx, insn)
-
-    emit_intrinsics(ctx)
 
     main_proc, _ = ir.get_proc("main")
     if main_proc is None:

@@ -358,3 +358,18 @@ const SYS_landlock_add_rule = 445;
 const SYS_landlock_restrict_self = 446;
 const SYS_memfd_secret = 447;
 const SYS_process_mrelease = 448;
+
+asm syscall do
+"
+    movq %rdi, %rax
+    movq %rsi, %rdi
+    movq %rdx, %rsi
+    movq %rcx, %rdx
+    movq %r8, %r10
+    movq %r9, %r8
+    movq 8(%rsp), %r9
+    syscall
+    ret
+    int3
+"
+end
