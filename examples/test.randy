@@ -1,0 +1,53 @@
+
+
+proc memory_access do
+    var ptr = malloc(20); // Allocate 20 bytes.
+
+    // 8, 16, 32, and 64-bit memory writes
+    u8!(ptr + 0, ptr);
+    u16!(ptr + 1, 1111);
+    u32!(ptr + 2, 22222);
+    u64!(ptr + 3, 3333333);
+
+    // 8, 16, 32, and 64-bit memory reads
+    var w = u8@(ptr + 0);
+    var x = u16@(ptr + 1);
+    var y = u32@(ptr + 2);
+    var z = u64@(ptr + 3);
+
+    u8!(ptr + 0, 'h');
+    u8!(ptr + 1, 'e');
+    u8!(ptr + 2, 'l');
+    u8!(ptr + 3, 'l');
+    u8!(ptr + 4, 'o');
+    u8!(ptr + 5, ' ');
+    // Pointer "offsets" are entirely manual with byte-granularity.
+    u32!(ptr + 6, 1819438967); // on little-endian this is "worl"
+    u8!(ptr + 10, 'd');
+    u8!(ptr + 11, '!');
+    u8!(ptr + 12, 0);
+
+    puts(ptr);
+
+    // Remember, pointers are just memory addresses meaning they are just integers.
+    // This will print the address of memory we allocated.
+    print(ptr);
+    printf("%lx\n", ptr);
+
+    // Don't forget to free the memory!
+    free(ptr);
+end
+
+proc fib n do
+    if n < 2 then
+        return n;
+    else
+        return fib(n - 2) + fib(n - 1);
+    end
+end
+
+
+proc main do
+    print(fib(40));
+    return 0;
+end

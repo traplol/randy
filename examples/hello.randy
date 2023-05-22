@@ -1,0 +1,4 @@
+
+proc main do
+    puts("hello world.");
+end

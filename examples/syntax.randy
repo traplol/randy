@@ -1,0 +1,194 @@
+#include core
+
+// start with the simplest set of useful programming constructs:
+// machine words (integers/pointers)
+// memory read / memory write
+// variables
+// procedures
+// conditional branching (if/else)
+// looping (while)
+// basic operations:
+//       arithmetic        + - * / %
+//       boolean logic     not or and
+//       relational        == != < <= > >=
+//       bit manipulation  << >> | & ^ ~
+//       syscall
+// 
+// no structs
+// no arrays
+// no type checking
+// 
+// arrays and structs can be simulated with functions that perform reads/writes on pointers
+
+
+
+// Only procedures are allowed at the top level.
+
+// Define a procedure with "proc NAME ARGS_LIST do BODY end"
+// Return values are explicit but they a not type checked.
+// Calling a function that doesn't return anything and using it like it does return
+// something is undefined behaviour.
+
+proc proc_name rdi, rsi, rdx do
+    return rsi - rdi * rdx;
+end
+
+proc hello_world do
+    // "string" literals are just regular integers/pointers provided as a convenience by
+    // the compiler.
+    puts("hello world");
+    // 'c'haracter literals are also just convenience from the compiler.
+    putchar('\n');
+end
+
+proc foo a, b, c do
+    a = a * a;
+    b = a * b;
+    c = a * c;
+    return a + b + c;
+end
+
+proc factorial n do
+    if n < 2 then
+        return 1;
+    else
+        return n * factorial(n-1);
+    end
+end
+
+proc fib n do
+    if n < 2 then
+        return n;
+    else
+        return fib(n-2) + fib(n-1);
+    end
+end
+
+proc count_to_n n do
+    // Define a variable with "var"
+    var i = 0;
+    while i < n do
+        print(i);
+        i = i + 1;
+    done 
+end
+
+proc mod5 n do
+    return n % 5;
+end
+
+proc fizz_buzz n do
+    var i = 1;
+    var printed = 0;
+    while i <= n do
+        // if (i % 3 == 0) and (i % 5 == 0) then
+        //     puts("fizzbuzz");
+        // else if i % 3 == 0 then
+        //     puts("fizz");
+        // else if i % 5 == 0 then
+        //     puts("buzz");
+        // else
+        //     print(i);
+        // end
+        printed = 0;
+        if i % 3 == 0 then
+            printf("fizz");
+            printed = 1;
+        end
+
+        if i % 5 == 0 then
+            printf("buzz");
+            printed = 1;
+        end
+
+        if not printed then
+            printf("%ld\n", i);
+        else
+            printf("\n");
+        end
+        i = i + 1;
+    done
+end
+
+proc memory_access do
+    var ptr = malloc(20); // Allocate 20 bytes.
+
+    // 8, 16, 32, and 64-bit memory writes
+    u8!(ptr  + 0, 69);
+    u16!(ptr + 0 + 1, 1111);
+    u32!(ptr + 0 + 1 + 2, 22222);
+    u64!(ptr + 0 + 1 + 2 + 4, 3333333);
+
+    // 8, 16, 32, and 64-bit memory reads
+    var w = u8@(ptr + 0);
+    print(w);
+    var x = u16@(ptr + 0 + 1);
+    print(x);
+    var y = u32@(ptr + 0 + 1 + 2);
+    print(y);
+    var z = u64@(ptr + 0 + 1 + 2 + 4);
+    print(z);
+
+    u8!(ptr + 0, 'h');
+    u8!(ptr + 1, 'e');
+    u8!(ptr + 2, 'l');
+    u8!(ptr + 3, 'l');
+    u8!(ptr + 4, 'o');
+    u8!(ptr + 5, ' ');
+    // Pointer "offsets" are entirely manual with byte-granularity.
+    u32!(ptr + 6, 1819438967); // on little-endian this is "worl"
+    u8!(ptr + 10, 'd');
+    u8!(ptr + 11, '!');
+    u8!(ptr + 12, 0);
+
+    puts(ptr);
+
+    // Remember, pointers are just memory addresses meaning they are just integers.
+    // This will print the address of memory we allocated.
+    //print(ptr);
+
+    // Don't forget to free the memory!
+    free(ptr);
+end
+
+proc min a, b do
+    if a < b then
+        return a;
+    end
+    return b;
+end
+
+const true = 1;
+const false = 0;
+const SYS_exit = 60;
+const FOO = SYS_exit;
+const BAR = "hello";
+const Number = 42;
+const Newline = '\n';
+
+proc main do
+    print(12345);
+    memory_access();
+
+    fizz_buzz(100);
+    print(factorial(10));
+    print(fib(10));
+    print(fib(20));
+    print(fib(30));
+    count_to_n(10);
+
+    print(not 123);
+
+    var i = 0;
+    while i < 46 do
+        printf("hello world. i = %d, %d, %d, %d\n", i, i % 3, i % 5, i % 15);
+        i = i + 1;
+    done
+
+    print(SYS_write);
+
+    puts(BAR);
+
+    return 69;
+end
+

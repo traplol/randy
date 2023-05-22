@@ -1,0 +1,8 @@
+
+#include syscall
+#include string
+#include file
+
+proc exit code do
+    syscall(SYS_exit, code);
+end

@@ -1,0 +1,80 @@
+#include core
+
+proc test_string do
+    printf("===== Empty string: =====\n");
+    var string = make_string(10);
+    printf("The string len is %ld\n", string_len(string));
+    printf("The string cap is %ld\n", string_cap(string));
+
+    printf("===== Push 10 items: =====\n");
+    var i = 0;
+    while i < 10 do
+        string_push(string, i);
+        i = i + 1;
+    done
+
+    printf("The string len is %ld\n", string_len(string));
+    printf("The string cap is %ld\n", string_cap(string));
+
+    printf("===== Read the 10 items: =====\n");
+    i = 0;
+    while i < 10 do
+        printf("at i=%ld -> %d\n", i, string_get(string, i));
+        i = i + 1;
+    done
+
+    printf("===== Try to expand string: =====\n");
+    string_push(string, i);
+    printf("The string len is %ld\n", string_len(string));
+    printf("The string cap is %ld\n", string_cap(string));
+    i = 0;
+    while i < 10 do
+        string_push(string, i+11);
+        i = i + 1;
+    done
+    printf("The string len is %ld\n", string_len(string));
+    printf("The string cap is %ld\n", string_cap(string));
+
+    var x = string_len(string);
+    printf("===== Read the %d items: =====\n", x);
+    i = 0;
+    while i < x do
+        printf("at i=%ld -> %d\n", i, string_get(string, i));
+        i = i + 1;
+    done
+    
+end
+
+proc main do
+
+    var fd = open_for_read("file_io.s");
+    var buf = malloc(1024);
+    var running = 1;
+    var result = 0;
+    var string = make_string(64);
+    var x = 0;
+    while running do
+        result = read_file(fd, buf, 1023);
+        if result < 0 then
+            running = 0;
+            printf("error reading file: %d\n", result);
+        else if result == 0 then
+            running = 0;
+        else
+            x = 0;
+            while x < result do
+                string_push(string, u8@(buf+x));
+                x = x + 1;
+            done
+        end
+    done
+    free(buf);
+
+    string_push(string, 0);
+    printf("%s", string_buf(string));
+
+    free_string(string);
+
+    //test_string();
+    return 0;
+end

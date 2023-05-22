@@ -1,0 +1,65 @@
+
+const TSTRING_buffer = 0;
+const TSTRING_length = 8;
+const TSTRING_capacity = 16;
+const sizeof_TSTRING = 24;
+
+proc make_string init do
+    var string = malloc(sizeof_TSTRING);
+    var buf = malloc(init);
+
+    u64!(string + TSTRING_buffer, buf);
+    u64!(string + TSTRING_length, 0);
+    u64!(string + TSTRING_capacity, init);
+    
+    return string;
+end
+
+proc free_string string do
+    free(u64@(string));
+    free(string);
+end
+
+proc string_buf string do
+    return u64@(string);
+end
+
+proc string_len string do
+    return u64@(string + TSTRING_length);
+end
+
+proc string_cap string do
+    return u64@(string + TSTRING_capacity);
+end
+
+proc string_get string, idx do
+    return u8@(u64@(string) + idx);
+end
+
+proc string_set string, idx, val do
+    u8!(u64@(string) + idx, val);
+end
+
+proc string_resize string, new_cap do
+    var new = malloc(new_cap);
+    var old = u64@(string);
+    var len = string_len(string);
+    if new_cap < len then
+        len = new_cap;
+    end
+    memcpy(new, old, len);
+    free(old);
+    u64!(string, new);
+    u64!(string + TSTRING_length, len);
+    u64!(string + TSTRING_capacity, new_cap);
+end
+
+proc string_push string, val do
+    var len = string_len(string);
+    var cap = string_cap(string);
+    if len == cap then
+        string_resize(string, 2 * cap);
+    end
+    string_set(string, len, val);
+    u64!(string + TSTRING_length, len+1);
+end
