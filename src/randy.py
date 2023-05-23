@@ -8,6 +8,7 @@ import time
 from enum import Enum, auto
 from types import MappingProxyType
 from typing import List, Tuple, Optional, Union, Any
+from dataclasses import dataclass
 
 
 ########################################################################################
@@ -821,27 +822,27 @@ def parse_asm(tokens: TokenStream) -> Optional[Ast]:
     tokens.expect(TK.KW_end)
     return Ast(AstK.InlineAsm, ident, name=ident, asm=asmcode)
 
-def parse(tokens: TokenStream) -> List[Optional[Ast]]:
-    roots: List[Optional[Ast]] = []
+def parse(tokens: TokenStream) -> List[Ast]:
+    roots: List[Ast] = []
     while not tokens.empty():
         if tokens.accept(TK.KW_proc):
             p = parse_proc(tokens)
-            if p:
-                roots.append(p)
+            assert p, "procedure did not parse."
+            roots.append(p)
         elif tokens.accept(TK.KW_const):
             p = parse_const(tokens)
-            if p:
-                roots.append(p)
-                tokens.expect(TK.Semicolon)
+            assert p, "const statement did not parse."
+            roots.append(p)
+            tokens.expect(TK.Semicolon)
         elif tokens.accept(TK.KW_extern):
             p = parse_extern(tokens)
-            if p:
-                roots.append(p)
-                tokens.expect(TK.Semicolon)
+            assert p, "extern statement did not parse."
+            roots.append(p)
+            tokens.expect(TK.Semicolon)
         elif tokens.accept(TK.KW_asm):
             p = parse_asm(tokens)
-            if p:
-                roots.append(p)
+            assert p, "inline asm block did not parse."
+            roots.append(p)
         else:
             tk = tokens.peek()
             print(f"Error: Unexpected token in top-level: {repr(tk.kind)} : {repr(tk.value)}")
@@ -1303,7 +1304,7 @@ class CompilerContext:
     def full_listing(self) -> str:
         return "\n".join(self.out_lines)
 
-    def optimize1(self) -> None:
+    def optimize1(self, verbose: bool) -> None:
         # we just remove redundant push / pop pairs and mov instructions.
         push = re.compile(r"    pushq (%r..?)")
         pop = re.compile(r"    popq (%r..?)")
@@ -1356,7 +1357,8 @@ class CompilerContext:
                             removed += 1
                             made_changes = True
                 i += 1
-        print(f"Removed {removed} and replaced {replaced} useless instructions.")
+        if verbose:
+            print(f"Removed {removed} and replaced {replaced} useless instructions.")
         
 
 
@@ -1652,47 +1654,63 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
     ctx.out(f"    syscall")
     ctx.out(f"    int3")
 
-def assemble_and_link(path: str) -> None:
-    without_ext = os.path.splitext(path)[0]
+def assemble_and_link(asm_path: str, exe_path: str, ld_flags: List[str], verbose: bool) -> None:
+    without_ext = os.path.splitext(asm_path)[0]
     obj_path = f"{without_ext}.o"
-    assemble = subprocess.run(["gcc", "-g3", "-c", path, "-o", obj_path])
+    obj_dir = str(pathlib.Path(obj_path).parent.resolve())
+    if verbose:
+        print(f"asm file   = {asm_path}")
+        print(f"obj dir    = {obj_dir}")
+        print(f"obj file   = {obj_path}")
+        print(f"executable = {exe_path}")
+        print(f"ld_flags = {ld_flags}")
+    assemble = subprocess.run(["gcc", "-g3", "-c", asm_path, "-o", obj_path])
     if assemble.returncode != 0:
         exit(assemble.returncode)
         return
-    obj_dir = str(pathlib.Path(obj_path).parent.resolve())
     if obj_dir != "/" and obj_dir != "":
         musl_lib = f"/home/max/workspace/musl-1.2.4/lib/libc.so"
-        ld = subprocess.run(["ld", "-o", without_ext, "-dynamic-linker", musl_lib, "-lc", obj_path])
+        ld = subprocess.run(["ld", "-o", without_ext, "-dynamic-linker", musl_lib, "-lc", obj_path] +
+                            ld_flags)
         if ld.returncode != 0:
             exit(ld.returncode)
 
-def main():
-    if len(sys.argv) < 2:
-        print("No input file.")
-        exit(1)
+@dataclass
+class Config:
+    source_path: str
+    out_path: str
+    ld_flags: List[str]
+    include_paths: List[str]
+    ir_comments: bool
+    verbosity: int
 
-    if len(sys.argv) < 3:
-        print("No output file.")
-        exit(1)
-
-    filename = os.path.abspath(sys.argv[1])
-    outpath = os.path.abspath(sys.argv[2])
-    include_paths.append(str(pathlib.Path(filename).parent.resolve()))
-    include_paths.append(str(pathlib.Path(filename).parent.resolve()) + "/include")
+def main(config: Config):
+    source_path = config.source_path
+    source_base = pathlib.Path(source_path).stem
+    out_path = config.out_path
+    if os.path.isdir(out_path):
+        out_path += f"/{source_base}"
+    out_asm = f"{out_path}.s"
+    include_paths.append(str(pathlib.Path(source_path).parent.resolve()))
+    include_paths.append(str(pathlib.Path(source_path).parent.resolve()) + "/include")
     include_paths.append("/home/max/workspace/randy/include")
+    for path in config.include_paths:
+        include_paths.append(str(pathlib.Path(path).parent.resolve()))
 
     start = time.time()
-    tokens = lex_file(filename)
+    tokens = lex_file(source_path)
     end = time.time()
-    print(f"Lexing took {(end-start)*1000}ms")
+    if config.verbosity > 0:
+        print(f"Lexing took {(end-start)*1000}ms")
 
     start = time.time()
     roots = parse(TokenStream(tokens))
     end = time.time()
-    print(f"Parsing took {(end-start)*1000}ms")
+    if config.verbosity > 0:
+        print(f"Parsing took {(end-start)*1000}ms")
 
-    ctx = CompilerContext(quiet=True, no_comments=True)
-    ir = IRContext(quiet=True)
+    ctx = CompilerContext(quiet=config.verbosity < 3, no_comments=not config.ir_comments)
+    ir = IRContext(quiet=config.verbosity < 3)
 
     start = time.time()
     for ext, va in [("stdout", False), ("stderr", False), ("stdin", False), ("fflush", False), ("printf", True)]:
@@ -1701,7 +1719,8 @@ def main():
     for ast in roots:
         ir_compile(ast, ir)
     end = time.time()
-    print(f"IR compile took {(end-start)*1000}ms")
+    if config.verbosity > 0:
+        print(f"IR compile took {(end-start)*1000}ms")
 
     start = time.time()
     ctx.out(".text")
@@ -1734,19 +1753,124 @@ def main():
 
     ctx.out("\n")
     end = time.time()
-    print(f"ASM compile took {(end-start)*1000}ms")
-
+    if config.verbosity > 0:
+        print(f"ASM compile took {(end-start)*1000}ms")
 
     start = time.time()
-    ctx.optimize1()
+    ctx.optimize1(config.verbosity > 0)
     end = time.time()
-    print(f"ASM optimize took {(end-start)*1000}ms")
+    if config.verbosity > 0:
+        print(f"ASM optimize took {(end-start)*1000}ms")
 
-    with open(outpath, "w") as f:
+    with open(out_asm, "w") as f:
         f.write(ctx.full_listing())
 
-    assemble_and_link(outpath)
+    start = time.time()
+    assemble_and_link(out_asm, out_path, config.ld_flags, config.verbosity > 1)
+    end = time.time()
+    if config.verbosity > 0:
+        print(f"Linking took {(end-start)*1000}ms")
 
+def print_usage() -> None:
+    print("usage: python randy.py [flags]")
+    print("Options and arguments:")
+    print("-c file       : Compile file")
+    print("-o path       : The path to compile the file provided by the -c flag.")
+    print("                When no -o path specified, the current directory is used.")
+    print("-I path       : Specify a path to search for #include directives.")
+    print("-ld flags...  : Everything after -ld will be passed to the linker directly.")
+    print("                see 'man ld' for linker flags.")
+    print("-v -vv -vvv   : Compiler verbosity level")
+    print("--ir-comments : Include intermediate representation comments in generated assembly.")
+
+def parse_args() -> Config:
+    source_path: Optional[str] = None
+    out_path: Optional[str] = None
+    ld_flags: List[str] = []
+    includes: List[str] = []
+    ir_comments = False
+    verbosity = 0
+
+    args = sys.argv
+    i = 0;
+    while i < len(args):
+        arg = args[i]
+        if arg == "-h" or arg == "--help":
+            print_usage()
+            exit(0)
+        if arg == "-c":
+            if i + 1 == len(args):
+                source_path = "-"
+                break
+            if source_path is not None:
+                print("Multiple -c flags not supported\n")
+                print_usage()
+            source_path = args[i+1]
+            i += 2
+            continue
+        if arg == "-o":
+            if i + 1 == len(args):
+                out_path = "-"
+                break
+            if out_path is not None:
+                print("Multiple -o flags not supported\n")
+                print_usage()
+            out_path = args[i+1]
+            i += 2
+            continue
+        if arg == "-I":
+            if i + 1 == len(args):
+                print("No path provided with -I flag")
+                print_usage()
+                exit(1)
+            includes.append(args[i+1])
+            i += 2
+            continue
+        if arg == "-ld":
+            ld_flags = args[i+1:]
+            break
+        if arg == "--ir-comments":
+            ir_comments = True
+            i += 1
+            continue
+        if arg == "--no-ir-comments":
+            ir_comments = False
+            i += 1
+            continue
+        if arg == "-v":
+            verbosity = 1
+            i += 1
+            continue
+        if arg == "-vv":
+            verbosity = 2
+            i += 1
+            continue
+        if arg == "-vvv":
+            verbosity = 3
+            i += 1
+            continue
+        i += 1
+
+    if source_path is None:
+        print_usage()
+        exit(1)
+    elif source_path[0] == "-":
+        print("No file provided with -c flag")
+        print_usage()
+        exit(1)
+    else:
+        source_path = os.path.abspath(source_path)
+
+    if out_path is None:
+        out_path = os.getcwd()
+    elif out_path[0] == "-":
+        print("No path provided with -o flag")
+        print_usage()
+        exit(1)
+    else:
+        out_path = os.path.abspath(out_path)
+
+    return Config(source_path, out_path, ld_flags, includes, ir_comments, verbosity)
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())
