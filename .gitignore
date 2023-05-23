@@ -1,4 +1,5 @@
 /.mypy_cache/
 /asm/
+/out/
 notes.txt
 .gdb_history
