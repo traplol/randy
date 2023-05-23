@@ -4,6 +4,7 @@ import inspect
 import subprocess
 import pathlib
 import re
+import time
 from enum import Enum, auto
 from types import MappingProxyType
 from typing import List, Tuple, Optional, Union, Any
@@ -1002,7 +1003,7 @@ class IRContext:
     def add_const(self, name: str, value: Union[None, str, int]) -> None:
         # if not self.quiet:
         #     print(f"Define const {name} = {repr(value)}")
-        assert value is not None
+        assert value is not None, f"Setting const {name}"
         if isinstance(value, str):
             self.constants[name] = self.add_string(value)
         else:
@@ -1035,10 +1036,17 @@ def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
     proc, _ = ir.get_proc(ident)
     if proc is not None:
         ir.append(IRK.PushLabel, label=proc)
+        return
 
-    extern = ir.get_extern(ident)
+    extern, _ = ir.get_extern(ident)
     if extern is not None:
         ir.append(IRK.PushLabel, label=extern)
+        return
+
+    print(f"ERROR: Undeclared identifier: `{ident}`")
+    print(f"    did you forget to declare 'extern {ident} ...;'?")
+    print(ast.token.fmt_src_loc())
+    exit(1)
 
 
 def ir_emit_integer(ast: Ast, ir: IRContext) -> None:
@@ -1673,17 +1681,29 @@ def main():
     include_paths.append(str(pathlib.Path(filename).parent.resolve()) + "/include")
     include_paths.append("/home/max/workspace/randy/include")
 
+    start = time.time()
     tokens = lex_file(filename)
+    end = time.time()
+    print(f"Lexing took {(end-start)*1000}ms")
+
+    start = time.time()
     roots = parse(TokenStream(tokens))
+    end = time.time()
+    print(f"Parsing took {(end-start)*1000}ms")
+
     ctx = CompilerContext(quiet=True, no_comments=True)
     ir = IRContext(quiet=True)
 
+    start = time.time()
     for ext, va in [("stdout", False), ("stderr", False), ("stdin", False), ("fflush", False), ("printf", True)]:
         ir.add_extern(ext, va)
 
     for ast in roots:
         ir_compile(ast, ir)
+    end = time.time()
+    print(f"IR compile took {(end-start)*1000}ms")
 
+    start = time.time()
     ctx.out(".text")
     ctx.out("\n")
 
@@ -1713,8 +1733,14 @@ def main():
         ctx.out(f"{label}: .byte {bytestr}")
 
     ctx.out("\n")
+    end = time.time()
+    print(f"ASM compile took {(end-start)*1000}ms")
 
+
+    start = time.time()
     ctx.optimize1()
+    end = time.time()
+    print(f"ASM optimize took {(end-start)*1000}ms")
 
     with open(outpath, "w") as f:
         f.write(ctx.full_listing())
