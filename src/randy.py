@@ -5,6 +5,7 @@ import subprocess
 import pathlib
 import re
 from enum import Enum, auto
+from types import MappingProxyType
 from typing import List, Tuple, Optional, Union, Any
 
 
@@ -1238,7 +1239,7 @@ def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
     ir.procs[ast.name.value] = (ast.name.value, ast.params)
     ir.append(IRK.InlineAsm, name=ast.name.value, asm=ast.asm)
     
-ir_emitters = {
+ir_emitters = MappingProxyType({
     AstK.Ident: ir_emit_ident,
     AstK.Integer: ir_emit_integer,
     AstK.String: ir_emit_string,
@@ -1256,7 +1257,7 @@ ir_emitters = {
     AstK.Const: ir_emit_const,
     AstK.Extern: ir_emit_extern,
     AstK.InlineAsm: ir_emit_asm,
-}
+})
 def ir_compile(ast: Ast, ir: IRContext) -> None:
     k = ast.kind
     if k in ir_emitters:
@@ -1584,7 +1585,7 @@ def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
         if asm != "":
             ctx.out(f"    {asm}")
 
-x86_64_emitters = {
+x86_64_emitters = MappingProxyType({
     IRK.NewProc: emit_new_proc,
     IRK.SetLocalArg: emit_set_local_arg,
     IRK.SetLocal: emit_set_local,
@@ -1619,7 +1620,7 @@ x86_64_emitters = {
     IRK.PtrWrite: emit_ptr_write,
     IRK.PtrRead: emit_ptr_read,
     IRK.InlineAsm: emit_inline_asm,
-}
+})
 def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
     k = ir.kind
     if k in x86_64_emitters:
