@@ -1698,7 +1698,7 @@ def main():
 
     ctx.out("\n")
 
-    ctx.out('.section .rodata, ""')
+    ctx.out('.section .rodata, "a"')
     ctx.out(f".align 8")
     for data in ir.data:
         label, size, bytes = data
