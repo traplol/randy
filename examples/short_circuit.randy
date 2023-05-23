@@ -1,0 +1,73 @@
+extern printf cstr, ...;
+extern puts cstr;
+
+proc return_true t do
+    printf("true %s ", t);
+    return 1;
+end
+
+proc return_false t do
+    printf("false %s ", t);
+    return 0;
+end
+
+
+proc branch_test_1 do
+    if return_true("") then
+        puts("this should print.");
+    else
+        puts("");
+    end
+
+    if return_false("") then
+        puts("this should not print.");
+    else
+        puts("");
+    end
+end
+
+proc branch_test_2 do
+    if return_true("and") and return_false("") then
+        puts("this should not print.");
+    else
+        puts("");
+    end
+
+    if return_true("or") or return_false("") then
+        puts("this should print.");
+    else
+        puts("");
+    end
+end
+
+proc branch_test_3 do
+    if return_false("or") or return_true("and") and return_false("") then
+        puts("this should not print.");
+    else
+        puts("");
+    end
+
+    if return_false("or") or return_true("or") or return_false("") then
+        puts("this should print.");
+    end
+
+    if return_false("or") or return_true("and") and return_true("") then
+        puts("this should print.");
+    else
+        puts("");
+    end
+
+    if return_true("or") or return_false("") then
+        puts("this should print.");
+    else
+        puts("");
+    end
+end
+
+
+
+proc main do
+    branch_test_1();
+    branch_test_2();
+    branch_test_3();
+end

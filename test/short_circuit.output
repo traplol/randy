@@ -1,0 +1,8 @@
+true  this should print.
+false  
+true and false  
+true or this should print.
+false or true and false  
+false or true or this should print.
+false or true and true  this should print.
+true or this should print.

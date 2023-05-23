@@ -633,7 +633,7 @@ def parse_binary_lor(tokens: TokenStream) -> Optional[Ast]:
     if lhs is None:
         return None
 
-    while tokens.accept(TK.KW_or):
+    while tokens.peekk(TK.KW_or):
         tok = tokens.next()
         rhs = parse_binary_land(tokens)
         if rhs is None:
@@ -851,41 +851,45 @@ def parse(tokens: TokenStream) -> List[Optional[Ast]]:
 #                             INTERMEDIATE REPRESENTATION
 ########################################################################################
 class IRK(Enum):
-    GetLocal    = auto()
-    PushLabel   = auto()
-    PushInt     = auto()
-    AllocTemps  = auto()
-    FreeTemps   = auto()
-    StoreTemp   = auto()
-    SetArgTemp  = auto()
-    Call        = auto()
-    PopCall     = auto()
-    Plus        = auto()
-    OpAdd       = auto()
-    OpSub       = auto()
-    OpMul       = auto()
-    OpDiv       = auto()
-    OpMod       = auto()
-    OpEq        = auto()
-    OpNotEq     = auto()
-    OpLess      = auto()
-    OpLessEq    = auto()
-    OpGreater   = auto()
-    OpGreaterEq = auto()
-    PopReturn   = auto()
-    ReturnVoid  = auto()
-    SetLocal    = auto()
-    NewProc     = auto()
-    SetLocalArg = auto()
-    CloseProc   = auto()
-    GotoFalse   = auto()
-    Goto        = auto()
-    Label       = auto()
-    PtrRead     = auto()
-    PtrWrite    = auto()
-    BitNot      = auto()
-    LogicNot    = auto()
-    InlineAsm   = auto()
+    GetLocal     = auto()
+    PushLabel    = auto()
+    PushInt      = auto()
+    AllocTemps   = auto()
+    FreeTemps    = auto()
+    StoreTemp    = auto()
+    SetArgTemp   = auto()
+    Call         = auto()
+    PopCall      = auto()
+    Plus         = auto()
+    OpAdd        = auto()
+    OpSub        = auto()
+    OpMul        = auto()
+    OpDiv        = auto()
+    OpMod        = auto()
+    OpEq         = auto()
+    OpNotEq      = auto()
+    OpLess       = auto()
+    OpLessEq     = auto()
+    OpGreater    = auto()
+    OpGreaterEq  = auto()
+    PopReturn    = auto()
+    ReturnVoid   = auto()
+    SetLocal     = auto()
+    NewProc      = auto()
+    SetLocalArg  = auto()
+    CloseProc    = auto()
+    GotoTopFalse = auto()
+    GotoTopTrue  = auto()
+    GotoFalse    = auto()
+    Goto         = auto()
+    Label        = auto()
+    PtrRead      = auto()
+    PtrWrite     = auto()
+    BitNot       = auto()
+    LogicNot     = auto()
+    LogicAnd     = auto()
+    LogicOr      = auto()
+    InlineAsm    = auto()
 
 class IRInstr:
     def __init__(self, kind: IRK, **kwargs):
@@ -1070,10 +1074,22 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
         ir_compile(ast.expr, ir)
         ir.append(IRK.PopCall)
 
+def ir_emit_logic_and(ast: Ast, ir: IRContext) -> None:
+    l_skip = ir.new_label("and_skip")
+    ir_compile(ast.lhs, ir)
+    ir.append(IRK.GotoTopFalse, label=l_skip)
+    ir_compile(ast.rhs, ir)
+    ir.append(IRK.Label, label=l_skip)
+
+def ir_emit_logic_or(ast: Ast, ir: IRContext) -> None:
+    l_skip = ir.new_label("or_skip")
+    ir_compile(ast.lhs, ir)
+    ir.append(IRK.GotoTopTrue, label=l_skip)
+    ir_compile(ast.rhs, ir)
+    ir.append(IRK.Label, label=l_skip)
+
 def ir_emit_binop(ast: Ast, ir: IRContext) -> None:
     op = ast.op
-    ir_compile(ast.lhs, ir)
-    ir_compile(ast.rhs, ir)
     simple = {
         TK.Plus: IRK.OpAdd,
         TK.Minus: IRK.OpSub,
@@ -1085,10 +1101,16 @@ def ir_emit_binop(ast: Ast, ir: IRContext) -> None:
         TK.Less: IRK.OpLess,
         TK.Greater: IRK.OpGreater,
         TK.LessEq: IRK.OpLessEq,
-        TK.GreaterEq: IRK.OpGreaterEq
+        TK.GreaterEq: IRK.OpGreaterEq,
     }
     if op in simple:
+        ir_compile(ast.lhs, ir)
+        ir_compile(ast.rhs, ir)
         ir.append(simple[op])
+    elif op == TK.KW_and:
+        ir_emit_logic_and(ast, ir)
+    elif op == TK.KW_or:
+        ir_emit_logic_or(ast, ir)
     else:
         assert False, f"TODO: {inspect.currentframe().f_code.co_name}: op({op})"
 
@@ -1517,6 +1539,16 @@ def emit_goto_false(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    cmpq $0, %rax")
     ctx.out(f"    je {ir.label}")
 
+def emit_goto_top_true(ctx: CompilerContext, ir: IRInstr) -> None:
+    ctx.out(f"#{ir}")
+    ctx.out(f"    cmpq $0, (%rsp)")
+    ctx.out(f"    jne {ir.label}")
+
+def emit_goto_top_false(ctx: CompilerContext, ir: IRInstr) -> None:
+    ctx.out(f"#{ir}")
+    ctx.out(f"    cmpq $0, (%rsp)")
+    ctx.out(f"    je {ir.label}")
+
 def emit_ptr_write(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"#{ir}")
     ctx.out(f"    popq %rax") # -- ptr
@@ -1573,6 +1605,8 @@ emitters = {
     IRK.Label: emit_label,
     IRK.Goto: emit_goto,
     IRK.GotoFalse: emit_goto_false,
+    IRK.GotoTopFalse: emit_goto_top_false,
+    IRK.GotoTopTrue: emit_goto_top_true,
     IRK.PtrWrite: emit_ptr_write,
     IRK.PtrRead: emit_ptr_read,
     IRK.InlineAsm: emit_inline_asm,
