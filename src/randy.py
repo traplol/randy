@@ -1238,26 +1238,31 @@ def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
     ir.procs[ast.name.value] = (ast.name.value, ast.params)
     ir.append(IRK.InlineAsm, name=ast.name.value, asm=ast.asm)
     
+ir_emitters = {
+    AstK.Ident: ir_emit_ident,
+    AstK.Integer: ir_emit_integer,
+    AstK.String: ir_emit_string,
+    AstK.Call: ir_emit_call,
+    AstK.BinOp: ir_emit_binop,
+    AstK.Return: ir_emit_return,
+    AstK.VarDecl: ir_emit_var_decl,
+    AstK.VarAssign: ir_emit_var_assign,
+    AstK.Assign: ir_emit_assign,
+    AstK.Procedure: ir_emit_procedure,
+    AstK.IfElse: ir_emit_if_else,
+    AstK.While: ir_emit_while,
+    AstK.PointerOp: ir_emit_pointer_op,
+    AstK.Prefix: ir_emit_prefix_op,
+    AstK.Const: ir_emit_const,
+    AstK.Extern: ir_emit_extern,
+    AstK.InlineAsm: ir_emit_asm,
+}
 def ir_compile(ast: Ast, ir: IRContext) -> None:
     k = ast.kind
-    if k == AstK.Ident: ir_emit_ident(ast, ir)
-    elif k == AstK.Integer: ir_emit_integer(ast, ir)
-    elif k == AstK.String: ir_emit_string(ast, ir)
-    elif k == AstK.Call: ir_emit_call(ast, ir)
-    elif k == AstK.BinOp: ir_emit_binop(ast, ir)
-    elif k == AstK.Return: ir_emit_return(ast, ir)
-    elif k == AstK.VarDecl: ir_emit_var_decl(ast, ir)
-    elif k == AstK.VarAssign: ir_emit_var_assign(ast, ir)
-    elif k == AstK.Assign: ir_emit_assign(ast, ir)
-    elif k == AstK.Procedure: ir_emit_procedure(ast, ir)
-    elif k == AstK.IfElse: ir_emit_if_else(ast, ir)
-    elif k == AstK.While: ir_emit_while(ast, ir)
-    elif k == AstK.PointerOp: ir_emit_pointer_op(ast, ir)
-    elif k == AstK.Prefix: ir_emit_prefix_op(ast, ir)
-    elif k == AstK.Const: ir_emit_const(ast, ir)
-    elif k == AstK.Extern: ir_emit_extern(ast, ir)
-    elif k == AstK.InlineAsm: ir_emit_asm(ast, ir)
-    else: assert False, f"TODO: compile Ast({k})"
+    if k in ir_emitters:
+        ir_emitters[k](ast, ir)
+    else:
+        assert False, f"TODO: compile Ast({k})"
 
 ########################################################################################
 #                                     COMPILER
@@ -1579,7 +1584,7 @@ def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
         if asm != "":
             ctx.out(f"    {asm}")
 
-emitters = {
+x86_64_emitters = {
     IRK.NewProc: emit_new_proc,
     IRK.SetLocalArg: emit_set_local_arg,
     IRK.SetLocal: emit_set_local,
@@ -1617,8 +1622,8 @@ emitters = {
 }
 def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
     k = ir.kind
-    if k in emitters:
-        emitters[k](ctx, ir)
+    if k in x86_64_emitters:
+        x86_64_emitters[k](ctx, ir)
     else: assert False, f"TODO: compile {ir}"
 
 def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
