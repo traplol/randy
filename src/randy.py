@@ -921,6 +921,7 @@ class IRContext:
         self.procs = {}
         self.label_id = 0
         self.data = []
+        self.strings = {}
         self.externs = {}
         self.labels = set()
         self.constants = {}
@@ -969,10 +970,13 @@ class IRContext:
         self.data.append((label, size, bytes))
 
     def add_string(self, string: str) -> str:
+        if string in self.strings:
+            return self.strings[string]
         str_label = "__string__" + str(len(self.data))
         str_bytes = bytearray(string, "utf-8")
         str_bytes.append(0)
         self.add_data(str_label, len(str_bytes), str_bytes)
+        self.strings[string] = str_label
         return str_label
 
     def add_extern(self, ident: str, is_varargs: bool) -> None:
@@ -1694,9 +1698,8 @@ def main():
 
     ctx.out("\n")
 
-    ctx.out(".data")
+    ctx.out('.section .rodata, ""')
     ctx.out(f".align 8")
-    ctx.out('_fmt: .asciz  "num=%ld\\n"')
     for data in ir.data:
         label, size, bytes = data
         bytestr = ", ".join([hex(x) for x in bytes])
