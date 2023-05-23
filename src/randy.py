@@ -1641,12 +1641,17 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
     ctx.out(".globl _start")
     ctx.out(f".align 16")
     ctx.out("_start:")
-    for arg in systemv_args:
+    ctx.out(f"    movq (%rsp), {systemv_args[0]}")
+    ctx.out(f"    movq %rsp, {systemv_args[1]}")
+    ctx.out(f"    addq $8, {systemv_args[1]}")
+    ctx.out(f"    movq {systemv_args[0]}, (__argc__)")
+    ctx.out(f"    movq {systemv_args[1]}, (__argv__)")
+    for arg in systemv_args[2:]:
         ctx.out(f"    xorq {arg}, {arg}")
     ctx.out(f"    call {main_proc}")
     ctx.out(f"    pushq %rax")
     ctx.out(f"    leaq stdout, %rax")
-    ctx.out(f"    movq (%rax), %rdi")
+    ctx.out(f"    movq (%rax), {systemv_args[0]}")
     ctx.out(f"    call fflush")
     ctx.out(f"    popq %rax")
     ctx.out(f"    movq %rax, %rdi")
@@ -1743,8 +1748,13 @@ def main(config: Config):
 
     ctx.out("\n")
 
+    ctx.out('.data')
+    ctx.out('.align 8')
+    ctx.out('__argc__: .quad 0')
+    ctx.out('__argv__: .quad 0')
+
     ctx.out('.section .rodata, "a"')
-    ctx.out(f".align 8")
+    ctx.out('.align 8')
     for data in ir.data:
         label, size, bytes = data
         bytestr = ", ".join([hex(x) for x in bytes])
