@@ -9,3 +9,4 @@ end
 
 extern puts cstr;
 extern printf cstr, ...;
+extern putchar char;

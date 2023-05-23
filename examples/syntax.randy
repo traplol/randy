@@ -68,7 +68,7 @@ proc count_to_n n do
     // Define a variable with "var"
     var i = 0;
     while i < n do
-        print(i);
+        printf("num=%d\n", i);
         i = i + 1;
     done 
 end
@@ -79,32 +79,15 @@ end
 
 proc fizz_buzz n do
     var i = 1;
-    var printed = 0;
     while i <= n do
-        // if (i % 3 == 0) and (i % 5 == 0) then
-        //     puts("fizzbuzz");
-        // else if i % 3 == 0 then
-        //     puts("fizz");
-        // else if i % 5 == 0 then
-        //     puts("buzz");
-        // else
-        //     print(i);
-        // end
-        printed = 0;
-        if i % 3 == 0 then
-            printf("fizz");
-            printed = 1;
-        end
-
-        if i % 5 == 0 then
-            printf("buzz");
-            printed = 1;
-        end
-
-        if not printed then
-            printf("%ld\n", i);
+        if (i % 3 == 0) and (i % 5 == 0) then
+            puts("fizzbuzz");
+        else if i % 3 == 0 then
+            puts("fizz");
+        else if i % 5 == 0 then
+            puts("buzz");
         else
-            printf("\n");
+            printf("%d\n", i);
         end
         i = i + 1;
     done
@@ -121,13 +104,13 @@ proc memory_access do
 
     // 8, 16, 32, and 64-bit memory reads
     var w = u8@(ptr + 0);
-    print(w);
+    printf("num=%d\n", w);
     var x = u16@(ptr + 0 + 1);
-    print(x);
+    printf("num=%d\n", x);
     var y = u32@(ptr + 0 + 1 + 2);
-    print(y);
+    printf("num=%d\n", y);
     var z = u64@(ptr + 0 + 1 + 2 + 4);
-    print(z);
+    printf("num=%d\n", z);
 
     u8!(ptr + 0, 'h');
     u8!(ptr + 1, 'e');
@@ -142,10 +125,6 @@ proc memory_access do
     u8!(ptr + 12, 0);
 
     puts(ptr);
-
-    // Remember, pointers are just memory addresses meaning they are just integers.
-    // This will print the address of memory we allocated.
-    //print(ptr);
 
     // Don't forget to free the memory!
     free(ptr);
@@ -167,17 +146,17 @@ const Number = 42;
 const Newline = '\n';
 
 proc main do
-    print(12345);
+    printf("num=%d\n", 12345);
     memory_access();
 
     fizz_buzz(100);
-    print(factorial(10));
-    print(fib(10));
-    print(fib(20));
-    print(fib(30));
+    printf("num=%d\n", factorial(10));
+    printf("num=%d\n", fib(10));
+    printf("num=%d\n", fib(20));
+    printf("num=%d\n", fib(30));
     count_to_n(10);
 
-    print(not 123);
+    printf("num=%d\n", not 123);
 
     var i = 0;
     while i < 46 do
@@ -185,7 +164,7 @@ proc main do
         i = i + 1;
     done
 
-    print(SYS_write);
+    printf("num=%d\n", SYS_write);
 
     puts(BAR);
 
