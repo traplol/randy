@@ -1,0 +1,72 @@
+
+#include string
+#include core
+
+const TARRAY_buffer = TSTRING_buffer;
+const TARRAY_length = TSTRING_length;
+const TARRAY_capacity = TSTRING_capacity;
+const sizeof_TARRAY = sizeof_TSTRING;
+const sizeof_TARRAY_ELEMENT = sizeof_PTR;
+
+proc make_array init do
+    return make_string(init * sizeof_TARRAY_ELEMENT);
+end
+
+proc free_array array do
+    free_string(array);
+end
+
+proc array_buf array do
+    return u64@(array);
+end
+
+proc array_len array do
+    return u64@(array + TARRAY_length) / sizeof_TARRAY_ELEMENT;
+end
+
+proc array_cap array do
+    return u64@(array + TARRAY_capacity) / sizeof_TARRAY_ELEMENT;
+end
+
+proc array_get array, idx do
+    // TODO: Bounds check & abort
+    return u64@(u64@(array) + (idx * sizeof_TARRAY_ELEMENT));
+end
+
+proc array_set array, idx, val do
+    // TODO: Bounds check & abort
+    u64!(u64@(array) + (idx * sizeof_TARRAY_ELEMENT), val);
+end
+
+proc array_resize array, new_cap do
+    string_resize(array, new_cap * sizeof_TARRAY_ELEMENT);
+end
+
+proc array_push array, val do
+    var len = string_len(array);
+    var cap = string_cap(array);
+    if len == cap then
+        string_resize(array, (2 * cap) + 1);
+    end
+    u64!(u64@(array) + len, val);
+    u64!(array + TARRAY_length, len + sizeof_TARRAY_ELEMENT);
+end
+
+proc array_pop array do
+    var len = string_len(array);
+    if len > 0 then
+        u64!(array + TARRAY_length, len - sizeof_TARRAY_ELEMENT);
+    else
+        printf("ERROR: array_pop out of bounds.\n");
+        abort();
+    end
+end
+
+proc array_back array do
+    var len = array_len(array);
+    if len > 0 then
+        return u64@(u64@(array) + ((len - 1) * sizeof_PTR));
+    end
+    printf("ERROR: array_back out of bounds.\n");
+    abort();
+end

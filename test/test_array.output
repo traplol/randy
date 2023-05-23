@@ -1,0 +1,53 @@
+Array len = 0
+Array cap = 10
+Push to array
+Enumerate the array
+0 = 0
+1 = 10
+2 = 20
+3 = 30
+4 = 40
+5 = 50
+6 = 60
+7 = 70
+8 = 80
+9 = 90
+Array back is 90
+Pop from array
+Array back is 80
+Pop from array
+Array back is 70
+Pop from array
+Array len = 7
+Array cap = 10
+Array len = 10
+Array cap = 10
+Array back is 20
+Array len = 11
+Array cap = 20
+Array back is 123
+0 = 0
+1 = 10
+2 = 20
+3 = 30
+4 = 40
+5 = 50
+6 = 60
+7 = 0
+8 = 10
+9 = 20
+10 = 123
+Popping entire array
+Array back = 123
+Array back = 20
+Array back = 10
+Array back = 0
+Array back = 60
+Array back = 50
+Array back = 40
+Array back = 30
+Array back = 20
+Array back = 10
+Array back = 0
+Array len = 0
+Array cap = 20

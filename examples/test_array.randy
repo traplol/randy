@@ -1,0 +1,71 @@
+
+#include array
+
+extern printf fmt, ...;
+extern fopen path, mode;
+extern fclose file;
+
+proc main do
+    var array = make_array(10);
+    printf("Array len = %d\n", array_len(array));
+    printf("Array cap = %d\n", array_cap(array));
+
+    var i = 0;
+    printf("Push to array\n");
+    while i < 10 do
+        array_push(array, i * 10);
+        i = i + 1;
+    done
+
+    printf("Enumerate the array\n");
+    i = 0;
+    while i < array_len(array) do
+        printf("%d = %d\n", i, array_get(array, i));
+        i = i + 1;
+    done
+
+    printf("Array back is %d\n", array_back(array));
+    printf("Pop from array\n");
+    array_pop(array);
+    printf("Array back is %d\n", array_back(array));
+    printf("Pop from array\n");
+    array_pop(array);
+    printf("Array back is %d\n", array_back(array));
+    printf("Pop from array\n");
+    array_pop(array);
+
+    printf("Array len = %d\n", array_len(array));
+    printf("Array cap = %d\n", array_cap(array));
+
+    i = 0;
+    while i < 3 do
+        array_push(array, i * 10);
+        i = i + 1;
+    done
+
+    printf("Array len = %d\n", array_len(array));
+    printf("Array cap = %d\n", array_cap(array));
+    printf("Array back is %d\n", array_back(array));
+
+    array_push(array, 123);
+    printf("Array len = %d\n", array_len(array));
+    printf("Array cap = %d\n", array_cap(array));
+    printf("Array back is %d\n", array_back(array));
+
+    i = 0;
+    while i < array_len(array) do
+        printf("%d = %d\n", i, array_get(array, i));
+        i = i + 1;
+    done
+
+    printf("Popping entire array\n");
+    while array_len(array) != 0 do
+        printf("Array back = %d\n", array_back(array));
+        array_pop(array);
+    done
+    printf("Array len = %d\n", array_len(array));
+    printf("Array cap = %d\n", array_cap(array));
+
+    free_array(array);
+    return 0;
+end
