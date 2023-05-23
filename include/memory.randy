@@ -2,3 +2,6 @@
 extern malloc size;
 extern free ptr;
 extern memcpy dest, src, n;
+
+const sizeof_PTR = 8;
+const NULL = 0;
