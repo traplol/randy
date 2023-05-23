@@ -8,5 +8,11 @@ proc exit code do
 end
 
 extern puts cstr;
-extern printf cstr, ...;
+extern printf fmt, ...;
+extern fprintf file, fmt, ...;
 extern putchar char;
+extern abort;
+
+extern stdin;
+extern stdout;
+extern stderr;
