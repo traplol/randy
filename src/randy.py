@@ -1068,12 +1068,12 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.FreeTemps, n=len(ast.args))
     if ast.expr.kind == AstK.Ident:
         ident = ast.expr.ident
-        if ident in ir.externs:
-            id, varargs = ir.externs[ident]
-            ir.append(IRK.Call, label=id, varargs=varargs)
-        elif ident in ir.procs:
+        if ident in ir.procs:
             proc_name, varargs = ir.procs[ident]
             ir.append(IRK.Call, label=proc_name, varargs=varargs)
+        elif ident in ir.externs:
+            id, varargs = ir.externs[ident]
+            ir.append(IRK.Call, label=id, varargs=varargs)
         elif ir.is_label(ident):
             ir.append(IRK.Call, label=ident, varargs=False)
         elif ir.is_local(ident):
@@ -1480,6 +1480,12 @@ def emit_pop_return(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    leave")
     ctx.out(f"    ret")
 
+def emit_return_void(ctx: CompilerContext, ir: IRInstr) -> None:
+    ctx.out(f"#{ir}")
+    ctx.out(f"    xorq %rax, %rax")
+    ctx.out(f"    leave")
+    ctx.out(f"    ret")
+
 def emit_logic_not(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"#{ir}")
     ctx.out(f"    popq %rax") # -- a
@@ -1609,6 +1615,7 @@ x86_64_emitters = MappingProxyType({
     IRK.PushInt: emit_push_int,
     IRK.GetLocal: emit_get_local,
     IRK.PopReturn: emit_pop_return,
+    IRK.ReturnVoid: emit_return_void,
     IRK.OpAdd: emit_op_add,
     IRK.OpSub: emit_op_sub,
     IRK.OpMul: emit_op_mul,
@@ -1637,7 +1644,7 @@ def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
         x86_64_emitters[k](ctx, ir)
     else: assert False, f"TODO: compile {ir}"
 
-def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
+def emit_start_proc(ctx: CompilerContext, main_proc: str, exit_proc: Optional[str]) -> None:
     ctx.out(".globl _start")
     ctx.out(f".align 16")
     ctx.out("_start:")
@@ -1650,6 +1657,8 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
         ctx.out(f"    xorq {arg}, {arg}")
     ctx.out(f"    call {main_proc}")
     ctx.out(f"    movq %rax, %rdi")
+    if exit_proc is not None:
+        ctx.out(f"    call {exit_proc}")
     ctx.out(f"    movq $60, %rax            # exit syscall is 60")
     ctx.out(f"    syscall")
     ctx.out(f"    int3")
@@ -1727,11 +1736,12 @@ def main(config: Config):
         emit_instruction(ctx, insn)
 
     main_proc, _ = ir.get_proc("main")
+    exit_proc, _ = ir.get_proc("exit")
     if main_proc is None:
         print("ERROR: no `main` procedure.")
         exit(1)
     else:
-        emit_start_proc(ctx, main_proc)
+        emit_start_proc(ctx, main_proc, exit_proc)
     
     ctx.out("\n")
 
