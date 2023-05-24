@@ -1,6 +1,13 @@
-Array len = 0
+Array len = 10
 Array cap = 10
+Set the array
+Array len = 10
+Array cap = 10
+Array len = 11
+Array cap = 21
 Push to array
+Array len = 21
+Array cap = 21
 Enumerate the array
 0 = 0
 1 = 10
@@ -12,19 +19,32 @@ Enumerate the array
 7 = 70
 8 = 80
 9 = 90
-Array back is 90
+10 = 200
+11 = 100
+12 = 110
+13 = 120
+14 = 130
+15 = 140
+16 = 150
+17 = 160
+18 = 170
+19 = 180
+20 = 190
+Pop 3
+Array back is 190
 Pop from array
-Array back is 80
+Array back is 180
 Pop from array
-Array back is 70
+Array back is 170
 Pop from array
-Array len = 7
-Array cap = 10
-Array len = 10
-Array cap = 10
+Array len = 18
+Array cap = 21
+Push 3
+Array len = 21
+Array cap = 21
 Array back is 20
-Array len = 11
-Array cap = 20
+Array len = 22
+Array cap = 43
 Array back is 123
 0 = 0
 1 = 10
@@ -33,15 +53,37 @@ Array back is 123
 4 = 40
 5 = 50
 6 = 60
-7 = 0
-8 = 10
-9 = 20
-10 = 123
+7 = 70
+8 = 80
+9 = 90
+10 = 200
+11 = 100
+12 = 110
+13 = 120
+14 = 130
+15 = 140
+16 = 150
+17 = 160
+18 = 0
+19 = 10
+20 = 20
+21 = 123
 Popping entire array
 Array back = 123
 Array back = 20
 Array back = 10
 Array back = 0
+Array back = 160
+Array back = 150
+Array back = 140
+Array back = 130
+Array back = 120
+Array back = 110
+Array back = 100
+Array back = 200
+Array back = 90
+Array back = 80
+Array back = 70
 Array back = 60
 Array back = 50
 Array back = 40
@@ -50,4 +92,4 @@ Array back = 20
 Array back = 10
 Array back = 0
 Array len = 0
-Array cap = 20
+Array cap = 43
