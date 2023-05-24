@@ -5,3 +5,44 @@ extern memcpy dest, src, n;
 
 const sizeof_PTR = 8;
 const NULL = 0;
+
+
+extern puts;
+extern printf fmt, ...;
+
+proc _malloc_logger pointer do
+    //printf("malloc'd %p\n", pointer);
+end
+
+asm __proc_malloc do
+    "
+    call malloc
+    pushq %rax
+    movq %rax, %rdi
+    call _proc__malloc_logger
+    popq %rax
+    ret
+    "
+end
+
+proc malloc size do
+    return __proc_malloc(size);
+end
+
+proc _free_logger ptr do
+    //printf("freed'd %p\n", ptr);
+end
+
+asm __proc_free do
+    "
+    pushq %rdi
+    call _proc__free_logger
+    popq %rdi
+    call free
+    ret
+    "
+end
+
+proc free pointer do
+    return __proc_free(pointer);
+end
