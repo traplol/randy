@@ -1649,11 +1649,6 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str) -> None:
     for arg in systemv_args[2:]:
         ctx.out(f"    xorq {arg}, {arg}")
     ctx.out(f"    call {main_proc}")
-    ctx.out(f"    pushq %rax")
-    ctx.out(f"    leaq stdout, %rax")
-    ctx.out(f"    movq (%rax), {systemv_args[0]}")
-    ctx.out(f"    call fflush")
-    ctx.out(f"    popq %rax")
     ctx.out(f"    movq %rax, %rdi")
     ctx.out(f"    movq $60, %rax            # exit syscall is 60")
     ctx.out(f"    syscall")
@@ -1663,6 +1658,7 @@ def assemble_and_link(asm_path: str, exe_path: str, ld_flags: List[str], verbose
     without_ext = os.path.splitext(asm_path)[0]
     obj_path = f"{without_ext}.o"
     obj_dir = str(pathlib.Path(obj_path).parent.resolve())
+    ld_flags = ["-o", without_ext, obj_path] + ld_flags;
     if verbose:
         print(f"asm file   = {asm_path}")
         print(f"obj dir    = {obj_dir}")
@@ -1674,9 +1670,7 @@ def assemble_and_link(asm_path: str, exe_path: str, ld_flags: List[str], verbose
         exit(assemble.returncode)
         return
     if obj_dir != "/" and obj_dir != "":
-        musl_lib = f"/home/max/workspace/musl-1.2.4/lib/libc.so"
-        ld = subprocess.run(["ld", "-o", without_ext, "-dynamic-linker", musl_lib, "-lc", obj_path] +
-                            ld_flags)
+        ld = subprocess.run(["ld"] + ld_flags)
         if ld.returncode != 0:
             exit(ld.returncode)
 
@@ -1718,8 +1712,6 @@ def main(config: Config):
     ir = IRContext(quiet=config.verbosity < 3)
 
     start = time.time()
-    for ext, va in [("stdout", False), ("stderr", False), ("stdin", False), ("fflush", False), ("printf", True)]:
-        ir.add_extern(ext, va)
 
     for ast in roots:
         ir_compile(ast, ir)
