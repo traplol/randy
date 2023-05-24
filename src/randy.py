@@ -1493,6 +1493,7 @@ def emit_logic_not(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    popq %rax") # -- a
     ctx.out(f"    cmpq $0, %rax")
     ctx.out(f"    sete %al")
+    ctx.out(f"    movzbl %al, %eax")
     ctx.out(f"    pushq %rax")
 
 def emit_bit_not(ctx: CompilerContext, ir: IRInstr) -> None:
