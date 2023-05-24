@@ -9,7 +9,9 @@ const sizeof_TARRAY = sizeof_TSTRING;
 const sizeof_TARRAY_ELEMENT = sizeof_PTR;
 
 proc make_array init do
-    return make_string(init * sizeof_TARRAY_ELEMENT);
+    var array = make_string(init * sizeof_TARRAY_ELEMENT);
+    u64!(array + TARRAY_length, init * sizeof_TARRAY_ELEMENT);
+    return array;
 end
 
 proc free_array array do
@@ -45,8 +47,8 @@ end
 proc array_push array, val do
     var len = string_len(array);
     var cap = string_cap(array);
-    if len == cap then
-        string_resize(array, (2 * cap) + 1);
+    if len >= cap then
+        string_resize(array, (2 * cap) + sizeof_TARRAY_ELEMENT);
     end
     u64!(u64@(array) + len, val);
     u64!(array + TARRAY_length, len + sizeof_TARRAY_ELEMENT);
@@ -65,7 +67,7 @@ end
 proc array_back array do
     var len = array_len(array);
     if len > 0 then
-        return u64@(u64@(array) + ((len - 1) * sizeof_PTR));
+        return u64@(u64@(array) + ((len - 1) * sizeof_TARRAY_ELEMENT));
     end
     printf("ERROR: array_back out of bounds.\n");
     abort();

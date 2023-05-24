@@ -1,6 +1,5 @@
 #include list
-
-extern printf cstr, ...;
+#include core
 
 proc main do
     var list = make_list();

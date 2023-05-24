@@ -1,5 +1,4 @@
-extern printf cstr, ...;
-extern puts cstr;
+#include core
 
 proc return_true t do
     printf("true %s ", t);
