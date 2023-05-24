@@ -1,5 +1,6 @@
 
 extern puts;
+extern fprintf file, fmt, ...;
 
 asm argc do
 "
@@ -18,7 +19,7 @@ end
 proc main argc, argv do
     var i = 0;
     while i < argc do
-        puts(u64@(argv + i*8));
+        fprintf(u64@(stderr), "arg%d = %s\n", i, u64@(argv + i*8));
         i = i + 1;
     done
     return 0;
