@@ -1,6 +1,6 @@
 extern printf cstr, ...;
 
-asm test_asm do
+asm test_asm in
 "
     pushq %rbp
     movq %rsp, %rbp
@@ -10,6 +10,6 @@ asm test_asm do
 "
 end
 
-proc main do
+proc main in
     printf("test_asm = %d\n", test_asm());
 end

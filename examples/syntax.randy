@@ -24,16 +24,16 @@
 
 // Only procedures are allowed at the top level.
 
-// Define a procedure with "proc NAME ARGS_LIST do BODY end"
+// Define a procedure with "proc NAME ARGS_LIST in BODY end"
 // Return values are explicit but they a not type checked.
 // Calling a function that doesn't return anything and using it like it does return
 // something is undefined behaviour.
 
-proc proc_name rdi, rsi, rdx do
+proc proc_name rdi, rsi, rdx in
     return rsi - rdi * rdx;
 end
 
-proc hello_world do
+proc hello_world in
     // "string" literals are just regular integers/pointers provided as a convenience by
     // the compiler.
     puts("hello world");
@@ -41,14 +41,14 @@ proc hello_world do
     putchar('\n');
 end
 
-proc foo a, b, c do
+proc foo a, b, c in
     a = a * a;
     b = a * b;
     c = a * c;
     return a + b + c;
 end
 
-proc factorial n do
+proc factorial n in
     if n < 2 then
         return 1;
     else
@@ -56,7 +56,7 @@ proc factorial n do
     end
 end
 
-proc fib n do
+proc fib n in
     if n < 2 then
         return n;
     else
@@ -64,7 +64,7 @@ proc fib n do
     end
 end
 
-proc count_to_n n do
+proc count_to_n n in
     // Define a variable with "var"
     var i = 0;
     while i < n do
@@ -73,11 +73,11 @@ proc count_to_n n do
     done 
 end
 
-proc mod5 n do
+proc mod5 n in
     return n % 5;
 end
 
-proc fizz_buzz n do
+proc fizz_buzz n in
     var i = 1;
     while i <= n do
         if (i % 3 == 0) and (i % 5 == 0) then
@@ -93,7 +93,7 @@ proc fizz_buzz n do
     done
 end
 
-proc memory_access do
+proc memory_access in
     var ptr = malloc(20); // Allocate 20 bytes.
 
     // 8, 16, 32, and 64-bit memory writes
@@ -130,7 +130,7 @@ proc memory_access do
     free(ptr);
 end
 
-proc min a, b do
+proc min a, b in
     if a < b then
         return a;
     end
@@ -145,7 +145,7 @@ const BAR = "hello";
 const Number = 42;
 const Newline = '\n';
 
-proc main do
+proc main in
     printf("num=%d\n", 12345);
     memory_access();
 

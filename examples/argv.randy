@@ -2,21 +2,21 @@
 extern stderr;
 extern fprintf file, fmt, ...;
 
-asm argc do
+asm argc in
 "
     movq (__argc__), %rax
     ret
 "
 end
 
-asm argv do
+asm argv in
 "
     movq (__argv__), %rax
     ret
 "
 end
 
-proc main argc, argv do
+proc main argc, argv in
     var i = 0;
     while i < argc do
         fprintf(u64@(stderr), "arg%d = %s\n", i, u64@(argv + i*8));

@@ -6,7 +6,7 @@ const TSTRING_length = 8;
 const TSTRING_capacity = 16;
 const sizeof_TSTRING = 24;
 
-proc make_string init do
+proc make_string init in
     var string = malloc(sizeof_TSTRING);
     var buf = malloc(init);
 
@@ -17,32 +17,32 @@ proc make_string init do
     return string;
 end
 
-proc free_string string do
+proc free_string string in
     free(u64@(string));
     free(string);
 end
 
-proc string_buf string do
+proc string_buf string in
     return u64@(string);
 end
 
-proc string_len string do
+proc string_len string in
     return u64@(string + TSTRING_length);
 end
 
-proc string_cap string do
+proc string_cap string in
     return u64@(string + TSTRING_capacity);
 end
 
-proc string_get string, idx do
+proc string_get string, idx in
     return u8@(u64@(string) + idx);
 end
 
-proc string_set string, idx, val do
+proc string_set string, idx, val in
     u8!(u64@(string) + idx, val);
 end
 
-proc string_resize string, new_cap do
+proc string_resize string, new_cap in
     var new = malloc(new_cap);
     var old = u64@(string);
     var len = string_len(string);
@@ -56,7 +56,7 @@ proc string_resize string, new_cap do
     u64!(string + TSTRING_capacity, new_cap);
 end
 
-proc string_push string, val do
+proc string_push string, val in
     var len = string_len(string);
     var cap = string_cap(string);
     if len == cap then

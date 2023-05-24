@@ -1,5 +1,5 @@
 #include core
 
-proc main do
+proc main in
     puts("hello world.");
 end

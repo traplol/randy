@@ -8,41 +8,41 @@ const TLIST_NODE_next = 0;
 const TLIST_NODE_data = 8;
 const sizeof_TLIST_NODE = 16;
 
-proc make_list_node data do
+proc make_list_node data in
     var node = malloc(sizeof_TLIST_NODE);
     u64!(node + TLIST_NODE_next, NULL);
     u64!(node + TLIST_NODE_data, data);
     return node;
 end
 
-proc free_list_node node do
+proc free_list_node node in
     free(node);
 end
 
-proc list_node_next node do
+proc list_node_next node in
     return u64@(node + TLIST_NODE_next);
 end
 
-proc list_node_data node do
+proc list_node_data node in
     return u64@(node + TLIST_NODE_data);
 end
 
-proc make_list do
+proc make_list in
     var list = malloc(sizeof_TLIST);
     u64!(list + TLIST_head, NULL);
     u64!(list + TLIST_tail, NULL);
     return list;
 end
 
-proc list_head list do
+proc list_head list in
     return u64@(list + TLIST_head);
 end
 
-proc list_tail list do
+proc list_tail list in
     return u64@(list + TLIST_tail);
 end
 
-proc free_list list do
+proc free_list list in
     var cur = list_head(list);
     var tail = list_tail(list);
     while cur do
@@ -56,7 +56,7 @@ proc free_list list do
     free(list);
 end
 
-proc list_append list, data do
+proc list_append list, data in
     var node = make_list_node(data);
     u64!(node + TLIST_NODE_data, data);
 

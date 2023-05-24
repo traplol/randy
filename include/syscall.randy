@@ -359,7 +359,7 @@ const SYS_landlock_restrict_self = 446;
 const SYS_memfd_secret = 447;
 const SYS_process_mrelease = 448;
 
-asm syscall do
+asm syscall in
 "
     movq %rdi, %rax
     movq %rsi, %rdi

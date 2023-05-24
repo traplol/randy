@@ -8,43 +8,43 @@ const TARRAY_capacity = TSTRING_capacity;
 const sizeof_TARRAY = sizeof_TSTRING;
 const sizeof_TARRAY_ELEMENT = sizeof_PTR;
 
-proc make_array init do
+proc make_array init in
     var array = make_string(init * sizeof_TARRAY_ELEMENT);
     u64!(array + TARRAY_length, init * sizeof_TARRAY_ELEMENT);
     return array;
 end
 
-proc free_array array do
+proc free_array array in
     free_string(array);
 end
 
-proc array_buf array do
+proc array_buf array in
     return u64@(array);
 end
 
-proc array_len array do
+proc array_len array in
     return u64@(array + TARRAY_length) / sizeof_TARRAY_ELEMENT;
 end
 
-proc array_cap array do
+proc array_cap array in
     return u64@(array + TARRAY_capacity) / sizeof_TARRAY_ELEMENT;
 end
 
-proc array_get array, idx do
+proc array_get array, idx in
     // TODO: Bounds check & abort
     return u64@(u64@(array) + (idx * sizeof_TARRAY_ELEMENT));
 end
 
-proc array_set array, idx, val do
+proc array_set array, idx, val in
     // TODO: Bounds check & abort
     u64!(u64@(array) + (idx * sizeof_TARRAY_ELEMENT), val);
 end
 
-proc array_resize array, new_cap do
+proc array_resize array, new_cap in
     string_resize(array, new_cap * sizeof_TARRAY_ELEMENT);
 end
 
-proc array_push array, val do
+proc array_push array, val in
     var len = string_len(array);
     var cap = string_cap(array);
     if len >= cap then
@@ -54,7 +54,7 @@ proc array_push array, val do
     u64!(array + TARRAY_length, len + sizeof_TARRAY_ELEMENT);
 end
 
-proc array_pop array do
+proc array_pop array in
     var len = string_len(array);
     if len > 0 then
         u64!(array + TARRAY_length, len - sizeof_TARRAY_ELEMENT);
@@ -64,7 +64,7 @@ proc array_pop array do
     end
 end
 
-proc array_back array do
+proc array_back array in
     var len = array_len(array);
     if len > 0 then
         return u64@(u64@(array) + ((len - 1) * sizeof_TARRAY_ELEMENT));

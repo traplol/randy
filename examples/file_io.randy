@@ -1,6 +1,6 @@
 #include core
 
-proc test_string do
+proc test_string begin
     printf("===== Empty string: =====\n");
     var string = make_string(10);
     printf("The string len is %ld\n", string_len(string));
@@ -45,7 +45,7 @@ proc test_string do
     
 end
 
-proc main do
+proc main in
 
     var fd = open_for_read("file_io.s");
     var buf = malloc(1024);

@@ -10,11 +10,11 @@ const NULL = 0;
 extern puts;
 extern printf fmt, ...;
 
-proc _malloc_logger pointer do
+proc _malloc_logger pointer in
     //printf("malloc'd %p\n", pointer);
 end
 
-asm __proc_malloc do
+asm __proc_malloc in
     "
     call malloc
     pushq %rax
@@ -25,15 +25,15 @@ asm __proc_malloc do
     "
 end
 
-proc malloc size do
+proc malloc size in
     return __proc_malloc(size);
 end
 
-proc _free_logger ptr do
+proc _free_logger ptr in
     //printf("freed'd %p\n", ptr);
 end
 
-asm __proc_free do
+asm __proc_free in
     "
     pushq %rdi
     call _proc__free_logger
@@ -43,6 +43,6 @@ asm __proc_free do
     "
 end
 
-proc free pointer do
+proc free pointer in
     return __proc_free(pointer);
 end

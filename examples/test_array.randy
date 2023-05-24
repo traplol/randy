@@ -2,7 +2,7 @@
 #include core
 #include array
 
-proc main do
+proc main in
     var array = make_array(10);
     printf("Array len = %d\n", array_len(array));
     printf("Array cap = %d\n", array_cap(array));

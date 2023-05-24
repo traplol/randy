@@ -14,7 +14,7 @@ extern stdin;
 extern stdout;
 extern stderr;
 
-proc exit code do
+proc exit code in
     fflush(u64@(stdout));
     fflush(u64@(stderr));
     syscall(SYS_exit, code);

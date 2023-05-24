@@ -5,27 +5,27 @@ const O_RDONLY = 0;
 const O_WRONLY = 1;
 const O_RDWR = 2;
 
-proc close fd do
+proc close fd in
     return syscall(SYS_close, fd);
 end
 
-proc open_for_read path do
+proc open_for_read path in
     return syscall(SYS_open, path, O_RDONLY);
 end
 
-proc open_for_write path do
+proc open_for_write path in
     return syscall(SYS_open, path, O_WRONLY);
 end
 
-proc open_for_read_write path do
+proc open_for_read_write path in
     return syscall(SYS_open, path, O_RDWR);
 end
 
-proc read_file fd, buf, count do
+proc read_file fd, buf, count in
     return syscall(SYS_read, fd, buf, count);
 end
 
-proc write_file fd, buf, count do
+proc write_file fd, buf, count in
     return syscall(SYS_write, fd, buf, count);
 end
 

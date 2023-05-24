@@ -1,6 +1,6 @@
 #include array
 
-proc merge dest, left, right do
+proc merge dest, left, right in
     var i = 0;
     var j = 0;
     var k = 0;
@@ -31,7 +31,7 @@ proc merge dest, left, right do
     done
 end
 
-proc merge_sort arr do
+proc merge_sort arr in
     if array_len(arr) <= 1 then
         return arr;
     end
@@ -68,7 +68,7 @@ proc merge_sort arr do
     return arr;
 end
 
-proc main do
+proc main in
     var arr = make_array(10);
     array_set(arr, 0, 5);
     array_set(arr, 1, 2);

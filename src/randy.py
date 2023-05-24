@@ -23,6 +23,7 @@ class TK(Enum):
     KW_proc   = auto()
     KW_do     = auto()
     KW_var    = auto()
+    KW_in     = auto()
     KW_if     = auto()
     KW_else   = auto()
     KW_then   = auto()
@@ -166,6 +167,7 @@ keywords : dict[str, TK] = {
     "proc": TK.KW_proc,
     "do" : TK.KW_do,
     "var" : TK.KW_var,
+    "in" : TK.KW_in,
     "if" : TK.KW_if,
     "else" : TK.KW_else,
     "then" : TK.KW_then,
@@ -784,10 +786,10 @@ def parse_proc(tokens: TokenStream) -> Optional[Ast]:
     body = []
     while tokens.peekk(TK.Ident):
         params.append(tokens.expect(TK.Ident))
-        if tokens.peekk(TK.KW_do):
+        if tokens.peekk(TK.KW_in):
             break
         tokens.expect(TK.Comma)
-    tokens.expect(TK.KW_do)
+    tokens.expect(TK.KW_in)
 
     body = parse_statements_until(tokens, [TK.KW_end])
 
@@ -817,7 +819,7 @@ def parse_extern(tokens: TokenStream) -> Optional[Ast]:
 
 def parse_asm(tokens: TokenStream) -> Optional[Ast]:
     ident = tokens.expect(TK.Ident)
-    tokens.expect(TK.KW_do)
+    tokens.expect(TK.KW_in)
     asmcode = tokens.expect(TK.String)
     tokens.expect(TK.KW_end)
     return Ast(AstK.InlineAsm, ident, name=ident, asm=asmcode)

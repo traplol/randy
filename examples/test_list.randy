@@ -1,7 +1,7 @@
 #include list
 #include core
 
-proc main do
+proc main in
     var list = make_list();
 
     var i = 0;
