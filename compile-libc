@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -xe
+
+python3 src/randy.py $@ -ld -dynamic-linker /home/max/workspace/musl-1.2.4/lib/libc.so -lc
+

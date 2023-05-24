@@ -1,0 +1,7 @@
+#include file
+
+proc main do
+    var fd = open_for_write("/dev/stdout");
+    write_file(fd, "hello world!\n", 13);
+    return 0;
+end
