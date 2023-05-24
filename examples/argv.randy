@@ -1,5 +1,5 @@
 
-extern puts;
+extern stderr;
 extern fprintf file, fmt, ...;
 
 asm argc do
