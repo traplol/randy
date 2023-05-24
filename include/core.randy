@@ -3,16 +3,19 @@
 #include string
 #include file
 
-proc exit code do
-    syscall(SYS_exit, code);
-end
-
 extern puts cstr;
 extern printf fmt, ...;
 extern fprintf file, fmt, ...;
+extern fflush file;
 extern putchar char;
 extern abort;
 
 extern stdin;
 extern stdout;
 extern stderr;
+
+proc exit code do
+    fflush(u64@(stdout));
+    fflush(u64@(stderr));
+    syscall(SYS_exit, code);
+end
