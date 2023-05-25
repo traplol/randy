@@ -163,6 +163,16 @@ def ident_start(c) -> bool:
 def ident_char(c) -> bool:
     return ident_start(c) or digit(c) or c == "@" or c == "!"
 
+def get_escaped_char(c) ->bool:
+    if c == "n":
+        return "\n"
+    elif c == "t":
+        return "\t"
+    elif c == "0":
+        return "\0"
+    return c
+
+
 keywords : dict[str, TK] = {
     "proc": TK.KW_proc,
     "do" : TK.KW_do,
@@ -295,12 +305,7 @@ def lex(filename: str, code: str) -> List[Token]:
                     c = code[i]
                     col_no += 1
                     i += 1       # eat escaped
-                    if c == "n":
-                        chars.append("\n")
-                    elif c == "t":
-                        chars.append("\t")
-                    else:
-                        chars.append(c)
+                    chars.append(get_escaped_char(c))
                 elif c == '"':
                     i += 1
                     col_no += 1
@@ -327,14 +332,7 @@ def lex(filename: str, code: str) -> List[Token]:
                 c = code[i]
                 col_no += 1
                 i += 1          # eat escaped
-                if c == "n":
-                    char = "\n"
-                elif c == "t":
-                    char = "\t"
-                elif c == "0":
-                    char = "\0"
-                else:
-                    char = c
+                char = get_escaped_char(c)
                 assert i < len(code), f"Unexpected EOF in character L{line_no}:{col_no}"
                 assert code[i] == "'", f"Expected close ' for character L{line_no}:{col_no} -- {repr(code[i])}"
                 i += 1
