@@ -1,6 +1,6 @@
 #include core
 #include string
-#include array
+#include vector
 
 proc read_file_to_string path in
     var fd = open_for_read(path);
@@ -94,158 +94,57 @@ const TK_Ellipsis = 49;
 const TK_MAX_VAL = 50;
 
 proc token_kind_cstr k in
-    if k < 0 or k >= TK_MAX_VAL then
-        return "TK_OUT_OF_RANGE";
-    end
-    if k == TK_Integer then
-        return "TK_Integer";
-    end
-    if k == TK_String then
-        return "TK_String";
-    end
-    if k == TK_Char then
-        return "TK_Char";
-    end
-    if k == TK_Ident then
-        return "TK_Ident";
-    end
-    if k == TK_KW_proc then
-        return "TK_KW_proc";
-    end
-    if k == TK_KW_do then
-        return "TK_KW_do";
-    end
-    if k == TK_KW_var then
-        return "TK_KW_var";
-    end
-    if k == TK_KW_in then
-        return "TK_KW_in";
-    end
-    if k == TK_KW_if then
-        return "TK_KW_if";
-    end
-    if k == TK_KW_else then
-        return "TK_KW_else";
-    end
-    if k == TK_KW_then
-        then return "TK_KW_then";
-    end
-    if k == TK_KW_end then
-        return "TK_KW_end";
-    end
-    if k == TK_KW_while then
-        return "TK_KW_while";
-    end
-    if k == TK_KW_done then
-        return "TK_KW_done";
-    end
-    if k == TK_KW_return then
-        return "TK_KW_return";
-    end
-    if k == TK_KW_and then
-        return "TK_KW_and";
-    end
-    if k == TK_KW_or then
-        return "TK_KW_or";
-    end
-    if k == TK_KW_not then
-        return "TK_KW_not";
-    end
-    if k == TK_KW_u8@ then
-        return "TK_KW_u8@";
-    end
-    if k == TK_KW_u16@ then
-        return "TK_KW_u16@";
-    end
-    if k == TK_KW_u32@ then
-        return "TK_KW_u32@";
-    end
-    if k == TK_KW_u64@ then
-        return "TK_KW_u64@";
-    end
-    if k == TK_KW_u8! then
-        return "TK_KW_u8!";
-    end
-    if k == TK_KW_u16! then
-        return "TK_KW_u16!";
-    end
-    if k == TK_KW_u32! then
-        return "TK_KW_u32!";
-    end
-    if k == TK_KW_u64! then
-        return "TK_KW_u64!";
-    end
-    if k == TK_KW_const then
-        return "TK_KW_const";
-    end
-    if k == TK_KW_extern then
-        return "TK_KW_extern";
-    end
-    if k == TK_KW_asm then
-        return "TK_KW_asm";
-    end
-    if k == TK_Plus then
-        return "TK_Plus";
-    end
-    if k == TK_Minus then
-        return "TK_Minus";
-    end
-    if k == TK_Star then
-        return "TK_Star";
-    end
-    if k == TK_Slash then
-        return "TK_Slash";
-    end
-    if k == TK_Percent then
-        return "TK_Percent";
-    end
-    if k == TK_Semicolon then
-        return "TK_Semicolon";
-    end
-    if k == TK_Less then
-        return "TK_Less";
-    end
-    if k == TK_LessEq then
-        return "TK_LessEq";
-    end
-    if k == TK_Greater then
-        return "TK_Greater";
-    end
-    if k == TK_GreaterEq then
-        return "TK_GreaterEq";
-    end
-    if k == TK_Assign then
-        return "TK_Assign";
-    end
-    if k == TK_EqEq then
-        return "TK_EqEq";
-    end
-    if k == TK_NotEq then
-        return "TK_NotEq";
-    end
-    if k == TK_Tilde then
-        return "TK_Tilde";
-    end
-    if k == TK_Comma then
-        return "TK_Comma";
-    end
-    if k == TK_LParen then
-        return "TK_LParen";
-    end
-    if k == TK_RParen then
-        return "TK_RParen";
-    end
-    if k == TK_Bar then
-        return "TK_Bar";
-    end
-    if k == TK_Amper then
-        return "TK_Amper";
-    end
-    if k == TK_Caret then
-        return "TK_Caret";
-    end
-    if k == TK_Ellipsis then
-        return "TK_Ellipsis";
+    if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
+    else if k == TK_Integer then return "TK_Integer";
+    else if k == TK_String then return "TK_String";
+    else if k == TK_Char then return "TK_Char";
+    else if k == TK_Ident then return "TK_Ident";
+    else if k == TK_KW_proc then return "TK_KW_proc";
+    else if k == TK_KW_do then return "TK_KW_do";
+    else if k == TK_KW_var then return "TK_KW_var";
+    else if k == TK_KW_in then return "TK_KW_in";
+    else if k == TK_KW_if then return "TK_KW_if";
+    else if k == TK_KW_else then return "TK_KW_else";
+    else if k == TK_KW_then then return "TK_KW_then";
+    else if k == TK_KW_end then return "TK_KW_end";
+    else if k == TK_KW_while then return "TK_KW_while";
+    else if k == TK_KW_done then return "TK_KW_done";
+    else if k == TK_KW_return then return "TK_KW_return";
+    else if k == TK_KW_and then return "TK_KW_and";
+    else if k == TK_KW_or then return "TK_KW_or";
+    else if k == TK_KW_not then return "TK_KW_not";
+    else if k == TK_KW_u8@ then return "TK_KW_u8@";
+    else if k == TK_KW_u16@ then return "TK_KW_u16@";
+    else if k == TK_KW_u32@ then return "TK_KW_u32@";
+    else if k == TK_KW_u64@ then return "TK_KW_u64@";
+    else if k == TK_KW_u8! then return "TK_KW_u8!";
+    else if k == TK_KW_u16! then return "TK_KW_u16!";
+    else if k == TK_KW_u32! then return "TK_KW_u32!";
+    else if k == TK_KW_u64! then return "TK_KW_u64!";
+    else if k == TK_KW_const then return "TK_KW_const";
+    else if k == TK_KW_extern then return "TK_KW_extern";
+    else if k == TK_KW_asm then return "TK_KW_asm";
+    else if k == TK_Plus then return "TK_Plus";
+    else if k == TK_Minus then return "TK_Minus";
+    else if k == TK_Star then return "TK_Star";
+    else if k == TK_Slash then return "TK_Slash";
+    else if k == TK_Percent then return "TK_Percent";
+    else if k == TK_Semicolon then return "TK_Semicolon";
+    else if k == TK_Less then return "TK_Less";
+    else if k == TK_LessEq then return "TK_LessEq";
+    else if k == TK_Greater then return "TK_Greater";
+    else if k == TK_GreaterEq then return "TK_GreaterEq";
+    else if k == TK_Assign then return "TK_Assign";
+    else if k == TK_EqEq then return "TK_EqEq";
+    else if k == TK_NotEq then return "TK_NotEq";
+    else if k == TK_Tilde then return "TK_Tilde";
+    else if k == TK_Comma then return "TK_Comma";
+    else if k == TK_LParen then return "TK_LParen";
+    else if k == TK_RParen then return "TK_RParen";
+    else if k == TK_Bar then return "TK_Bar";
+    else if k == TK_Amper then return "TK_Amper";
+    else if k == TK_Caret then return "TK_Caret";
+    else if k == TK_Ellipsis then return "TK_Ellipsis";
     end
 end
 
@@ -385,7 +284,7 @@ end
 
 proc lex_code code in
     var i = 0;
-    var tokens = make_array(0);
+    var tokens = make_vector(0);
     var length = string_len(code);
     var line_no = 1;
     var temp; var c; var cc; var val;
@@ -420,7 +319,7 @@ proc lex_code code in
                     i = i + 1;
                 done
                 i = i + 1; // skip close quote
-                array_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no));
+                vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no));
             else if c == '\'' then
                 temp = make_string(2);
                 i = i + 1; // skip open quote
@@ -434,7 +333,7 @@ proc lex_code code in
                 end
                 string_push(temp, c);
                 i = i + 2; // skip char and close quote
-                array_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no));
+                vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no));
             else if is_ident_start(c) then
                 temp = make_string(2);
                 string_push(temp, c);
@@ -445,7 +344,7 @@ proc lex_code code in
                        string_push(temp, c);
                    end
                 done
-                array_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), temp, line_no));
+                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), temp, line_no));
             else if is_digit(c) then
                 temp = make_string(2);
                 string_push(temp, c);
@@ -457,58 +356,58 @@ proc lex_code code in
                    end
                 done
                 val = int_from_string(temp);
-                array_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
+                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
             else if c == '#' then
                 while i < length and string_get(code, i) != '\n' do
                     i = i + 1;
                 done
             else if c == ';' then
-                array_push(tokens, make_token(TK_Semicolon, ";", ";", line_no));
+                vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no));
                 i = i + 1;
             else if c == ',' then
-                array_push(tokens, make_token(TK_Comma, ",", ",", line_no));
+                vector_push(tokens, make_token(TK_Comma, ",", ",", line_no));
                 i = i + 1;
             else if c == '(' then
-                array_push(tokens, make_token(TK_LParen, "(", "(", line_no));
+                vector_push(tokens, make_token(TK_LParen, "(", "(", line_no));
                 i = i + 1;
             else if c == ')' then
-                array_push(tokens, make_token(TK_RParen, ")", ")", line_no));
+                vector_push(tokens, make_token(TK_RParen, ")", ")", line_no));
                 i = i + 1;
             else if c == '+' then
-                array_push(tokens, make_token(TK_Plus, "+", "+", line_no));
+                vector_push(tokens, make_token(TK_Plus, "+", "+", line_no));
                 i = i + 1;
             else if c == '-' then
-                array_push(tokens, make_token(TK_Minus, "-", "-", line_no));
+                vector_push(tokens, make_token(TK_Minus, "-", "-", line_no));
                 i = i + 1;
             else if c == '*' then
-                array_push(tokens, make_token(TK_Star, "*", "*", line_no));
+                vector_push(tokens, make_token(TK_Star, "*", "*", line_no));
                 i = i + 1;
             else if c == '/' then
-                array_push(tokens, make_token(TK_Slash, "/", "/", line_no));
+                vector_push(tokens, make_token(TK_Slash, "/", "/", line_no));
                 i = i + 1;
             else if c == '%' then
-                array_push(tokens, make_token(TK_Percent, "%", "%", line_no));
+                vector_push(tokens, make_token(TK_Percent, "%", "%", line_no));
                 i = i + 1;
             else if c == '|' then
-                array_push(tokens, make_token(TK_Bar, "|", "|", line_no));
+                vector_push(tokens, make_token(TK_Bar, "|", "|", line_no));
                 i = i + 1;
             else if c == '&' then
-                array_push(tokens, make_token(TK_Amper, "&", "&", line_no));
+                vector_push(tokens, make_token(TK_Amper, "&", "&", line_no));
                 i = i + 1;
             else if c == '^' then
-                array_push(tokens, make_token(TK_Caret, "^", "^", line_no));
+                vector_push(tokens, make_token(TK_Caret, "^", "^", line_no));
                 i = i + 1;
             else if c == '~' then
-                array_push(tokens, make_token(TK_Tilde, "~", "~", line_no));
+                vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no));
                 i = i + 1;
             else if c == '.' then
                 if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
-                    array_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no));
+                    vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no));
                     i = i + 3;
                 end
             else if c == '!' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    array_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no));
+                    vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no));
                     i = i + 2;
                 else
                     printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
@@ -516,26 +415,26 @@ proc lex_code code in
                 end
             else if c == '<' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    array_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no));
+                    vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no));
                     i = i + 2;
                 else
-                    array_push(tokens, make_token(TK_Less, "<", "<", line_no));
+                    vector_push(tokens, make_token(TK_Less, "<", "<", line_no));
                     i = i + 1;
                 end
             else if c == '>' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    array_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no));
+                    vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no));
                     i = i + 2;
                 else
-                    array_push(tokens, make_token(TK_Greater, ">", ">", line_no));
+                    vector_push(tokens, make_token(TK_Greater, ">", ">", line_no));
                     i = i + 1;
                 end
             else if c == '=' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    array_push(tokens, make_token(TK_EqEq, "==", "==", line_no));
+                    vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no));
                     i = i + 2;
                 else
-                    array_push(tokens, make_token(TK_Assign, "=", "=", line_no));
+                    vector_push(tokens, make_token(TK_Assign, "=", "=", line_no));
                     i = i + 1;
                 end
             else
@@ -566,8 +465,8 @@ proc main argc, argv in
         end
 
         var i = 0;
-        while i < array_len(tokens) do
-            var token = array_get(tokens, i);
+        while i < vector_len(tokens) do
+            var token = vector_get(tokens, i);
             printf("token: %s -> '%s'\n", token_kind_cstr(token_kind(token))
                                       , token_cstr(token));
             i = i + 1;
