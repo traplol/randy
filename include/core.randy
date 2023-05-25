@@ -7,7 +7,6 @@ extern printf fmt, ...;
 extern fprintf file, fmt, ...;
 extern fflush file;
 extern putchar char;
-extern abort;
 
 extern stdin;
 extern stdout;
@@ -18,9 +17,24 @@ const false = 0;
 const NULL = 0;
 const sizeof_PTR = 8;
 
-
-proc exit code in
+proc _flush_output in
     fflush(u64@(stdout));
     fflush(u64@(stderr));
+end
+
+
+proc exit code in
+    _flush_output();
     syscall(SYS_exit, code);
+end
+
+asm __builtin_trap in
+"
+    ud2
+"
+end
+
+proc abort in
+    _flush_output();
+    __builtin_trap();
 end
