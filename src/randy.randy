@@ -188,6 +188,23 @@ proc token_line token in
     return u64@(token + TTOKEN_line);
 end
 
+proc print_token token in
+    var k = token_kind(token);
+    printf("token: %s -> '%s' = ", token_kind_cstr(k)
+                                 , token_cstr(token));
+
+    var v = token_value(token);
+    if k == TK_Integer then
+        printf("%d\n", v);
+    else if k == TK_String then
+        printf("\"%s\"\n", string_cstr(v));
+    else if k == TK_Char then
+        printf("'%c'\n", v);
+    else
+        printf("%s\n", v);
+    end
+end
+
 ////////////////////////////////////////////////////////////////////////////
 //                                  LEXER
 
@@ -303,6 +320,29 @@ proc lex_code code in
                 while i < length and string_get(code, i) != '\n' do
                     i = i + 1;
                 done
+            else if is_ident_start(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_ident_char(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_ident_char(c) then
+                       string_push(temp, c);
+                   end
+                done
+                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no));
+            else if is_digit(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_digit(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_digit(c) then
+                       string_push(temp, c);
+                   end
+                done
+                val = int_from_string(temp);
+                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
             else if c == '"' then
                 temp = make_string(2);
                 i = i + 1; // skip open quote
@@ -334,29 +374,6 @@ proc lex_code code in
                 string_push(temp, c);
                 i = i + 2; // skip char and close quote
                 vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no));
-            else if is_ident_start(c) then
-                temp = make_string(2);
-                string_push(temp, c);
-                while i < length and is_ident_char(c) do
-                   i = i + 1;
-                   c = string_get(code, i);
-                   if is_ident_char(c) then
-                       string_push(temp, c);
-                   end
-                done
-                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), temp, line_no));
-            else if is_digit(c) then
-                temp = make_string(2);
-                string_push(temp, c);
-                while i < length and is_digit(c) do
-                   i = i + 1;
-                   c = string_get(code, i);
-                   if is_digit(c) then
-                       string_push(temp, c);
-                   end
-                done
-                val = int_from_string(temp);
-                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
             else if c == '#' then
                 while i < length and string_get(code, i) != '\n' do
                     i = i + 1;
@@ -454,6 +471,112 @@ proc lex_file path in
     return lex_code(code);
 end
 
+////////////////////////////////////////////////////////////////////////////
+//                              TOKEN STREAM
+const TTOKEN_STREAM_tokens = 0;
+const TTOKEN_STREAM_idx = 8;
+const sizeof_TTOKEN_STREAM = 16;
+
+proc make_token_stream tokens in
+    var token_stream = malloc(sizeof_TTOKEN_STREAM);
+    u64!(token_stream + TTOKEN_STREAM_tokens, tokens);
+    u64!(token_stream + TTOKEN_STREAM_idx, 0);
+    return token_stream;
+end
+
+proc ts_tokens self in
+    return u64@(self + TTOKEN_STREAM_tokens);
+end
+
+proc ts_idx self in
+    return u64@(self + TTOKEN_STREAM_idx);
+end
+
+proc ts_peek self in
+    var tks = ts_tokens(self);
+    var idx = ts_idx(self);
+    if idx >= vector_len(tks) then
+        return NULL;
+    end
+    return vector_get(tks, idx);
+end
+
+proc ts_peekk self, kind in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+
+    return token_kind(peek) == kind;
+end
+
+proc ts_peekk_one_of_2 self, k1, k2 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2;
+end
+
+proc ts_peekk_one_of_3 self, k1, k2, k3 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3;
+end
+
+proc ts_peekk_one_of_4 self, k1, k2, k3, k4 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3 or tk == k4;
+end
+
+proc ts_peekk_one_of_5 self, k1, k2, k3, k4, k5 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
+end
+
+proc ts_next self in
+    var peek = ts_peek(self);
+    u64!(self + TTOKEN_STREAM_idx, u64@(self + TTOKEN_STREAM_idx) + 1);
+    return peek;
+end
+
+proc ts_accept self, kind in
+    var tmp = ts_peek(self);
+    if tmp and token_kind(tmp) == kind then
+        return ts_next(self);
+    end
+    return NULL;
+end
+
+proc ts_expect self, kind in
+    var tmp = ts_accept(self, kind);
+    if not tmp then
+        printf("ERROR: Expected token kind %s\n", token_kind_cstr(kind));
+        exit(1);
+    end
+    var tmp_k = token_kind(tmp);
+    if tmp_k != kind then
+        printf("ERROR: Expected token kind %s, got %s\n",
+            token_kind_cstr(kind),
+            token_kind_cstr(tmp_k));
+        exit(1);
+    end
+    return tmp;
+end
+
+
 proc main argc, argv in
     if argc < 2 then
         printf("No input file.\n");
@@ -464,12 +587,12 @@ proc main argc, argv in
             return 1;
         end
 
-        var i = 0;
-        while i < vector_len(tokens) do
-            var token = vector_get(tokens, i);
-            printf("token: %s -> '%s'\n", token_kind_cstr(token_kind(token))
-                                      , token_cstr(token));
-            i = i + 1;
+        var tokstr = make_token_stream(tokens);
+
+        while ts_peek(tokstr) do
+            var token = ts_peek(tokstr);
+            print_token(token);
+            ts_next(tokstr);
         done
     end
 end
