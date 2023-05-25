@@ -75,7 +75,7 @@ class Token:
         self.src_loc = src_loc
 
     def fmt_src_loc(self) -> str:
-        return f"{self.src_loc[0]}:{self.src_loc[1]}" #:{self.src_loc[2]}"
+        return f"  File \"{self.src_loc[0]}\", line {self.src_loc[1]}" #:{self.src_loc[2]}"
 
     def __repr__(self):
         return f"Token({repr(self.kind)}, {repr(self.value)}, {repr(self.fmt_src_loc())})"
@@ -126,7 +126,7 @@ class TokenStream:
         tmp = self.peek()
         if tmp is not None and tmp.kind != kind:
             print(f"ERROR: Expected token kind {kind}, got {tmp.kind}")
-            print(f"{tmp.fmt_src_loc()}")
+            print(tmp.fmt_src_loc())
             exit(1)
         elif tmp is None:
             print(f"ERROR: Expected token but got None")
@@ -138,7 +138,7 @@ class TokenStream:
         tmp = self.peek()
         if tmp is not None and tmp.kind not in kinds:
             print(f"ERROR: Expected token kind to be one of {kinds}, got {tmp.kind}")
-            print(f"{tmp.fmt_src_loc()}")
+            print(tmp.fmt_src_loc())
             exit(1)
         elif tmp is None:
             print(f"ERROR: Expected token but got None")
@@ -550,7 +550,7 @@ def parse_postfix(tokens: TokenStream) -> Optional[Ast]:
         if tokens.accept(TK.Comma):
             if tokens.peekk(TK.RParen):
                 print(f"ERROR: Unexpected ')' after ','")
-                print(f"{tokens.peek().fmt_src_loc()}")
+                print(tokens.peek().fmt_src_loc())
                 exit(1)
     tokens.expect(TK.RParen)
     return Ast(AstK.Call, peek, expr=expr, args=args)
@@ -713,18 +713,18 @@ def parse_pointer_op(tokens: TokenStream) -> Optional[Ast]:
         if tokens.accept(TK.Comma):
             if tokens.peekk(TK.RParen):
                 print(f"ERROR: Unexpected ')' after ','")
-                print(f"{tokens.peek().fmt_src_loc()}")
+                print(tokens.peek().fmt_src_loc())
                 exit(1)
     tokens.expect(TK.RParen)
     if op == "READ" and len(args) != 1:
         print(f"ERROR: Expected pointer read (u{size}@) to have exactly one argument")
         print(f"  got: {args}")
-        print(f"{tokens.peek().fmt_src_loc()}")
+        print(tokens.peek().fmt_src_loc())
         exit(1)
     elif op == "WRITE" and len(args) != 2:
         print(f"ERROR: Expected pointer write (u{size}!) to have exactly two arguments")
         print(f"  got: {args}")
-        print(f"{tokens.peek().fmt_src_loc()}")
+        print(tokens.peek().fmt_src_loc())
         exit(1)
         
     return Ast(AstK.PointerOp, peek, size=size, op=op, args=args)
@@ -846,7 +846,7 @@ def parse(tokens: TokenStream) -> List[Ast]:
         else:
             tk = tokens.peek()
             print(f"Error: Unexpected token in top-level: {repr(tk.kind)} : {repr(tk.value)}")
-            print(f"{tk.fmt_src_loc()}")
+            print(tk.fmt_src_loc())
             exit(1)
     return roots
 
@@ -1153,6 +1153,10 @@ def ir_emit_assign(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.SetLocal, local=ast.ident.value, n=local)
     
 def ir_emit_procedure(ast: Ast, ir: IRContext) -> None:
+    if len(ast.params) > 6:
+        print(f"ERROR: Functions with more than 6 arguments not supported yet.")
+        print(ast.name.fmt_src_loc())
+        exit(1)
     name = ast.name.value
     params = list(map((lambda x: x.value), ast.params))
     label = ir.new_proc(name, params)
