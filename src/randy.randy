@@ -1,0 +1,577 @@
+#include core
+#include string
+#include array
+
+proc read_file_to_string path in
+    var fd = open_for_read(path);
+    if fd < 0 then
+        printf("Error reading file: (%d) %s\n", fd, path);
+        return NULL;
+    end
+    
+    var buf = malloc(1024);
+    var running = 1;
+    var result = 0;
+    var string = make_string(64);
+    var x = 0;
+    while running do
+        result = read_file(fd, buf, 1023);
+        if result < 0 then
+            running = 0;
+            printf("error reading file: %d\n", result);
+            free(buf);
+            free_string(string);
+            return NULL;
+        else if result == 0 then
+            running = 0;
+        else
+            x = 0;
+            while x < result do
+                string_push(string, u8@(buf+x));
+                x = x + 1;
+            done
+        end
+    done
+    free(buf);
+
+    string_push(string, 0);
+    return string;
+end
+
+////////////////////////////////////////////////////////////////////////////
+//                                 TOKENS
+// Token Kinds
+const TK_Integer = 0;
+const TK_String = 1;
+const TK_Char = 2;
+const TK_Ident = 3;
+const TK_KW_proc = 4;
+const TK_KW_do = 5;
+const TK_KW_var = 6;
+const TK_KW_in = 7;
+const TK_KW_if = 8;
+const TK_KW_else = 9;
+const TK_KW_then = 10;
+const TK_KW_end = 11;
+const TK_KW_while = 12;
+const TK_KW_done = 13;
+const TK_KW_return = 14;
+const TK_KW_and = 15;
+const TK_KW_or = 16;
+const TK_KW_not = 17;
+const TK_KW_u8@ = 18;
+const TK_KW_u16@ = 19;
+const TK_KW_u32@ = 20;
+const TK_KW_u64@ = 21;
+const TK_KW_u8! = 22;
+const TK_KW_u16! = 23;
+const TK_KW_u32! = 24;
+const TK_KW_u64! = 25;
+const TK_KW_const = 26;
+const TK_KW_extern = 27;
+const TK_KW_asm = 28;
+const TK_Plus = 29;
+const TK_Minus = 30;
+const TK_Star = 31;
+const TK_Slash = 32;
+const TK_Percent = 33;
+const TK_Semicolon = 34;
+const TK_Less = 35;
+const TK_LessEq = 36;
+const TK_Greater = 37;
+const TK_GreaterEq = 38;
+const TK_Assign = 39;
+const TK_EqEq = 40;
+const TK_NotEq = 41;
+const TK_Tilde = 42;
+const TK_Comma = 43;
+const TK_LParen = 44;
+const TK_RParen = 45;
+const TK_Bar = 46;
+const TK_Amper = 47;
+const TK_Caret = 48;
+const TK_Ellipsis = 49;
+const TK_MAX_VAL = 50;
+
+proc token_kind_cstr k in
+    if k < 0 or k >= TK_MAX_VAL then
+        return "TK_OUT_OF_RANGE";
+    end
+    if k == TK_Integer then
+        return "TK_Integer";
+    end
+    if k == TK_String then
+        return "TK_String";
+    end
+    if k == TK_Char then
+        return "TK_Char";
+    end
+    if k == TK_Ident then
+        return "TK_Ident";
+    end
+    if k == TK_KW_proc then
+        return "TK_KW_proc";
+    end
+    if k == TK_KW_do then
+        return "TK_KW_do";
+    end
+    if k == TK_KW_var then
+        return "TK_KW_var";
+    end
+    if k == TK_KW_in then
+        return "TK_KW_in";
+    end
+    if k == TK_KW_if then
+        return "TK_KW_if";
+    end
+    if k == TK_KW_else then
+        return "TK_KW_else";
+    end
+    if k == TK_KW_then
+        then return "TK_KW_then";
+    end
+    if k == TK_KW_end then
+        return "TK_KW_end";
+    end
+    if k == TK_KW_while then
+        return "TK_KW_while";
+    end
+    if k == TK_KW_done then
+        return "TK_KW_done";
+    end
+    if k == TK_KW_return then
+        return "TK_KW_return";
+    end
+    if k == TK_KW_and then
+        return "TK_KW_and";
+    end
+    if k == TK_KW_or then
+        return "TK_KW_or";
+    end
+    if k == TK_KW_not then
+        return "TK_KW_not";
+    end
+    if k == TK_KW_u8@ then
+        return "TK_KW_u8@";
+    end
+    if k == TK_KW_u16@ then
+        return "TK_KW_u16@";
+    end
+    if k == TK_KW_u32@ then
+        return "TK_KW_u32@";
+    end
+    if k == TK_KW_u64@ then
+        return "TK_KW_u64@";
+    end
+    if k == TK_KW_u8! then
+        return "TK_KW_u8!";
+    end
+    if k == TK_KW_u16! then
+        return "TK_KW_u16!";
+    end
+    if k == TK_KW_u32! then
+        return "TK_KW_u32!";
+    end
+    if k == TK_KW_u64! then
+        return "TK_KW_u64!";
+    end
+    if k == TK_KW_const then
+        return "TK_KW_const";
+    end
+    if k == TK_KW_extern then
+        return "TK_KW_extern";
+    end
+    if k == TK_KW_asm then
+        return "TK_KW_asm";
+    end
+    if k == TK_Plus then
+        return "TK_Plus";
+    end
+    if k == TK_Minus then
+        return "TK_Minus";
+    end
+    if k == TK_Star then
+        return "TK_Star";
+    end
+    if k == TK_Slash then
+        return "TK_Slash";
+    end
+    if k == TK_Percent then
+        return "TK_Percent";
+    end
+    if k == TK_Semicolon then
+        return "TK_Semicolon";
+    end
+    if k == TK_Less then
+        return "TK_Less";
+    end
+    if k == TK_LessEq then
+        return "TK_LessEq";
+    end
+    if k == TK_Greater then
+        return "TK_Greater";
+    end
+    if k == TK_GreaterEq then
+        return "TK_GreaterEq";
+    end
+    if k == TK_Assign then
+        return "TK_Assign";
+    end
+    if k == TK_EqEq then
+        return "TK_EqEq";
+    end
+    if k == TK_NotEq then
+        return "TK_NotEq";
+    end
+    if k == TK_Tilde then
+        return "TK_Tilde";
+    end
+    if k == TK_Comma then
+        return "TK_Comma";
+    end
+    if k == TK_LParen then
+        return "TK_LParen";
+    end
+    if k == TK_RParen then
+        return "TK_RParen";
+    end
+    if k == TK_Bar then
+        return "TK_Bar";
+    end
+    if k == TK_Amper then
+        return "TK_Amper";
+    end
+    if k == TK_Caret then
+        return "TK_Caret";
+    end
+    if k == TK_Ellipsis then
+        return "TK_Ellipsis";
+    end
+end
+
+const TTOKEN_kind = 0;
+const TTOKEN_cstr = 8;
+const TTOKEN_value = 16;
+const TTOKEN_line = 24;
+const sizeof_TTOKEN = 32;
+
+proc make_token kind, cstr, value, line in
+    if kind < 0 or kind >= TK_MAX_VAL then
+        printf("make_token kind out of range: %d\n", kind);
+        exit(1);
+    end
+
+    var token = malloc(sizeof_TTOKEN);
+    u64!(token + TTOKEN_kind, kind);
+    u64!(token + TTOKEN_cstr, cstr);
+    u64!(token + TTOKEN_value, value);
+    u64!(token + TTOKEN_line, line);
+    return token;
+end
+
+proc free_token token in
+    free(token);
+end
+
+proc token_kind token in
+    return u64@(token + TTOKEN_kind);
+end
+
+proc token_cstr token in
+    return u64@(token + TTOKEN_cstr);
+end
+
+proc token_value token in
+    return u64@(token + TTOKEN_value);
+end
+
+proc token_line token in
+    return u64@(token + TTOKEN_line);
+end
+
+////////////////////////////////////////////////////////////////////////////
+//                                  LEXER
+
+proc is_digit c in
+    return '0' <= c and c <= '9';
+end
+
+proc is_whitespace c in
+    return c == ' ' or c == '\t' or c == '\n' or c == 0;
+end
+
+proc is_ident_start c in
+    return c == '_' or ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z');
+end
+
+proc is_ident_char c in
+    return is_ident_start(c) or is_digit(c) or c == '@' or c == '!';
+end
+
+proc get_escaped_char c in
+    if c == 't' then
+        return 9; // \t tab
+    else if c == 'n' then
+        return 10; // \n newline
+    else if c == 'r' then
+        return 13; // \r carriage return
+    else if c == '0' then
+        return 0; // \0 null character
+    end
+    return c;
+end
+
+proc get_ident_kind string in
+    var cstr = string_cstr(string);
+    var first = u8@(cstr);
+    if 'a' == first then
+        if cstr_eq("asm", cstr) then return TK_KW_asm; end
+        if cstr_eq("and", cstr) then return TK_KW_and; end
+    else if 'c' == first then
+        if cstr_eq("const", cstr) then return TK_KW_const; end
+    else if 'd' == first then
+        if cstr_eq("do", cstr) then return TK_KW_do; end
+        if cstr_eq("done", cstr) then return TK_KW_done; end
+    else if 'e' == first then
+        if cstr_eq("else", cstr) then return TK_KW_else; end
+        if cstr_eq("end", cstr) then return TK_KW_end; end
+        if cstr_eq("extern", cstr) then return TK_KW_extern; end
+    else if 'i' == first then
+        if cstr_eq("in", cstr) then return TK_KW_in; end
+        if cstr_eq("if", cstr) then return TK_KW_if; end
+    else if 'n' == first then
+        if cstr_eq("not", cstr) then return TK_KW_not; end
+    else if 'o' == first then
+        if cstr_eq("or", cstr) then return TK_KW_or; end
+    else if 'p' == first then
+        if cstr_eq("proc", cstr) then return TK_KW_proc; end
+    else if 'r' == first then
+        if cstr_eq("return", cstr) then return TK_KW_return; end
+    else if 't' == first then
+        if cstr_eq("then", cstr) then return TK_KW_return; end
+    else if 'u' == first then
+        if cstr_eq("u8@", cstr) then return TK_KW_u8@; end
+        if cstr_eq("u16@", cstr) then return TK_KW_u16@; end
+        if cstr_eq("u32@", cstr) then return TK_KW_u32@; end
+        if cstr_eq("u64@", cstr) then return TK_KW_u64@; end
+
+        if cstr_eq("u8!", cstr) then return TK_KW_u8!; end
+        if cstr_eq("u16!", cstr) then return TK_KW_u16!; end
+        if cstr_eq("u32!", cstr) then return TK_KW_u32!; end
+        if cstr_eq("u64!", cstr) then return TK_KW_u64!; end
+    else if 'w' == first then
+        if cstr_eq("while", cstr) then return TK_KW_while; end
+    end
+    return TK_Ident;
+end
+
+proc int_from_string string in
+    var result = 0;
+    var i = string_len(string) - 1;
+    var k = 1;
+    var c;
+    while i >= 0 do
+        c = string_get(string, i);
+        if not is_digit(c) then
+            i = 0;
+        else
+            result = result + (c - '0') * k;
+            k = k * 10;
+        end
+        i = i - 1;
+    done
+    return result;
+end
+
+proc lex_code code in
+    var i = 0;
+    var tokens = make_array(0);
+    var length = string_len(code);
+    var line_no = 1;
+    var temp; var c; var cc; var val;
+    while i < length do
+        // Consume whitespace
+        while i < length and is_whitespace(string_get(code, i)) do
+            if string_get(code, i) == '\n' then
+                line_no = line_no + 1;
+            end
+            i = i + 1;
+        done
+
+        if i < length then
+            c = string_get(code, i);
+            if c == '/' and i+1 < length and string_get(code, i+1) == '/' then
+                while i < length and string_get(code, i) != '\n' do
+                    i = i + 1;
+                done
+            else if c == '"' then
+                temp = make_string(2);
+                i = i + 1; // skip open quote
+                while i < length and string_get(code, i) != '"' do
+                    c = string_get(code, i);
+                    if c == '\\' then
+                        i = i + 1; // skip \
+                        c = string_get(code, i);
+                        c = get_escaped_char(c);
+                    else if c == '\n' then
+                        line_no = line_no + 1;
+                    end
+                    string_push(temp, c);
+                    i = i + 1;
+                done
+                i = i + 1; // skip close quote
+                array_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no));
+            else if c == '\'' then
+                temp = make_string(2);
+                i = i + 1; // skip open quote
+                c = string_get(code, i);
+                if c == '\\' then
+                    i = i + 1; // skip \
+                    c = string_get(code, i);
+                    c = get_escaped_char(c);
+                else if cc == '\n' then
+                    line_no = line_no + 1;
+                end
+                string_push(temp, c);
+                i = i + 2; // skip char and close quote
+                array_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no));
+            else if is_ident_start(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_ident_char(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_ident_char(c) then
+                       string_push(temp, c);
+                   end
+                done
+                array_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), temp, line_no));
+            else if is_digit(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_digit(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_digit(c) then
+                       string_push(temp, c);
+                   end
+                done
+                val = int_from_string(temp);
+                array_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
+            else if c == '#' then
+                while i < length and string_get(code, i) != '\n' do
+                    i = i + 1;
+                done
+            else if c == ';' then
+                array_push(tokens, make_token(TK_Semicolon, ";", ";", line_no));
+                i = i + 1;
+            else if c == ',' then
+                array_push(tokens, make_token(TK_Comma, ",", ",", line_no));
+                i = i + 1;
+            else if c == '(' then
+                array_push(tokens, make_token(TK_LParen, "(", "(", line_no));
+                i = i + 1;
+            else if c == ')' then
+                array_push(tokens, make_token(TK_RParen, ")", ")", line_no));
+                i = i + 1;
+            else if c == '+' then
+                array_push(tokens, make_token(TK_Plus, "+", "+", line_no));
+                i = i + 1;
+            else if c == '-' then
+                array_push(tokens, make_token(TK_Minus, "-", "-", line_no));
+                i = i + 1;
+            else if c == '*' then
+                array_push(tokens, make_token(TK_Star, "*", "*", line_no));
+                i = i + 1;
+            else if c == '/' then
+                array_push(tokens, make_token(TK_Slash, "/", "/", line_no));
+                i = i + 1;
+            else if c == '%' then
+                array_push(tokens, make_token(TK_Percent, "%", "%", line_no));
+                i = i + 1;
+            else if c == '|' then
+                array_push(tokens, make_token(TK_Bar, "|", "|", line_no));
+                i = i + 1;
+            else if c == '&' then
+                array_push(tokens, make_token(TK_Amper, "&", "&", line_no));
+                i = i + 1;
+            else if c == '^' then
+                array_push(tokens, make_token(TK_Caret, "^", "^", line_no));
+                i = i + 1;
+            else if c == '~' then
+                array_push(tokens, make_token(TK_Tilde, "~", "~", line_no));
+                i = i + 1;
+            else if c == '.' then
+                if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
+                    array_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no));
+                    i = i + 3;
+                end
+            else if c == '!' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    array_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no));
+                    i = i + 2;
+                else
+                    printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
+                    exit(1);
+                end
+            else if c == '<' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    array_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no));
+                    i = i + 2;
+                else
+                    array_push(tokens, make_token(TK_Less, "<", "<", line_no));
+                    i = i + 1;
+                end
+            else if c == '>' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    array_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no));
+                    i = i + 2;
+                else
+                    array_push(tokens, make_token(TK_Greater, ">", ">", line_no));
+                    i = i + 1;
+                end
+            else if c == '=' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    array_push(tokens, make_token(TK_EqEq, "==", "==", line_no));
+                    i = i + 2;
+                else
+                    array_push(tokens, make_token(TK_Assign, "=", "=", line_no));
+                    i = i + 1;
+                end
+            else
+                printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
+                exit(1);
+            end
+        end
+    done
+    return tokens;
+end
+
+proc lex_file path in
+    var code = read_file_to_string(path);
+    if not code then
+        return NULL;
+    end
+    return lex_code(code);
+end
+
+proc main argc, argv in
+    if argc < 2 then
+        printf("No input file.\n");
+    else
+        var path = u64@(argv + sizeof_PTR);
+        var tokens = lex_file(path);
+        if not tokens then
+            return 1;
+        end
+
+        var i = 0;
+        while i < array_len(tokens) do
+            var token = array_get(tokens, i);
+            printf("token: %s -> '%s'\n", token_kind_cstr(token_kind(token))
+                                      , token_cstr(token));
+            i = i + 1;
+        done
+    end
+end
+
