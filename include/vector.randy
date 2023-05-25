@@ -1,0 +1,74 @@
+
+#include string
+#include core
+
+const TVECTOR_buffer = TSTRING_buffer;
+const TVECTOR_length = TSTRING_length;
+const TVECTOR_capacity = TSTRING_capacity;
+const sizeof_TVECTOR = sizeof_TSTRING;
+const sizeof_TVECTOR_ELEMENT = sizeof_PTR;
+
+proc make_vector init in
+    var vector = make_string(init * sizeof_TVECTOR_ELEMENT);
+    u64!(vector + TVECTOR_length, init * sizeof_TVECTOR_ELEMENT);
+    return vector;
+end
+
+proc free_vector vector in
+    free_string(vector);
+end
+
+proc vector_buf vector in
+    return u64@(vector);
+end
+
+proc vector_len vector in
+    return u64@(vector + TVECTOR_length) / sizeof_TVECTOR_ELEMENT;
+end
+
+proc vector_cap vector in
+    return u64@(vector + TVECTOR_capacity) / sizeof_TVECTOR_ELEMENT;
+end
+
+proc vector_get vector, idx in
+    // TODO: Bounds check & abort
+    return u64@(u64@(vector) + (idx * sizeof_TVECTOR_ELEMENT));
+end
+
+proc vector_set vector, idx, val in
+    // TODO: Bounds check & abort
+    u64!(u64@(vector) + (idx * sizeof_TVECTOR_ELEMENT), val);
+end
+
+proc vector_resize vector, new_cap in
+    string_resize(vector, new_cap * sizeof_TVECTOR_ELEMENT);
+end
+
+proc vector_push vector, val in
+    var len = string_len(vector);
+    var cap = string_cap(vector);
+    if len >= cap then
+        string_resize(vector, (2 * cap) + sizeof_TVECTOR_ELEMENT);
+    end
+    u64!(u64@(vector) + len, val);
+    u64!(vector + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);
+end
+
+proc vector_pop vector in
+    var len = string_len(vector);
+    if len > 0 then
+        u64!(vector + TVECTOR_length, len - sizeof_TVECTOR_ELEMENT);
+    else
+        printf("ERROR: vector_pop out of bounds.\n");
+        abort();
+    end
+end
+
+proc vector_back vector in
+    var len = vector_len(vector);
+    if len > 0 then
+        return u64@(u64@(vector) + ((len - 1) * sizeof_TVECTOR_ELEMENT));
+    end
+    printf("ERROR: vector_back out of bounds.\n");
+    abort();
+end

@@ -1,54 +1,54 @@
-#include array
+#include vector
 
 proc merge dest, left, right in
     var i = 0;
     var j = 0;
     var k = 0;
 
-    while i < array_len(left) and j < array_len(right) do
-        if array_get(left, i) <= array_get(right, j) then
-            array_set(dest, k, array_get(left, i));
+    while i < vector_len(left) and j < vector_len(right) do
+        if vector_get(left, i) <= vector_get(right, j) then
+            vector_set(dest, k, vector_get(left, i));
             i = i + 1;
         else
-            array_set(dest, k, array_get(right, j));
+            vector_set(dest, k, vector_get(right, j));
             j = j + 1;
         end
         k = k + 1;
     done
 
     // copy remaining elements from left
-    while i < array_len(left) do
-        array_set(dest, k, array_get(left, i));
+    while i < vector_len(left) do
+        vector_set(dest, k, vector_get(left, i));
         i = i + 1;
         k = k + 1;
     done
 
     // copy remaining elements from right
-    while j < array_len(right) do
-        array_set(dest, k, array_get(right, j));
+    while j < vector_len(right) do
+        vector_set(dest, k, vector_get(right, j));
         j = j + 1;
         k = k + 1;
     done
 end
 
 proc merge_sort arr in
-    if array_len(arr) <= 1 then
+    if vector_len(arr) <= 1 then
         return arr;
     end
 
-    var mid = array_len(arr) / 2;
-    var left = make_array(mid);
-    var right = make_array(array_len(arr) - mid);
+    var mid = vector_len(arr) / 2;
+    var left = make_vector(mid);
+    var right = make_vector(vector_len(arr) - mid);
 
     var i = 0;
     while i < mid do
-        array_set(left, i, array_get(arr, i));
+        vector_set(left, i, vector_get(arr, i));
         i = i + 1;
     done
 
     i = mid;
-    while i < array_len(arr) do
-        array_set(right, i - mid, array_get(arr, i));
+    while i < vector_len(arr) do
+        vector_set(right, i - mid, vector_get(arr, i));
         i = i + 1;
     done
 
@@ -57,48 +57,48 @@ proc merge_sort arr in
     merge(arr, new_left, new_right);
 
     if new_left != left then
-        free_array(left);
+        free_vector(left);
     end
     if new_right != right then
-        free_array(right);
+        free_vector(right);
     end
-    free_array(new_left);
-    free_array(new_right);
+    free_vector(new_left);
+    free_vector(new_right);
 
     return arr;
 end
 
 proc main in
-    var arr = make_array(10);
-    array_set(arr, 0, 5);
-    array_set(arr, 1, 2);
-    array_set(arr, 2, 9);
-    array_set(arr, 3, 1);
-    array_set(arr, 4, 7);
-    array_set(arr, 5, 8);
-    array_set(arr, 6, 3);
-    array_set(arr, 7, 6);
-    array_set(arr, 8, 4);
-    array_set(arr, 9, 0);
+    var arr = make_vector(10);
+    vector_set(arr, 0, 5);
+    vector_set(arr, 1, 2);
+    vector_set(arr, 2, 9);
+    vector_set(arr, 3, 1);
+    vector_set(arr, 4, 7);
+    vector_set(arr, 5, 8);
+    vector_set(arr, 6, 3);
+    vector_set(arr, 7, 6);
+    vector_set(arr, 8, 4);
+    vector_set(arr, 9, 0);
 
-    printf("Unsorted array:\n");
+    printf("Unsorted vector:\n");
     var i = 0;
-    while i < array_len(arr) do
-        printf("%d ", array_get(arr, i));
+    while i < vector_len(arr) do
+        printf("%d ", vector_get(arr, i));
         i = i + 1;
     done
     putchar('\n');
 
     merge_sort(arr);
 
-    printf("Sorted array:\n");
+    printf("Sorted vector:\n");
     i = 0;
-    while i < array_len(arr) do
-        printf("%d ", array_get(arr, i));
+    while i < vector_len(arr) do
+        printf("%d ", vector_get(arr, i));
         i = i + 1;
     done
     putchar('\n');
 
-    free_array(arr);
+    free_vector(arr);
     return 0;
 end

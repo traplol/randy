@@ -1,0 +1,95 @@
+Vector len = 10
+Vector cap = 10
+Set the vector
+Vector len = 10
+Vector cap = 10
+Vector len = 11
+Vector cap = 21
+Push to vector
+Vector len = 21
+Vector cap = 21
+Enumerate the vector
+0 = 0
+1 = 10
+2 = 20
+3 = 30
+4 = 40
+5 = 50
+6 = 60
+7 = 70
+8 = 80
+9 = 90
+10 = 200
+11 = 100
+12 = 110
+13 = 120
+14 = 130
+15 = 140
+16 = 150
+17 = 160
+18 = 170
+19 = 180
+20 = 190
+Pop 3
+Vector back is 190
+Pop from vector
+Vector back is 180
+Pop from vector
+Vector back is 170
+Pop from vector
+Vector len = 18
+Vector cap = 21
+Push 3
+Vector len = 21
+Vector cap = 21
+Vector back is 20
+Vector len = 22
+Vector cap = 43
+Vector back is 123
+0 = 0
+1 = 10
+2 = 20
+3 = 30
+4 = 40
+5 = 50
+6 = 60
+7 = 70
+8 = 80
+9 = 90
+10 = 200
+11 = 100
+12 = 110
+13 = 120
+14 = 130
+15 = 140
+16 = 150
+17 = 160
+18 = 0
+19 = 10
+20 = 20
+21 = 123
+Popping entire vector
+Vector back = 123
+Vector back = 20
+Vector back = 10
+Vector back = 0
+Vector back = 160
+Vector back = 150
+Vector back = 140
+Vector back = 130
+Vector back = 120
+Vector back = 110
+Vector back = 100
+Vector back = 200
+Vector back = 90
+Vector back = 80
+Vector back = 70
+Vector back = 60
+Vector back = 50
+Vector back = 40
+Vector back = 30
+Vector back = 20
+Vector back = 10
+Vector back = 0
+Vector len = 0
+Vector cap = 43
