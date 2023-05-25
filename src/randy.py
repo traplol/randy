@@ -1069,8 +1069,8 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
     if ast.expr.kind == AstK.Ident:
         ident = ast.expr.ident
         if ident in ir.procs:
-            proc_name, varargs = ir.procs[ident]
-            ir.append(IRK.Call, label=proc_name, varargs=varargs)
+            proc_name, _ = ir.procs[ident]
+            ir.append(IRK.Call, label=proc_name, varargs=False)
         elif ident in ir.externs:
             id, varargs = ir.externs[ident]
             ir.append(IRK.Call, label=id, varargs=varargs)
@@ -1245,7 +1245,7 @@ def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
 
 def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
     # FIXME: move this to IRContext
-    ir.procs[ast.name.value] = (ast.name.value, ast.params)
+    ir.procs[ast.name.value] = (ast.name.value, False)
     ir.append(IRK.InlineAsm, name=ast.name.value, asm=ast.asm)
     
 ir_emitters = MappingProxyType({
