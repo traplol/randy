@@ -1,4 +1,5 @@
 
+#include core
 #include memory
 
 const TSTRING_buffer = 0;
@@ -64,4 +65,58 @@ proc string_push string, val in
     end
     string_set(string, len, val);
     u64!(string + TSTRING_length, len+1);
+end
+
+proc string_from_cstr cstr in
+    var string = make_string(2);
+    while u8@(cstr) do
+        string_push(string, u8@(cstr));
+        cstr = cstr + 1;
+    done
+    return string;
+end
+
+proc string_eq string_a, string_b in
+    var a_len = string_len(string_a);
+    var b_len = string_len(string_b);
+    if a_len != b_len then
+        return false;
+    end
+
+    var i = 0;
+    while i < a_len do
+        if string_get(string_a, i) != string_get(string_b, i) then
+            return false;
+        end
+        i = i + 1;
+    done
+    return true;
+end
+
+proc string_cstr string in
+    var len = string_len(string);
+    if len == string_cap(string) then
+        string_resize(string, len+1);
+    end
+    string_set(string, len, 0);
+    return string_buf(string);
+end
+
+proc cstr_eq cstr_a, cstr_b in
+    if cstr_a == cstr_b then
+        return true;
+    end
+    if not cstr_a or not cstr_b then
+        return false;
+    end
+
+    var a = u8@(cstr_a);
+    var b = u8@(cstr_b);
+    while a == b and a do
+        a = u8@(cstr_a);
+        b = u8@(cstr_b);
+        cstr_a = cstr_a + 1;
+        cstr_b = cstr_b + 1;
+    done
+    return a == b;
 end
