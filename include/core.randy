@@ -1,6 +1,5 @@
 
 #include syscall
-#include string
 #include file
 
 extern puts cstr;
@@ -13,6 +12,12 @@ extern abort;
 extern stdin;
 extern stdout;
 extern stderr;
+
+const true = 1;
+const false = 0;
+const NULL = 0;
+const sizeof_PTR = 8;
+
 
 proc exit code in
     fflush(u64@(stdout));
