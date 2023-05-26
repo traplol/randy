@@ -1153,10 +1153,10 @@ def ir_emit_assign(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.SetLocal, local=ast.ident.value, n=local)
     
 def ir_emit_procedure(ast: Ast, ir: IRContext) -> None:
-    if len(ast.params) > 6:
-        print(f"ERROR: Functions with more than 6 arguments not supported yet.")
-        print(ast.name.fmt_src_loc())
-        exit(1)
+    #if len(ast.params) > 6:
+    #    print(f"ERROR: Functions with more than 6 arguments not supported yet.")
+    #    print(ast.name.fmt_src_loc())
+    #    exit(1)
     name = ast.name.value
     params = list(map((lambda x: x.value), ast.params))
     label = ir.new_proc(name, params)
@@ -1416,7 +1416,12 @@ def emit_set_local_arg(ctx: CompilerContext, ir: IRInstr) -> None:
     idx = ctx.locals[ir.local]
     offs = 8 * (idx+1)
     ctx.out(f"#{ir}")
-    ctx.out(f"    movq {systemv_args[idx]}, -{offs}(%rbp)")
+    if idx < len(systemv_args):
+        ctx.out(f"    movq {systemv_args[idx]}, -{offs}(%rbp)")
+    else:
+        n = (idx-len(systemv_args)+2)*8
+        ctx.out(f"   movq {n}(%rbp), %rax")
+        ctx.out(f"   movq %rax, -{offs}(%rbp)")
 
 def emit_set_local(ctx: CompilerContext, ir: IRInstr) -> None:
     idx = ctx.locals[ir.local]
@@ -1452,7 +1457,8 @@ def emit_set_arg_temp(ctx: CompilerContext, ir: IRInstr) -> None:
     if ir.n < len(systemv_args):
         ctx.out(f"    movq {offs}(%rsp), {systemv_args[ir.n]}")
     else:
-        assert False, f"TODO: {inspect.currentframe().f_code.co_name} : too many args"
+        ctx.out(f"    pushq {offs}(%rsp)")
+        #assert False, f"TODO: {inspect.currentframe().f_code.co_name} : too many args"
         
 
 def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
@@ -1688,14 +1694,16 @@ def assemble_and_link(asm_path: str, exe_path: str, ld_flags: List[str], verbose
         if ld.returncode != 0:
             exit(ld.returncode)
 
-@dataclass
 class Config:
-    source_path: str
-    out_path: str
-    ld_flags: List[str]
-    include_paths: List[str]
-    ir_comments: bool
-    verbosity: int
+    def __init__(self, **kwargs):
+        self.source_path: str = ""
+        self.out_path: str = ""
+        self.ld_flags: List[str] = []
+        self.include_paths: List[str] = []
+        self.ir_comments: bool = False
+        self.verbosity: int = 0
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
 def main(config: Config):
     source_path = config.source_path
@@ -1809,7 +1817,7 @@ def parse_args() -> Config:
     verbosity = 0
 
     args = sys.argv
-    i = 0;
+    i = 1;
     while i < len(args):
         arg = args[i]
         if arg == "-h" or arg == "--help":
@@ -1887,7 +1895,12 @@ def parse_args() -> Config:
     else:
         out_path = os.path.abspath(out_path)
 
-    return Config(source_path, out_path, ld_flags, includes, ir_comments, verbosity)
+    return Config(source_path=source_path,
+                  out_path=out_path,
+                  ld_flags=ld_flags,
+                  include_paths=includes,
+                  ir_comment=ir_comments,
+                  verbosity=verbosity)
 
 if __name__ == "__main__":
     main(parse_args())
