@@ -62,6 +62,10 @@ proc test_alist_string_comparer in
     node = alist_find(alist, "foo");
     printf("alist find \"foo\" returns: %d\n", alist_node_val(node));
 
+    k = "not in list";
+    node = alist_find(alist, k);
+    printf("alist find \"%s\" returns null? %d\n", k, node == NULL); 
+
     free_alist(alist);
 end
 

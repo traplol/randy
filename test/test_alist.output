@@ -14,3 +14,4 @@ alist find "bar" returns: 222
 alist find "foo" returns: 456
 shadowing k = foo with 999
 alist find "foo" returns: 999
+alist find "not in list" returns null? 1
