@@ -163,7 +163,7 @@ def ident_start(c) -> bool:
 def ident_char(c) -> bool:
     return ident_start(c) or digit(c) or c == "@" or c == "!"
 
-def get_escaped_char(c) ->bool:
+def get_escaped_char(c) -> str:
     if c == "n":
         return "\n"
     elif c == "t":
@@ -921,7 +921,7 @@ class IRInstr:
 class IRContext:
     def __init__(self, **kwargs):
         self.quiet = False
-        self.procs = {}
+        self.procs: dict[str, Tuple[str, List[str], bool]] = {}
         self.label_id = 0
         self.data = []
         self.strings = {}
@@ -945,14 +945,17 @@ class IRContext:
         p = {}
         for i, param in enumerate(params):
             p[param] = i
-        self.procs[name] = (label, params)
+        self.procs[name] = (label, params, False)
         self.proc_params = p
         return label
 
-    def get_proc(self, name: str) -> Tuple[Optional[str], Optional[List[str]]]:
+    def declare_asm(self, name: str) -> None:
+        self.procs[name] = (name, [], True)
+
+    def get_proc(self, name: str) -> Tuple[Optional[str], Optional[List[str]], Optional[bool]]:
         if name in self.procs:
             return self.procs[name]
-        return None, None
+        return None, None, None
 
     def new_proc(self, name: str, params: List[str]) -> str:
         self.proc_locals: dict[str, int] = {}
@@ -982,13 +985,13 @@ class IRContext:
         self.strings[string] = str_label
         return str_label
 
-    def add_extern(self, ident: str, is_varargs: bool) -> None:
-        self.externs[ident] = (ident, is_varargs)
+    def add_extern(self, ident: str, params: List[str], is_varargs: bool) -> None:
+        self.externs[ident] = (ident, params, is_varargs)
 
-    def get_extern(self, ident: str) -> Tuple[Optional[str], Optional[bool]]:
+    def get_extern(self, ident: str) -> Tuple[Optional[str], Optional[List[str]], Optional[bool]]:
         if ident in self.externs:
             return self.externs[ident]
-        return None, None
+        return None, None, None
 
     def new_label(self, hint: str) -> str:
         label = f".L{hint}_{self.label_id}"
@@ -1034,12 +1037,12 @@ def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
     elif const is not None:
         assert False, f"TODO: {inspect.currentframe().f_code.co_name} : {const}"
 
-    proc, _ = ir.get_proc(ident)
+    proc, _, _ = ir.get_proc(ident)
     if proc is not None:
         ir.append(IRK.PushLabel, label=proc)
         return
 
-    extern, _ = ir.get_extern(ident)
+    extern, _, _ = ir.get_extern(ident)
     if extern is not None:
         ir.append(IRK.PushLabel, label=extern)
         return
@@ -1069,10 +1072,20 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
     if ast.expr.kind == AstK.Ident:
         ident = ast.expr.ident
         if ident in ir.procs:
-            proc_name, _ = ir.procs[ident]
+            proc_name, params, varargs = ir.procs[ident]
+            if (not varargs and len(ast.args) != len(params)) or \
+               (varargs and len(ast.args) < len(params)):
+                print(f"ERROR: Call to `{ident}` expects {len(params)} arguments, got {len(ast.args)}")
+                print(ast.token.fmt_src_loc())
+                exit(1)
             ir.append(IRK.Call, label=proc_name, varargs=False)
         elif ident in ir.externs:
-            id, varargs = ir.externs[ident]
+            id, params, varargs = ir.get_extern(ident)
+            if (not varargs and len(ast.args) != len(params)) or \
+               (varargs and len(ast.args) < len(params)):
+                print(f"ERROR: Call to `{ident}` expects {len(params)} arguments, got {len(ast.args)}")
+                print(ast.token.fmt_src_loc())
+                exit(1)
             ir.append(IRK.Call, label=id, varargs=varargs)
         elif ir.is_label(ident):
             ir.append(IRK.Call, label=ident, varargs=False)
@@ -1237,7 +1250,7 @@ def ir_emit_const(ast: Ast, ir: IRContext) -> None:
         val = ord(ast.val_tok.value)
     else:
         assert False, f"TODO: {inspect.currentframe().f_code.co_name} : {k}"
-        
+
     if exists is not None and exists != val:
         print(f"ERROR: Cannot redefine 'const {ast.ident.value}'")
         print(ast.ident.fmt_src_loc())
@@ -1245,11 +1258,17 @@ def ir_emit_const(ast: Ast, ir: IRContext) -> None:
     ir.add_const(ast.ident.value, val)
 
 def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
-    ir.add_extern(ast.ident.value, ast.varargs)
+    ident = ast.ident.value
+    exists, params, varargs = ir.get_extern(ident)
+    if exists is not None:
+        if len(params) != len(ast.params) or varargs != ast.varargs:
+            print(f"ERROR: Redefinition of `extern {ident}` with different number of arguments.")
+            print(ast.ident.fmt_src_loc())
+            exit(1)
+    ir.add_extern(ident, ast.params, ast.varargs)
 
 def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
-    # FIXME: move this to IRContext
-    ir.procs[ast.name.value] = (ast.name.value, False)
+    ir.declare_asm(ast.name.value)
     ir.append(IRK.InlineAsm, name=ast.name.value, asm=ast.asm)
     
 ir_emitters = MappingProxyType({
@@ -1748,8 +1767,8 @@ def main(config: Config):
     for insn in ir.instructions:
         emit_instruction(ctx, insn)
 
-    main_proc, _ = ir.get_proc("main")
-    exit_proc, _ = ir.get_proc("exit")
+    main_proc, _, _ = ir.get_proc("main")
+    exit_proc, _, _ = ir.get_proc("exit")
     if main_proc is None:
         print("ERROR: no `main` procedure.")
         exit(1)
