@@ -1,0 +1,72 @@
+#include alist
+#include string
+
+proc test_alist_default_comparer in
+    var alist = make_alist(NULL);
+
+    printf("testing alist with default `NULL` comparer\n");
+    printf("empty alist find returns: %d\n", alist_find(alist, 123));
+
+    var node; var k; var v;
+
+    k = 123; v = 456;
+    printf("pushing k = %d, v = %d\n", k, v);
+    alist_push(alist, k, v);
+
+    k = 333; v = 222;
+    printf("pushing k = %d, v = %d\n", k, v);
+    alist_push(alist, k, v);
+
+    node = alist_find(alist, 333);
+    printf("alist find 333 returns: %d\n", alist_node_val(node));
+
+    node = alist_find(alist, 123);
+    printf("alist find 123 returns: %d\n", alist_node_val(node));
+
+    k = 123; v = 999;
+    printf("shadowing k = %d with %d\n", k, v);
+    alist_push(alist, k, v);
+
+    node = alist_find(alist, 123);
+    printf("alist find 123 returns: %d\n", alist_node_val(node));
+
+    free_alist(alist);
+end
+
+proc test_alist_string_comparer in
+    var alist = make_alist(cstr_eq);
+
+    printf("testing alist with `cstr_eq` comparer\n");
+    printf("empty alist find returns: %d\n", alist_find(alist, "foo"));
+
+    var node; var k; var v;
+
+    k = "foo"; v = 456;
+    printf("pushing k = %s, v = %d\n", k, v);
+    alist_push(alist, k, v);
+
+    k = "bar"; v = 222;
+    printf("pushing k = %s, v = %d\n", k, v);
+    alist_push(alist, k, v);
+
+    node = alist_find(alist, "bar");
+    printf("alist find \"bar\" returns: %d\n", alist_node_val(node));
+
+    node = alist_find(alist, "foo");
+    printf("alist find \"foo\" returns: %d\n", alist_node_val(node));
+
+    k = "foo"; v = 999;
+    printf("shadowing k = %s with %d\n", k, v);
+    alist_push(alist, k, v);
+
+    node = alist_find(alist, "foo");
+    printf("alist find \"foo\" returns: %d\n", alist_node_val(node));
+
+    free_alist(alist);
+end
+
+proc main in
+    test_alist_default_comparer();
+    test_alist_string_comparer();
+    return 0;
+end

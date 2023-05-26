@@ -1,0 +1,16 @@
+testing alist with default `NULL` comparer
+empty alist find returns: 0
+pushing k = 123, v = 456
+pushing k = 333, v = 222
+alist find 333 returns: 222
+alist find 123 returns: 456
+shadowing k = 123 with 999
+alist find 123 returns: 999
+testing alist with `cstr_eq` comparer
+empty alist find returns: 0
+pushing k = foo, v = 456
+pushing k = bar, v = 222
+alist find "bar" returns: 222
+alist find "foo" returns: 456
+shadowing k = foo with 999
+alist find "foo" returns: 999
