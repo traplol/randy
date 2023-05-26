@@ -38,8 +38,8 @@ proc read_file_to_string path in
     return string;
 end
 
-////////////////////////////////////////////////////////////////////////////
-//                                 TOKENS
+////////////////////////////////////////////////////////////////////////////////
+//                                   TOKENS
 // Token Kinds
 const TK_Integer = 0;
 const TK_String = 1;
@@ -152,9 +152,10 @@ const TTOKEN_kind = 0;
 const TTOKEN_cstr = 8;
 const TTOKEN_value = 16;
 const TTOKEN_line = 24;
-const sizeof_TTOKEN = 32;
+const TTOKEN_filename = 32;
+const sizeof_TTOKEN = 40;
 
-proc make_token kind, cstr, value, line in
+proc make_token kind, cstr, value, line, filename in
     if kind < 0 or kind >= TK_MAX_VAL then
         printf("make_token kind out of range: %d\n", kind);
         exit(1);
@@ -165,6 +166,7 @@ proc make_token kind, cstr, value, line in
     u64!(token + TTOKEN_cstr, cstr);
     u64!(token + TTOKEN_value, value);
     u64!(token + TTOKEN_line, line);
+    u64!(token + TTOKEN_filename, filename);
     return token;
 end
 
@@ -188,6 +190,10 @@ proc token_line token in
     return u64@(token + TTOKEN_line);
 end
 
+proc token_filename token in
+    return u64@(token + TTOKEN_filename);
+end
+
 proc print_token token in
     var k = token_kind(token);
     printf("token: %s -> '%s' = ", token_kind_cstr(k)
@@ -205,7 +211,13 @@ proc print_token token in
     end
 end
 
-////////////////////////////////////////////////////////////////////////////
+proc print_token_loc token in
+    var line_no = token_line(token);
+    var filename = token_filename(token);
+    printf("  File \"%s\", line %d\n", filename, line_no);
+end
+
+////////////////////////////////////////////////////////////////////////////////
 //                                  LEXER
 
 proc is_digit c in
@@ -299,7 +311,7 @@ proc int_from_string string in
     return result;
 end
 
-proc lex_code code in
+proc lex_code filename, code in
     var i = 0;
     var tokens = make_vector(0);
     var length = string_len(code);
@@ -330,7 +342,7 @@ proc lex_code code in
                        string_push(temp, c);
                    end
                 done
-                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no));
+                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no, filename));
             else if is_digit(c) then
                 temp = make_string(2);
                 string_push(temp, c);
@@ -342,7 +354,7 @@ proc lex_code code in
                    end
                 done
                 val = int_from_string(temp);
-                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no));
+                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
             else if c == '"' then
                 temp = make_string(2);
                 i = i + 1; // skip open quote
@@ -359,7 +371,7 @@ proc lex_code code in
                     i = i + 1;
                 done
                 i = i + 1; // skip close quote
-                vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no));
+                vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no, filename));
             else if c == '\'' then
                 temp = make_string(2);
                 i = i + 1; // skip open quote
@@ -373,58 +385,58 @@ proc lex_code code in
                 end
                 string_push(temp, c);
                 i = i + 2; // skip char and close quote
-                vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no));
+                vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
             else if c == '#' then
                 while i < length and string_get(code, i) != '\n' do
                     i = i + 1;
                 done
             else if c == ';' then
-                vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no));
+                vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
                 i = i + 1;
             else if c == ',' then
-                vector_push(tokens, make_token(TK_Comma, ",", ",", line_no));
+                vector_push(tokens, make_token(TK_Comma, ",", ",", line_no, filename));
                 i = i + 1;
             else if c == '(' then
-                vector_push(tokens, make_token(TK_LParen, "(", "(", line_no));
+                vector_push(tokens, make_token(TK_LParen, "(", "(", line_no, filename));
                 i = i + 1;
             else if c == ')' then
-                vector_push(tokens, make_token(TK_RParen, ")", ")", line_no));
+                vector_push(tokens, make_token(TK_RParen, ")", ")", line_no, filename));
                 i = i + 1;
             else if c == '+' then
-                vector_push(tokens, make_token(TK_Plus, "+", "+", line_no));
+                vector_push(tokens, make_token(TK_Plus, "+", "+", line_no, filename));
                 i = i + 1;
             else if c == '-' then
-                vector_push(tokens, make_token(TK_Minus, "-", "-", line_no));
+                vector_push(tokens, make_token(TK_Minus, "-", "-", line_no, filename));
                 i = i + 1;
             else if c == '*' then
-                vector_push(tokens, make_token(TK_Star, "*", "*", line_no));
+                vector_push(tokens, make_token(TK_Star, "*", "*", line_no, filename));
                 i = i + 1;
             else if c == '/' then
-                vector_push(tokens, make_token(TK_Slash, "/", "/", line_no));
+                vector_push(tokens, make_token(TK_Slash, "/", "/", line_no, filename));
                 i = i + 1;
             else if c == '%' then
-                vector_push(tokens, make_token(TK_Percent, "%", "%", line_no));
+                vector_push(tokens, make_token(TK_Percent, "%", "%", line_no, filename));
                 i = i + 1;
             else if c == '|' then
-                vector_push(tokens, make_token(TK_Bar, "|", "|", line_no));
+                vector_push(tokens, make_token(TK_Bar, "|", "|", line_no, filename));
                 i = i + 1;
             else if c == '&' then
-                vector_push(tokens, make_token(TK_Amper, "&", "&", line_no));
+                vector_push(tokens, make_token(TK_Amper, "&", "&", line_no, filename));
                 i = i + 1;
             else if c == '^' then
-                vector_push(tokens, make_token(TK_Caret, "^", "^", line_no));
+                vector_push(tokens, make_token(TK_Caret, "^", "^", line_no, filename));
                 i = i + 1;
             else if c == '~' then
-                vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no));
+                vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no, filename));
                 i = i + 1;
             else if c == '.' then
                 if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
-                    vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no));
+                    vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no, filename));
                     i = i + 3;
                 end
             else if c == '!' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no));
+                    vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no, filename));
                     i = i + 2;
                 else
                     printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
@@ -432,30 +444,31 @@ proc lex_code code in
                 end
             else if c == '<' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no));
+                    vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no, filename));
                     i = i + 2;
                 else
-                    vector_push(tokens, make_token(TK_Less, "<", "<", line_no));
+                    vector_push(tokens, make_token(TK_Less, "<", "<", line_no, filename));
                     i = i + 1;
                 end
             else if c == '>' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no));
+                    vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no, filename));
                     i = i + 2;
                 else
-                    vector_push(tokens, make_token(TK_Greater, ">", ">", line_no));
+                    vector_push(tokens, make_token(TK_Greater, ">", ">", line_no, filename));
                     i = i + 1;
                 end
             else if c == '=' then
                 if i+1 < length and string_get(code, i+1) == '=' then
-                    vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no));
+                    vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no, filename));
                     i = i + 2;
                 else
-                    vector_push(tokens, make_token(TK_Assign, "=", "=", line_no));
+                    vector_push(tokens, make_token(TK_Assign, "=", "=", line_no, filename));
                     i = i + 1;
                 end
             else
-                printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
+                printf("Unrecognized character: '%c' (%d)\n", c, c);
+                printf("  File \"%s\", line %d", filename, line_no);
                 exit(1);
             end
         end
@@ -468,11 +481,11 @@ proc lex_file path in
     if not code then
         return NULL;
     end
-    return lex_code(code);
+    return lex_code(path, code);
 end
 
-////////////////////////////////////////////////////////////////////////////
-//                              TOKEN STREAM
+////////////////////////////////////////////////////////////////////////////////
+//                                TOKEN STREAM
 const TTOKEN_STREAM_tokens = 0;
 const TTOKEN_STREAM_idx = 8;
 const sizeof_TTOKEN_STREAM = 16;
@@ -561,9 +574,9 @@ proc ts_accept self, kind in
 end
 
 proc ts_expect self, kind in
-    var tmp = ts_accept(self, kind);
+    var tmp = ts_peek(self);
     if not tmp then
-        printf("ERROR: Expected token kind %s\n", token_kind_cstr(kind));
+        printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
         exit(1);
     end
     var tmp_k = token_kind(tmp);
@@ -571,11 +584,12 @@ proc ts_expect self, kind in
         printf("ERROR: Expected token kind %s, got %s\n",
             token_kind_cstr(kind),
             token_kind_cstr(tmp_k));
+        print_token_loc(tmp);
         exit(1);
     end
+    ts_next(self);
     return tmp;
 end
-
 
 proc main argc, argv in
     if argc < 2 then
@@ -589,11 +603,17 @@ proc main argc, argv in
 
         var tokstr = make_token_stream(tokens);
 
-        while ts_peek(tokstr) do
-            var token = ts_peek(tokstr);
-            print_token(token);
-            ts_next(tokstr);
-        done
+        ts_expect(tokstr, TK_Plus);
+        ts_expect(tokstr, TK_Minus);
+        ts_expect(tokstr, TK_Slash);
+        ts_expect(tokstr, TK_Star);
+        printf("Accept String: %p\n", ts_accept(tokstr, TK_String));
+        printf("Accept Ident: %p\n", ts_accept(tokstr, TK_Ident));
+        // while ts_peek(tokstr) do
+        //     var token = ts_peek(tokstr);
+        //     print_token(token);
+        //     ts_next(tokstr);
+        // done
     end
 end
 
