@@ -1538,6 +1538,15 @@ def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    call {ir.label}")
     ctx.out(f"    pushq %rax")
 
+def emit_pop_call(ctx: CompilerContext, ir: IRInstr) -> None:
+    ctx.out(f"#{ir}")
+    id, line, col, file = ir.src_loc
+    ctx.out(f"    .loc {id} {line} {col}")
+    ctx.out(f"    popq %rcx")
+    ctx.out(f"    xor %al, %al")
+    ctx.out(f"    call *%rcx")
+    ctx.out(f"    pushq %rax")
+
 def emit_push_int(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"#{ir}")
     id, line, col, file = ir.src_loc
@@ -1724,6 +1733,7 @@ x86_64_emitters = MappingProxyType({
     IRK.StoreTemp: emit_store_temp,
     IRK.SetArgTemp: emit_set_arg_temp,
     IRK.Call: emit_call,
+    IRK.PopCall: emit_pop_call,
     IRK.CloseProc: emit_close_proc,
     IRK.PushInt: emit_push_int,
     IRK.GetLocal: emit_get_local,
