@@ -46,9 +46,11 @@ end
 proc free_list list in
     var cur = list_head(list);
     var tail = list_tail(list);
+    var next;
     while cur do
+        next = list_node_next(cur);
         free_list_node(cur);
-        cur = list_node_next(cur);
+        cur = next;
         if cur == tail then
             free_list_node(cur);
             cur = NULL;
