@@ -1,0 +1,28 @@
+Testing default set.
+pass: empty set length is 0
+pass: set length is 1 after adding 123
+pass: set length is 2 after adding 234
+pass: set length is 2 after adding 234 again
+pass: set contains 123
+pass: set contains 234
+forcing set to resize
+pass: set length is cap+2
+pass: set still contains 234
+pass: set still contains 123
+pass: set supports removal
+pass: set no longer contains 234
+pass: set length is 200000
+pass: set contains 1000
+pass: set contains 65536
+pass: set contains 100000
+pass: set contains 200000
+pass: set does not contain 200001
+Testing set with cstrings.
+pass: set is empty
+pass: set length is 1
+pass: set contains "hello world"
+pass: set length is 1
+pass: set length is 2
+pass: set contains "helloworld"
+pass: set supports removal
+pass: set no longer contains "hello world"
