@@ -1,41 +1,66 @@
+#include core
 
 extern malloc size;
+extern calloc num, size;
 extern free ptr;
 extern memcpy dest, src, n;
 
-proc _malloc_logger pointer in
-    //printf("malloc'd %p\n", pointer);
-end
+// proc _malloc_logger pointer in
+//     //printf("malloc'd %p\n", pointer);
+// end
 
-asm __proc_malloc in
-    "
-    call malloc
-    pushq %rax
-    movq %rax, %rdi
-    call _proc__malloc_logger
-    popq %rax
-    ret
-    "
-end
+// asm __proc_malloc in
+//     "
+//     call malloc
+//     #pushq %rax
+//     #movq %rax, %rdi
+//     #call _proc__malloc_logger
+//     #popq %rax
+//     ret
+//     "
+// end
 
-proc malloc size in
-    return __proc_malloc(size);
-end
+// proc malloc size in
+//     var mem = __proc_malloc(size);
+//     if not mem then
+//         _error("malloc returned nullptr");
+//         abort();
+//     end
+//     return mem;
+// end
 
-proc _free_logger ptr in
-    //printf("freed'd %p\n", ptr);
-end
+// asm __proc_calloc in
+// "
+//     call calloc
+//     ret
+// "
+// end
 
-asm __proc_free in
-    "
-    pushq %rdi
-    call _proc__free_logger
-    popq %rdi
-    call free
-    ret
-    "
-end
+// proc calloc num, size in
+//     var mem = __proc_calloc(size);
+//     if not mem then
+//         _error("calloc returned nullptr");
+//         abort();
+//     end
+//     return mem;
+// end
 
-proc free pointer in
-    return __proc_free(pointer);
-end
+
+
+// proc _free_logger ptr in
+//     //printf("freed'd %p\n", ptr);
+// end
+
+// asm __proc_free in
+//     "
+//     #pushq %rdi
+//     #call _proc__free_logger
+//     #popq %rdi
+//     call free
+//     ret
+//     "
+// end
+
+// proc free pointer in
+//     return __proc_free(pointer);
+// end
