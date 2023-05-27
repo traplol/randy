@@ -11,6 +11,7 @@ extern putchar char;
 extern stdin;
 extern stdout;
 extern stderr;
+extern strerror errnum;
 
 const true = 1;
 const false = 0;
@@ -22,6 +23,19 @@ proc _flush_output in
     fflush(u64@(stderr));
 end
 
+asm errno in
+"
+    call __errno_location
+    movl (%rax), %eax
+    cltq
+    ret
+"
+end
+
+
+proc _error msg in
+    fprintf(u64@(stderr), "ERRNO: %s -> %s\n", strerror(errno()), msg);
+end
 
 proc exit code in
     _flush_output();
