@@ -8,63 +8,81 @@ const TSTRING_capacity = 16;
 const sizeof_TSTRING = 24;
 
 proc make_string init in
-    var string = malloc(sizeof_TSTRING);
+    var self = malloc(sizeof_TSTRING);
     var buf = malloc(init);
 
-    u64!(string + TSTRING_buffer, buf);
-    u64!(string + TSTRING_length, 0);
-    u64!(string + TSTRING_capacity, init);
+    u64!(self + TSTRING_buffer, buf);
+    u64!(self + TSTRING_length, 0);
+    u64!(self + TSTRING_capacity, init);
     
-    return string;
+    return self;
 end
 
-proc free_string string in
-    free(u64@(string));
-    free(string);
+proc free_string self in
+    free(u64@(self));
+    free(self);
 end
 
-proc string_buf string in
-    return u64@(string);
+proc string_buf self in
+    return u64@(self);
 end
 
-proc string_len string in
-    return u64@(string + TSTRING_length);
+proc string_len self in
+    return u64@(self + TSTRING_length);
 end
 
-proc string_cap string in
-    return u64@(string + TSTRING_capacity);
+proc string_cap self in
+    return u64@(self + TSTRING_capacity);
 end
 
-proc string_get string, idx in
-    return u8@(u64@(string) + idx);
+proc string_get self, idx in
+    return u8@(u64@(self) + idx);
 end
 
-proc string_set string, idx, val in
-    u8!(u64@(string) + idx, val);
+proc string_set self, idx, val in
+    u8!(u64@(self) + idx, val);
 end
 
-proc string_resize string, new_cap in
+proc string_resize self, new_cap in
     var new = malloc(new_cap);
-    var old = u64@(string);
-    var len = string_len(string);
+    var old = u64@(self);
+    var len = string_len(self);
     if new_cap < len then
         len = new_cap;
     end
     memcpy(new, old, len);
     free(old);
-    u64!(string, new);
-    u64!(string + TSTRING_length, len);
-    u64!(string + TSTRING_capacity, new_cap);
+    u64!(self, new);
+    u64!(self + TSTRING_length, len);
+    u64!(self + TSTRING_capacity, new_cap);
 end
 
-proc string_push string, val in
-    var len = string_len(string);
-    var cap = string_cap(string);
+proc string_push self, val in
+    var len = string_len(self);
+    var cap = string_cap(self);
     if len == cap then
-        string_resize(string, 2 * cap);
+        string_resize(self, 2 * cap + 1);
     end
-    string_set(string, len, val);
-    u64!(string + TSTRING_length, len+1);
+    string_set(self, len, val);
+    u64!(self + TSTRING_length, len+1);
+end
+
+proc string_append_string self, string in
+    var len = string_len(string);
+    var i = 0;
+    while i < len do
+        string_push(self, string_get(string, i));
+        i = i + 1;
+    done
+end
+
+proc string_append_cstr self, cstr in
+    var i = 0;
+    while u8@(cstr) do
+        string_push(self, u8@(cstr));
+        cstr = cstr + 1;
+        i = i + 1;
+    done
 end
 
 proc string_from_cstr cstr in
@@ -119,4 +137,13 @@ proc cstr_eq cstr_a, cstr_b in
         cstr_b = cstr_b + 1;
     done
     return a == b;
+end
+
+proc cstr_len cstr in
+    var i = 0;
+    while u8@(cstr) do
+        i = i + 1;
+        cstr = cstr + 1;
+    done
+    return i;
 end
