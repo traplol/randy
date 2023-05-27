@@ -1,0 +1,12 @@
+Testing set with cstrings.
+pass: map is empty
+pass: map length is 1
+pass: map contains "hello world"
+pass: map maps "hello world" to 42
+pass: map length is 1
+pass: map maps "hello world" to 123
+pass: map length is 2
+pass: map contains "helloworld"
+pass: map maps "helloworld" to 456
+pass: map supports removal
+pass: map no longer contains "hello world"

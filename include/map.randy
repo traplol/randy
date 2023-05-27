@@ -1,0 +1,137 @@
+#include memory
+
+const TMAP_length   =  0; // int
+const TMAP_capacity =  8; // int
+const TMAP_buffer   = 16; // ptr
+const TMAP_comparer = 24; // compare_fn
+const TMAP_hasher   = 32; // hash_fn
+const sizeof_TMAP   = 40; 
+
+const TMAP_PAIR_key = 0;
+const TMAP_PAIR_val = 8;
+const sizeof_TMAP_PAIR = 16;
+
+const MAP_Load_Factor = 2; // resize & rehash when size >= capacity/2
+const MAP_Default_Cap = 16;
+
+proc make_map capacity, comparer, hasher in
+    var self = malloc(sizeof_TMAP);
+    if capacity <= 0 then
+        capacity = MAP_Default_Cap;
+    end
+    u64!(self + TMAP_length, 0);
+    u64!(self + TMAP_capacity, capacity);
+    u64!(self + TMAP_buffer, calloc(capacity, sizeof_TMAP_PAIR));
+    u64!(self + TMAP_comparer, comparer);
+    u64!(self + TMAP_hasher, hasher);
+    return self;
+end
+
+proc map_length self in return u64@(self + TMAP_length); end
+proc map_capacity self in return u64@(self + TMAP_capacity); end
+proc map_buffer self in return u64@(self + TMAP_buffer); end
+proc map_comparer self in return u64@(self + TMAP_comparer); end
+proc map_hasher self in return u64@(self + TMAP_hasher); end
+
+proc free_map self in
+    if self then
+        free(map_buffer(self));
+        free(self);
+    end
+end
+
+proc map_pair_key self in return u64@(self + TMAP_PAIR_key); end
+proc map_pair_val self in return u64@(self + TMAP_PAIR_val); end
+
+proc _map_expand self in
+    var old_cap = map_capacity(self);
+    var old_buf = map_buffer(self);
+    var new_cap = old_cap * 2;
+    u64!(self + TMAP_length, 0);
+    u64!(self + TMAP_capacity, new_cap);
+    var new_buf = calloc(new_cap, sizeof_TMAP_PAIR);
+    u64!(self + TMAP_buffer, new_buf);
+    var i = 0; var elt;
+    while i < old_cap do
+        elt = old_buf + i * sizeof_TMAP_PAIR;
+        if u64@(elt) then
+            map_set(self, u64@(elt), u64@(elt + TMAP_PAIR_val));
+        end
+        i = i + 1;
+    done
+    free(old_buf);
+end
+
+proc _map_at self, idx in
+    var buf = map_buffer(self);
+    return buf + idx * sizeof_TMAP_PAIR;
+end
+
+proc map_find self, key in
+    var cap = map_capacity(self);
+    var hasher = map_hasher(self); 
+    var idx = hasher(key) % cap;
+    if idx < 0 then idx = 0 - idx; end
+    var comparer = map_comparer(self);
+    var cur = _map_at(self, idx);
+    while u64@(cur) do
+        if comparer(u64@(cur), key) then
+            return cur;
+        end
+        idx = (idx + 1) % cap;
+        cur = _map_at(self, idx);
+    done
+    return NULL;
+end
+
+proc map_set self, key, value in
+    var cap = map_capacity(self);
+    if map_length(self) >= cap / MAP_Load_Factor then
+        _map_expand(self);
+        cap = map_capacity(self);
+    end
+    
+    var hasher = map_hasher(self);
+    var idx = hasher(key) % cap;
+    if idx < 0 then idx = 0 - idx; end
+    var comparer = map_comparer(self);
+    var cur = _map_at(self, idx);
+    while cur and u64@(cur) do
+        if comparer(u64@(cur), key) then
+            cur = NULL;
+        else
+            idx = (idx + 1) % cap;
+            cur = _map_at(self, idx);
+        end
+    done
+    cur = _map_at(self, idx);
+    if not u64@(cur) then
+        // increment length
+        u64!(self + TMAP_length, u64@(self + TMAP_length) + 1);
+    end
+    u64!(cur, key);
+    u64!(cur + TMAP_PAIR_val, value);
+end
+
+proc map_remove self, elem in
+    var cap = map_capacity(self);
+    var hasher = map_hasher(self);
+    var idx = hasher(elem) % cap;
+    if idx < 0 then idx = 0 - idx; end
+    var comparer = map_comparer(self);
+    var cur = _map_at(self, idx);
+    while cur and u64@(cur) do
+        if comparer(u64@(cur), elem) then
+            cur = NULL;
+        else
+            idx = (idx + 1) % cap;
+            cur = _map_at(self, idx);
+        end
+    done
+    cur = _map_at(self, idx);
+    if u64@(cur) then
+        // decrement length
+        u64!(self + TMAP_length, u64@(self + TMAP_length) - 1);
+    end
+    u64!(cur, NULL);
+end
