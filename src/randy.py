@@ -893,6 +893,8 @@ class IRK(Enum):
     LogicAnd     = auto()
     LogicOr      = auto()
     InlineAsm    = auto()
+    LazyIdent    = auto()
+    CallLazyIdent = auto()
 
 class IRInstr:
     def __init__(self, kind: IRK, **kwargs):
@@ -932,7 +934,7 @@ class IRContext:
 
         self.file_map = {}
         self.src_locs = []
-        self.file_ids = 0
+        self.file_idx = 0
         self.files = []
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -940,8 +942,8 @@ class IRContext:
     def push_src_loc(self, loc: Tuple[str, int, int]) -> int:
         self.src_locs.append(loc)
         if loc[0] not in self.file_map:
-            self.file_map[loc[0]] = self.file_ids
-            self.file_ids += 1
+            self.file_map[loc[0]] = self.file_idx
+            self.file_idx += 1
             self.files.append(loc[0])
         return self.file_map[loc[0]]
 
@@ -1068,10 +1070,7 @@ def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
         ir.append(IRK.PushLabel, label=extern)
         return
 
-    print(f"ERROR: Undeclared identifier: `{ident}`")
-    print(f"    did you forget to declare 'extern {ident} ...;'?")
-    print(ast.token.fmt_src_loc())
-    exit(1)
+    ir.append(IRK.LazyIdent, ident=ast.token)
 
 
 def ir_emit_integer(ast: Ast, ir: IRContext) -> None:
@@ -1114,10 +1113,7 @@ def ir_emit_call(ast: Ast, ir: IRContext) -> None:
             ir_compile(ast.expr, ir)
             ir.append(IRK.PopCall)
         else:
-            print(f"ERROR: Undeclared identifier: `{ident}`")
-            print(f"    did you forget to declare 'extern {ident} ...;'?")
-            print(ast.token.fmt_src_loc())
-            exit(1)
+            ir.append(IRK.CallLazyIdent, ident=ast.expr.token, nargs=len(ast.args))
     else:
         ir_compile(ast.expr, ir)
         ir.append(IRK.PopCall)
@@ -1190,7 +1186,7 @@ def ir_emit_procedure(ast: Ast, ir: IRContext) -> None:
     name = ast.name.value
     params = list(map((lambda x: x.value), ast.params))
     label = ir.new_proc(name, params)
-    instr = ir.append(IRK.NewProc, name=label, params=params, locals=None)
+    instr = ir.append(IRK.NewProc, src_name=name, name=label, params=params, locals=None)
 
     for i, param in enumerate(params):
         local = ir.new_local(param)
@@ -1325,15 +1321,19 @@ class CompilerContext:
         self.no_comments = False
         self.quiet = False
         self.out_lines = []
-        self.temps_offs = 0
+        self.all_procs = {}
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def new_proc(self, name: str, params: List[str], locals: dict[str, int]) -> None:
+    def new_proc(self, src_name: str, name: str, params: List[str], locals: dict[str, int]) -> None:
         self.name = name
         self.params = params
         self.locals = locals
-        self.temps_start = 8 * (len(locals) + 1)
+
+    def proc_name(self, src_name: str) -> Tuple[Optional[str], Optional[List[str]], Optional[bool]]:
+        if src_name in self.all_procs:
+            return self.all_procs[src_name]
+        return None, None, None
 
     def out(self, msg: str) -> None:
         if self.no_comments and len(msg) >= 3 and msg[0:3] == "# (":
@@ -1436,7 +1436,7 @@ def sized_register(size: int, reg: str) -> str:
     return meta_map[size][reg]
 
 def emit_new_proc(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.new_proc(ir.name, ir.params, ir.locals)
+    ctx.new_proc(ir.src_name, ir.name, ir.params, ir.locals)
     ctx.out(f"    .globl {ir.name}")
     ctx.out(f"    .align 16")
     id, line, col, file = ir.src_loc
@@ -1528,6 +1528,40 @@ def emit_set_arg_temp(ctx: CompilerContext, ir: IRInstr) -> None:
         ctx.out(f"    pushq {offs}(%rsp)")
         #assert False, f"TODO: {inspect.currentframe().f_code.co_name} : too many args"
         
+def emit_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
+    name, _, _ = ctx.proc_name(ir.ident.value)
+    if name is None:
+        print(f"ERROR: Undeclared identifier: `{ir.ident.value}`")
+        print(f"    did you forget to declare 'extern {ir.ident.value} ...;'?")
+        print(ir.ident.fmt_src_loc())
+        exit(1)
+    ctx.out(f"#{ir}")
+    id, line, col, file = ir.src_loc
+    ctx.out(f"    .loc {id} {line} {col}")
+    ctx.out(f"    leaq {name}, %rax")
+    ctx.out(f"    pushq %rax")
+
+def emit_call_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
+    name, params, varargs = ctx.proc_name(ir.ident.value)
+    if name is None:
+        print(f"ERROR: Undeclared identifier: `{ir.ident.value}`")
+        print(f"    did you forget to declare 'extern {ir.ident.value} ...;'?")
+        print(ir.ident.fmt_src_loc())
+        exit(1)
+
+    if (not varargs and ir.nargs != len(params)) or \
+       (varargs and ir.nargs < len(params)):
+        print(f"ERROR: Call to `{ir.ident.value}` expects {len(params)} arguments, got {ir.nargs}")
+        print(ir.ident.fmt_src_loc())
+        exit(1)
+
+    ctx.out(f"#{ir}")
+    id, line, col, file = ir.src_loc
+    ctx.out(f"    .loc {id} {line} {col}")
+    if ir.varargs:
+        ctx.out(f"    xor %al, %al")
+    ctx.out(f"    call {name}")
+    ctx.out(f"    pushq %rax")
 
 def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"#{ir}")
@@ -1760,6 +1794,8 @@ x86_64_emitters = MappingProxyType({
     IRK.PtrWrite: emit_ptr_write,
     IRK.PtrRead: emit_ptr_read,
     IRK.InlineAsm: emit_inline_asm,
+    IRK.LazyIdent: emit_lazy_ident,
+    IRK.CallLazyIdent: emit_call_lazy_ident,
 })
 def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
     k = ir.kind
@@ -1854,6 +1890,9 @@ def main(config: Config):
     if config.verbosity > 0:
         print(f"IR compile took {(end-start)*1000}ms")
 
+    for k, v in ir.procs.items():
+        ctx.all_procs[k] = v
+
     start = time.time()
     ctx.out(".text")
     ctx.out("\n")
@@ -1882,7 +1921,6 @@ def main(config: Config):
     ctx.out('__argv__: .quad 0')
 
     ctx.out('.section .rodata, "a"')
-    ctx.out('.align 8')
     for data in ir.data:
         label, size, bytes = data
         bytestr = ", ".join([hex(x) for x in bytes])
