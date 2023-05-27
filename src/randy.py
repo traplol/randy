@@ -1440,7 +1440,6 @@ def emit_new_proc(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    .globl {ir.name}")
     ctx.out(f"    .align 16")
     id, line, col, file = ir.src_loc
-    ctx.out(f"    .file {id} \"{file}\"")
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"{ir.name}: # params={ir.params}")
     ctx.out(f"#{ir}")
@@ -1751,7 +1750,6 @@ def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f".align 16")
     ctx.out(f"{ir.name}:")
     id, line, col, file = ir.src_loc
-    ctx.out(f"    .file {id} \"{file}\"")
     ctx.out(f"    .loc {id} {line} {col}")
     for asm in code:
         if asm != "":
@@ -1895,7 +1893,8 @@ def main(config: Config):
 
     start = time.time()
     ctx.out(".text")
-    ctx.out("\n")
+    for file, id in ir.file_map.items():
+        ctx.out(f"    .file {id} \"{file}\"")
 
     for insn in ir.instructions:
         emit_instruction(ctx, insn)
