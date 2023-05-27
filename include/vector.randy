@@ -10,7 +10,6 @@ const sizeof_TVECTOR_ELEMENT = sizeof_PTR;
 
 proc make_vector init in
     var vector = make_string(init * sizeof_TVECTOR_ELEMENT);
-    u64!(vector + TVECTOR_length, init * sizeof_TVECTOR_ELEMENT);
     return vector;
 end
 

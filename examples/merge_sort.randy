@@ -42,13 +42,13 @@ proc merge_sort arr in
 
     var i = 0;
     while i < mid do
-        vector_set(left, i, vector_get(arr, i));
+        vector_push(left, vector_get(arr, i));
         i = i + 1;
     done
 
     i = mid;
     while i < vector_len(arr) do
-        vector_set(right, i - mid, vector_get(arr, i));
+        vector_push(right, vector_get(arr, i));
         i = i + 1;
     done
 
@@ -70,16 +70,16 @@ end
 
 proc main in
     var arr = make_vector(10);
-    vector_set(arr, 0, 5);
-    vector_set(arr, 1, 2);
-    vector_set(arr, 2, 9);
-    vector_set(arr, 3, 1);
-    vector_set(arr, 4, 7);
-    vector_set(arr, 5, 8);
-    vector_set(arr, 6, 3);
-    vector_set(arr, 7, 6);
-    vector_set(arr, 8, 4);
-    vector_set(arr, 9, 0);
+    vector_push(arr, 5);
+    vector_push(arr, 2);
+    vector_push(arr, 9);
+    vector_push(arr, 1);
+    vector_push(arr, 7);
+    vector_push(arr, 8);
+    vector_push(arr, 3);
+    vector_push(arr, 6);
+    vector_push(arr, 4);
+    vector_push(arr, 0);
 
     printf("Unsorted vector:\n");
     var i = 0;

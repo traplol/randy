@@ -1,4 +1,4 @@
-Vector len = 10
+Vector len = 0
 Vector cap = 10
 Set the vector
 Vector len = 10
