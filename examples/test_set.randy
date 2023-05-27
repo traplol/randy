@@ -93,5 +93,6 @@ end
 proc main in
     test_default_set();
     test_cstr_set();
+    return 0;
 end
 
