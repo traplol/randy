@@ -1,6 +1,4 @@
 #include memory
-#include vector
-
 
 proc _default_set_compare a, b in
     return a == b;
