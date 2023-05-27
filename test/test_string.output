@@ -1,0 +1,29 @@
+Testing strings.
+pass: empty len is 0
+pass: str len is 0
+pass: str cap is 0
+pass: str len is 1
+pass: str cap is 1
+pass: str len is 4
+pass: other len is 0
+pass: other cap is 4
+pass: other len is 4
+pass: other cap is 4
+pass: empty is equal to empty
+pass: empty is not equal to str
+pass: str is not equal to empty
+pass: str is equal to str
+pass: str is equal to other
+pass: other is equal to str
+pass: appended cstr "1234" to other
+pass: other new len is 8
+Testing cstrings.
+pass: cstr_eq("", "") is equal
+pass: cstr_eq(NULL, NULL) is equal
+pass: cstr_eq("", NULL) is not equal
+pass: cstr_eq(NULL, "") is not equal
+pass: same cstrings are equal
+pass: same cstring with different case are not equal
+pass: different cstring are not equal
+pass: cstring "foo" length is 3
+pass: cstring "" length is 0

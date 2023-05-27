@@ -1,0 +1,67 @@
+#include core
+#include string
+
+proc test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+proc test_strings in
+    printf("Testing strings.\n");
+    var empty = string_from_cstr("");
+    test("empty len is 0", 0 == string_len(empty));
+    
+    var str = make_string(0);
+    test("str len is 0", 0 == string_len(str));
+    test("str cap is 0", 0 == string_cap(str));
+    string_push(str, 'a');
+    test("str len is 1", 1 == string_len(str));
+    test("str cap is 1", 1 == string_cap(str));
+
+    string_push(str, 'b'); string_push(str, 'c'); string_push(str, 'd');
+    test("str len is 4", 4 == string_len(str));
+
+    var other = make_string(4);
+    test("other len is 0", 0 == string_len(other));
+    test("other cap is 4", 4 == string_cap(other));
+
+    string_append_string(other, str);
+    test("other len is 4", 4 == string_len(other));
+    test("other cap is 4", 4 == string_cap(other));
+
+    test("empty is equal to empty", string_eq(empty, empty));
+    test("empty is not equal to str", not string_eq(empty, str));
+    test("str is not equal to empty", not string_eq(str, empty));
+
+    test("str is equal to str", string_eq(str, str));
+    test("str is equal to other", string_eq(str, other));
+    test("other is equal to str", string_eq(other, str));
+    
+    string_append_cstr(other, "1234");
+    test("appended cstr \"1234\" to other", cstr_eq("abcd1234", string_cstr(other)));
+    test("other new len is 8", 8 == string_len(other));
+end
+
+proc test_cstrings in
+    printf("Testing cstrings.\n");
+    test("cstr_eq(\"\", \"\") is equal", cstr_eq("", ""));
+    test("cstr_eq(NULL, NULL) is equal", cstr_eq(NULL, NULL));
+    test("cstr_eq(\"\", NULL) is not equal", not cstr_eq("", NULL));
+    test("cstr_eq(NULL, \"\") is not equal", not cstr_eq(NULL, ""));
+    test("same cstrings are equal", cstr_eq("FOO", "FOO"));
+    test("same cstring with different case are not equal", not cstr_eq("FOO", "FOo"));
+    test("different cstring are not equal", not cstr_eq("FOO", "BAR"));
+
+    test("cstring \"foo\" length is 3", 3 == cstr_len("foo"));
+    test("cstring \"\" length is 0", 0 == cstr_len(""));
+end
+
+proc main in
+    test_strings();
+    test_cstrings();
+    return 0;
+end
+
