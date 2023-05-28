@@ -26,10 +26,10 @@ proc test_cstr_map in
     printf("Testing set with cstrings.\n");
     var map = make_map(16, cstr_eq, cstr_hash);
 
-    test("map is empty", 0 == map_length(map));
+    test("map is empty", 0 == map_len(map));
 
     map_set(map, "hello world", 42);
-    test("map length is 1", 1 == map_length(map));
+    test("map length is 1", 1 == map_len(map));
     test("map contains \"hello world\"", map_find(map, "hello world"));
     var pair = map_find(map, "hello world");
     if pair != NULL then
@@ -37,14 +37,14 @@ proc test_cstr_map in
     end
 
     map_set(map, "hello world", 123);
-    test("map length is 1", 1 == map_length(map));
+    test("map length is 1", 1 == map_len(map));
     pair = map_find(map, "hello world");
     if pair != NULL then
         test("map maps \"hello world\" to 123", 123 == map_pair_val(pair));
     end
 
     map_set(map, "helloworld", 456);
-    test("map length is 2", 2 == map_length(map));
+    test("map length is 2", 2 == map_len(map));
     test("map contains \"helloworld\"", map_find(map, "helloworld"));
     pair = map_find(map, "helloworld");
     if pair != NULL then
@@ -52,7 +52,7 @@ proc test_cstr_map in
     end
 
     map_remove(map, "hello world");
-    test("map supports removal", 1 == map_length(map));
+    test("map supports removal", 1 == map_len(map));
     test("map no longer contains \"hello world\"", not map_find(map, "hello world"));
 end
 
