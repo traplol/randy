@@ -1,0 +1,6 @@
+asm _proc_main in
+"
+    movq $69, %rax
+    ret
+"
+end 

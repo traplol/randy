@@ -1,0 +1,311 @@
+
+const IRK_GetLocal      = 0;
+const IRK_PushLabel     = 1;
+const IRK_PushInt       = 2;
+const IRK_AllocTemps    = 3;
+const IRK_FreeTemps     = 4;
+const IRK_StoreTemp     = 5;
+const IRK_SetArgTemp    = 6;
+const IRK_Call          = 7;
+const IRK_PopCall       = 8;
+//const IRK_Plus          = 9;
+const IRK_OpAdd         = 10;
+const IRK_OpSub         = 11;
+const IRK_OpMul         = 12;
+const IRK_OpDiv         = 13;
+const IRK_OpMod         = 14;
+const IRK_OpEq          = 15;
+const IRK_OpNotEq       = 16;
+const IRK_OpLess        = 17;
+const IRK_OpLessEq      = 18;
+const IRK_OpGreater     = 19;
+const IRK_OpGreaterEq   = 20;
+const IRK_PopReturn     = 21;
+const IRK_ReturnVoid    = 22;
+const IRK_SetLocal      = 23;
+const IRK_NewProc       = 24;
+const IRK_SetLocalArg   = 25;
+const IRK_CloseProc     = 26;
+const IRK_GotoTopFalse  = 27;
+const IRK_GotoTopTrue   = 28;
+const IRK_GotoFalse     = 29;
+const IRK_Goto          = 30;
+const IRK_Label         = 31;
+const IRK_PtrRead       = 32;
+const IRK_PtrWrite      = 33;
+const IRK_BitNot        = 34;
+const IRK_LogicNot      = 35;
+//const IRK_LogicAnd      = 36;
+//const IRK_LogicOr       = 37;
+const IRK_InlineAsm     = 38;
+const IRK_LazyIdent     = 39;
+const IRK_CallLazyIdent = 40;
+
+const TIR_INSTR_kind     = 0;
+const TIR_INSTR_src_loc  = 8;
+
+const TIR_INSTR_name     = 16;
+const TIR_INSTR_ident    = 16;
+const TIR_INSTR_local    = 16;
+const TIR_INSTR_label    = 16;
+
+const TIR_INSTR_n        = 24;
+const TIR_INSTR_nargs    = 24;
+const TIR_INSTR_params   = 24;
+const TIR_INSTR_size     = 24;
+
+const TIR_INSTR_value    = 32;
+const TIR_INSTR_varargs  = 32;
+const TIR_INSTR_asm      = 32;
+const TIR_INSTR_arg      = 32;
+const TIR_INSTR_src_name = 32;
+
+const TIR_INSTR_locals   = 40;
+const sizeof_TIR_INSTR   = 48;
+
+proc make_ir_alloc_temps src_loc, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_AllocTemps);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+proc make_ir_call src_loc, label, varargs in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_Call);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    u64!(self + TIR_INSTR_varargs, varargs);
+    return self;
+end
+proc make_ir_call_lazy_ident src_loc, ident, nargs in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_ident, ident);
+    u64!(self + TIR_INSTR_nargs, nargs);
+    return self;
+end
+proc make_ir_close_proc src_loc, name in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_CloseProc);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_name, name);
+    return self;
+end
+proc make_ir_free_temps src_loc, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_FreeTemps);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+proc make_ir_get_local src_loc, local, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_GetLocal);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_local, local);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+proc make_ir_goto src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_Goto);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_goto_false src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_GotoFalse);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_goto_top_false src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_GotoTopFalse);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_goto_top_true src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_GotoTopTrue);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_inline_asm src_loc, name, asmcode in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_InlineAsm);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_name, name);
+    u64!(self + TIR_INSTR_asm, asmcode);
+    return self;
+end
+proc make_ir_label src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_Label);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_logic_not src_loc in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_LogicNot);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    return self;
+end
+proc make_ir_new_proc src_loc, src_name, name, params, locals in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_NewProc);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_src_name, src_name);
+    u64!(self + TIR_INSTR_name, name);
+    u64!(self + TIR_INSTR_params, params);
+    u64!(self + TIR_INSTR_locals, locals);
+    return self;
+end
+proc make_ir_simple_op src_loc, op in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, op);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    return self;
+end
+proc make_ir_pop_call src_loc in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PopCall);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    return self;
+end
+proc make_ir_pop_return src_loc in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PopReturn);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    return self;
+end
+proc make_ir_ptr_read src_loc, size in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PtrRead);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_size, size);
+    return self;
+end
+proc make_ir_ptr_write src_loc, size in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PtrWrite);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_size, size);
+    return self;
+end
+proc make_ir_push_int src_loc, value in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PushInt);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_value, value);
+    return self;
+end
+proc make_ir_push_label src_loc, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PushLabel);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_label, label);
+    return self;
+end
+proc make_ir_return_void src_loc in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_ReturnVoid);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    return self;
+end
+proc make_ir_set_arg_temp src_loc, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_SetArgTemp);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+proc make_ir_set_local src_loc, local, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_SetLocal);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_local, local);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+proc make_ir_set_local_arg src_loc, local, arg in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_local, local);
+    u64!(self + TIR_INSTR_arg, arg);
+    return self;
+end
+proc make_ir_store_temp src_loc, n in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_StoreTemp);
+    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_n, n);
+    return self;
+end
+
+const TIR_CONTEXT_instructions =  0; // ir_instruction vector
+const TIR_CONTEXT_label_id     =  8; // int
+const TIR_CONTEXT_strings      = 16; // (string, string) map
+const TIR_CONTEXT_externs      = 24; // (string, string) map
+const TIR_CONTEXT_labels       = 32; // string set
+const TIR_CONTEXT_constants    = 40; // (string, Union(string, int)) map
+const TIR_CONTEXT_src_locs     = 48; // src_loc vector
+const TIR_CONTEXT_file_map     = 56; // (string, int) map
+const TIR_CONTEXT_files        = 64; // string vector
+const TIR_CONTEXT_file_idx     = 72; // int
+const sizeof_TIR_CONTEXT       = 80;
+
+proc make_ir_context in
+    var self = malloc(sizeof_TIR_CONTEXT);
+    u64!(self + TIR_CONTEXT_instructions, make_vector(0));
+    u64!(self + TIR_CONTEXT_label_id, 0);
+    u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_externs, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_labels, make_set(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_constants, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_src_locs, make_vector(0));
+    u64!(self + TIR_CONTEXT_file_map, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_files, make_vector(0));
+    u64!(self + TIR_CONTEXT_file_idx, 0);
+    return self;
+end
+
+proc ir_instructions self in return u64@(self + TIR_CONTEXT_instructions); end
+proc ir_strings self in return u64@(self + TIR_CONTEXT_strings); end
+proc ir_externs self in return u64@(self + TIR_CONTEXT_externs); end
+proc ir_labels self in return u64@(self + TIR_CONTEXT_labels); end
+proc ir_constants self in return u64@(self + TIR_CONTEXT_constants); end
+proc ir_src_locs self in return u64@(self + TIR_CONTEXT_src_locs); end
+proc ir_file_map self in return u64@(self + TIR_CONTEXT_file_map); end
+proc ir_files self in return u64@(self + TIR_CONTEXT_files); end
+
+proc ir_string_label self, string in
+    var strings = ir_strings(self);
+    var found = map_find(strings, string);
+    if found then
+        return map_pair_val(found);
+    end
+
+    var label_id = u64@(self + TIR_CONTEXT_label_id);
+    u64!(self + TIR_CONTEXT_label_id, label_id + 1);
+
+    var label = make_string(0);
+    string_append_cstr(label, "__string__");
+    string_append_int(label, label_id);
+
+    set_add(ir_labels(self), label);
+    map_set(strings, string, label);
+
+    return label;
+end
+
+proc ir_string_bytes self in
+    NYI_ERR("ir_string_bytes");
+end

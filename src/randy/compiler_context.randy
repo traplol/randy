@@ -1,0 +1,51 @@
+
+const TCOMPILER_CONTEXT_out_lines = 0;
+const TCOMPILER_CONTEXT_proc_name = 8;
+const TCOMPILER_CONTEXT_proc_params = 16;
+const TCOMPILER_CONTEXT_proc_locals = 24;
+const sizeof_TCOMPILER_CONTEXT = 32;
+
+proc make_compiler_context in
+    var cctx = malloc(sizeof_TCOMPILER_CONTEXT);
+    var lines = make_vector(0);
+    u64!(cctx + TCOMPILER_CONTEXT_out_lines, lines);
+    u64!(cctx + TCOMPILER_CONTEXT_proc_name, NULL);
+    u64!(cctx + TCOMPILER_CONTEXT_proc_params, NULL);
+    u64!(cctx + TCOMPILER_CONTEXT_proc_locals, NULL);
+    return cctx;
+end
+
+proc cc_print_lines self in
+    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+    var len = vector_len(lines);
+    var i = 0;
+    while i < len do
+        printf("%s\n", string_cstr(vector_get(lines, i)));
+        i = i + 1;
+    done
+end
+
+proc cc_out self, cstr in
+    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+    vector_push(lines, string_from_cstr(cstr));
+end
+
+proc cc_out_extern self, cstr in
+    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+    var str = make_string(20);
+    string_append_cstr(str, ".extern ");
+    string_append_cstr(str, cstr);
+    vector_push(lines, str);
+end
+
+proc cc_out_label self, cstr in
+    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+    var str = make_string(20);
+    string_append_cstr(str, cstr);
+    string_push(str, ':');
+    vector_push(lines, str);
+end
+
+proc cc_out_string self, string in
+    NYI_ERR("cc_out_string");
+end

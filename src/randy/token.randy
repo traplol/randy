@@ -1,0 +1,163 @@
+
+// Token Kinds
+const TK_Integer   = 0;
+const TK_String    = 1;
+const TK_Char      = 2;
+const TK_Ident     = 3;
+const TK_KW_proc   = 4;
+const TK_KW_do     = 5;
+const TK_KW_var    = 6;
+const TK_KW_in     = 7;
+const TK_KW_if     = 8;
+const TK_KW_else   = 9;
+const TK_KW_then   = 10;
+const TK_KW_end    = 11;
+const TK_KW_while  = 12;
+const TK_KW_done   = 13;
+const TK_KW_return = 14;
+const TK_KW_and    = 15;
+const TK_KW_or     = 16;
+const TK_KW_not    = 17;
+const TK_KW_u8@    = 18;
+const TK_KW_u16@   = 19;
+const TK_KW_u32@   = 20;
+const TK_KW_u64@   = 21;
+const TK_KW_u8!    = 22;
+const TK_KW_u16!   = 23;
+const TK_KW_u32!   = 24;
+const TK_KW_u64!   = 25;
+const TK_KW_const  = 26;
+const TK_KW_extern = 27;
+const TK_KW_asm    = 28;
+const TK_Plus      = 29;
+const TK_Minus     = 30;
+const TK_Star      = 31;
+const TK_Slash     = 32;
+const TK_Percent   = 33;
+const TK_Semicolon = 34;
+const TK_Less      = 35;
+const TK_LessEq    = 36;
+const TK_Greater   = 37;
+const TK_GreaterEq = 38;
+const TK_Assign    = 39;
+const TK_EqEq      = 40;
+const TK_NotEq     = 41;
+const TK_Tilde     = 42;
+const TK_Comma     = 43;
+const TK_LParen    = 44;
+const TK_RParen    = 45;
+const TK_Bar       = 46;
+const TK_Amper     = 47;
+const TK_Caret     = 48;
+const TK_Ellipsis  = 49;
+const TK_MAX_VAL   = 50;
+
+proc token_kind_cstr k in
+    if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
+    else if k == TK_Integer then return "TK_Integer";
+    else if k == TK_String then return "TK_String";
+    else if k == TK_Char then return "TK_Char";
+    else if k == TK_Ident then return "TK_Ident";
+    else if k == TK_KW_proc then return "TK_KW_proc";
+    else if k == TK_KW_do then return "TK_KW_do";
+    else if k == TK_KW_var then return "TK_KW_var";
+    else if k == TK_KW_in then return "TK_KW_in";
+    else if k == TK_KW_if then return "TK_KW_if";
+    else if k == TK_KW_else then return "TK_KW_else";
+    else if k == TK_KW_then then return "TK_KW_then";
+    else if k == TK_KW_end then return "TK_KW_end";
+    else if k == TK_KW_while then return "TK_KW_while";
+    else if k == TK_KW_done then return "TK_KW_done";
+    else if k == TK_KW_return then return "TK_KW_return";
+    else if k == TK_KW_and then return "TK_KW_and";
+    else if k == TK_KW_or then return "TK_KW_or";
+    else if k == TK_KW_not then return "TK_KW_not";
+    else if k == TK_KW_u8@ then return "TK_KW_u8@";
+    else if k == TK_KW_u16@ then return "TK_KW_u16@";
+    else if k == TK_KW_u32@ then return "TK_KW_u32@";
+    else if k == TK_KW_u64@ then return "TK_KW_u64@";
+    else if k == TK_KW_u8! then return "TK_KW_u8!";
+    else if k == TK_KW_u16! then return "TK_KW_u16!";
+    else if k == TK_KW_u32! then return "TK_KW_u32!";
+    else if k == TK_KW_u64! then return "TK_KW_u64!";
+    else if k == TK_KW_const then return "TK_KW_const";
+    else if k == TK_KW_extern then return "TK_KW_extern";
+    else if k == TK_KW_asm then return "TK_KW_asm";
+    else if k == TK_Plus then return "TK_Plus";
+    else if k == TK_Minus then return "TK_Minus";
+    else if k == TK_Star then return "TK_Star";
+    else if k == TK_Slash then return "TK_Slash";
+    else if k == TK_Percent then return "TK_Percent";
+    else if k == TK_Semicolon then return "TK_Semicolon";
+    else if k == TK_Less then return "TK_Less";
+    else if k == TK_LessEq then return "TK_LessEq";
+    else if k == TK_Greater then return "TK_Greater";
+    else if k == TK_GreaterEq then return "TK_GreaterEq";
+    else if k == TK_Assign then return "TK_Assign";
+    else if k == TK_EqEq then return "TK_EqEq";
+    else if k == TK_NotEq then return "TK_NotEq";
+    else if k == TK_Tilde then return "TK_Tilde";
+    else if k == TK_Comma then return "TK_Comma";
+    else if k == TK_LParen then return "TK_LParen";
+    else if k == TK_RParen then return "TK_RParen";
+    else if k == TK_Bar then return "TK_Bar";
+    else if k == TK_Amper then return "TK_Amper";
+    else if k == TK_Caret then return "TK_Caret";
+    else if k == TK_Ellipsis then return "TK_Ellipsis";
+    end
+end
+
+const TTOKEN_kind = 0;      // TK
+const TTOKEN_cstr = 8;      // cstr
+const TTOKEN_value = 16;    // Union(int, cstr)
+const TTOKEN_line = 24;     // int
+const TTOKEN_filename = 32; // cstr
+const sizeof_TTOKEN = 40;
+
+proc make_token kind, cstr, value, line, filename in
+    if kind < 0 or kind >= TK_MAX_VAL then
+        printf("make_token kind out of range: %d\n", kind);
+        exit(1);
+    end
+
+    var token = malloc(sizeof_TTOKEN);
+    u64!(token + TTOKEN_kind, kind);
+    u64!(token + TTOKEN_cstr, cstr);
+    u64!(token + TTOKEN_value, value);
+    u64!(token + TTOKEN_line, line);
+    u64!(token + TTOKEN_filename, filename);
+    return token;
+end
+
+proc free_token token in
+    free(token);
+end
+
+proc token_kind token in return u64@(token + TTOKEN_kind); end
+proc token_cstr token in return u64@(token + TTOKEN_cstr); end
+proc token_value token in return u64@(token + TTOKEN_value); end
+proc token_line token in return u64@(token + TTOKEN_line); end
+proc token_filename token in return u64@(token + TTOKEN_filename); end
+
+proc print_token token in
+    var k = token_kind(token);
+    printf("token: %s -> '%s' = ", token_kind_cstr(k)
+                                 , token_cstr(token));
+
+    var v = token_value(token);
+    if k == TK_Integer then
+        printf("%d\n", v);
+    else if k == TK_String then
+        printf("\"%s\"\n", string_cstr(v));
+    else if k == TK_Char then
+        printf("'%c'\n", v);
+    else
+        printf("%s\n", v);
+    end
+end
+
+proc print_token_loc token in
+    var line_no = token_line(token);
+    var filename = token_filename(token);
+    printf("  File \"%s\", line %d\n", filename, line_no);
+end

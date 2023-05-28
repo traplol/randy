@@ -1,0 +1,145 @@
+
+proc parse_var ts in
+    NYI_ERR("parse var");
+end
+
+proc parse_if_else ts in
+    NYI_ERR("parse if / else");
+end
+
+proc parse_while ts in
+    NYI_ERR("parse while");
+end
+
+proc parse_return ts in
+    NYI_ERR("parse return");
+end
+
+proc parse_assign ts in
+    NYI_ERR("parse assignment");
+end
+
+proc parse_pointer_op ts in
+    NYI_ERR("parse pointer op");
+end
+
+proc parse_expression ts in
+    NYI_ERR("parse expression");
+end
+
+proc parse_statement ts in
+    var stmt;
+    var expect_semi = true;
+    if ts_peekk(ts, TK_KW_var) then
+        stmt = parse_var(ts);
+        expect_semi = true;
+    else if ts_peekk(ts, TK_KW_if) then
+        stmt = parse_if_else(ts);
+        expect_semi = false;
+    else if ts_peekk(ts, TK_KW_while) then
+        stmt = parse_while(ts);
+        expect_semi = false;
+    else if ts_peekk(ts, TK_KW_return) then
+        stmt = parse_return(ts);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_Assign) then
+        stmt = parse_assign(ts);
+        expect_semi = true;
+    else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u8!, TK_KW_u8!, TK_KW_u8!) then
+        stmt = parse_pointer_op(ts);
+        expect_semi = true;
+    else
+        stmt = parse_expression(ts);
+        expect_semi = true;
+    end
+
+    if not stmt then
+        return NULL;
+    end
+    if expect_semi then
+        ts_expect(ts, TK_Semicolon);
+    end
+    return stmt;
+end
+    
+proc parse_statements_until ts, into, kind in
+    if ts_peekk(ts, kind) then
+        return;
+    end
+    var stmt = parse_statement(ts);
+    while stmt do
+        vector_push(into, stmt);
+        if ts_peekk(ts, kind) then
+            stmt = NULL;
+        else
+            stmt = parse_statement(ts);
+        end
+    done
+end
+
+proc parse_proc ts in
+    var proc_ = ts_expect(ts, TK_KW_proc);
+    var ident = ts_expect(ts, TK_Ident);
+    var body = make_vector(0);
+    var params = make_vector(0);
+    var breaking = false;
+    while not breaking and ts_peekk(ts, TK_Ident) do
+        vector_push(params, token_value(ts_next(ts)));
+        if ts_peekk(ts, TK_KW_in) then
+            breaking = true;
+        else
+            ts_expect(ts, TK_Comma);
+        end
+    done
+    ts_expect(ts, TK_KW_in);
+    parse_statements_until(ts, body, TK_KW_end);
+    ts_expect(ts, TK_KW_end);
+    return make_ast_procedure(proc_, token_value(ident), params, body);
+end
+
+proc parse_const ts in
+    NYI_ERR("parse const");
+end
+
+proc parse_extern ts in
+    NYI_ERR("parse extern");
+end
+
+proc parse_asm ts in
+    var asm_ = ts_expect(ts, TK_KW_asm);
+    var ident = ts_expect(ts, TK_Ident);
+    ts_expect(ts, TK_KW_in);
+    var asmcode = ts_expect(ts, TK_String);
+    ts_expect(ts, TK_KW_end);
+    return make_ast_inline_asm(asm_, token_value(ident), asmcode);
+end
+
+proc parse ts in
+    var roots = make_vector(0);
+    var parsed; var tk;
+    while ts_peek(ts) do
+        tk = ts_peek(ts);
+        if ts_peekk(ts, TK_KW_proc) then
+            parsed = parse_proc(ts);
+        else if ts_peekk(ts, TK_KW_const) then
+            parsed = parse_const(ts);
+        else if ts_peekk(ts, TK_KW_extern) then
+            parsed = parse_extern(ts);
+        else if ts_peekk(ts, TK_KW_asm) then
+            parsed = parse_asm(ts);
+        else
+            tk = ts_peek(ts);
+            printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(token_kind(tk)));
+            print_token_loc(tk);
+            exit(1);
+        end
+
+        if not parsed then
+            printf("ERROR: Unhandled parse error for %s\n", token_kind_cstr(token_kind(tk)));
+            print_token_loc(tk);
+            exit(1);
+        end
+        vector_push(roots, parsed);
+    done
+    return roots;
+end

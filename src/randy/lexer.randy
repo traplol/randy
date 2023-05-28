@@ -1,0 +1,246 @@
+
+proc is_digit c in
+    return '0' <= c and c <= '9';
+end
+
+proc is_whitespace c in
+    return c == ' ' or c == '\t' or c == '\n' or c == 0;
+end
+
+proc is_ident_start c in
+    return c == '_' or ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z');
+end
+
+proc is_ident_char c in
+    return is_ident_start(c) or is_digit(c) or c == '@' or c == '!';
+end
+
+proc get_escaped_char c in
+    if c == 't' then
+        return 9; // \t tab
+    else if c == 'n' then
+        return 10; // \n newline
+    else if c == 'r' then
+        return 13; // \r carriage return
+    else if c == '0' then
+        return 0; // \0 null character
+    end
+    return c;
+end
+
+proc get_ident_kind string in
+    var cstr = string_cstr(string);
+    var first = u8@(cstr);
+    if 'a' == first then
+        if cstr_eq("asm", cstr) then return TK_KW_asm; end
+        if cstr_eq("and", cstr) then return TK_KW_and; end
+    else if 'c' == first then
+        if cstr_eq("const", cstr) then return TK_KW_const; end
+    else if 'd' == first then
+        if cstr_eq("do", cstr) then return TK_KW_do; end
+        if cstr_eq("done", cstr) then return TK_KW_done; end
+    else if 'e' == first then
+        if cstr_eq("else", cstr) then return TK_KW_else; end
+        if cstr_eq("end", cstr) then return TK_KW_end; end
+        if cstr_eq("extern", cstr) then return TK_KW_extern; end
+    else if 'i' == first then
+        if cstr_eq("in", cstr) then return TK_KW_in; end
+        if cstr_eq("if", cstr) then return TK_KW_if; end
+    else if 'n' == first then
+        if cstr_eq("not", cstr) then return TK_KW_not; end
+    else if 'o' == first then
+        if cstr_eq("or", cstr) then return TK_KW_or; end
+    else if 'p' == first then
+        if cstr_eq("proc", cstr) then return TK_KW_proc; end
+    else if 'r' == first then
+        if cstr_eq("return", cstr) then return TK_KW_return; end
+    else if 't' == first then
+        if cstr_eq("then", cstr) then return TK_KW_return; end
+    else if 'u' == first then
+        if cstr_eq("u8@", cstr) then return TK_KW_u8@; end
+        if cstr_eq("u16@", cstr) then return TK_KW_u16@; end
+        if cstr_eq("u32@", cstr) then return TK_KW_u32@; end
+        if cstr_eq("u64@", cstr) then return TK_KW_u64@; end
+
+        if cstr_eq("u8!", cstr) then return TK_KW_u8!; end
+        if cstr_eq("u16!", cstr) then return TK_KW_u16!; end
+        if cstr_eq("u32!", cstr) then return TK_KW_u32!; end
+        if cstr_eq("u64!", cstr) then return TK_KW_u64!; end
+    else if 'w' == first then
+        if cstr_eq("while", cstr) then return TK_KW_while; end
+    end
+    return TK_Ident;
+end
+
+proc lex_code filename, code in
+    var i = 0;
+    var tokens = make_vector(0);
+    var length = string_len(code);
+    var line_no = 1;
+    var temp; var c; var cc; var val;
+    while i < length do
+        // Consume whitespace
+        while i < length and is_whitespace(string_get(code, i)) do
+            if string_get(code, i) == '\n' then
+                line_no = line_no + 1;
+            end
+            i = i + 1;
+        done
+
+        if i < length then
+            c = string_get(code, i);
+            if c == '/' and i+1 < length and string_get(code, i+1) == '/' then
+                while i < length and string_get(code, i) != '\n' do
+                    i = i + 1;
+                done
+            else if is_ident_start(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_ident_char(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_ident_char(c) then
+                       string_push(temp, c);
+                   end
+                done
+                vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no, filename));
+            else if is_digit(c) then
+                temp = make_string(2);
+                string_push(temp, c);
+                while i < length and is_digit(c) do
+                   i = i + 1;
+                   c = string_get(code, i);
+                   if is_digit(c) then
+                       string_push(temp, c);
+                   end
+                done
+                val = int_from_string(temp);
+                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
+            else if c == '"' then
+                temp = make_string(2);
+                i = i + 1; // skip open quote
+                while i < length and string_get(code, i) != '"' do
+                    c = string_get(code, i);
+                    if c == '\\' then
+                        i = i + 1; // skip \
+                        c = string_get(code, i);
+                        c = get_escaped_char(c);
+                    else if c == '\n' then
+                        line_no = line_no + 1;
+                    end
+                    string_push(temp, c);
+                    i = i + 1;
+                done
+                i = i + 1; // skip close quote
+                vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no, filename));
+            else if c == '\'' then
+                temp = make_string(2);
+                i = i + 1; // skip open quote
+                c = string_get(code, i);
+                if c == '\\' then
+                    i = i + 1; // skip \
+                    c = string_get(code, i);
+                    c = get_escaped_char(c);
+                else if cc == '\n' then
+                    line_no = line_no + 1;
+                end
+                string_push(temp, c);
+                i = i + 2; // skip char and close quote
+                vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
+            else if c == '#' then
+                while i < length and string_get(code, i) != '\n' do
+                    i = i + 1;
+                done
+            else if c == ';' then
+                vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
+                i = i + 1;
+            else if c == ',' then
+                vector_push(tokens, make_token(TK_Comma, ",", ",", line_no, filename));
+                i = i + 1;
+            else if c == '(' then
+                vector_push(tokens, make_token(TK_LParen, "(", "(", line_no, filename));
+                i = i + 1;
+            else if c == ')' then
+                vector_push(tokens, make_token(TK_RParen, ")", ")", line_no, filename));
+                i = i + 1;
+            else if c == '+' then
+                vector_push(tokens, make_token(TK_Plus, "+", "+", line_no, filename));
+                i = i + 1;
+            else if c == '-' then
+                vector_push(tokens, make_token(TK_Minus, "-", "-", line_no, filename));
+                i = i + 1;
+            else if c == '*' then
+                vector_push(tokens, make_token(TK_Star, "*", "*", line_no, filename));
+                i = i + 1;
+            else if c == '/' then
+                vector_push(tokens, make_token(TK_Slash, "/", "/", line_no, filename));
+                i = i + 1;
+            else if c == '%' then
+                vector_push(tokens, make_token(TK_Percent, "%", "%", line_no, filename));
+                i = i + 1;
+            else if c == '|' then
+                vector_push(tokens, make_token(TK_Bar, "|", "|", line_no, filename));
+                i = i + 1;
+            else if c == '&' then
+                vector_push(tokens, make_token(TK_Amper, "&", "&", line_no, filename));
+                i = i + 1;
+            else if c == '^' then
+                vector_push(tokens, make_token(TK_Caret, "^", "^", line_no, filename));
+                i = i + 1;
+            else if c == '~' then
+                vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no, filename));
+                i = i + 1;
+            else if c == '.' then
+                if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
+                    vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no, filename));
+                    i = i + 3;
+                end
+            else if c == '!' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no, filename));
+                    i = i + 2;
+                else
+                    printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
+                    exit(1);
+                end
+            else if c == '<' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no, filename));
+                    i = i + 2;
+                else
+                    vector_push(tokens, make_token(TK_Less, "<", "<", line_no, filename));
+                    i = i + 1;
+                end
+            else if c == '>' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no, filename));
+                    i = i + 2;
+                else
+                    vector_push(tokens, make_token(TK_Greater, ">", ">", line_no, filename));
+                    i = i + 1;
+                end
+            else if c == '=' then
+                if i+1 < length and string_get(code, i+1) == '=' then
+                    vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no, filename));
+                    i = i + 2;
+                else
+                    vector_push(tokens, make_token(TK_Assign, "=", "=", line_no, filename));
+                    i = i + 1;
+                end
+            else
+                printf("Unrecognized character: '%c' (%d)\n", c, c);
+                printf("  File \"%s\", line %d", filename, line_no);
+                exit(1);
+            end
+        end
+    done
+    return tokens;
+end
+
+proc lex_file path in
+    var code = read_file_to_string(path);
+    if not code then
+        return NULL;
+    end
+    return lex_code(path, code);
+end

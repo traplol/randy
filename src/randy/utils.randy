@@ -1,0 +1,97 @@
+
+proc read_file_to_string path in
+    var fd = open_for_read(path);
+    if fd < 0 then
+        printf("error reading file: (%d) %s\n", fd, path);
+        return NULL;
+    end
+    
+    var buf = malloc(1024);
+    var running = 1;
+    var result = 0;
+    var string = make_string(64);
+    var x = 0;
+    while running do
+        result = read_file(fd, buf, 1023);
+        if result < 0 then
+            running = 0;
+            printf("error reading file: %d\n", result);
+            free(buf);
+            free_string(string);
+            return NULL;
+        else if result == 0 then
+            running = 0;
+        else
+            x = 0;
+            while x < result do
+                string_push(string, u8@(buf+x));
+                x = x + 1;
+            done
+        end
+    done
+    free(buf);
+
+    string_push(string, 0);
+    return string;
+end
+
+proc string_hash string in
+    var hash = 5381;
+    var len = string_len(string);
+    var i = 0;
+    while i < len do
+        hash = hash * 33 + string_get(string, i);
+        i = i + 1;
+    done
+    return hash;
+end
+
+proc string_append_int string, n in
+    if n < 0 then
+        string_push(string, '-');
+    end
+
+    if n < 0 then
+        n = 0 - n;
+    end
+
+    if n < 10 then
+        string_push(string, '0' + n);
+        return;
+    end
+
+    var k = 1;
+    while (n / k) != 0 do
+        k = k * 10;
+    done
+    k = k / 10;
+        
+    while k != 0 do
+        string_push(string, '0' + (n / k));
+        n = n % k;
+        k = k / 10;
+    done
+end
+
+proc int_from_string string in
+    var result = 0;
+    var i = string_len(string) - 1;
+    var k = 1;
+    var c;
+    while i >= 0 do
+        c = string_get(string, i);
+        if not is_digit(c) then
+            i = 0;
+        else
+            result = result + (c - '0') * k;
+            k = k * 10;
+        end
+        i = i - 1;
+    done
+    return result;
+end
+
+proc NYI_ERR what in
+    printf("'%s' not implemented\n", what);
+    exit(1);
+end

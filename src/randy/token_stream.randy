@@ -1,0 +1,118 @@
+
+const TTOKEN_STREAM_tokens = 0;  // token vector
+const TTOKEN_STREAM_idx = 8;     // int
+const sizeof_TTOKEN_STREAM = 16;
+
+proc make_token_stream tokens in
+    var token_stream = malloc(sizeof_TTOKEN_STREAM);
+    u64!(token_stream + TTOKEN_STREAM_tokens, tokens);
+    u64!(token_stream + TTOKEN_STREAM_idx, 0);
+    return token_stream;
+end
+
+proc ts_tokens self in return u64@(self + TTOKEN_STREAM_tokens); end
+proc ts_idx self in return u64@(self + TTOKEN_STREAM_idx); end
+proc ts_revert self, idx in u64!(self + TTOKEN_STREAM_idx, idx); end
+
+proc ts_peek self in
+    var tks = ts_tokens(self);
+    var idx = ts_idx(self);
+    if idx >= vector_len(tks) then
+        return NULL;
+    end
+    return vector_get(tks, idx);
+end
+
+proc ts_peekk self, kind in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+
+    return token_kind(peek) == kind;
+end
+
+proc ts_peekk_one_of_2 self, k1, k2 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2;
+end
+
+proc ts_peekk_one_of_3 self, k1, k2, k3 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3;
+end
+
+proc ts_peekk_one_of_4 self, k1, k2, k3, k4 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3 or tk == k4;
+end
+
+proc ts_peekk_one_of_5 self, k1, k2, k3, k4, k5 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+    var tk = token_kind(peek);
+    return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
+end
+
+proc ts_next self in
+    var peek = ts_peek(self);
+    u64!(self + TTOKEN_STREAM_idx, u64@(self + TTOKEN_STREAM_idx) + 1);
+    return peek;
+end
+
+proc ts_accept self, kind in
+    var tmp = ts_peek(self);
+    if tmp and token_kind(tmp) == kind then
+        return ts_next(self);
+    end
+    return NULL;
+end
+
+proc ts_expect self, kind in
+    var tmp = ts_peek(self);
+    if not tmp then
+        printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
+        exit(1);
+    end
+    var tmp_k = token_kind(tmp);
+    if tmp_k != kind then
+        printf("ERROR: Expected token kind %s, got %s\n",
+            token_kind_cstr(kind),
+            token_kind_cstr(tmp_k));
+        print_token_loc(tmp);
+        exit(1);
+    end
+    ts_next(self);
+    return tmp;
+end
+
+proc ts_peekk2 self, kind1, kind2 in
+    var peek = ts_peek(self);
+    if not peek then
+        return false;
+    end
+
+    var idx = ts_idx(self);
+    var good = false;
+    if ts_accept(self, kind1) then
+        if ts_accept(self, kind2) then
+            good = true;
+        end
+    end
+    ts_revert(self, idx);
+    return good;
+end

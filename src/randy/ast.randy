@@ -1,0 +1,245 @@
+
+const AstK_Ident     = 0;
+const AstK_Integer   = 1;
+const AstK_String    = 2;
+const AstK_Call      = 3;
+const AstK_BinOp     = 4;
+const AstK_Return    = 5;
+const AstK_VarDecl   = 6;
+const AstK_VarAssign = 7;
+const AstK_Assign    = 8;
+const AstK_Procedure = 9;
+const AstK_IfElse    = 10;
+const AstK_While     = 11;
+const AstK_PointerOp = 12;
+const AstK_Prefix    = 13;
+const AstK_Const     = 14;
+const AstK_Extern    = 15;
+const AstK_InlineAsm = 16;
+
+const TAST_kind        = 0;  // AstK
+const TAST_token       = 8;  // token
+// This represents each AST node as a c-"union"
+// Ident
+const TAST_ident       = 16; // string
+// Integer, String
+const TAST_value       = 16; // Union(int, string)
+// Call
+const TAST_expr        = 16; // ast
+const TAST_args        = 24; // ast vector
+// Prefix
+const TAST_expr        = 16; // ast
+const TAST_op          = 24; // TK
+// BinOp
+const TAST_lhs         = 16; // ast
+const TAST_op          = 24; // TK
+const TAST_rhs         = 32; // ast
+// IfElse
+const TAST_test        = 16; // ast
+const TAST_consequence = 24; // ast vector
+const TAST_alternative = 32; // ast vector
+// While
+const TAST_test        = 16; // ast
+const TAST_body        = 24; // ast vector
+// PointerOp
+const TAST_size        = 16; // int
+const TAST_op          = 24; // TK
+const TAST_pop_args    = 32; // ast vector
+// VarDecl
+const TAST_ident       = 16; // string
+// VarAssign
+const TAST_ident       = 16; // string
+const TAST_assign_expr = 24; // ast
+// Assign
+const TAST_ident       = 16; // string
+const TAST_assign_expr = 24; // ast
+// Return
+const TAST_expr        = 16; // ast
+// Procedure
+const TAST_ident       = 16; // string
+const TAST_body        = 24; // ast vector
+const TAST_params      = 32; // string vector
+// Const
+const TAST_ident       = 16; // string
+const TAST_val_tok     = 24; // token
+// Extern
+const TAST_ident       = 16; // string
+const TAST_varargs     = 24; // bool
+const TAST_params      = 32; // string vector
+// InlineAsm
+const TAST_ident       = 16; // string
+const TAST_asm         = 24; // string
+
+const sizeof_TAST      = 40;
+
+proc make_ast_ident token, ident in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Ident);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    return ast;
+end
+
+proc make_ast_integer token, value in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Integer);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_value, value);
+    return ast;
+end
+
+proc make_ast_string token, value in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_String);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_value, value);
+    return ast;
+end
+
+proc make_ast_call token, expr, args in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Call);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_expr, expr);
+    u64!(ast + TAST_args, args);
+    return ast;
+end
+
+proc make_ast_binop token, lhs, op, rhs in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_BinOp);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_lhs, lhs);
+    u64!(ast + TAST_op, op);
+    u64!(ast + TAST_rhs, rhs);
+    return ast;
+end
+
+proc make_ast_return token, expr in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Return);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_expr, expr);
+    return ast;
+end
+
+proc make_ast_var_decl token, ident in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_VarDecl);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    return ast;
+end
+
+proc make_ast_var_assign token, ident, expr in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_VarAssign);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_assign_expr, expr);
+    return ast;
+end
+
+proc make_ast_assign token, ident, expr in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Assign);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_assign_expr, expr);
+    return ast;
+end
+
+proc make_ast_procedure token, ident, params, body in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Procedure);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_body, body);
+    u64!(ast + TAST_params, params);
+    return ast;
+end
+
+proc make_ast_if_else token, test, conseq, altern in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_IfElse);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_test, test);
+    u64!(ast + TAST_consequence, conseq);
+    u64!(ast + TAST_alternative, altern);
+    return ast;
+end
+
+proc make_ast_while token, test, body in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_While);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_test, test);
+    u64!(ast + TAST_body, body);
+    return ast;
+end
+
+proc make_ast_pointer_op token, size, op, args in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_PointerOp);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_size, size);
+    u64!(ast + TAST_op, op);
+    u64!(ast + TAST_pop_args, args);
+    return ast;
+end
+
+proc make_ast_prefix token, op, expr in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Prefix);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_expr, expr);
+    u64!(ast + TAST_op, op);
+    return ast;
+end
+
+proc make_ast_const token, ident, val_tok in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Const);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_val_tok, val_tok);
+    return ast;
+end
+
+proc make_ast_extern token, ident, params, varargs in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_Extern);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_varargs, varargs);
+    u64!(ast + TAST_params, params);
+    return ast;
+end
+
+proc make_ast_inline_asm token, ident, asmcode in
+    var ast = malloc(sizeof_TAST);
+    u64!(ast + TAST_kind, AstK_InlineAsm);
+    u64!(ast + TAST_token, token);
+    u64!(ast + TAST_ident, ident);
+    u64!(ast + TAST_asm, asmcode);
+    return ast;
+end
+
+proc ast_alternative ast in return u64@(ast + TAST_alternative); end
+proc ast_args ast in return u64@(ast + TAST_args); end
+proc ast_asm ast in return u64@(ast + TAST_asm); end
+proc ast_assign_expr ast in return u64@(ast + TAST_assign_expr); end
+proc ast_body ast in return u64@(ast + TAST_body); end
+proc ast_consequence ast in return u64@(ast + TAST_consequence); end
+proc ast_expr ast in return u64@(ast + TAST_expr); end
+proc ast_ident ast in return u64@(ast + TAST_ident); end
+proc ast_lhs ast in return u64@(ast + TAST_lhs); end
+proc ast_op ast in return u64@(ast + TAST_op); end
+proc ast_params ast in return u64@(ast + TAST_params); end
+proc ast_pop_args ast in return u64@(ast + TAST_pop_args); end
+proc ast_rhs ast in return u64@(ast + TAST_rhs); end
+proc ast_size ast in return u64@(ast + TAST_size); end
+proc ast_test ast in return u64@(ast + TAST_test); end
+proc ast_val_tok ast in return u64@(ast + TAST_val_tok); end
+proc ast_value ast in return u64@(ast + TAST_value); end
+proc ast_varargs ast in return u64@(ast + TAST_varargs); end

@@ -213,17 +213,24 @@ def is_readable_file(filename: str) -> bool:
         return False
     return True
 
+cwd_stack : List[str] = []
 include_paths : List[str] = []
 already_included = set()
 def directive_include(library: str, tokens: List[Token], src_loc: Tuple[str, int, int]):
     # search the include paths for "<library>.randy" and then lex that file
     # and inject those tokens into <tokens>
     libfile = None
-    for path in reversed(include_paths):
-        p = f"{path}/{library}.randy"
+    if len(cwd_stack) != 0:
+        p = f"{cwd_stack[-1]}/{library}.randy"
         if is_readable_file(p):
             libfile = p
-            break
+
+    if libfile is None:
+        for path in reversed(include_paths):
+            p = f"{path}/{library}.randy"
+            if is_readable_file(p):
+                libfile = p
+                break
 
     if libfile is None:
         print(f"ERROR: `#include {library}`, file does not exist or is unreadable")
@@ -233,11 +240,13 @@ def directive_include(library: str, tokens: List[Token], src_loc: Tuple[str, int
 
     if libfile in already_included:
         return
-    
+
+    cwd_stack.append(str(pathlib.Path(libfile).parent.resolve()))
     already_included.add(libfile) # stop circular includes
     libtoks = lex_file(libfile)
     for tok in libtoks:
         tokens.append(tok)
+    cwd_stack.pop()
 
 def run_directive(src_loc: Tuple[str, int, int], code: str, i: int, tokens: List[Token], directive: str):
     if directive == "#include":
@@ -863,7 +872,6 @@ class IRK(Enum):
     SetArgTemp   = auto()
     Call         = auto()
     PopCall      = auto()
-    Plus         = auto()
     OpAdd        = auto()
     OpSub        = auto()
     OpMul        = auto()
@@ -890,8 +898,6 @@ class IRK(Enum):
     PtrWrite     = auto()
     BitNot       = auto()
     LogicNot     = auto()
-    LogicAnd     = auto()
-    LogicOr      = auto()
     InlineAsm    = auto()
     LazyIdent    = auto()
     CallLazyIdent = auto()
@@ -1858,11 +1864,12 @@ def main(config: Config):
     if os.path.isdir(out_path):
         out_path += f"/{source_base}"
     out_asm = f"{out_path}.s"
-    include_paths.append(str(pathlib.Path(source_path).parent.resolve()))
-    include_paths.append(str(pathlib.Path(source_path).parent.resolve()) + "/include")
-    include_paths.append("/home/max/workspace/randy/include")
+    current_path = str(pathlib.Path(source_path).parent.resolve())
+    cwd_stack.append(current_path)
+    include_paths.append(current_path)
+    include_paths.append(current_path + "/include")
     for path in config.include_paths:
-        include_paths.append(str(pathlib.Path(path).parent.resolve()))
+        include_paths.append(str(pathlib.Path(path).resolve()))
 
     start = time.time()
     tokens = lex_file(source_path)

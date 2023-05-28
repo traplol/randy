@@ -1,0 +1,98 @@
+#include std/core
+#include std/string
+#include std/vector
+#include std/set
+#include std/map
+
+#include utils
+#include token
+#include lexer
+#include token_stream
+#include ast
+#include parsing
+#include ir_context
+#include compiler_context
+#include x86_64_backend
+
+proc ir_compile ast, ir in
+    NYI_ERR("ir_compile");
+end
+
+proc emit_instruction cc, ir in
+    NYI_ERR("emit_instruction");
+end
+
+proc main argc, argv in
+    if argc < 2 then
+        printf("No input file.\n");
+        return 1;
+    else
+        var path = u64@(argv + sizeof_PTR);
+        var tokens = lex_file(path);
+        if not tokens then
+            return 1;
+        end
+
+        var token_stream = make_token_stream(tokens);
+        var roots = parse(token_stream);
+        var cctx = make_compiler_context();
+        var irctx = make_ir_context();
+        var i = 0;
+        while i < vector_len(roots) do
+            ir_compile(irctx, vector_get(roots, i));
+            i = i + 1;
+        done
+
+        cc_out(cctx, ".text");
+        cc_out(cctx, "\n");
+
+        var instructions = ir_instructions(irctx);
+        i = 0;
+        while i < vector_len(instructions) do
+            emit_instruction(cctx, vector_get(instructions, i));
+            i = i + 1;
+        done
+
+        cc_out(cctx, "\n");
+
+        var externs = ir_externs(irctx);
+        i = 0;
+        while i < vector_len(externs) do
+            cc_out_extern(cctx, vector_get(externs, i));
+            i = i + 1;
+        done
+        
+        cc_out(cctx, "\n");
+        cc_out(cctx, ".data");
+        cc_out(cctx, ".align 8");
+        cc_out(cctx, "__argc__: .quad 0");
+        cc_out(cctx, "__argv__: .quad 0");
+
+        cc_out(cctx, ".section .rodata \"a\"");
+        var strings = ir_strings(irctx);
+        var string;
+        i = 0;
+        while i < vector_len(strings) do
+            string = vector_get(strings, i);
+            cc_out(cctx, ".align 8");
+            cc_out_label(cctx, ir_string_label(irctx, string));
+            cc_out_string(cctx, ir_string_bytes(string));
+            i = i + 1;
+        done
+
+        // ts_expect(token_stream, TK_Plus);
+        // ts_expect(token_stream, TK_Minus);
+        // ts_expect(token_stream, TK_Slash);
+        // ts_expect(token_stream, TK_Star);
+        // printf("Accept String: %p\n", ts_accept(token_stream, TK_String));
+        // printf("Accept Ident: %p\n", ts_accept(token_stream, TK_Ident));
+
+        // while ts_peek(token_stream) do
+        //     var token = ts_peek(token_stream);
+        //     print_token(token);
+        //     ts_next(token_stream);
+        // done
+        return 0;
+    end
+end
+
