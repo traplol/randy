@@ -1,5 +1,5 @@
-#include core
-#include memory
+#include std/core
+#include std/memory
 
 // start with the simplest set of useful programming constructs:
 // machine words (integers/pointers)

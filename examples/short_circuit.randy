@@ -1,4 +1,4 @@
-#include core
+#include std/core
 
 proc return_true t in
     printf("true %s ", t);

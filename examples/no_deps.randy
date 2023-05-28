@@ -1,4 +1,4 @@
-#include file
+#include std/file
 
 proc main in
     var fd = open_for_write("/dev/stdout");

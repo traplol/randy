@@ -1,6 +1,5 @@
-
-#include core
-#include vector
+#include std/core
+#include std/vector
 
 proc main in
     var vector = make_vector(10);

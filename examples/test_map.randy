@@ -1,6 +1,6 @@
-#include core
-#include map
-#include string
+#include std/core
+#include std/map
+#include std/string
 
 
 proc test msg, cond in

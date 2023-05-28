@@ -1,0 +1,47 @@
+
+#include core
+#include memory
+
+// The Arena data structure is distinct from the vector in that it constitutes a
+// fixed-size, contiguous buffer. Unlike vector, it lacks a direct mechanism for
+// reading values because we do not allow memory dereferencing of arbitrary size.
+// Nevertheless, it does furnish a means to compute the memory address corresponding
+// to a specific index, which suffices for most practical purposes since passing
+// by value is limited to 8 bytes.
+
+const TARENA_length = 0;
+const TARENA_elem_size = 8;
+const TARENA_buffer = 16;
+
+proc make_arena init, elem_size in
+    var arena = malloc(TARENA_buffer + (init * elem_size));
+    u64!(arena + TARENA_length, init);
+    u64!(arena + TARENA_elem_size, elem_size);
+    return arena;
+end
+
+proc free_arena arena in
+    free(arena);
+end
+
+proc arena_buf arena in
+    return u64@(arena + TARENA_buffer);
+end
+
+proc arena_len arena in
+    return u64@(arena + TARENA_length);
+end
+
+proc arena_elem_size arena in
+    return u64@(arena + TARENA_elem_size);
+end
+
+proc arena_at arena, idx in
+    // TODO: Bounds check & abort
+    return arena + TARENA_buffer + (idx * u64@(arena + TARENA_elem_size));
+end
+
+proc arena_set arena, idx, val in
+    // TODO: Bounds check & abort
+    memcpy(arena_at(arena, idx), val, u64@(arena + TARENA_elem_size));
+end

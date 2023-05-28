@@ -1,6 +1,6 @@
-#include core
-#include set
-#include string
+#include std/core
+#include std/set
+#include std/string
 
 
 proc test msg, cond in

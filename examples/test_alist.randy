@@ -1,5 +1,5 @@
-#include alist
-#include string
+#include std/alist
+#include std/string
 
 proc test_alist_default_comparer in
     var alist = make_alist(NULL);

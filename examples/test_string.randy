@@ -1,5 +1,5 @@
-#include core
-#include string
+#include std/core
+#include std/string
 
 proc test msg, cond in
     if cond then
