@@ -111,7 +111,7 @@ proc parse_asm ts in
     ts_expect(ts, TK_KW_in);
     var asmcode = ts_expect(ts, TK_String);
     ts_expect(ts, TK_KW_end);
-    return make_ast_inline_asm(asm_, token_value(ident), asmcode);
+    return make_ast_inline_asm(asm_, token_value(ident), token_value(asmcode));
 end
 
 proc parse ts in

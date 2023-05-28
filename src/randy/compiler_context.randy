@@ -31,21 +31,29 @@ proc cc_out self, cstr in
 end
 
 proc cc_out_extern self, cstr in
-    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
     var str = make_string(20);
     string_append_cstr(str, ".extern ");
     string_append_cstr(str, cstr);
-    vector_push(lines, str);
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end
 
 proc cc_out_label self, cstr in
-    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
     var str = make_string(20);
     string_append_cstr(str, cstr);
     string_push(str, ':');
-    vector_push(lines, str);
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end
 
 proc cc_out_string self, string in
     NYI_ERR("cc_out_string");
+end
+
+proc cc_out_src_loc self, src_loc in
+    var str = make_string(20);
+    string_append_cstr(str, "    .loc <FIXME need file id> ");
+    string_append_int(str, src_loc_line(src_loc));
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end

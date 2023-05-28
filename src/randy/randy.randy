@@ -14,14 +14,6 @@
 #include compiler_context
 #include x86_64_backend
 
-proc ir_compile ast, ir in
-    NYI_ERR("ir_compile");
-end
-
-proc emit_instruction cc, ir in
-    NYI_ERR("emit_instruction");
-end
-
 proc main argc, argv in
     if argc < 2 then
         printf("No input file.\n");
@@ -44,23 +36,20 @@ proc main argc, argv in
         done
 
         cc_out(cctx, ".text");
-        cc_out(cctx, "\n");
 
         var instructions = ir_instructions(irctx);
         i = 0;
         while i < vector_len(instructions) do
-            emit_instruction(cctx, vector_get(instructions, i));
+            x86_64_emit_instruction(cctx, vector_get(instructions, i));
             i = i + 1;
         done
-
-        cc_out(cctx, "\n");
 
         var externs = ir_externs(irctx);
         i = 0;
-        while i < vector_len(externs) do
-            cc_out_extern(cctx, vector_get(externs, i));
-            i = i + 1;
-        done
+        // while i < map_len(externs) do
+        //     cc_out_extern(cctx, vector_get(externs, i));
+        //     i = i + 1;
+        // done
         
         cc_out(cctx, "\n");
         cc_out(cctx, ".data");
@@ -71,14 +60,14 @@ proc main argc, argv in
         cc_out(cctx, ".section .rodata \"a\"");
         var strings = ir_strings(irctx);
         var string;
-        i = 0;
-        while i < vector_len(strings) do
-            string = vector_get(strings, i);
-            cc_out(cctx, ".align 8");
-            cc_out_label(cctx, ir_string_label(irctx, string));
-            cc_out_string(cctx, ir_string_bytes(string));
-            i = i + 1;
-        done
+        // i = 0;
+        // while i < map_len(strings) do
+        //     string = vector_get(strings, i);
+        //     cc_out(cctx, ".align 8");
+        //     cc_out_label(cctx, ir_string_label(irctx, string));
+        //     cc_out_string(cctx, ir_string_bytes(string));
+        //     i = i + 1;
+        // done
 
         // ts_expect(token_stream, TK_Plus);
         // ts_expect(token_stream, TK_Minus);
@@ -92,6 +81,7 @@ proc main argc, argv in
         //     print_token(token);
         //     ts_next(token_stream);
         // done
+        cc_print_lines(cctx);
         return 0;
     end
 end

@@ -107,12 +107,16 @@ proc token_kind_cstr k in
     end
 end
 
-const TTOKEN_kind = 0;      // TK
-const TTOKEN_cstr = 8;      // cstr
-const TTOKEN_value = 16;    // Union(int, cstr)
-const TTOKEN_line = 24;     // int
-const TTOKEN_filename = 32; // cstr
-const sizeof_TTOKEN = 40;
+const TTOKEN_kind     = 0;  // TK
+const TTOKEN_cstr     = 8;  // cstr
+const TTOKEN_value    = 16; // Union(int, cstr)
+const TTOKEN_filename = 24; // cstr
+const TTOKEN_line     = 32; // int
+const sizeof_TTOKEN   = 40;
+
+const TSRC_LOC_filename = 0;
+const TSRC_LOC_line     = 8;
+const sizeof_TSRC_LOC   = 16;
 
 proc make_token kind, cstr, value, line, filename in
     if kind < 0 or kind >= TK_MAX_VAL then
@@ -120,31 +124,35 @@ proc make_token kind, cstr, value, line, filename in
         exit(1);
     end
 
-    var token = malloc(sizeof_TTOKEN);
-    u64!(token + TTOKEN_kind, kind);
-    u64!(token + TTOKEN_cstr, cstr);
-    u64!(token + TTOKEN_value, value);
-    u64!(token + TTOKEN_line, line);
-    u64!(token + TTOKEN_filename, filename);
-    return token;
+    var self = malloc(sizeof_TTOKEN);
+    u64!(self + TTOKEN_kind, kind);
+    u64!(self + TTOKEN_cstr, cstr);
+    u64!(self + TTOKEN_value, value);
+    u64!(self + TTOKEN_line, line);
+    u64!(self + TTOKEN_filename, filename);
+    return self;
 end
 
-proc free_token token in
-    free(token);
+proc free_token self in
+    free(self);
 end
 
-proc token_kind token in return u64@(token + TTOKEN_kind); end
-proc token_cstr token in return u64@(token + TTOKEN_cstr); end
-proc token_value token in return u64@(token + TTOKEN_value); end
-proc token_line token in return u64@(token + TTOKEN_line); end
-proc token_filename token in return u64@(token + TTOKEN_filename); end
+proc token_kind self in return u64@(self + TTOKEN_kind); end
+proc token_cstr self in return u64@(self + TTOKEN_cstr); end
+proc token_value self in return u64@(self + TTOKEN_value); end
+proc token_line self in return u64@(self + TTOKEN_line); end
+proc token_filename self in return u64@(self + TTOKEN_filename); end
 
-proc print_token token in
-    var k = token_kind(token);
+proc token_src_loc self in return self + TTOKEN_filename; end
+proc src_loc_filename self in return u64@(self + TSRC_LOC_filename); end
+proc src_loc_line self in return u64@(self + TSRC_LOC_line); end
+
+proc print_token self in
+    var k = token_kind(self);
     printf("token: %s -> '%s' = ", token_kind_cstr(k)
-                                 , token_cstr(token));
+                                 , token_cstr(self));
 
-    var v = token_value(token);
+    var v = token_value(self);
     if k == TK_Integer then
         printf("%d\n", v);
     else if k == TK_String then
@@ -156,8 +164,8 @@ proc print_token token in
     end
 end
 
-proc print_token_loc token in
-    var line_no = token_line(token);
-    var filename = token_filename(token);
+proc print_token_loc self in
+    var line_no = token_line(self);
+    var filename = token_filename(self);
     printf("  File \"%s\", line %d\n", filename, line_no);
 end

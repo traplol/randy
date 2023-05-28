@@ -41,6 +41,49 @@ const IRK_InlineAsm     = 38;
 const IRK_LazyIdent     = 39;
 const IRK_CallLazyIdent = 40;
 
+proc ir_instr_kind_cstr k in
+    if k == IRK_GetLocal then return "IRK_GetLocal"; end
+    if k == IRK_PushLabel then return "IRK_PushLabel"; end
+    if k == IRK_PushInt then return "IRK_PushInt"; end
+    if k == IRK_AllocTemps then return "IRK_AllocTemps"; end
+    if k == IRK_FreeTemps then return "IRK_FreeTemps"; end
+    if k == IRK_StoreTemp then return "IRK_StoreTemp"; end
+    if k == IRK_SetArgTemp then return "IRK_SetArgTemp"; end
+    if k == IRK_Call then return "IRK_Call"; end
+    if k == IRK_PopCall then return "IRK_PopCall"; end
+    if k == IRK_OpAdd then return "IRK_OpAdd"; end
+    if k == IRK_OpSub then return "IRK_OpSub"; end
+    if k == IRK_OpMul then return "IRK_OpMul"; end
+    if k == IRK_OpDiv then return "IRK_OpDiv"; end
+    if k == IRK_OpMod then return "IRK_OpMod"; end
+    if k == IRK_OpEq then return "IRK_OpEq"; end
+    if k == IRK_OpNotEq then return "IRK_OpNotEq"; end
+    if k == IRK_OpLess then return "IRK_OpLess"; end
+    if k == IRK_OpLessEq then return "IRK_OpLessEq"; end
+    if k == IRK_OpGreater then return "IRK_OpGreater"; end
+    if k == IRK_OpGreaterEq then return "IRK_OpGreaterEq"; end
+    if k == IRK_PopReturn then return "IRK_PopReturn"; end
+    if k == IRK_ReturnVoid then return "IRK_ReturnVoid"; end
+    if k == IRK_SetLocal then return "IRK_SetLocal"; end
+    if k == IRK_NewProc then return "IRK_NewProc"; end
+    if k == IRK_SetLocalArg then return "IRK_SetLocalArg"; end
+    if k == IRK_CloseProc then return "IRK_CloseProc"; end
+    if k == IRK_GotoTopFalse then return "IRK_GotoTopFalse"; end
+    if k == IRK_GotoTopTrue then return "IRK_GotoTopTrue"; end
+    if k == IRK_GotoFalse then return "IRK_GotoFalse"; end
+    if k == IRK_Goto then return "IRK_Goto"; end
+    if k == IRK_Label then return "IRK_Label"; end
+    if k == IRK_PtrRead then return "IRK_PtrRead"; end
+    if k == IRK_PtrWrite then return "IRK_PtrWrite"; end
+    if k == IRK_BitNot then return "IRK_BitNot"; end
+    if k == IRK_LogicNot then return "IRK_LogicNot"; end
+    if k == IRK_InlineAsm then return "IRK_InlineAsm"; end
+    if k == IRK_LazyIdent then return "IRK_LazyIdent"; end
+    if k == IRK_CallLazyIdent then return "IRK_CallLazyIdent"; end
+    return "IRK_OUT_OF_RANGE";
+    end
+
+
 const TIR_INSTR_kind     = 0;
 const TIR_INSTR_src_loc  = 8;
 
@@ -62,6 +105,23 @@ const TIR_INSTR_src_name = 32;
 
 const TIR_INSTR_locals   = 40;
 const sizeof_TIR_INSTR   = 48;
+
+proc ir_instr_kind self in return u64@(self + TIR_INSTR_kind); end
+proc ir_instr_src_loc self in return u64@(self + TIR_INSTR_src_loc); end
+proc ir_instr_name self in return u64@(self + TIR_INSTR_name); end
+proc ir_instr_ident self in return u64@(self + TIR_INSTR_ident); end
+proc ir_instr_local self in return u64@(self + TIR_INSTR_local); end
+proc ir_instr_label self in return u64@(self + TIR_INSTR_label); end
+proc ir_instr_n self in return u64@(self + TIR_INSTR_n); end
+proc ir_instr_nargs self in return u64@(self + TIR_INSTR_nargs); end
+proc ir_instr_params self in return u64@(self + TIR_INSTR_params); end
+proc ir_instr_size self in return u64@(self + TIR_INSTR_size); end
+proc ir_instr_value self in return u64@(self + TIR_INSTR_value); end
+proc ir_instr_varargs self in return u64@(self + TIR_INSTR_varargs); end
+proc ir_instr_asm self in return u64@(self + TIR_INSTR_asm); end
+proc ir_instr_arg self in return u64@(self + TIR_INSTR_arg); end
+proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
+proc ir_instr_locals self in return u64@(self + TIR_INSTR_locals); end
 
 proc make_ir_alloc_temps src_loc, n in
     var self = malloc(sizeof_TIR_INSTR);
@@ -285,6 +345,10 @@ proc ir_constants self in return u64@(self + TIR_CONTEXT_constants); end
 proc ir_src_locs self in return u64@(self + TIR_CONTEXT_src_locs); end
 proc ir_file_map self in return u64@(self + TIR_CONTEXT_file_map); end
 proc ir_files self in return u64@(self + TIR_CONTEXT_files); end
+proc ir_append self, insn in
+    var vec = ir_instructions(self);
+    vector_push(vec, insn);
+end
 
 proc ir_string_label self, string in
     var strings = ir_strings(self);
@@ -308,4 +372,62 @@ end
 
 proc ir_string_bytes self in
     NYI_ERR("ir_string_bytes");
+end
+
+proc check_ast_kind expect, ast in
+    var actual = ast_kind(ast);
+    if expect != actual then
+        printf("check_ast_kind failed: expected %s, actual was %s\n",
+            ast_kind_cstr(expect),
+            ast_kind_cstr(actual));
+        abort();
+    end
+end
+        
+proc ir_emit_ident self, ast in NYI_ERR("ir_emit_ident"); end
+proc ir_emit_integer self, ast in NYI_ERR("ir_emit_integer"); end
+proc ir_emit_string self, ast in NYI_ERR("ir_emit_string"); end
+proc ir_emit_call self, ast in NYI_ERR("ir_emit_call"); end
+proc ir_emit_binop self, ast in NYI_ERR("ir_emit_binop"); end
+proc ir_emit_return self, ast in NYI_ERR("ir_emit_return"); end
+proc ir_emit_var_decl self, ast in NYI_ERR("ir_emit_var_decl"); end
+proc ir_emit_var_assign self, ast in NYI_ERR("ir_emit_var_assign"); end
+proc ir_emit_assign self, ast in NYI_ERR("ir_emit_assign"); end
+proc ir_emit_procedure self, ast in NYI_ERR("ir_emit_procedure"); end
+proc ir_emit_if_else self, ast in NYI_ERR("ir_emit_if_else"); end
+proc ir_emit_while self, ast in NYI_ERR("ir_emit_while"); end
+proc ir_emit_pointer_op self, ast in NYI_ERR("ir_emit_pointer_op"); end
+proc ir_emit_prefix_op self, ast in NYI_ERR("ir_emit_prefix_op"); end
+proc ir_emit_const self, ast in NYI_ERR("ir_emit_const"); end
+proc ir_emit_extern self, ast in NYI_ERR("ir_emit_extern"); end
+proc ir_emit_inline_asm self, ast in
+    check_ast_kind(AstK_InlineAsm, ast);
+    var asm_name = ast_ident(ast);
+    var asm_code = ast_asm(ast);
+    ir_append(self, make_ir_inline_asm(ast_src_loc(ast), asm_name, asm_code));
+end
+
+proc ir_compile self, ast in
+    var k = ast_kind(ast);
+    if k == AstK_Ident then ir_emit_ident(self, ast);
+    else if k == AstK_Integer then ir_emit_integer(self, ast);
+    else if k == AstK_String then ir_emit_string(self, ast);
+    else if k == AstK_Call then ir_emit_call(self, ast);
+    else if k == AstK_BinOp then ir_emit_binop(self, ast);
+    else if k == AstK_Return then ir_emit_return(self, ast);
+    else if k == AstK_VarDecl then ir_emit_var_decl(self, ast);
+    else if k == AstK_VarAssign then ir_emit_var_assign(self, ast);
+    else if k == AstK_Assign then ir_emit_assign(self, ast);
+    else if k == AstK_Procedure then ir_emit_procedure(self, ast);
+    else if k == AstK_IfElse then ir_emit_if_else(self, ast);
+    else if k == AstK_While then ir_emit_while(self, ast);
+    else if k == AstK_PointerOp then ir_emit_pointer_op(self, ast);
+    else if k == AstK_Prefix then ir_emit_prefix_op(self, ast);
+    else if k == AstK_Const then ir_emit_const(self, ast);
+    else if k == AstK_Extern then ir_emit_extern(self, ast);
+    else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast);
+    else
+        printf("Unknown AstK: %d\n", k);
+        abort();
+    end
 end

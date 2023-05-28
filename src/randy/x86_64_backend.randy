@@ -1,0 +1,249 @@
+proc check_ir_kind expect, ir in
+    var actual = ir_instr_kind(ir);
+    if expect != actual then
+        printf("check_ir_kind failed: expected %s, actual was %s\n",
+            ir_instr_kind_cstr(expect),
+            ir_instr_kind_cstr(actual));
+        abort();
+    end
+end
+
+proc x86_64_emit_get_local cc, ir in
+    check_ir_kind(IRK_GetLocal, ir);
+    NYI_ERR("x86_64_get_local");
+end
+
+proc x86_64_emit_push_label cc, ir in
+    check_ir_kind(IRK_PushLabel, ir);
+    NYI_ERR("x86_64_emit_push_label");
+end
+
+proc x86_64_emit_push_int cc, ir in
+    check_ir_kind(IRK_PushInt, ir);
+    NYI_ERR("x86_64_emit_push_int");
+end
+
+proc x86_64_emit_alloc_temps cc, ir in
+    check_ir_kind(IRK_AllocTemps, ir);
+    NYI_ERR("x86_64_emit_alloc_temps");
+end
+
+proc x86_64_emit_free_temps cc, ir in
+    check_ir_kind(IRK_FreeTemps, ir);
+    NYI_ERR("x86_64_emit_free_temps");
+end
+
+proc x86_64_emit_store_temp cc, ir in
+    check_ir_kind(IRK_StoreTemp, ir);
+    NYI_ERR("x86_64_emit_store_temp");
+end
+
+proc x86_64_emit_set_arg_temp cc, ir in
+    check_ir_kind(IRK_SetArgTemp, ir);
+    NYI_ERR("x86_64_emit_set_arg_temp");
+end
+
+proc x86_64_emit_call cc, ir in
+    check_ir_kind(IRK_Call, ir);
+    NYI_ERR("x86_64_emit_call");
+end
+
+proc x86_64_emit_pop_call cc, ir in
+    check_ir_kind(IRK_PopCall, ir);
+    NYI_ERR("x86_64_emit_pop_call");
+end
+
+proc x86_64_emit_op_add cc, ir in
+    check_ir_kind(IRK_OpAdd, ir);
+    NYI_ERR("x86_64_emit_op_add");
+end
+
+proc x86_64_emit_op_sub cc, ir in
+    check_ir_kind(IRK_OpSub, ir);
+    NYI_ERR("x86_64_emit_op_sub");
+end
+
+proc x86_64_emit_op_mul cc, ir in
+    check_ir_kind(IRK_OpMul, ir);
+    NYI_ERR("x86_64_emit_op_mul");
+end
+
+proc x86_64_emit_op_div cc, ir in
+    check_ir_kind(IRK_OpDiv, ir);
+    NYI_ERR("x86_64_emit_op_div");
+end
+
+proc x86_64_emit_op_mod cc, ir in
+    check_ir_kind(IRK_OpMod, ir);
+    NYI_ERR("x86_64_emit_op_mod");
+end
+
+proc x86_64_emit_op_eq cc, ir in
+    check_ir_kind(IRK_OpEq, ir);
+    NYI_ERR("x86_64_emit_op_eq");
+end
+
+proc x86_64_emit_op_not_eq cc, ir in
+    check_ir_kind(IRK_OpNotEq, ir);
+    NYI_ERR("x86_64_emit_op_not_eq");
+end
+
+proc x86_64_emit_op_less cc, ir in
+    check_ir_kind(IRK_OpLess, ir);
+    NYI_ERR("x86_64_emit_op_less");
+end
+
+proc x86_64_emit_op_less_eq cc, ir in
+    check_ir_kind(IRK_OpLessEq, ir);
+    NYI_ERR("x86_64_emit_op_less_eq");
+end
+
+proc x86_64_emit_op_greater cc, ir in
+    check_ir_kind(IRK_OpGreater, ir);
+    NYI_ERR("x86_64_emit_op_greater");
+end
+
+proc x86_64_emit_op_greater_eq cc, ir in
+    check_ir_kind(IRK_OpGreaterEq, ir);
+    NYI_ERR("x86_64_emit_op_greater_eq");
+end
+
+proc x86_64_emit_pop_return cc, ir in
+    check_ir_kind(IRK_PopReturn, ir);
+    NYI_ERR("x86_64_emit_pop_return");
+end
+
+proc x86_64_emit_return_void cc, ir in
+    check_ir_kind(IRK_ReturnVoid, ir);
+    NYI_ERR("x86_64_emit_return_void");
+end
+
+proc x86_64_emit_set_local cc, ir in
+    check_ir_kind(IRK_SetLocal, ir);
+    NYI_ERR("x86_64_emit_set_local");
+end
+
+proc x86_64_emit_new_proc cc, ir in
+    check_ir_kind(IRK_NewProc, ir);
+    NYI_ERR("x86_64_emit_new_proc");
+end
+
+proc x86_64_emit_set_local_arg cc, ir in
+    check_ir_kind(IRK_SetLocalArg, ir);
+    NYI_ERR("x86_64_emit_set_local_arg");
+end
+
+proc x86_64_emit_close_proc cc, ir in
+    check_ir_kind(IRK_CloseProc, ir);
+    NYI_ERR("x86_64_emit_close_proc");
+end
+
+proc x86_64_emit_goto_top_false cc, ir in
+    check_ir_kind(IRK_GotoTopFalse, ir);
+    NYI_ERR("x86_64_emit_goto_top_false");
+end
+
+proc x86_64_emit_goto_top_true cc, ir in
+    check_ir_kind(IRK_GotoTopTrue, ir);
+    NYI_ERR("x86_64_emit_goto_top_true");
+end
+
+proc x86_64_emit_goto_false cc, ir in
+    check_ir_kind(IRK_GotoFalse, ir);
+    NYI_ERR("x86_64_emit_goto_false");
+end
+
+proc x86_64_emit_goto cc, ir in
+    check_ir_kind(IRK_Goto, ir);
+    NYI_ERR("x86_64_emit_goto");
+end
+
+proc x86_64_emit_label cc, ir in
+    check_ir_kind(IRK_Label, ir);
+    NYI_ERR("x86_64_emit_label");
+end
+
+proc x86_64_emit_ptr_read cc, ir in
+    check_ir_kind(IRK_PtrRead, ir);
+    NYI_ERR("x86_64_emit_ptr_read");
+end
+
+proc x86_64_emit_ptr_write cc, ir in
+    check_ir_kind(IRK_PtrWrite, ir);
+    NYI_ERR("x86_64_emit_ptr_write");
+end
+
+proc x86_64_emit_bit_not cc, ir in
+    check_ir_kind(IRK_BitNot, ir);
+    NYI_ERR("x86_64_emit_bit_not");
+end
+
+proc x86_64_emit_logic_not cc, ir in
+    check_ir_kind(IRK_LogicNot, ir);
+    NYI_ERR("x86_64_emit_logic_not");
+end
+
+proc x86_64_emit_inline_asm cc, ir in
+    check_ir_kind(IRK_InlineAsm, ir);
+    cc_out(cc, "    .align 16");
+    cc_out_label(cc, ir_instr_name(ir));
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, string_cstr(ir_instr_asm(ir)));
+end
+
+proc x86_64_emit_lazy_ident cc, ir in
+    check_ir_kind(IRK_LazyIdent, ir);
+    NYI_ERR("x86_64_emit_lazy_ident");
+end
+
+proc x86_64_emit_call_lazy_ident cc, ir in
+    check_ir_kind(IRK_CallLazyIdent, ir);
+    NYI_ERR("x86_64_emit_call_lazy_ident");
+end
+
+
+proc x86_64_emit_instruction cc, ir in
+    var k = ir_instr_kind(ir);
+    if k == IRK_GetLocal then x86_64_emit_get_local(cc, ir);
+    else if k == IRK_PushLabel then x86_64_emit_push_label(cc, ir);
+    else if k == IRK_PushInt then x86_64_emit_push_int(cc, ir);
+    else if k == IRK_AllocTemps then x86_64_emit_alloc_temps(cc, ir);
+    else if k == IRK_FreeTemps then x86_64_emit_free_temps(cc, ir);
+    else if k == IRK_StoreTemp then x86_64_emit_store_temp(cc, ir);
+    else if k == IRK_SetArgTemp then x86_64_emit_set_arg_temp(cc, ir);
+    else if k == IRK_Call then x86_64_emit_call(cc, ir);
+    else if k == IRK_PopCall then x86_64_emit_pop_call(cc, ir);
+    else if k == IRK_OpAdd then x86_64_emit_op_add(cc, ir);
+    else if k == IRK_OpSub then x86_64_emit_op_sub(cc, ir);
+    else if k == IRK_OpMul then x86_64_emit_op_mul(cc, ir);
+    else if k == IRK_OpDiv then x86_64_emit_op_div(cc, ir);
+    else if k == IRK_OpMod then x86_64_emit_op_mod(cc, ir);
+    else if k == IRK_OpEq then x86_64_emit_op_eq(cc, ir);
+    else if k == IRK_OpNotEq then x86_64_emit_op_not_eq(cc, ir);
+    else if k == IRK_OpLess then x86_64_emit_op_less(cc, ir);
+    else if k == IRK_OpLessEq then x86_64_emit_op_less_eq(cc, ir);
+    else if k == IRK_OpGreater then x86_64_emit_op_greater(cc, ir);
+    else if k == IRK_OpGreaterEq then x86_64_emit_op_greater_eq(cc, ir);
+    else if k == IRK_PopReturn then x86_64_emit_pop_return(cc, ir);
+    else if k == IRK_ReturnVoid then x86_64_emit_return_void(cc, ir);
+    else if k == IRK_SetLocal then x86_64_emit_set_local(cc, ir);
+    else if k == IRK_NewProc then x86_64_emit_new_proc(cc, ir);
+    else if k == IRK_SetLocalArg then x86_64_emit_set_local_arg(cc, ir);
+    else if k == IRK_CloseProc then x86_64_emit_close_proc(cc, ir);
+    else if k == IRK_GotoTopFalse then x86_64_emit_goto_top_false(cc, ir);
+    else if k == IRK_GotoTopTrue then x86_64_emit_goto_top_true(cc, ir);
+    else if k == IRK_GotoFalse then x86_64_emit_goto_false(cc, ir);
+    else if k == IRK_Goto then x86_64_emit_goto(cc, ir);
+    else if k == IRK_Label then x86_64_emit_label(cc, ir);
+    else if k == IRK_PtrRead then x86_64_emit_ptr_read(cc, ir);
+    else if k == IRK_PtrWrite then x86_64_emit_ptr_write(cc, ir);
+    else if k == IRK_BitNot then x86_64_emit_bit_not(cc, ir);
+    else if k == IRK_LogicNot then x86_64_emit_logic_not(cc, ir);
+    else if k == IRK_InlineAsm then x86_64_emit_inline_asm(cc, ir);
+    else if k == IRK_LazyIdent then x86_64_emit_lazy_ident(cc, ir);
+    else if k == IRK_CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
+    else
+        printf("Unknown IRK: %d\n", k);
+        abort();
+    end
+end

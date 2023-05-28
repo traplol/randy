@@ -87,14 +87,38 @@ structs = [
 def snake_case(name):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
 
-for k, v in structs:
-    k_name = str(k).split('.')[1]
-    fn_name = f"make_ir_{snake_case(k_name)}"
-    args = ", ".join(v)
-    print(f"proc {fn_name} {args} in")
-    print(f"    var self = malloc(sizeof_TIR_INSTR);")
-    print(f"    u64!(self + TIR_INSTR_kind, IRK_{k_name});")
-    for field in v:
-        print(f"    u64!(self + TIR_INSTR_{field}, {field});")
-    print(f"    return self;")
-    print(f"end")
+if False:
+    for k, v in structs:
+        k_name = str(k).split('.')[1]
+        fn_name = f"make_ir_{snake_case(k_name)}"
+        args = ", ".join(v)
+        print(f"proc {fn_name} {args} in")
+        print(f"    var self = malloc(sizeof_TIR_INSTR);")
+        print(f"    u64!(self + TIR_INSTR_kind, IRK_{k_name});")
+        for field in v:
+            print(f"    u64!(self + TIR_INSTR_{field}, {field});")
+        print(f"    return self;")
+        print(f"end")
+
+
+ir_instr = [
+    ("TIR_INSTR_kind"    , "kind"),
+    ("TIR_INSTR_src_loc" , "src_loc"),
+    ("TIR_INSTR_name"    , "name"),
+    ("TIR_INSTR_ident"   , "ident"),
+    ("TIR_INSTR_local"   , "local"),
+    ("TIR_INSTR_label"   , "label"),
+    ("TIR_INSTR_n"       , "n"),
+    ("TIR_INSTR_nargs"   , "nargs"),
+    ("TIR_INSTR_params"  , "params"),
+    ("TIR_INSTR_size"    , "size"),
+    ("TIR_INSTR_value"   , "value"),
+    ("TIR_INSTR_varargs" , "varargs"),
+    ("TIR_INSTR_asm"     , "asm"),
+    ("TIR_INSTR_arg"     , "arg"),
+    ("TIR_INSTR_src_name", "src_name"),
+    ("TIR_INSTR_locals"  , "locals"),
+]
+if True:
+    for k, v in ir_instr:
+        print(f"proc ir_instr_{v} self in return u64@(self + {k}); end")
