@@ -1,4 +1,26 @@
 
+proc parse_args_until ts, into, until in
+    var breaking = false;
+    var arg;
+    while not breaking do
+        if ts_peekk(ts, until) then
+            breaking = true;
+        else
+            arg = parse_expression(ts);
+            if not arg then
+                return NULL;
+            end
+            vector_push(into, arg);
+            if ts_accept(ts, TK_Comma) then
+                if ts_peekk(ts, until) then
+                    printf("ERROR: Unexpected token after ','\n");
+                    print_token_loc(ts_peek(ts));
+                end
+            end
+        end
+    done
+end
+
 proc parse_var ts in
     var var_ = ts_expect(ts, TK_KW_var);
     var ident = ts_expect(ts, TK_Ident);
@@ -60,7 +82,55 @@ proc parse_assign ts in
 end
 
 proc parse_pointer_op ts in
-    NYI_ERR("parse pointer op");
+    var token = ts_peek(ts);
+    var size;
+    var op;
+    if ts_accept(ts, TK_KW_u8!) then
+        size = 8;
+        op = PointerOp_Write;
+    else if ts_accept(ts, TK_KW_u16!) then
+        size = 16;
+        op = PointerOp_Write;
+    else if ts_accept(ts, TK_KW_u32!) then
+        size = 32;
+        op = PointerOp_Write;
+    else if ts_accept(ts, TK_KW_u64!) then
+        size = 64;
+        op = PointerOp_Write;
+    else if ts_accept(ts, TK_KW_u8@) then
+        size = 8;
+        op = PointerOp_Read;
+    else if ts_accept(ts, TK_KW_u16@) then
+        size = 16;
+        op = PointerOp_Read;
+    else if ts_accept(ts, TK_KW_u32@) then
+        size = 32;
+        op = PointerOp_Read;
+    else if ts_accept(ts, TK_KW_u64@) then
+        size = 64;
+        op = PointerOp_Read;
+    else
+        printf("ERROR: Unexpected token: %s\n", token_kind_cstr(token_kind(token)));
+        print_token_loc(token);
+        exit(1);
+    end
+
+    ts_expect(ts, TK_LParen);
+    var args = make_vector(0);
+    parse_args_until(ts, args, TK_RParen);
+    ts_expect(ts, TK_RParen);
+
+    if op == PointerOp_Read and vector_len(args) != 1 then
+        printf("ERROR: Expected pointer read (%s) to have exactly one argument but got %d\n",
+                token_cstr(token), vector_len(args));
+        print_token_loc(token);
+    else if op == PointerOp_Write and vector_len(args) != 2 then
+        printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
+                token_cstr(token), vector_len(args));
+        print_token_loc(token);
+    end
+
+    return make_ast_pointer_op(token, size, op, args);
 end
 
 proc parse_primary ts in
@@ -77,7 +147,7 @@ proc parse_primary ts in
         return make_ast_integer(peek, token_value(ts_next(ts)));
     else if k == TK_String then
         return make_ast_string(peek, token_value(ts_next(ts)));
-    else if k == TK_KW_u8@ or k == TK_KW_u8@ or k == TK_KW_u8@ or k == TK_KW_u8@ then
+    else if k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
         return parse_pointer_op(ts);
     end
     return NULL;
@@ -94,25 +164,7 @@ proc parse_postfix ts in
         return expr;
     end
     var args = make_vector(0);
-    var breaking = false;
-    var arg;
-    while not breaking do
-        if ts_peekk(ts, TK_RParen) then
-            breaking = true;
-        else
-            arg = parse_expression(ts);
-            if not arg then
-                return NULL;
-            end
-            vector_push(args, arg);
-            if ts_accept(ts, TK_Comma) then
-                if ts_peekk(ts, TK_RParen) then
-                    printf("ERROR: Unexpected ')' after ','\n");
-                    print_token_loc(ts_peek(ts));
-                end
-            end
-        end
-    done
+    parse_args_until(ts, args, TK_RParen);
     ts_expect(ts, TK_RParen);
     return make_ast_call(peek, expr, args);
 end
@@ -261,7 +313,7 @@ proc parse_statement ts in
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
         stmt = parse_assign(ts);
         expect_semi = true;
-    else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u8!, TK_KW_u8!, TK_KW_u8!) then
+    else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
         stmt = parse_pointer_op(ts);
         expect_semi = true;
     else

@@ -1,4 +1,7 @@
 
+const PointerOp_Read  = 0;
+const PointerOp_Write = 1;
+
 const AstK_Ident     = 0;
 const AstK_Integer   = 1;
 const AstK_String    = 2;
@@ -74,7 +77,7 @@ const TAST_test        = 16; // ast
 const TAST_body        = 24; // ast vector
 // PointerOp
 const TAST_size        = 16; // int
-const TAST_op          = 24; // TK
+const TAST_op          = 24; // int
 const TAST_pop_args    = 32; // ast vector
 // VarDecl
 const TAST_ident       = 16; // cstr
@@ -290,6 +293,18 @@ proc _print_indent indent in
     done
 end
 
+proc _print_args args, indent in
+    var i = 0;
+    var len = vector_len(args);
+    while i < len do
+        _print_ast(vector_get(args, i), indent);
+        i = i + 1;
+        if i < len then
+            printf(", ");
+        end
+    done
+end
+
 proc _print_ast_ident ast, indent in
     printf("%s", ast_ident(ast));
 end
@@ -305,16 +320,7 @@ end
 proc _print_ast_call ast, indent in
     _print_ast(ast_expr(ast), indent);
     printf("(");
-    var i = 0;
-    var args = ast_args(ast);
-    var len = vector_len(args);
-    while i < len do
-        _print_ast(vector_get(args, i), indent);
-        i = i + 1;
-        if i < len then
-            printf(", ");
-        end
-    done
+    _print_args(ast_args(ast), indent);
     printf(")");
 end
 
@@ -411,11 +417,18 @@ proc _print_ast_while ast, indent in
 end
 
 proc _print_ast_pointer_op ast, indent in
-    printf("TODO: print pointer op");
+    printf("%s(", token_cstr(ast_token(ast)));
+    _print_args(ast_pop_args(ast), indent);
+    printf(")");
 end
 
 proc _print_ast_prefix ast, indent in
-    printf("%s", token_cstr(ast_token(ast)));
+    var token = ast_token(ast);
+    if token_kind(token) == TK_KW_not then
+        printf("not ");
+    else
+        printf("%s", token_cstr(token));
+    end
     _print_ast(ast_expr(ast), indent);
 end
 
