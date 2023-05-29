@@ -1,14 +1,46 @@
 
 proc parse_var ts in
-    NYI_ERR("parse var");
+    var var_ = ts_expect(ts, TK_KW_var);
+    var ident = ts_expect(ts, TK_Ident);
+    if ts_peekk(ts, TK_Semicolon) then
+        return make_ast_var_decl(var_, token_value(ident));
+    end
+    ts_expect(ts, TK_Assign);
+    var expr = parse_expression(ts);
+    return make_ast_var_assign(var_, token_value(ident), expr);
 end
 
 proc parse_if_else ts in
-    NYI_ERR("parse if / else");
+    var if_ = ts_expect(ts, TK_KW_if);
+    var test = parse_expression(ts);
+    if not test then
+        return NULL;
+    end
+    ts_expect(ts, TK_KW_then);
+    var conseq = make_vector(0);
+    var altern = make_vector(0);
+    parse_statements_until_either(ts, conseq, TK_KW_else, TK_KW_end);
+    if ts_accept(ts, TK_KW_end) then
+        return make_ast_if_else(if_, test, conseq, altern);
+    end
+    ts_expect(ts, TK_KW_else);
+    if ts_peekk(ts, TK_KW_if) then
+        vector_push(altern, parse_if_else(ts));
+        return make_ast_if_else(if_, test, conseq, altern);
+    end
+    parse_statements_until(ts, altern, TK_KW_end);
+    ts_next(ts);
+    return make_ast_if_else(if_, test, conseq, altern);
 end
 
 proc parse_while ts in
-    NYI_ERR("parse while");
+    var while_ = ts_expect(ts, TK_KW_while);
+    var test = parse_expression(ts);
+    var body = make_vector(0);
+    ts_expect(ts, TK_KW_do);
+    parse_statements_until(ts, body, TK_KW_done);
+    ts_expect(ts, TK_KW_done);
+    return make_ast_while(while_, test, body);
 end
 
 proc parse_return ts in
@@ -21,7 +53,10 @@ proc parse_return ts in
 end
 
 proc parse_assign ts in
-    NYI_ERR("parse assignment");
+    var ident = ts_expect(ts, TK_Ident);
+    ts_expect(ts, TK_Assign);
+    var expr = parse_expression(ts);
+    return make_ast_assign(ident, token_value(ident), expr);
 end
 
 proc parse_pointer_op ts in
@@ -251,6 +286,21 @@ proc parse_statements_until ts, into, kind in
     while stmt do
         vector_push(into, stmt);
         if ts_peekk(ts, kind) then
+            stmt = NULL;
+        else
+            stmt = parse_statement(ts);
+        end
+    done
+end
+
+proc parse_statements_until_either ts, into, k1, k2 in
+    if ts_peekk_one_of_2(ts, k1, k2) then
+        return;
+    end
+    var stmt = parse_statement(ts);
+    while stmt do
+        vector_push(into, stmt);
+        if ts_peekk_one_of_2(ts, k1, k2) then
             stmt = NULL;
         else
             stmt = parse_statement(ts);
