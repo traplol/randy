@@ -19,10 +19,22 @@ else:
     FAILED = "[FAILED]"
 
 def color_path(path):
-    if supports_color:
-        return f"\033[1;96m{path}\033[0m"
-    else:
+    if not supports_color:
         return path
+    return f"\033[1;96m{path}\033[0m"
+
+def color_diff_line(line):
+    if not supports_color:
+        return line
+    if len(line) == 0:
+        return line
+    if line[0] == "+":
+        return f"\033[32m{line}\033[0m"
+    if line[0] == "-":
+        return f"\033[31m{line}\033[0m"
+    if line.startswith("@@"):
+        return f"\033[33m{line}\033[0m"
+    return line
 
 ROOT = str(pathlib.Path(__file__).resolve().parent)
 def try_remove(file_path):
@@ -89,7 +101,9 @@ def run1(output_file, print_diff):
         else:
             print(f"{FAILED} {color_path(randy_file)}")
             if print_diff:
-                print("\n".join(diff))
+                for line in diff:
+                    print(color_diff_line(line))
+                #print("\n".join(diff))
     except FileNotFoundError:
         print(f"{WARN}   {color_path(randy_file)}: did not compile.")
 
