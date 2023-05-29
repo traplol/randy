@@ -38,11 +38,21 @@ proc ast_kind_cstr k in
     return "AstK_OUT_OF_RANGE";
 end
 
+proc ast_requires_semi k in
+    if k == AstK_Procedure then return false;
+    else if k == AstK_IfElse then return false;
+    else if k == AstK_While then return false;
+    else if k == AstK_InlineAsm then return false;
+    else
+        return true;
+    end
+end
+
 const TAST_kind        = 0;  // AstK
 const TAST_token       = 8;  // token
 // This represents each AST node as a c-"union"
 // Ident
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 // Integer, String
 const TAST_value       = 16; // Union(int, string)
 // Call
@@ -67,29 +77,29 @@ const TAST_size        = 16; // int
 const TAST_op          = 24; // TK
 const TAST_pop_args    = 32; // ast vector
 // VarDecl
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 // VarAssign
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 const TAST_assign_expr = 24; // ast
 // Assign
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 const TAST_assign_expr = 24; // ast
 // Return
 const TAST_expr        = 16; // ast
 // Procedure
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 const TAST_body        = 24; // ast vector
-const TAST_params      = 32; // string vector
+const TAST_params      = 32; // cstr vector
 // Const
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 const TAST_val_tok     = 24; // token
 // Extern
-const TAST_ident       = 16; // string
+const TAST_ident       = 16; // cstr
 const TAST_varargs     = 24; // bool
-const TAST_params      = 32; // string vector
+const TAST_params      = 32; // cstr vector
 // InlineAsm
-const TAST_ident       = 16; // string
-const TAST_asm         = 24; // string
+const TAST_ident       = 16; // cstr
+const TAST_asm         = 24; // cstr
 
 const sizeof_TAST      = 40;
 
@@ -272,4 +282,205 @@ proc ast_src_loc self in
     return token_src_loc(token);
 end
 
-    
+proc _print_indent indent in
+    var i = 0;
+    while i < indent do
+        printf("    ");
+        i = i + 1;
+    done
+end
+
+proc _print_ast_ident ast, indent in
+    printf("%s", ast_ident(ast));
+end
+
+proc _print_ast_integer ast, indent in
+    printf("%ld", ast_value(ast));
+end
+
+proc _print_ast_string ast, indent in
+    printf("\"%s\"", string_cstr(ast_value(ast)));
+end
+
+proc _print_ast_call ast, indent in
+    _print_ast(ast_expr(ast), indent);
+    printf("(");
+    var i = 0;
+    var args = ast_args(ast);
+    var len = vector_len(args);
+    while i < len do
+        _print_ast(vector_get(args, i), indent);
+        i = i + 1;
+        if i < len then
+            printf(", ");
+        end
+    done
+    printf(")");
+end
+
+proc _print_ast_binop ast, indent in
+    _print_ast(ast_lhs(ast), indent);
+    printf(" %s ", token_cstr(ast_token(ast)));
+    _print_ast(ast_rhs(ast), indent);
+end
+
+proc _print_ast_return ast, indent in
+    var expr = ast_expr(ast);
+    if expr then
+        printf("return ");
+        _print_ast(expr, indent);
+    else
+        printf("return");
+    end
+end
+
+proc _print_ast_var_decl ast, indent in
+    printf("var %s", ast_ident(ast));
+end
+
+proc _print_ast_var_assign ast, indent in
+    printf("var %s =", ast_ident(ast));
+    _print_ast(ast_expr(ast), indent);
+end
+
+proc _print_ast_assign ast, indent in
+    printf("%s =", ast_ident(ast));
+    _print_ast(ast_expr(ast), indent);
+end
+
+proc _print_ast_body body, indent in
+    var i = 0;
+    var len = vector_len(body);
+    var stmt;
+    while i < len do
+        stmt = vector_get(body, i);
+        _print_indent(indent);
+        _print_ast(stmt, indent);
+        if ast_requires_semi(ast_kind(stmt)) then
+            printf(";\n");
+        else
+            printf("\n");
+        end
+        i = i + 1;
+    done
+end
+
+proc _print_ast_procedure ast, indent in
+    printf("proc %s", ast_ident(ast));
+    var i = 0;
+    var params = ast_params(ast);
+    var len = vector_len(params);
+    while i < len do
+        printf(" %s", vector_get(params, i));
+        i = i + 1;
+        if i < len then
+            printf(",");
+        end
+    done
+    printf(" in\n");
+    _print_ast_body(ast_body(ast), indent + 1);
+    printf("end\n");
+end
+
+proc _print_ast_if_else ast, indent in
+    _print_indent(indent); printf("if ");
+    _print_ast(ast_test(ast), indent);
+    printf(" then\n");
+    _print_ast_body(ast_consequence(ast), indent+1);
+    // @TODO: Handle chained if/else if/else/end
+    _print_indent(indent); printf("else ");
+    _print_ast_body(ast_alternative(ast), indent+1);
+    _print_indent(indent); printf("end");
+end
+
+proc _print_ast_while ast, indent in
+    _print_indent(indent); printf("while ");
+    _print_ast(ast_test(ast), indent);
+    printf(" do\n");
+    _print_ast_body(ast_body(ast), indent+1);
+    _print_indent(indent); printf("done");
+end
+
+proc _print_ast_pointer_op ast, indent in
+    printf("TODO: print pointer op");
+end
+
+proc _print_ast_prefix ast, indent in
+    printf("%s", token_cstr(ast_token(ast)));
+    _print_ast(ast_expr(ast), indent);
+end
+
+proc _print_ast_const ast, indent in
+    printf("const %s = ", ast_ident(ast));
+    var tok = ast_val_tok(ast);
+    var k = token_kind(tok);
+    if k == TK_Ident then
+        printf("%s", token_value(tok));
+    else if k == TK_String then
+        printf("\"%s\"", string_cstr(token_value(tok)));
+    else if k == TK_Integer then
+        printf("%ld", token_value(tok));
+    else if k == TK_Char then
+        printf("'%c'", token_value(tok));
+    else
+        printf("???");
+    end
+end
+
+proc _print_ast_extern ast, indent in
+    printf("extern %s", ast_ident(ast));
+    var i = 0;
+    var params = ast_params(ast);
+    var len = vector_len(params);
+    while i < len do
+        printf(" %s", vector_get(params, i));
+        i = i + 1;
+        if i < len then
+            printf(",");
+        end
+    done
+    if ast_varargs(ast) then
+        if len != 0 then
+            printf(", ...");
+        else
+            printf(", ...");
+        end
+    end
+end
+
+proc _print_ast_inline_asm ast, indent in
+    printf("asm %s in\n", ast_ident(ast));
+    printf("\"%s\"\n", ast_asm(ast));
+    printf("end");
+end
+
+proc _print_ast ast, indent in
+    var k = ast_kind(ast);
+    if k == AstK_Ident then _print_ast_ident(ast, indent);
+    else if k == AstK_Integer then _print_ast_integer(ast, indent);
+    else if k == AstK_String then _print_ast_string(ast, indent);
+    else if k == AstK_Call then _print_ast_call(ast, indent);
+    else if k == AstK_BinOp then _print_ast_binop(ast, indent);
+    else if k == AstK_Return then _print_ast_return(ast, indent);
+    else if k == AstK_VarDecl then _print_ast_var_decl(ast, indent);
+    else if k == AstK_VarAssign then _print_ast_var_assign(ast, indent);
+    else if k == AstK_Assign then _print_ast_assign(ast, indent);
+    else if k == AstK_Procedure then _print_ast_procedure(ast, indent);
+    else if k == AstK_IfElse then _print_ast_if_else(ast, indent);
+    else if k == AstK_While then _print_ast_while(ast, indent);
+    else if k == AstK_PointerOp then _print_ast_pointer_op(ast, indent);
+    else if k == AstK_Prefix then _print_ast_prefix(ast, indent);
+    else if k == AstK_Const then _print_ast_const(ast, indent);
+    else if k == AstK_Extern then _print_ast_extern(ast, indent);
+    else if k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
+    end
+end
+
+proc print_ast ast in
+    _print_ast(ast, 0);
+    if ast_requires_semi(ast_kind(ast)) then
+        printf(";\n");
+    else
+        printf("\n");
+    end
+end
