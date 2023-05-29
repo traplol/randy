@@ -95,6 +95,13 @@ proc string_from_cstr cstr in
 end
 
 proc string_eq string_a, string_b in
+    if string_a == string_b then
+        return true;
+    end
+    if not string_a or not string_b then
+        return false;
+    end
+
     var a_len = string_len(string_a);
     var b_len = string_len(string_b);
     if a_len != b_len then
