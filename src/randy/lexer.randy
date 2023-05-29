@@ -55,7 +55,7 @@ proc get_ident_kind string in
     else if 'r' == first then
         if cstr_eq("return", cstr) then return TK_KW_return; end
     else if 't' == first then
-        if cstr_eq("then", cstr) then return TK_KW_return; end
+        if cstr_eq("then", cstr) then return TK_KW_then; end
     else if 'u' == first then
         if cstr_eq("u8@", cstr) then return TK_KW_u8@; end
         if cstr_eq("u16@", cstr) then return TK_KW_u16@; end
