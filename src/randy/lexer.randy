@@ -44,8 +44,8 @@ proc get_ident_kind string in
         if cstr_eq("end", cstr) then return TK_KW_end; end
         if cstr_eq("extern", cstr) then return TK_KW_extern; end
     else if 'i' == first then
-        if cstr_eq("in", cstr) then return TK_KW_in; end
         if cstr_eq("if", cstr) then return TK_KW_if; end
+        if cstr_eq("in", cstr) then return TK_KW_in; end
     else if 'n' == first then
         if cstr_eq("not", cstr) then return TK_KW_not; end
     else if 'o' == first then
@@ -66,6 +66,8 @@ proc get_ident_kind string in
         if cstr_eq("u16!", cstr) then return TK_KW_u16!; end
         if cstr_eq("u32!", cstr) then return TK_KW_u32!; end
         if cstr_eq("u64!", cstr) then return TK_KW_u64!; end
+    else if 'v' == first then
+        if cstr_eq("var", cstr) then return TK_KW_var; end
     else if 'w' == first then
         if cstr_eq("while", cstr) then return TK_KW_while; end
     end
