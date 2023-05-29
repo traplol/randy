@@ -339,13 +339,13 @@ proc _print_ast_var_decl ast, indent in
 end
 
 proc _print_ast_var_assign ast, indent in
-    printf("var %s =", ast_ident(ast));
-    _print_ast(ast_expr(ast), indent);
+    printf("var %s = ", ast_ident(ast));
+    _print_ast(ast_assign_expr(ast), indent);
 end
 
 proc _print_ast_assign ast, indent in
-    printf("%s =", ast_ident(ast));
-    _print_ast(ast_expr(ast), indent);
+    printf("%s = ", ast_ident(ast));
+    _print_ast(ast_assign_expr(ast), indent);
 end
 
 proc _print_ast_body body, indent in
@@ -383,18 +383,27 @@ proc _print_ast_procedure ast, indent in
 end
 
 proc _print_ast_if_else ast, indent in
-    _print_indent(indent); printf("if ");
+    printf("if ");
     _print_ast(ast_test(ast), indent);
     printf(" then\n");
-    _print_ast_body(ast_consequence(ast), indent+1);
-    // @TODO: Handle chained if/else if/else/end
-    _print_indent(indent); printf("else ");
-    _print_ast_body(ast_alternative(ast), indent+1);
+    var conseq = ast_consequence(ast);
+    var altern = ast_alternative(ast);
+    _print_ast_body(conseq, indent+1);
+    if vector_len(altern) > 0 then
+        if vector_len(altern) == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
+            _print_indent(indent); printf("else ");
+            _print_ast_if_else(vector_get(altern, 0), indent);
+            return;
+        else
+            _print_indent(indent); printf("else\n");
+            _print_ast_body(altern, indent+1);
+        end
+    end
     _print_indent(indent); printf("end");
 end
 
 proc _print_ast_while ast, indent in
-    _print_indent(indent); printf("while ");
+    printf("while ");
     _print_ast(ast_test(ast), indent);
     printf(" do\n");
     _print_ast_body(ast_body(ast), indent+1);
