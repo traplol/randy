@@ -24,16 +24,23 @@ proc main argc, argv in
         if not tokens then
             return 1;
         end
+        var i = 0;
+        // while i < vector_len(tokens) do
+        //     print_token(vector_get(tokens, i));
+        //     i = i + 1;
+        // done
 
         var token_stream = make_token_stream(tokens);
         var roots = parse(token_stream);
         var cctx = make_compiler_context();
         var irctx = make_ir_context();
-        var i = 0;
+        i = 0;
         while i < vector_len(roots) do
-            ir_compile(irctx, vector_get(roots, i));
+            print_ast(vector_get(roots, i));
+            //ir_compile(irctx, vector_get(roots, i));
             i = i + 1;
         done
+        return 0;
 
         cc_out(cctx, ".text");
 

@@ -12,7 +12,12 @@ proc parse_while ts in
 end
 
 proc parse_return ts in
-    NYI_ERR("parse return");
+    var return_ = ts_expect(ts, TK_KW_return);
+    if ts_peekk(ts, TK_Semicolon) then
+        return make_ast_return(return_, NULL);
+    end
+    var expr = parse_expression(ts);
+    return make_ast_return(return_, expr);
 end
 
 proc parse_assign ts in
@@ -23,8 +28,184 @@ proc parse_pointer_op ts in
     NYI_ERR("parse pointer op");
 end
 
+proc parse_primary ts in
+    if ts_accept(ts, TK_LParen) then
+        var expr = parse_expression(ts);
+        ts_expect(ts, TK_RParen);
+        return expr;
+    end
+    var peek = ts_peek(ts);
+    var k = token_kind(peek);
+    if k == TK_Ident then
+        return make_ast_ident(peek, token_value(ts_next(ts)));
+    else if k == TK_Integer or k == TK_Char then
+        return make_ast_integer(peek, token_value(ts_next(ts)));
+    else if k == TK_String then
+        return make_ast_string(peek, token_value(ts_next(ts)));
+    else if k == TK_KW_u8@ or k == TK_KW_u8@ or k == TK_KW_u8@ or k == TK_KW_u8@ then
+        return parse_pointer_op(ts);
+    end
+    return NULL;
+end
+
+proc parse_postfix ts in
+    var peek = ts_peek(ts);
+    var expr = parse_primary(ts);
+    if not expr then
+        return NULL;
+    end
+
+    if not ts_accept(ts, TK_LParen) then
+        return expr;
+    end
+    var args = make_vector(0);
+    var breaking = false;
+    var arg;
+    while not breaking do
+        if ts_peekk(ts, TK_RParen) then
+            breaking = true;
+        else
+            arg = parse_expression(ts);
+            if not arg then
+                return NULL;
+            end
+            vector_push(args, arg);
+            if ts_accept(ts, TK_Comma) then
+                if ts_peekk(ts, TK_RParen) then
+                    printf("ERROR: Unexpected ')' after ','\n");
+                    print_token_loc(ts_peek(ts));
+                end
+            end
+        end
+    done
+    ts_expect(ts, TK_RParen);
+    return make_ast_call(peek, expr, args);
+end
+
+proc parse_prefix ts in
+    var postfix = parse_postfix(ts);
+    if postfix then
+        return postfix;
+    end
+
+    if ts_peekk_one_of_2(ts, TK_Tilde, TK_KW_not) then
+        var tok = ts_next(ts);
+        var expr = parse_prefix(ts);
+        return make_ast_prefix(tok, token_kind(tok), expr);
+    end
+    return NULL;
+end
+
+proc parse_binary_multiplicative ts in
+    var lhs = parse_prefix(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk_one_of_3(ts, TK_Star, TK_Slash, TK_Percent) do
+        tok = ts_next(ts);
+        rhs = parse_prefix(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
+proc parse_binary_additive ts in
+    var lhs = parse_binary_multiplicative(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk_one_of_2(ts, TK_Plus, TK_Minus) do
+        tok = ts_next(ts);
+        rhs = parse_binary_multiplicative(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
+proc parse_binary_relational ts in
+    var lhs = parse_binary_additive(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk_one_of_4(ts, TK_Less, TK_Greater, TK_LessEq, TK_GreaterEq) do
+        tok = ts_next(ts);
+        rhs = parse_binary_additive(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
+proc parse_binary_equality ts in
+    var lhs = parse_binary_relational(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk_one_of_2(ts, TK_EqEq, TK_NotEq) do
+        tok = ts_next(ts);
+        rhs = parse_binary_relational(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
+proc parse_binary_land ts in
+    var lhs = parse_binary_equality(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk(ts, TK_KW_and) do
+        tok = ts_next(ts);
+        rhs = parse_binary_equality(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
+proc parse_binary_lor ts in
+    var lhs = parse_binary_land(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk(ts, TK_KW_or) do
+        tok = ts_next(ts);
+        rhs = parse_binary_land(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    done
+    return lhs;
+end
+
 proc parse_expression ts in
-    NYI_ERR("parse expression");
+    return parse_binary_lor(ts);
 end
 
 proc parse_statement ts in
@@ -98,11 +279,36 @@ proc parse_proc ts in
 end
 
 proc parse_const ts in
-    NYI_ERR("parse const");
+    var const_ = ts_expect(ts, TK_KW_const);
+    var ident = ts_expect(ts, TK_Ident);
+    ts_expect(ts, TK_Assign);
+    if not ts_peekk_one_of_4(ts, TK_Ident, TK_Integer, TK_Char, TK_String) then
+        printf("ERROR: Expected one of [TK_Ident, TK_Integer, TK_Char, TK_String] for 'const.'\n");
+        print_token_loc(const_);
+        exit(1);
+    end
+    var val_tok = ts_next(ts);
+    return make_ast_const(const_, token_value(ident), val_tok);
 end
 
 proc parse_extern ts in
-    NYI_ERR("parse extern");
+    var extern_ = ts_expect(ts, TK_KW_extern);
+    var ident = ts_expect(ts, TK_Ident);
+    var is_varargs = false;
+    var params = make_vector(0);
+    var breaking = false;
+    while not breaking and ts_peekk(ts, TK_Ident) do
+        vector_push(params, token_value(ts_next(ts)));
+        if ts_peekk(ts, TK_Semicolon) then
+            breaking = true;
+        else
+            ts_expect(ts, TK_Comma);
+        end
+    done
+    if ts_accept(ts, TK_Ellipsis) then
+        is_varargs = true;
+    end
+    return make_ast_extern(extern_, token_value(ident), params, is_varargs);
 end
 
 proc parse_asm ts in
@@ -111,7 +317,7 @@ proc parse_asm ts in
     ts_expect(ts, TK_KW_in);
     var asmcode = ts_expect(ts, TK_String);
     ts_expect(ts, TK_KW_end);
-    return make_ast_inline_asm(asm_, token_value(ident), token_value(asmcode));
+    return make_ast_inline_asm(asm_, token_value(ident), string_cstr(token_value(asmcode)));
 end
 
 proc parse ts in
@@ -123,8 +329,10 @@ proc parse ts in
             parsed = parse_proc(ts);
         else if ts_peekk(ts, TK_KW_const) then
             parsed = parse_const(ts);
+            ts_expect(ts, TK_Semicolon);
         else if ts_peekk(ts, TK_KW_extern) then
             parsed = parse_extern(ts);
+            ts_expect(ts, TK_Semicolon);
         else if ts_peekk(ts, TK_KW_asm) then
             parsed = parse_asm(ts);
         else

@@ -188,7 +188,7 @@ proc x86_64_emit_inline_asm cc, ir in
     cc_out(cc, "    .align 16");
     cc_out_label(cc, ir_instr_name(ir));
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    cc_out(cc, string_cstr(ir_instr_asm(ir)));
+    cc_out(cc, ir_instr_asm(ir));
 end
 
 proc x86_64_emit_lazy_ident cc, ir in
