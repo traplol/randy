@@ -10,13 +10,13 @@ import os
 supports_color = sys.stdout.isatty() and (os.name != "nt" or
                                           ("ANSICON" in os.environ and bool(os.environ["ANSICON"])))
 if supports_color:
+    FAILED = "\033[1;91m[FAILED]\033[0m"
     PASSED = "\033[1;92m[PASSED]\033[0m"
     WARN = "\033[1;93m[WARN]\033[0m"
-    FAILED = "\033[1;91m[FAILED]\033[0m"
 else:
+    FAILED = "[FAILED]"
     PASSED = "[PASSED]"
     WARN = "[WARN]"
-    FAILED = "[FAILED]"
 
 def color_path(path):
     if not supports_color:
@@ -28,10 +28,10 @@ def color_diff_line(line):
         return line
     if len(line) == 0:
         return line
-    if line[0] == "+":
-        return f"\033[32m{line}\033[0m"
     if line[0] == "-":
         return f"\033[31m{line}\033[0m"
+    if line[0] == "+":
+        return f"\033[32m{line}\033[0m"
     if line.startswith("@@"):
         return f"\033[33m{line}\033[0m"
     return line
@@ -103,7 +103,6 @@ def run1(output_file, print_diff):
             if print_diff:
                 for line in diff:
                     print(color_diff_line(line))
-                #print("\n".join(diff))
     except FileNotFoundError:
         print(f"{WARN}   {color_path(randy_file)}: did not compile.")
 
