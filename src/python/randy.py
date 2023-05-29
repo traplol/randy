@@ -923,8 +923,8 @@ class IRInstr:
     def __repr__(self):
         if len(self.keys) > 0:
             vars = ", ".join([f"{k}={repr(getattr(self, k))}" for k in self.keys])
-            return f" ({repr(self.kind)}, {vars})"
-        return f" ({repr(self.kind)})"
+            return f"({repr(self.kind)}, {vars})"
+        return f"({repr(self.kind)})"
         
 class IRContext:
     def __init__(self, **kwargs):
@@ -1342,9 +1342,9 @@ class CompilerContext:
         return None, None, None
 
     def out(self, msg: str) -> None:
-        if self.no_comments and len(msg) >= 3 and msg[0:3] == "# (":
+        if self.no_comments and msg.startswith("/*"):
             return
-        if self.no_comments and len(msg) >= 8 and msg[0:8] == "    .loc":
+        if self.no_comments and msg.startswith("    .loc"):
             return
             
         if not self.quiet:
@@ -1447,25 +1447,25 @@ def emit_new_proc(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    .align 16")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
-    ctx.out(f"{ir.name}: # params={ir.params}")
-    ctx.out(f"#{ir}")
+    ctx.out(f"{ir.name}: /* params={ir.params} */")
+    ctx.out(f"/* {ir} */")
     ctx.out(f"    pushq %rbp")
     ctx.out(f"    movq %rsp, %rbp")
     if len(ir.locals) > 0:
         ctx.out(f"    subq ${8 * len(ir.locals)}, %rsp")
 
 def emit_close_proc(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    movq %rbp, %rsp")
     ctx.out(f"    popq %rbp")
     ctx.out(f"    ret")
-    ctx.out(f"### close {ir.name}")
+    ctx.out(f"/* close {ir.name} */")
 
 def emit_get_local(ctx: CompilerContext, ir: IRInstr) -> None:
     offs = 8 * (ir.n+1)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    movq -{offs}(%rbp), %rax")
@@ -1474,7 +1474,7 @@ def emit_get_local(ctx: CompilerContext, ir: IRInstr) -> None:
 def emit_set_local_arg(ctx: CompilerContext, ir: IRInstr) -> None:
     idx = ctx.locals[ir.local]
     offs = 8 * (idx+1)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     if idx < len(systemv_args):
@@ -1487,7 +1487,7 @@ def emit_set_local_arg(ctx: CompilerContext, ir: IRInstr) -> None:
 def emit_set_local(ctx: CompilerContext, ir: IRInstr) -> None:
     idx = ctx.locals[ir.local]
     offs = 8 * (idx+1)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax")
@@ -1495,20 +1495,20 @@ def emit_set_local(ctx: CompilerContext, ir: IRInstr) -> None:
     
 def emit_alloc_temps(ctx: CompilerContext, ir: IRInstr) -> None:
     if ir.n > 0:
-        ctx.out(f"#{ir}")
+        ctx.out(f"/* {ir} */")
         id, line, col, file = ir.src_loc
         ctx.out(f"    .loc {id} {line} {col}")
         ctx.out(f"    subq ${8 * (1+ir.n)}, %rsp")
 
 def emit_free_temps(ctx: CompilerContext, ir: IRInstr) -> None:
     if ir.n > 0:
-        ctx.out(f"#{ir}")
+        ctx.out(f"/* {ir} */")
         id, line, col, file = ir.src_loc
         ctx.out(f"    .loc {id} {line} {col}")
         ctx.out(f"    addq ${8 * (1+ir.n)}, %rsp")
 
 def emit_push_label(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    leaq {ir.label}, %rax")
@@ -1516,7 +1516,7 @@ def emit_push_label(ctx: CompilerContext, ir: IRInstr) -> None:
 
 def emit_store_temp(ctx: CompilerContext, ir: IRInstr) -> None:
     offs = 8 * (1+ir.n)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax")
@@ -1524,14 +1524,13 @@ def emit_store_temp(ctx: CompilerContext, ir: IRInstr) -> None:
 
 def emit_set_arg_temp(ctx: CompilerContext, ir: IRInstr) -> None:
     offs = 8 * (1+ir.n)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     if ir.n < len(systemv_args):
         ctx.out(f"    movq {offs}(%rsp), {systemv_args[ir.n]}")
     else:
         ctx.out(f"    pushq {offs}(%rsp)")
-        #assert False, f"TODO: {inspect.currentframe().f_code.co_name} : too many args"
         
 def emit_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
     name, _, _ = ctx.proc_name(ir.ident.value)
@@ -1540,7 +1539,7 @@ def emit_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
         print(f"    did you forget to declare 'extern {ir.ident.value} ...;'?")
         print(ir.ident.fmt_src_loc())
         exit(1)
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    leaq {name}, %rax")
@@ -1560,7 +1559,7 @@ def emit_call_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
         print(ir.ident.fmt_src_loc())
         exit(1)
 
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     if ir.varargs:
@@ -1569,7 +1568,7 @@ def emit_call_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     if ir.varargs:
@@ -1578,7 +1577,7 @@ def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_pop_call(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rcx")
@@ -1587,7 +1586,7 @@ def emit_pop_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_push_int(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     if ~(1<<31) < ir.value < 1<<32:
@@ -1598,7 +1597,7 @@ def emit_push_int(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_pop_return(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax")
@@ -1606,7 +1605,7 @@ def emit_pop_return(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    ret")
 
 def emit_return_void(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    xorq %rax, %rax")
@@ -1614,7 +1613,7 @@ def emit_return_void(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    ret")
 
 def emit_logic_not(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax") # -- a
@@ -1624,7 +1623,7 @@ def emit_logic_not(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_bit_not(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax") # -- a
@@ -1638,7 +1637,7 @@ def emit_op_compare(ctx: CompilerContext, ir: IRInstr) -> None:
              IRK.OpLessEq: "setle",
              IRK.OpGreater: "setg",
              IRK.OpGreaterEq: "setge"}[ir.kind]
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %r10") # -- a
@@ -1649,7 +1648,7 @@ def emit_op_compare(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_op_add(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rdx") # -- b
@@ -1658,7 +1657,7 @@ def emit_op_add(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_op_sub(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rdx") # -- b
@@ -1667,7 +1666,7 @@ def emit_op_sub(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_op_mod(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rcx") # -- b
@@ -1677,7 +1676,7 @@ def emit_op_mod(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rdx")
 
 def emit_op_div(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rcx") # -- b
@@ -1687,7 +1686,7 @@ def emit_op_div(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_op_mul(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rdx") # -- b
@@ -1696,19 +1695,19 @@ def emit_op_mul(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    pushq %rax")
 
 def emit_label(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"{ir.label}:")
 
 def emit_goto(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    jmp {ir.label}")
 
 def emit_goto_false(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax")
@@ -1716,21 +1715,21 @@ def emit_goto_false(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    je {ir.label}")
 
 def emit_goto_top_true(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    cmpq $0, (%rsp)")
     ctx.out(f"    jne {ir.label}")
 
 def emit_goto_top_false(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    cmpq $0, (%rsp)")
     ctx.out(f"    je {ir.label}")
 
 def emit_ptr_write(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    popq %rax") # -- ptr
@@ -1740,7 +1739,7 @@ def emit_ptr_write(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    mov{suffix} {register}, (%rax)")
 
 def emit_ptr_read(ctx: CompilerContext, ir: IRInstr) -> None:
-    ctx.out(f"#{ir}")
+    ctx.out(f"/* {ir} */")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
     suffix = {8:"b", 16:"w", 32:"l", 64:"q"}[ir.size]
@@ -1753,7 +1752,7 @@ def emit_ptr_read(ctx: CompilerContext, ir: IRInstr) -> None:
 
 def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
     code = [line.strip() for line in ir.asm.value.split("\n")]
-    ctx.out(f".align 16")
+    ctx.out(f"    .align 16")
     ctx.out(f"{ir.name}:")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
@@ -1822,7 +1821,7 @@ def emit_start_proc(ctx: CompilerContext, main_proc: str, exit_proc: Optional[st
     ctx.out(f"    movq %rax, %rdi")
     if exit_proc is not None:
         ctx.out(f"    call {exit_proc}")
-    ctx.out(f"    movq $60, %rax            # exit syscall is 60")
+    ctx.out(f"    movq $60, %rax            /* exit syscall is 60 */")
     ctx.out(f"    syscall")
     ctx.out(f"    int3")
 
