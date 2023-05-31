@@ -14,21 +14,96 @@
 #include compiler_context
 #include x86_64_backend
 
+proc cc_out_files irctx, cctx in
+    var files = ir_files(irctx);
+    var i = 0;
+    while i < vector_len(files) do
+        cc_out_file(cctx, i, vector_get(files, i));
+        compiler_context_add_file(cctx, vector_get(files, i), i);
+        i = i + 1;
+    done
+end
+
+proc cc_out_instructions irctx, cctx in
+    var instructions = ir_instructions(irctx);
+    var i = 0;
+    while i < vector_len(instructions) do
+        x86_64_emit_instruction(cctx, vector_get(instructions, i));
+        i = i + 1;
+    done
+end
+
+proc cc_out_externs irctx, cctx in
+    var externs = ir_externs(irctx);
+    var cur_extern = map_begin(externs);
+    var end_extern = map_end(externs);
+    while cur_extern != end_extern do
+        cc_out_extern(cctx, map_pair_key(cur_extern));
+        cur_extern = map_next(externs, cur_extern);
+    done
+end
+
+proc cc_out_data_section irctx, cctx in
+    cc_out(cctx, ".data");
+    cc_out(cctx, ".align 8");
+    cc_out(cctx, "__argc__: .quad 0");
+    cc_out(cctx, "__argv__: .quad 0");
+    cc_out(cctx, ".section .rodata, \"a\"");
+    var strings = ir_strings(irctx);
+    var cur_string = map_begin(strings);
+    var end_string = map_end(strings);
+    while cur_string != end_string do
+        cc_out(cctx, ".align 8");
+        cc_out_label(cctx, map_pair_val(cur_string));
+        cc_out_string(cctx, map_pair_key(cur_string));
+        cur_string = map_next(strings, cur_string);
+    done
+end
+
+proc cc_out_start cctx in
+    cc_out(cctx, "    .global _start");
+    cc_out(cctx, "    .align 16");
+    cc_out(cctx, "_start:");
+    cc_out(cctx, "    movq (%rsp), %rdi");
+    cc_out(cctx, "    movq %rsp, %rsi");
+    cc_out(cctx, "    addq $8, %rsi");
+    cc_out(cctx, "    movq %rdi, (__argc__)");
+    cc_out(cctx, "    movq %rsi, (__argv__)");
+    cc_out(cctx, "    call _proc_main");
+    cc_out(cctx, "    movq %rax, %rdi");
+    cc_out(cctx, "    call _proc_exit");
+    cc_out(cctx, "    movq $60, %rax");
+    cc_out(cctx, "    syscall");
+    cc_out(cctx, "    int3");
+end
+
 proc main argc, argv in
+    var i = 0;
     if argc < 2 then
         printf("No input file.\n");
         return 1;
     else
+        var include_paths = make_vector(8);
+        vector_push(include_paths, getcwd());
+        vector_push(include_paths, string_from_cstr("/home/max/workspace/randy/include")); // @HACK
+        var source_dir = getcwd();
+        vector_push(include_paths, source_dir);
+
         var path = u64@(argv + sizeof_PTR);
-        var tokens = lex_file(path);
+        string_push(source_dir, '/');
+        string_append_cstr(source_dir, path);
+        var abspath = string_duplicate(source_dir);
+        while string_len(source_dir) > 0 and string_back(source_dir) != '/' do
+            string_pop(source_dir);
+        done
+        if string_len(source_dir) > 1 then
+            string_pop(source_dir);
+        end
+
+        var tokens = lex_file(string_cstr(abspath), include_paths);
         if not tokens then
             return 1;
         end
-        var i = 0;
-        // while i < vector_len(tokens) do
-        //     print_token(vector_get(tokens, i));
-        //     i = i + 1;
-        // done
 
         var token_stream = make_token_stream(tokens);
         var roots = parse(token_stream);
@@ -36,58 +111,17 @@ proc main argc, argv in
         var irctx = make_ir_context();
         i = 0;
         while i < vector_len(roots) do
-            print_ast(vector_get(roots, i));
-            //ir_compile(irctx, vector_get(roots, i));
+            ir_compile(irctx, vector_get(roots, i));
             i = i + 1;
         done
-        return 0;
+        ir_resolve_lazy_idents(irctx);
 
         cc_out(cctx, ".text");
-
-        var instructions = ir_instructions(irctx);
-        i = 0;
-        while i < vector_len(instructions) do
-            x86_64_emit_instruction(cctx, vector_get(instructions, i));
-            i = i + 1;
-        done
-
-        var externs = ir_externs(irctx);
-        i = 0;
-        // while i < map_len(externs) do
-        //     cc_out_extern(cctx, vector_get(externs, i));
-        //     i = i + 1;
-        // done
-        
-        cc_out(cctx, "\n");
-        cc_out(cctx, ".data");
-        cc_out(cctx, ".align 8");
-        cc_out(cctx, "__argc__: .quad 0");
-        cc_out(cctx, "__argv__: .quad 0");
-
-        cc_out(cctx, ".section .rodata \"a\"");
-        var strings = ir_strings(irctx);
-        var string;
-        // i = 0;
-        // while i < map_len(strings) do
-        //     string = vector_get(strings, i);
-        //     cc_out(cctx, ".align 8");
-        //     cc_out_label(cctx, ir_string_label(irctx, string));
-        //     cc_out_string(cctx, ir_string_bytes(string));
-        //     i = i + 1;
-        // done
-
-        // ts_expect(token_stream, TK_Plus);
-        // ts_expect(token_stream, TK_Minus);
-        // ts_expect(token_stream, TK_Slash);
-        // ts_expect(token_stream, TK_Star);
-        // printf("Accept String: %p\n", ts_accept(token_stream, TK_String));
-        // printf("Accept Ident: %p\n", ts_accept(token_stream, TK_Ident));
-
-        // while ts_peek(token_stream) do
-        //     var token = ts_peek(token_stream);
-        //     print_token(token);
-        //     ts_next(token_stream);
-        // done
+        cc_out_files(irctx, cctx);
+        cc_out_instructions(irctx, cctx);
+        cc_out_start(cctx);
+        cc_out_externs(irctx, cctx);
+        cc_out_data_section(irctx, cctx);
         cc_print_lines(cctx);
         return 0;
     end

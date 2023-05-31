@@ -81,8 +81,7 @@ proc ir_instr_kind_cstr k in
     if k == IRK_LazyIdent then return "IRK_LazyIdent"; end
     if k == IRK_CallLazyIdent then return "IRK_CallLazyIdent"; end
     return "IRK_OUT_OF_RANGE";
-    end
-
+end
 
 const TIR_INSTR_kind     = 0;
 const TIR_INSTR_src_loc  = 8;
@@ -123,217 +122,441 @@ proc ir_instr_arg self in return u64@(self + TIR_INSTR_arg); end
 proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
 proc ir_instr_locals self in return u64@(self + TIR_INSTR_locals); end
 
-proc make_ir_alloc_temps src_loc, n in
+proc make_ir_alloc_temps n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_AllocTemps);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
-proc make_ir_call src_loc, label, varargs in
+proc make_ir_call label, varargs in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Call);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_varargs, varargs);
     return self;
 end
-proc make_ir_call_lazy_ident src_loc, ident, nargs in
+proc make_ir_lazy_ident ident in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_LazyIdent);
+    u64!(self + TIR_INSTR_ident, ident);
+    return self;
+end
+proc make_ir_call_lazy_ident ident, nargs in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_ident, ident);
     u64!(self + TIR_INSTR_nargs, nargs);
     return self;
 end
-proc make_ir_close_proc src_loc, name in
+proc make_ir_close_proc name in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CloseProc);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_name, name);
     return self;
 end
-proc make_ir_free_temps src_loc, n in
+proc make_ir_free_temps n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_FreeTemps);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
-proc make_ir_get_local src_loc, local, n in
+proc make_ir_get_local local, n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetLocal);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
-proc make_ir_goto src_loc, label in
+proc make_ir_goto label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Goto);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_goto_false src_loc, label in
+proc make_ir_goto_false label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoFalse);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_goto_top_false src_loc, label in
+proc make_ir_goto_top_false label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopFalse);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_goto_top_true src_loc, label in
+proc make_ir_goto_top_true label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopTrue);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_inline_asm src_loc, name, asmcode in
+proc make_ir_inline_asm name, asmcode in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_InlineAsm);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_asm, asmcode);
     return self;
 end
-proc make_ir_label src_loc, label in
+proc make_ir_label label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Label);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_logic_not src_loc in
+proc make_ir_bit_not in
     var self = malloc(sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_LogicNot);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
+    u64!(self + TIR_INSTR_kind, IRK_BitNot);
     return self;
 end
-proc make_ir_new_proc src_loc, src_name, name, params, locals in
+proc make_ir_logic_not in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_LogicNot);
+    return self;
+end
+proc make_ir_new_proc src_name, name, params, locals in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_NewProc);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_params, params);
     u64!(self + TIR_INSTR_locals, locals);
     return self;
 end
-proc make_ir_simple_op src_loc, op in
+proc make_ir_simple_op op in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, op);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     return self;
 end
-proc make_ir_pop_call src_loc in
+proc make_ir_pop_call in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopCall);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     return self;
 end
-proc make_ir_pop_return src_loc in
+proc make_ir_pop_return in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopReturn);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     return self;
 end
-proc make_ir_ptr_read src_loc, size in
+proc make_ir_ptr_read size in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrRead);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_size, size);
     return self;
 end
-proc make_ir_ptr_write src_loc, size in
+proc make_ir_ptr_write size in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrWrite);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_size, size);
     return self;
 end
-proc make_ir_push_int src_loc, value in
+proc make_ir_push_int value in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushInt);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_value, value);
     return self;
 end
-proc make_ir_push_label src_loc, label in
+proc make_ir_push_label label in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushLabel);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
-proc make_ir_return_void src_loc in
+proc make_ir_return_void in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ReturnVoid);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     return self;
 end
-proc make_ir_set_arg_temp src_loc, n in
+proc make_ir_set_arg_temp n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetArgTemp);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
-proc make_ir_set_local src_loc, local, n in
+proc make_ir_set_local local, n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocal);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
-proc make_ir_set_local_arg src_loc, local, arg in
+proc make_ir_set_local_arg local, local_n, arg in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_local, local);
+    u64!(self + TIR_INSTR_n, local_n);
     u64!(self + TIR_INSTR_arg, arg);
     return self;
 end
-proc make_ir_store_temp src_loc, n in
+proc make_ir_store_temp n in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_StoreTemp);
-    u64!(self + TIR_INSTR_src_loc, src_loc);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
+proc print_ir_alloc_temps self in
+    printf("(IR.AllocTemps ");
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir_call self in
+    printf("(IR.Call ");
+    printf("label='%s', ", u64@(self + TIR_INSTR_label));
+    printf("varargs=%d)\n", u64@(self + TIR_INSTR_varargs));
+end
+proc print_ir_call_lazy_ident self in
+    printf("(IR.CallLazyIdent ");
+    printf("ident=<Token:%s>, ", token_value(u64@(self + TIR_INSTR_ident)));
+    printf("nargs=%d)\n", u64@(self + TIR_INSTR_nargs));
+end
+proc print_ir_lazy_ident self in
+    printf("(IR.LazyIdent ");
+    printf("ident=<Token:%s>)\n", token_value(u64@(self + TIR_INSTR_ident)));
+end
+proc print_ir_close_proc self in
+    printf("(IR.CloseProc ");
+    printf("name='%s')\n", u64@(self + TIR_INSTR_name));
+end
+proc print_ir_free_temps self in
+    printf("(IR.FreeTemps ");
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir_get_local self in
+    printf("(IR.GetLocal ");
+    printf("local='%s', ", u64@(self + TIR_INSTR_local));
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir_goto self in
+    printf("(IR.Goto ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_goto_false self in
+    printf("(IR.GotoFalse ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_goto_top_false self in
+    printf("(IR.GotoTopFalse ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_goto_top_true self in
+    printf("(IR.GotoTopTrue ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_inline_asm self in
+    printf("(IR.InlineAsm ");
+    printf("name='%s')\n", u64@(self + TIR_INSTR_name));
+end
+proc print_ir_label self in
+    printf("(IR.Label ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_bit_not self in
+    printf("(IR.BitNot)\n");
+end
+proc print_ir_logic_not self in
+    printf("(IR.LogicNot)\n");
+end
+proc print_ir_new_proc self in
+    printf("(IR.NewProc ");
+    printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
+    printf("name='%s', ", u64@(self + TIR_INSTR_name));
+    printf("params=TODO(params) %p, ", u64@(self + TIR_INSTR_params));
+    printf("locals=TODO(locals) %p)\n", u64@(self + TIR_INSTR_locals));
+end
+proc print_ir_op_add self in
+    printf("(IR.OpAdd)\n");
+end
+proc print_ir_op_div self in
+    printf("(IR.OpDiv)\n");
+end
+proc print_ir_op_eq self in
+    printf("(IR.OpEq)\n");
+end
+proc print_ir_op_greater self in
+    printf("(IR.OpGreater)\n");
+end
+proc print_ir_op_greater_eq self in
+    printf("(IR.OpGreaterEq)\n");
+end
+proc print_ir_op_less self in
+    printf("(IR.OpLess)\n");
+end
+proc print_ir_op_less_eq self in
+    printf("(IR.OpLessEq)\n");
+end
+proc print_ir_op_mod self in
+    printf("(IR.OpMod)\n");
+end
+proc print_ir_op_mul self in
+    printf("(IR.OpMul)\n");
+end
+proc print_ir_op_not_eq self in
+    printf("(IR.OpNotEq)\n");
+end
+proc print_ir_op_sub self in
+    printf("(IR.OpSub)\n");
+end
+proc print_ir_pop_call self in
+    printf("(IR.PopCall)\n");
+end
+proc print_ir_pop_return self in
+    printf("(IR.PopReturn)\n");
+end
+proc print_ir_ptr_read self in
+    printf("(IR.PtrRead ");
+    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+end
+proc print_ir_ptr_write self in
+    printf("(IR.PtrWrite ");
+    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+end
+proc print_ir_push_int self in
+    printf("(IR.PushInt ");
+    printf("value=%d)\n", u64@(self + TIR_INSTR_value));
+end
+proc print_ir_push_label self in
+    printf("(IR.PushLabel ");
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_return_void self in
+    printf("(IR.ReturnVoid)\n");
+end
+proc print_ir_set_arg_temp self in
+    printf("(IR.SetArgTemp ");
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir_set_local self in
+    printf("(IR.SetLocal ");
+    printf("local='%s', ", u64@(self + TIR_INSTR_local));
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir_set_local_arg self in
+    printf("(IR.SetLocalArg ");
+    printf("local='%s', ", u64@(self + TIR_INSTR_local));
+    printf("n=%d, ", u64@(self + TIR_INSTR_n));
+    printf("arg=%d)\n", u64@(self + TIR_INSTR_arg));
+end
+proc print_ir_store_temp self in
+    printf("(IR.StoreTemp ");
+    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+end
+proc print_ir ir in
+    var k = ir_instr_kind(ir);
+    if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
+    else if k == IRK_Call then print_ir_call(ir);
+    else if k == IRK_CallLazyIdent then print_ir_call_lazy_ident(ir);
+    else if k == IRK_CloseProc then print_ir_close_proc(ir);
+    else if k == IRK_FreeTemps then print_ir_free_temps(ir);
+    else if k == IRK_GetLocal then print_ir_get_local(ir);
+    else if k == IRK_Goto then print_ir_goto(ir);
+    else if k == IRK_GotoFalse then print_ir_goto_false(ir);
+    else if k == IRK_GotoTopFalse then print_ir_goto_top_false(ir);
+    else if k == IRK_GotoTopTrue then print_ir_goto_top_true(ir);
+    else if k == IRK_InlineAsm then print_ir_inline_asm(ir);
+    else if k == IRK_Label then print_ir_label(ir);
+    else if k == IRK_BitNot then print_ir_bit_not(ir);
+    else if k == IRK_LogicNot then print_ir_logic_not(ir);
+    else if k == IRK_NewProc then print_ir_new_proc(ir);
+    else if k == IRK_OpAdd then print_ir_op_add(ir);
+    else if k == IRK_OpDiv then print_ir_op_div(ir);
+    else if k == IRK_OpEq then print_ir_op_eq(ir);
+    else if k == IRK_OpGreater then print_ir_op_greater(ir);
+    else if k == IRK_OpGreaterEq then print_ir_op_greater_eq(ir);
+    else if k == IRK_OpLess then print_ir_op_less(ir);
+    else if k == IRK_OpLessEq then print_ir_op_less_eq(ir);
+    else if k == IRK_OpMod then print_ir_op_mod(ir);
+    else if k == IRK_OpMul then print_ir_op_mul(ir);
+    else if k == IRK_OpNotEq then print_ir_op_not_eq(ir);
+    else if k == IRK_OpSub then print_ir_op_sub(ir);
+    else if k == IRK_PopCall then print_ir_pop_call(ir);
+    else if k == IRK_PopReturn then print_ir_pop_return(ir);
+    else if k == IRK_PtrRead then print_ir_ptr_read(ir);
+    else if k == IRK_PtrWrite then print_ir_ptr_write(ir);
+    else if k == IRK_PushInt then print_ir_push_int(ir);
+    else if k == IRK_PushLabel then print_ir_push_label(ir);
+    else if k == IRK_ReturnVoid then print_ir_return_void(ir);
+    else if k == IRK_SetArgTemp then print_ir_set_arg_temp(ir);
+    else if k == IRK_SetLocal then print_ir_set_local(ir);
+    else if k == IRK_SetLocalArg then print_ir_set_local_arg(ir);
+    else if k == IRK_StoreTemp then print_ir_store_temp(ir);
+    else if k == IRK_LazyIdent then print_ir_lazy_ident(ir);
+    else
+        printf("Unknown IR Kind: %d\n", k);
+    end
+end
+
+const TPROC_INFO_label = 0;
+const TPROC_INFO_params = 8;
+const TPROC_INFO_varargs = 16;
+const sizeof_TPROC_INFO = 24;
+
+proc make_proc_info label, params, varargs in
+    var self = malloc(sizeof_TPROC_INFO);
+    u64!(self + TPROC_INFO_label, label);
+    u64!(self + TPROC_INFO_params, params);
+    u64!(self + TPROC_INFO_varargs, varargs);
+    return self;
+end
+
+proc proc_info_label self in return u64@(self + TPROC_INFO_label); end
+proc proc_info_params self in return u64@(self + TPROC_INFO_params); end
+proc proc_info_varargs self in return u64@(self + TPROC_INFO_varargs); end
+proc print_proc_info self in
+    printf("(ProcInfo label='%s', params=[", proc_info_label(self));
+    var i = 0;
+    var params = proc_info_params(self);
+    var len = vector_len(params);
+    while i < len do
+        printf("'%s'", vector_get(params, i));
+        i = i + 1;
+        if i < len then
+            printf(", ");
+        end
+    done
+    printf("], varargs=%d)\n", proc_info_varargs(self));
+end
+
+const TCONST_INFO_kind = 0;
+const TCONST_INFO_value = 8;
+const sizeof_TCONST_INFO = 16;
+const CIK_String = 0;
+const CIK_Integer = 1;
+
+proc make_const_info kind, value in
+    var self = malloc(sizeof_TCONST_INFO);
+    u64!(self + TCONST_INFO_kind, kind);
+    u64!(self + TCONST_INFO_value, value);
+    return self;
+end
+
+proc const_info_kind self in return u64@(self + TCONST_INFO_kind); end
+proc const_info_value self in return u64@(self + TCONST_INFO_value); end
 
 const TIR_CONTEXT_instructions =  0; // ir_instruction vector
 const TIR_CONTEXT_label_id     =  8; // int
-const TIR_CONTEXT_strings      = 16; // (string, string) map
-const TIR_CONTEXT_externs      = 24; // (string, string) map
-const TIR_CONTEXT_labels       = 32; // string set
-const TIR_CONTEXT_constants    = 40; // (string, Union(string, int)) map
+const TIR_CONTEXT_strings      = 16; // (string, cstr) map : string -> label
+const TIR_CONTEXT_externs      = 24; // (cstr, proc_info) map : name -> label
+const TIR_CONTEXT_labels       = 32; // string set : all labels
+const TIR_CONTEXT_constants    = 40; // (cstr, const_info) map : name -> value
 const TIR_CONTEXT_src_locs     = 48; // src_loc vector
-const TIR_CONTEXT_file_map     = 56; // (string, int) map
-const TIR_CONTEXT_files        = 64; // string vector
-const TIR_CONTEXT_file_idx     = 72; // int
-const sizeof_TIR_CONTEXT       = 80;
+const TIR_CONTEXT_file_set     = 56; // cstr set : paths
+const TIR_CONTEXT_files        = 64; // cstr vector
+const TIR_CONTEXT_procs        = 72; // (cstr, proc_info) map : name -> proc_info
+const TIR_CONTEXT_proc_locals  = 80; // (cstr, int) map : name -> location
+const sizeof_TIR_CONTEXT       = 88;
 
 proc make_ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
     u64!(self + TIR_CONTEXT_instructions, make_vector(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
     u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
-    u64!(self + TIR_CONTEXT_externs, make_map(0, string_eq, string_hash));
-    u64!(self + TIR_CONTEXT_labels, make_set(0, string_eq, string_hash));
-    u64!(self + TIR_CONTEXT_constants, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_externs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_labels, make_set(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_constants, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_src_locs, make_vector(0));
-    u64!(self + TIR_CONTEXT_file_map, make_map(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_files, make_vector(0));
-    u64!(self + TIR_CONTEXT_file_idx, 0);
+    u64!(self + TIR_CONTEXT_procs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_proc_locals, NULL);
     return self;
 end
 
@@ -343,11 +566,88 @@ proc ir_externs self in return u64@(self + TIR_CONTEXT_externs); end
 proc ir_labels self in return u64@(self + TIR_CONTEXT_labels); end
 proc ir_constants self in return u64@(self + TIR_CONTEXT_constants); end
 proc ir_src_locs self in return u64@(self + TIR_CONTEXT_src_locs); end
-proc ir_file_map self in return u64@(self + TIR_CONTEXT_file_map); end
+proc ir_file_set self in return u64@(self + TIR_CONTEXT_file_set); end
 proc ir_files self in return u64@(self + TIR_CONTEXT_files); end
+proc ir_procs self in return u64@(self + TIR_CONTEXT_procs); end
+proc ir_proc_locals self in return u64@(self + TIR_CONTEXT_proc_locals); end
+
 proc ir_append self, insn in
+    u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
     var vec = ir_instructions(self);
     vector_push(vec, insn);
+end
+
+proc ir_push_src_loc self, src_loc in
+    var src_locs = ir_src_locs(self);
+    vector_push(src_locs, src_loc);
+
+    var filename = src_loc_filename(src_loc);
+    var fileset = ir_file_set(self);
+    if not set_contains(fileset, filename) then
+        set_add(fileset, filename);
+        var files = ir_files(self);
+        vector_push(files, filename);
+    end
+end
+
+proc ir_pop_src_loc self in
+    var src_locs = ir_src_locs(self);
+    vector_pop(src_locs);
+end
+
+proc ir_current_src_loc self in
+    var src_locs = ir_src_locs(self);
+    return vector_back(src_locs);
+end
+
+proc ir_print_src_loc ir in
+    var src_loc = ir_current_src_loc(ir);
+    print_src_loc(src_loc);
+end
+
+proc ir_new_proc self, ident, params in
+    var procs = ir_procs(self);
+    var found = map_find(procs, ident);
+    if found then
+        printf("ERROR: proc `%s` already defined\n", ident);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    
+    var label = make_string(20); // @LEAK
+    string_append_cstr(label, "_proc_");
+    string_append_cstr(label, ident);
+
+    var label_cstr = string_cstr(label);
+    set_add(ir_labels(self), label_cstr);
+    map_set(procs, ident, make_proc_info(label_cstr, params, false));
+
+    u64!(self + TIR_CONTEXT_proc_locals, make_map(0, cstr_eq, cstr_hash));
+
+    return label_cstr;
+end
+
+proc ir_new_local self, ident in
+    var proc_locals = ir_proc_locals(self);
+    var n = map_len(proc_locals);
+    map_set(proc_locals, ident, n);
+    return n;
+end
+
+proc ir_new_label self, hint in
+    var label_id = u64@(self + TIR_CONTEXT_label_id);
+    u64!(self + TIR_CONTEXT_label_id, label_id + 1);
+
+    var label = make_string(13); // @LEAK
+    string_append_cstr(label, ".L");
+    if hint then
+        string_append_cstr(label, hint);
+    end
+    string_append_int(label, label_id);
+
+    var label_cstr = string_cstr(label);
+    set_add(ir_labels(self), label_cstr);
+    return label_cstr;
 end
 
 proc ir_string_label self, string in
@@ -357,13 +657,7 @@ proc ir_string_label self, string in
         return map_pair_val(found);
     end
 
-    var label_id = u64@(self + TIR_CONTEXT_label_id);
-    u64!(self + TIR_CONTEXT_label_id, label_id + 1);
-
-    var label = make_string(0);
-    string_append_cstr(label, "__string__");
-    string_append_int(label, label_id);
-
+    var label = ir_new_label(self, NULL);
     set_add(ir_labels(self), label);
     map_set(strings, string, label);
 
@@ -372,6 +666,55 @@ end
 
 proc ir_string_bytes self in
     NYI_ERR("ir_string_bytes");
+end
+
+proc ir_is_label self, ident in
+    return set_contains(ir_labels(self), ident);
+end
+
+proc ir_is_proc self, ident in
+    return map_find(ir_procs(self), ident) != NULL;
+end
+
+proc ir_get_proc self, ident in
+    var found = map_find(ir_procs(self), ident);
+    return map_pair_val(found);
+end
+
+proc ir_is_extern self, ident in
+    return map_find(ir_externs(self), ident) != NULL;
+end
+
+proc ir_get_extern self, ident in
+    var found = map_find(ir_externs(self), ident);
+    return map_pair_val(found);
+end
+
+proc ir_add_extern self, ident, params, is_varargs in
+    var proc_info = make_proc_info(ident, params, is_varargs);
+    map_set(ir_externs(self), ident, proc_info);
+end
+
+proc ir_is_local self, ident in
+    return map_find(ir_proc_locals(self), ident) != NULL;
+end
+
+proc ir_get_local self, ident in
+    var found = map_find(ir_proc_locals(self), ident);
+    return map_pair_val(found);
+end
+
+proc ir_is_const self, ident in
+    return map_find(ir_constants(self), ident) != NULL;
+end
+
+proc ir_get_const self, ident in
+    var found = map_find(ir_constants(self), ident);
+    return map_pair_val(found);
+end
+
+proc ir_add_const self, ident, value in
+    map_set(ir_constants(self), ident, value);
 end
 
 proc check_ast_kind expect, ast in
@@ -384,31 +727,389 @@ proc check_ast_kind expect, ast in
     end
 end
         
-proc ir_emit_ident self, ast in NYI_ERR("ir_emit_ident"); end
-proc ir_emit_integer self, ast in NYI_ERR("ir_emit_integer"); end
-proc ir_emit_string self, ast in NYI_ERR("ir_emit_string"); end
-proc ir_emit_call self, ast in NYI_ERR("ir_emit_call"); end
-proc ir_emit_binop self, ast in NYI_ERR("ir_emit_binop"); end
-proc ir_emit_return self, ast in NYI_ERR("ir_emit_return"); end
-proc ir_emit_var_decl self, ast in NYI_ERR("ir_emit_var_decl"); end
-proc ir_emit_var_assign self, ast in NYI_ERR("ir_emit_var_assign"); end
-proc ir_emit_assign self, ast in NYI_ERR("ir_emit_assign"); end
-proc ir_emit_procedure self, ast in NYI_ERR("ir_emit_procedure"); end
-proc ir_emit_if_else self, ast in NYI_ERR("ir_emit_if_else"); end
-proc ir_emit_while self, ast in NYI_ERR("ir_emit_while"); end
-proc ir_emit_pointer_op self, ast in NYI_ERR("ir_emit_pointer_op"); end
-proc ir_emit_prefix_op self, ast in NYI_ERR("ir_emit_prefix_op"); end
-proc ir_emit_const self, ast in NYI_ERR("ir_emit_const"); end
-proc ir_emit_extern self, ast in NYI_ERR("ir_emit_extern"); end
+proc ir_emit_ident self, ast in
+    check_ast_kind(AstK_Ident, ast);
+
+    var ident = ast_ident(ast);
+    if ir_is_local(self, ident) then
+        var n = ir_get_local(self, ident);
+        ir_append(self, make_ir_get_local(ident, n));
+    else if ir_is_const(self, ident) then
+        var const_info = ir_get_const(self, ident);
+        var cik = const_info_kind(const_info);
+        if cik == CIK_Integer then
+            ir_append(self, make_ir_push_int(const_info_value(const_info)));
+        else if cik == CIK_String then
+            ir_append(self, make_ir_push_label(const_info_value(const_info)));
+        else
+            printf("Unhandled const_info kind: %d\n", cik);
+            NYI_ERR("ir_emit_ident:const");
+        end
+    else if ir_is_proc(self, ident) then
+        var proc_info = ir_get_proc(self, ident);
+        ir_append(self, make_ir_push_label(proc_info_label(proc_info)));
+    else if ir_is_extern(self, ident) then
+        var extern_info = ir_get_extern(self, ident);
+        ir_append(self, make_ir_push_label(proc_info_label(extern_info)));
+    else
+        ir_append(self, make_ir_lazy_ident(ast_token(ast)));
+    end
+end
+
+proc ir_emit_integer self, ast in
+    check_ast_kind(AstK_Integer, ast);
+    ir_append(self, make_ir_push_int(ast_value(ast)));
+end
+
+proc ir_emit_string self, ast in
+    check_ast_kind(AstK_String, ast);
+    var string = ast_value(ast);
+    var string_label = ir_string_label(self, string);
+    ir_append(self, make_ir_push_label(string_label));
+    //printf("  /* Mapping %s to '%s' */\n", string_label, string_cstr(string));
+end
+
+proc _ir_check_arg_count self, ident, info, nargs in
+    var nparams = vector_len(proc_info_params(info));
+    var varargs = proc_info_varargs(info);
+
+    if not varargs and nargs != nparams then
+        printf("ERROR: Call to `%s` expects %d arguments but got %d.\n", ident, nparams, nargs);
+        return false;
+    else if varargs and nargs < nparams then
+        printf("ERROR: Call to `%s` expects at least %d arguments but got %d.\n", ident, nparams, nargs);
+        return false;
+    end
+    return true;
+end
+
+proc ir_emit_call self, ast in
+    check_ast_kind(AstK_Call, ast);
+    var args = ast_args(ast);
+    var len = vector_len(args);
+    ir_append(self, make_ir_alloc_temps(len));
+    var i = 0;
+    while i < len do
+        ir_compile(self, vector_get(args, i));
+        ir_append(self, make_ir_store_temp(i));
+        i = i + 1;
+    done
+
+    i = 0;
+    while i < len do
+        ir_append(self, make_ir_set_arg_temp(i));
+        i = i + 1;
+    done
+    ir_append(self, make_ir_free_temps(len));
+
+    var expr = ast_expr(ast);
+    if ast_kind(expr) == AstK_Ident then
+        var ident = ast_ident(expr);
+        var info;
+        if ir_is_proc(self, ident) then
+            info = ir_get_proc(self, ident);
+            if not _ir_check_arg_count(self, ident, info, vector_len(args)) then
+                ir_print_src_loc(self);
+                exit(1);
+            end
+            ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
+        else if ir_is_extern(self, ident) then
+            info = ir_get_extern(self, ident);
+            if not _ir_check_arg_count(self, ident, info, vector_len(args)) then
+                ir_print_src_loc(self);
+                exit(1);
+            end
+            ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
+        else if ir_is_label(self, ident) then
+            ir_append(self, make_ir_call(ident, false));
+        else if ir_is_local(self, ident) then
+            ir_compile(self, expr);
+            ir_append(self, make_ir_pop_call());
+        else
+            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), len));
+        end
+            
+    else
+        ir_compile(self, expr);
+        ir_append(self, make_ir_pop_call());
+    end
+end
+
+proc ir_emit_logic_and self, ast in
+    var label = ir_new_label(self, NULL);
+    ir_compile(self, ast_lhs(ast));
+    ir_append(self, make_ir_goto_top_false(label));
+    ir_compile(self, ast_rhs(ast));
+    ir_append(self, make_ir_label(label));
+end
+
+proc ir_emit_logic_or self, ast in
+    var label = ir_new_label(self, NULL);
+    ir_compile(self, ast_lhs(ast));
+    ir_append(self, make_ir_goto_top_true(label));
+    ir_compile(self, ast_rhs(ast));
+    ir_append(self, make_ir_label(label));
+end
+
+proc ir_emit_binop self, ast in
+    check_ast_kind(AstK_BinOp, ast);
+    var op = ast_op(ast);
+    var simple = 0-1;
+    if op == TK_Plus then simple = IRK_OpAdd;
+    else if op == TK_Minus then simple = IRK_OpSub;
+    else if op == TK_Star then simple = IRK_OpMul;
+    else if op == TK_Slash then simple = IRK_OpDiv;
+    else if op == TK_Percent then simple = IRK_OpMod;
+    else if op == TK_EqEq then simple = IRK_OpEq;
+    else if op == TK_NotEq then simple = IRK_OpNotEq;
+    else if op == TK_Less then simple = IRK_OpLess;
+    else if op == TK_Greater then simple = IRK_OpGreater;
+    else if op == TK_LessEq then simple = IRK_OpLessEq;
+    else if op == TK_GreaterEq then simple = IRK_OpGreaterEq;
+    else if op == TK_KW_and then ir_emit_logic_and(self, ast);
+    else if op == TK_KW_or then ir_emit_logic_or(self, ast);
+    else
+        printf("Unhandled binop: %d\n", op);
+        print_token(ast_token(ast));
+        NYI_ERR("ir_emit_binop");
+    end
+    if simple >= 0 then
+        ir_compile(self, ast_lhs(ast));
+        ir_compile(self, ast_rhs(ast));
+        ir_append(self, make_ir_simple_op(simple));
+    end
+end
+
+proc ir_emit_return self, ast in
+    check_ast_kind(AstK_Return, ast);
+    var expr = ast_expr(ast);
+    if not expr then
+        ir_append(self, make_ir_return_void());
+        return;
+    end
+    ir_compile(self, expr);
+    ir_append(self, make_ir_pop_return());
+end
+
+proc ir_emit_var_decl self, ast in
+    check_ast_kind(AstK_VarDecl, ast);
+    var ident = ast_ident(ast);
+    if ir_is_local(self, ident) then
+        printf("ERROR: Local `%s` already declared.\n", ident);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    ir_new_local(self, ident);
+end
+
+proc ir_emit_var_assign self, ast in
+    check_ast_kind(AstK_VarAssign, ast);
+    var ident = ast_ident(ast);
+    if ir_is_local(self, ident) then
+        printf("ERROR: Local `%s` already declared.\n", ident);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    var n = ir_new_local(self, ident);
+    ir_compile(self, ast_assign_expr(ast));
+    ir_append(self, make_ir_set_local(ident, n));
+end
+
+proc ir_emit_assign self, ast in
+    check_ast_kind(AstK_Assign, ast);
+    ir_compile(self, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    if not ir_is_local(self, ident) then
+        printf("ERROR: No local named `%s` exists.\n", ident);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    var n = ir_get_local(self, ident);
+    ir_append(self, make_ir_set_local(ident, n));
+end
+
+proc ir_emit_procedure self, ast in
+    check_ast_kind(AstK_Procedure, ast);
+    var ident = ast_ident(ast);
+    var params = ast_params(ast);
+    var label = ir_new_proc(self, ident, params);
+    var insn = make_ir_new_proc(ident, label, params, NULL);
+    ir_append(self, insn);
+
+    var i = 0;
+    var len = vector_len(params);
+    var param;
+    var n;
+    while i < len do
+        param = vector_get(params, i);
+        n = ir_new_local(self, param);
+        ir_append(self, make_ir_set_local_arg(param, n, i));
+        i = i + 1;
+    done
+
+    var body = ast_body(ast);
+    i = 0;
+    len = vector_len(body);
+    while i < len do
+        ir_compile(self, vector_get(body, i));
+        i = i + 1;
+    done
+
+    u64!(insn + TIR_INSTR_locals, ir_proc_locals(self));
+    ir_append(self, make_ir_close_proc(ident));
+end
+
+proc ir_emit_if_else self, ast in
+    check_ast_kind(AstK_IfElse, ast);
+    var i; var len;
+    var l_else = ir_new_label(self, NULL);
+    var l_out = ir_new_label(self, NULL);
+    ir_compile(self, ast_test(ast));
+    ir_append(self, make_ir_goto_false(l_else));
+
+    var conseq = ast_consequence(ast);
+    i = 0; len = vector_len(conseq);
+    while i < len do
+        ir_compile(self, vector_get(conseq, i));
+        i = i + 1;
+    done
+
+    ir_append(self, make_ir_goto(l_out));
+    ir_append(self, make_ir_label(l_else));
+
+    var altern = ast_alternative(ast);
+    i = 0; len = vector_len(altern);
+    while i < len do
+        ir_compile(self, vector_get(altern, i));
+        i = i + 1;
+    done
+
+    ir_append(self, make_ir_label(l_out));
+end
+
+proc ir_emit_while self, ast in
+    check_ast_kind(AstK_While, ast);
+    var i; var len;
+    var l_test = ir_new_label(self, NULL);
+    var l_out = ir_new_label(self, NULL);
+    ir_append(self, make_ir_label(l_test));
+    ir_compile(self, ast_test(ast));
+    ir_append(self, make_ir_goto_false(l_out));
+
+    var body = ast_body(ast);
+    i = 0; len = vector_len(body);
+    while i < len do
+        ir_compile(self, vector_get(body, i));
+        i = i + 1;
+    done
+
+    ir_append(self, make_ir_goto(l_test));
+    ir_append(self, make_ir_label(l_out));
+end
+
+proc ir_emit_pointer_op self, ast in
+    check_ast_kind(AstK_PointerOp, ast);
+    var args = ast_pop_args(ast);
+    var size = ast_size(ast);
+    var op = ast_op(ast);
+    if op == PointerOp_Read then
+        ir_compile(self, vector_get(args, 0));
+        ir_append(self, make_ir_ptr_read(size));
+    else if op == PointerOp_Write then
+        // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
+        ir_compile(self, vector_get(args, 1));
+        ir_compile(self, vector_get(args, 0));
+        ir_append(self, make_ir_ptr_write(size));
+    else
+        NYI_ERR("unhandled ir_emit_pointer_op");
+    end
+end
+
+proc ir_emit_prefix_op self, ast in
+    check_ast_kind(AstK_Prefix, ast);
+    var op = ast_op(ast);
+    if op == TK_Tilde then
+        ir_compile(self, ast_expr(ast));
+        ir_append(self, make_ir_bit_not());
+    else if op == TK_KW_not then
+        ir_compile(self, ast_expr(ast));
+        ir_append(self, make_ir_logic_not());
+    else
+        NYI_ERR("unhandled ir_emit_prefix_op");
+    end
+end
+
+proc ir_emit_const self, ast in
+    check_ast_kind(AstK_Const, ast);
+    var const_info = NULL;
+    var tok = ast_val_tok(ast);
+    var k = token_kind(tok);
+    if k == TK_Ident then
+        if ir_is_const(self, token_value(tok)) then
+            var tmp = ir_get_const(self, token_value(tok));
+            const_info = make_const_info(const_info_kind(tmp), const_info_value(tmp));
+        else
+            printf("ERROR: Referencing a non-const as a const is not permitted.\n");
+            printf("NOTE: The non-const is `%s.`\n", token_value(tok));
+            ir_print_src_loc(self);
+            exit(1);
+        end
+    else if k == TK_String then
+        var string_label = ir_string_label(self, token_value(tok));
+        const_info = make_const_info(CIK_String, string_label);
+    else if k == TK_Integer then
+        const_info = make_const_info(CIK_Integer, token_value(tok));
+    else if k == TK_Char then
+        const_info = make_const_info(CIK_Integer, token_value(tok));
+    end
+
+    if const_info then
+        if ir_is_const(self, ast_ident(ast)) then
+            var existing = ir_get_const(self, ast_ident(ast));
+            if const_info_kind(existing) != const_info_kind(const_info) or
+                const_info_value(existing) != const_info_value(const_info) then
+                printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast_ident(ast));
+                ir_print_src_loc(self);
+                exit(1);
+            end
+        else
+            ir_add_const(self, ast_ident(ast), const_info);
+        end
+    else
+        NYI_ERR("ir_emit_const: unsupported constant");
+    end
+end
+
+proc ir_emit_extern self, ast in
+    check_ast_kind(AstK_Extern, ast);
+    var ident = ast_ident(ast);
+    var params = ast_params(ast);
+    var is_varargs = ast_varargs(ast);
+    
+    if ir_is_extern(self, ident) then
+        var info = ir_get_extern(self, ident);
+        if vector_len(params) != vector_len(proc_info_params(info))
+            or is_varargs != proc_info_varargs(info) then
+            printf("ERROR: Redefintion of extern `%s` with different number of arguments.", ident);
+            ir_print_src_loc(self);
+            exit(1);
+        end
+    end
+
+    ir_add_extern(self, ident, params, is_varargs);
+end
+
 proc ir_emit_inline_asm self, ast in
     check_ast_kind(AstK_InlineAsm, ast);
     var asm_name = ast_ident(ast);
     var asm_code = ast_asm(ast);
-    ir_append(self, make_ir_inline_asm(ast_src_loc(ast), asm_name, asm_code));
+    ir_append(self, make_ir_inline_asm(asm_name, asm_code));
+    set_add(ir_labels(self), asm_name);
 end
 
 proc ir_compile self, ast in
     var k = ast_kind(ast);
+    ir_push_src_loc(self, token_src_loc(ast_token(ast)));
     if k == AstK_Ident then ir_emit_ident(self, ast);
     else if k == AstK_Integer then ir_emit_integer(self, ast);
     else if k == AstK_String then ir_emit_string(self, ast);
@@ -430,4 +1131,71 @@ proc ir_compile self, ast in
         printf("Unknown AstK: %d\n", k);
         abort();
     end
+    ir_pop_src_loc(self);
+end
+
+proc ir_resolve_lazy_idents self in
+    var instrs = ir_instructions(self);
+    var i = 0; var len = vector_len(instrs);
+    var k; var ir; var token; var ident;
+    var info = NULL;
+    while i < len do
+        ir = vector_get(instrs, i);
+        k = ir_instr_kind(ir);
+        if k == IRK_LazyIdent then
+            token = ir_instr_ident(ir);
+            ident = token_value(token);
+            var new_ir;
+            if ir_is_const(self, ident) then
+                info = ir_get_const(self, ident);
+                var cik = const_info_kind(info);
+                if cik == CIK_String then
+                    new_ir = make_ir_push_label(const_info_value(info));
+                else if cik == CIK_Integer then
+                    new_ir = make_ir_push_int(const_info_value(info));
+                end
+            else if ir_is_proc(self, ident) then
+                info = ir_get_proc(self, ident);
+                new_ir = make_ir_push_label(proc_info_label(info));
+            else if ir_is_extern(self, ident) then
+                info = ir_get_extern(self, ident);
+                new_ir = make_ir_push_label(proc_info_label(info));
+            else if ir_is_label(self, ident) then
+                new_ir = make_ir_push_label(ident);
+            else
+                printf("ERROR: Undeclared identifier: `%s`\n", ident);
+                printf("NOTE: Did you forget to declare 'extern %s ...;'?\n", ident);
+                print_src_loc(token_src_loc(token));
+                exit(1);
+            end
+            u64!(new_ir + TIR_INSTR_src_loc, token_src_loc(token));
+            vector_set(instrs, i, new_ir);
+        else if k == IRK_CallLazyIdent then
+            token = ir_instr_ident(ir);
+            ident = token_value(token);
+            var nargs = ir_instr_nargs(ir);
+            var call = NULL;
+            if ir_is_proc(self, ident) then
+                info = ir_get_proc(self, ident);
+                call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
+            else if ir_is_extern(self, ident) then
+                info = ir_get_extern(self, ident);
+                call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
+            else if ir_is_label(self, ident) then
+                call = make_ir_call(ident, false);
+            else
+                printf("ERROR: Undeclared identifier: `%s`\n", ident);
+                printf("NOTE: Did you forget to declare 'extern %s ...;'?\n", ident);
+                print_src_loc(token_src_loc(token));
+                exit(1);
+            end
+            if not _ir_check_arg_count(self, ident, info, nargs) then
+                print_src_loc(token_src_loc(token));
+                exit(1);
+            end
+            u64!(call + TIR_INSTR_src_loc, token_src_loc(token));
+            vector_set(instrs, i, call);
+        end
+        i = i + 1;
+    done
 end

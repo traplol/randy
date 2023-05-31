@@ -1,3 +1,6 @@
+const REG_SIZE = 8;
+const SYSV_REGISTERS = 6;
+
 proc check_ir_kind expect, ir in
     var actual = ir_instr_kind(ir);
     if expect != actual then
@@ -8,179 +11,489 @@ proc check_ir_kind expect, ir in
     end
 end
 
+proc systemv_arg n in
+    if n >= SYSV_REGISTERS then return NULL;
+    else if n == 0 then return "%rdi";
+    else if n == 1 then return "%rsi";
+    else if n == 2 then return "%rdx";
+    else if n == 3 then return "%rcx";
+    else if n == 4 then return "%r8";
+    else if n == 5 then return "%r9";
+    end
+end
+
 proc x86_64_emit_get_local cc, ir in
     check_ir_kind(IRK_GetLocal, ir);
-    NYI_ERR("x86_64_get_local");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    var str = make_string(20);
+    string_append_cstr(str, "    movq -");
+    string_append_int(str, offs);
+    string_append_cstr(str, "(%rbp), %rax");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_push_label cc, ir in
     check_ir_kind(IRK_PushLabel, ir);
-    NYI_ERR("x86_64_emit_push_label");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var str = make_string(20);
+    string_append_cstr(str, "    leaq ");
+    string_append_cstr(str, ir_instr_label(ir));
+    string_append_cstr(str, ", %rax");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_push_int cc, ir in
     check_ir_kind(IRK_PushInt, ir);
-    NYI_ERR("x86_64_emit_push_int");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var str = make_string(20);
+    var val = ir_instr_value(ir);
+    if (0-2147483649) < val and val < 4294967296 then
+        string_append_cstr(str, "    movq $");
+    else
+        string_append_cstr(str, "    movabsq $");
+    end
+    string_append_int(str, val);
+    string_append_cstr(str, ", %rax");
+    cc_out(cc, string_cstr(str));
+    cc_out(cc, "    pushq %rax");
+    free_string(str);
 end
 
 proc x86_64_emit_alloc_temps cc, ir in
     check_ir_kind(IRK_AllocTemps, ir);
-    NYI_ERR("x86_64_emit_alloc_temps");
+    //print_ir(ir);
+    var n = ir_instr_n(ir);
+    if n > 0 then
+        cc_out_src_loc(cc, ir_instr_src_loc(ir));
+        var offs = (n+1) * REG_SIZE;
+        var str = make_string(20);
+        string_append_cstr(str, "    subq $");
+        string_append_int(str, offs);
+        string_append_cstr(str, ", %rsp");
+        cc_out(cc, string_cstr(str));
+        free_string(str);
+    end
 end
 
 proc x86_64_emit_free_temps cc, ir in
     check_ir_kind(IRK_FreeTemps, ir);
-    NYI_ERR("x86_64_emit_free_temps");
+    //print_ir(ir);
+    var n = ir_instr_n(ir);
+    if n > 0 then
+        cc_out_src_loc(cc, ir_instr_src_loc(ir));
+        var offs = (n+1) * REG_SIZE;
+        var str = make_string(20);
+        string_append_cstr(str, "    addq $");
+        string_append_int(str, offs);
+        string_append_cstr(str, ", %rsp");
+        cc_out(cc, string_cstr(str));
+        free_string(str);
+    end
 end
 
 proc x86_64_emit_store_temp cc, ir in
     check_ir_kind(IRK_StoreTemp, ir);
-    NYI_ERR("x86_64_emit_store_temp");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    cc_out(cc, "    popq %rax");
+    var str = make_string(20);
+    string_append_cstr(str, "    movq %rax, ");
+    string_append_int(str, offs);
+    string_append_cstr(str, "(%rsp)");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_set_arg_temp cc, ir in
     check_ir_kind(IRK_SetArgTemp, ir);
-    NYI_ERR("x86_64_emit_set_arg_temp");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var n = ir_instr_n(ir);
+    var offs = (n + 1) * REG_SIZE;
+    var str = make_string(20);
+    if n < SYSV_REGISTERS then
+        string_append_cstr(str, "    movq ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rsp), ");
+        string_append_cstr(str, systemv_arg(n));
+    else
+        string_append_cstr(str, "    pushq ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rsp)");
+    end
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_call cc, ir in
     check_ir_kind(IRK_Call, ir);
-    NYI_ERR("x86_64_emit_call");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    if ir_instr_varargs(ir) then
+        cc_out(cc, "    xor %al, %al");
+    end
+    var str = make_string(20);
+    string_append_cstr(str, "    call ");
+    string_append_cstr(str, ir_instr_label(ir));
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_pop_call cc, ir in
     check_ir_kind(IRK_PopCall, ir);
-    NYI_ERR("x86_64_emit_pop_call");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rcx");
+    cc_out(cc, "    xor %al, %al");
+    cc_out(cc, "    call *%rcx");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_add cc, ir in
     check_ir_kind(IRK_OpAdd, ir);
-    NYI_ERR("x86_64_emit_op_add");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    addq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_sub cc, ir in
     check_ir_kind(IRK_OpSub, ir);
-    NYI_ERR("x86_64_emit_op_sub");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    subq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_mul cc, ir in
     check_ir_kind(IRK_OpMul, ir);
-    NYI_ERR("x86_64_emit_op_mul");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    imulq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_div cc, ir in
     check_ir_kind(IRK_OpDiv, ir);
-    NYI_ERR("x86_64_emit_op_div");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rcx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    cqto");
+    cc_out(cc, "    idivq %rcx");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_mod cc, ir in
     check_ir_kind(IRK_OpMod, ir);
-    NYI_ERR("x86_64_emit_op_mod");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rcx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    cqto");
+    cc_out(cc, "    idivq %rcx");
+    cc_out(cc, "    pushq %rdx");
+end
+
+proc _x86_64_emit_compare cc, op in
+    cc_out(cc, "    popq %r10"); // -- a
+    cc_out(cc, "    popq %r11"); // -- a
+    cc_out(cc, "    xorl %eax, %eax");
+    cc_out(cc, "    cmpq %r10, %r11");
+    var str = make_string(20);
+    string_append_cstr(str, "    ");
+    string_append_cstr(str, op);
+    string_append_cstr(str, " %al");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_op_eq cc, ir in
     check_ir_kind(IRK_OpEq, ir);
-    NYI_ERR("x86_64_emit_op_eq");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "sete");
 end
 
 proc x86_64_emit_op_not_eq cc, ir in
     check_ir_kind(IRK_OpNotEq, ir);
-    NYI_ERR("x86_64_emit_op_not_eq");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "setne");
 end
 
 proc x86_64_emit_op_less cc, ir in
     check_ir_kind(IRK_OpLess, ir);
-    NYI_ERR("x86_64_emit_op_less");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "setl");
 end
 
 proc x86_64_emit_op_less_eq cc, ir in
     check_ir_kind(IRK_OpLessEq, ir);
-    NYI_ERR("x86_64_emit_op_less_eq");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "setle");
 end
 
 proc x86_64_emit_op_greater cc, ir in
     check_ir_kind(IRK_OpGreater, ir);
-    NYI_ERR("x86_64_emit_op_greater");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "setg");
 end
 
 proc x86_64_emit_op_greater_eq cc, ir in
     check_ir_kind(IRK_OpGreaterEq, ir);
-    NYI_ERR("x86_64_emit_op_greater_eq");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    _x86_64_emit_compare(cc, "setge");
 end
 
 proc x86_64_emit_pop_return cc, ir in
     check_ir_kind(IRK_PopReturn, ir);
-    NYI_ERR("x86_64_emit_pop_return");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax");
+    cc_out(cc, "    leave");
+    cc_out(cc, "    ret");
 end
 
 proc x86_64_emit_return_void cc, ir in
     check_ir_kind(IRK_ReturnVoid, ir);
-    NYI_ERR("x86_64_emit_return_void");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    xorq %rax, %rax");
+    cc_out(cc, "    leave");
+    cc_out(cc, "    ret");
 end
 
 proc x86_64_emit_set_local cc, ir in
     check_ir_kind(IRK_SetLocal, ir);
-    NYI_ERR("x86_64_emit_set_local");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax");
+    var str = make_string(20);
+    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    string_append_cstr(str, "    movq %rax, -");
+    string_append_int(str, offs);
+    string_append_cstr(str, "(%rbp)");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_new_proc cc, ir in
     check_ir_kind(IRK_NewProc, ir);
-    NYI_ERR("x86_64_emit_new_proc");
+    //print_ir(ir);
+    var label = ir_instr_label(ir);
+    cc_out_global(cc, label);
+    cc_out(cc, "    .align 16");
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_label(cc, label);
+    cc_out(cc, "    pushq %rbp");
+    cc_out(cc, "    movq %rsp, %rbp");
+    var n = map_len(ir_instr_locals(ir));
+    if n > 0 then
+        var str = make_string(20);
+        string_append_cstr(str, "    subq $");
+        string_append_int(str, n*REG_SIZE);
+        string_append_cstr(str, ", %rsp");
+        cc_out(cc, string_cstr(str));
+        free_string(str);
+    end
 end
 
 proc x86_64_emit_set_local_arg cc, ir in
     check_ir_kind(IRK_SetLocalArg, ir);
-    NYI_ERR("x86_64_emit_set_local_arg");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var local_n = ir_instr_n(ir);
+    var offs = REG_SIZE * (local_n+1);
+    var arg_n = ir_instr_arg(ir);
+    var str = make_string(20);
+    if arg_n < SYSV_REGISTERS then
+        string_append_cstr(str, "    movq ");
+        string_append_cstr(str, systemv_arg(arg_n));
+        string_append_cstr(str, ", -");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rbp)");
+        cc_out(cc, string_cstr(str));
+        free_string(str);
+    else
+        var n = (local_n - SYSV_REGISTERS + 2) * REG_SIZE;
+        string_append_cstr(str, "    movq ");
+        string_append_int(str, n);
+        string_append_cstr(str, "(%rbp), %rax");
+        cc_out(cc, string_cstr(str));
+        string_reset(str);
+        string_append_cstr(str, "    movq %rax, -");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rbp)");
+        cc_out(cc, string_cstr(str));
+        free_string(str);
+    end
 end
 
 proc x86_64_emit_close_proc cc, ir in
     check_ir_kind(IRK_CloseProc, ir);
-    NYI_ERR("x86_64_emit_close_proc");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    movq %rbp, %rsp");
+    cc_out(cc, "    popq %rbp");
+    cc_out(cc, "    ret");
 end
 
 proc x86_64_emit_goto_top_false cc, ir in
     check_ir_kind(IRK_GotoTopFalse, ir);
-    NYI_ERR("x86_64_emit_goto_top_false");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    cmpq $0, (%rsp)");
+    var str = make_string(20);
+    string_append_cstr(str, "    je ");
+    string_append_cstr(str, ir_instr_label(ir));
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_goto_top_true cc, ir in
     check_ir_kind(IRK_GotoTopTrue, ir);
-    NYI_ERR("x86_64_emit_goto_top_true");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    cmpq $0, (%rsp)");
+    var str = make_string(20);
+    string_append_cstr(str, "    jne ");
+    string_append_cstr(str, ir_instr_label(ir));
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_goto_false cc, ir in
     check_ir_kind(IRK_GotoFalse, ir);
-    NYI_ERR("x86_64_emit_goto_false");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax");
+    cc_out(cc, "    cmpq $0, %rax");
+    var str = make_string(20);
+    string_append_cstr(str, "    je ");
+    string_append_cstr(str, ir_instr_label(ir));
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_goto cc, ir in
     check_ir_kind(IRK_Goto, ir);
-    NYI_ERR("x86_64_emit_goto");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var str = make_string(20);
+    string_append_cstr(str, "    jmp ");
+    string_append_cstr(str, ir_instr_label(ir));
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_label cc, ir in
     check_ir_kind(IRK_Label, ir);
-    NYI_ERR("x86_64_emit_label");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_label(cc, ir_instr_label(ir));
 end
 
 proc x86_64_emit_ptr_read cc, ir in
     check_ir_kind(IRK_PtrRead, ir);
-    NYI_ERR("x86_64_emit_ptr_read");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var size = ir_instr_size(ir);
+    cc_out(cc, "    popq %rax");
+    cc_out(cc, "    xorl %edx, %edx");
+    var str = make_string(20);
+    var reg; 
+    string_append_cstr(str, "    mov");
+    if size == 8 then
+        string_push(str, 'b');
+        reg = "%dl";
+    else if size == 16 then
+        string_push(str, 'w');
+        reg = "%dx";
+    else if size == 32 then
+        string_push(str, 'l');
+        reg = "%edx";
+    else if size == 64 then
+        string_push(str, 'q');
+        reg = "%rdx";
+    end
+    string_append_cstr(str, " (%rax), ");
+    string_append_cstr(str, reg);
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    movq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_ptr_write cc, ir in
     check_ir_kind(IRK_PtrWrite, ir);
-    NYI_ERR("x86_64_emit_ptr_write");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var size = ir_instr_size(ir);
+    cc_out(cc, "    popq %rax"); // -- ptr
+    cc_out(cc, "    popq %rdx"); // -- value
+    var str = make_string(20);
+    var reg; 
+    string_append_cstr(str, "    mov");
+    if size == 8 then
+        string_push(str, 'b');
+        reg = "%dl";
+    else if size == 16 then
+        string_push(str, 'w');
+        reg = "%dx";
+    else if size == 32 then
+        string_push(str, 'l');
+        reg = "%edx";
+    else if size == 64 then
+        string_push(str, 'q');
+        reg = "%rdx";
+    end
+    string_push(str, ' ');
+    string_append_cstr(str, reg);
+    string_append_cstr(str, ", (%rax)");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
 end
 
 proc x86_64_emit_bit_not cc, ir in
     check_ir_kind(IRK_BitNot, ir);
-    NYI_ERR("x86_64_emit_bit_not");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    not %rax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_logic_not cc, ir in
     check_ir_kind(IRK_LogicNot, ir);
-    NYI_ERR("x86_64_emit_logic_not");
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    cmpq $0, %rax");
+    cc_out(cc, "    sete %al");
+    cc_out(cc, "    movzbl %al, %eax");
+    cc_out(cc, "    pushq %rax");
 end
 
 proc x86_64_emit_inline_asm cc, ir in
@@ -193,12 +506,12 @@ end
 
 proc x86_64_emit_lazy_ident cc, ir in
     check_ir_kind(IRK_LazyIdent, ir);
-    NYI_ERR("x86_64_emit_lazy_ident");
+    NYI_ERR("IRK_LazyIdent should have been handled in ir_context.randy");
 end
 
 proc x86_64_emit_call_lazy_ident cc, ir in
     check_ir_kind(IRK_CallLazyIdent, ir);
-    NYI_ERR("x86_64_emit_call_lazy_ident");
+    NYI_ERR("IRK_CallLazyIdent should have been handled in ir_context.randy");
 end
 
 

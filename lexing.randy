@@ -1,6 +1,15 @@
-asm _proc_main in
-"
-    movq $69, %rax
-    ret
-"
-end 
+//#include std/core   
+
+const ASDF = 123;
+const Foobar = "test";
+const Butt = 'a';
+const XXX = Foobar;
+
+proc foo a, b, c in
+    return a + b * c;
+end
+
+extern printf fmt, ...;
+
+proc main a, b in
+end

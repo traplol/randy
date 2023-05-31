@@ -1,18 +1,36 @@
 
-const TCOMPILER_CONTEXT_out_lines = 0;
-const TCOMPILER_CONTEXT_proc_name = 8;
-const TCOMPILER_CONTEXT_proc_params = 16;
-const TCOMPILER_CONTEXT_proc_locals = 24;
-const sizeof_TCOMPILER_CONTEXT = 32;
+const TCOMPILER_CONTEXT_out_lines     = 0;  // string vector
+const TCOMPILER_CONTEXT_proc_src_name = 8;
+const TCOMPILER_CONTEXT_proc_name     = 16;
+const TCOMPILER_CONTEXT_proc_params   = 24;
+const TCOMPILER_CONTEXT_proc_locals   = 32;
+const TCOMPILER_CONTEXT_file_map      = 40; // (cstr, int) : path -> id
+const sizeof_TCOMPILER_CONTEXT        = 48;
 
 proc make_compiler_context in
-    var cctx = malloc(sizeof_TCOMPILER_CONTEXT);
+    var self = malloc(sizeof_TCOMPILER_CONTEXT);
     var lines = make_vector(0);
-    u64!(cctx + TCOMPILER_CONTEXT_out_lines, lines);
-    u64!(cctx + TCOMPILER_CONTEXT_proc_name, NULL);
-    u64!(cctx + TCOMPILER_CONTEXT_proc_params, NULL);
-    u64!(cctx + TCOMPILER_CONTEXT_proc_locals, NULL);
-    return cctx;
+    u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
+    u64!(self + TCOMPILER_CONTEXT_proc_src_name, NULL);
+    u64!(self + TCOMPILER_CONTEXT_proc_name, NULL);
+    u64!(self + TCOMPILER_CONTEXT_proc_params, NULL);
+    u64!(self + TCOMPILER_CONTEXT_proc_locals, NULL);
+    u64!(self + TCOMPILER_CONTEXT_file_map, make_map(0, cstr_eq, cstr_hash));
+    return self;
+end
+
+proc compiler_context_new_proc self, src_name, label, params, locals in
+end
+
+proc compiler_context_file_map self in return u64@(self + TCOMPILER_CONTEXT_file_map); end
+
+proc compiler_context_get_file_id self, path in
+    var found = map_find(compiler_context_file_map(self), path);
+    return map_pair_val(found);
+end
+
+proc compiler_context_add_file self, path, id in
+    map_set(compiler_context_file_map(self), path, id);
 end
 
 proc cc_print_lines self in
@@ -28,6 +46,15 @@ end
 proc cc_out self, cstr in
     var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
     vector_push(lines, string_from_cstr(cstr));
+    //printf("%s\n", cstr);
+end
+
+proc cc_out_global self, cstr in
+    var str = make_string(20);
+    string_append_cstr(str, "    .global ");
+    string_append_cstr(str, cstr);
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end
 
 proc cc_out_extern self, cstr in
@@ -47,13 +74,40 @@ proc cc_out_label self, cstr in
 end
 
 proc cc_out_string self, string in
-    NYI_ERR("cc_out_string");
+    var str = make_string(20);
+    string_append_cstr(str, ".byte ");
+    var i = 0;
+    var len = string_len(string);
+    while i < len do
+        string_append_int(str, string_get(string, i));
+        i = i + 1;
+        if i < len then
+            string_append_cstr(str, ", ");
+        end
+    done
+    string_append_cstr(str, ", 0");
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end
 
 proc cc_out_src_loc self, src_loc in
+    // var str = make_string(20);
+    // var id = compiler_context_get_file_id(self, src_loc_filename(src_loc));
+    // string_append_cstr(str, "    .loc ");
+    // string_append_int(str, id);
+    // string_push(str, ' ');
+    // string_append_int(str, src_loc_line(src_loc));
+    // cc_out(self, string_cstr(str));
+    // free_string(str);
+end
+
+proc cc_out_file self, idx, filename in
     var str = make_string(20);
-    string_append_cstr(str, "    .loc <FIXME need file id> ");
-    string_append_int(str, src_loc_line(src_loc));
+    string_append_cstr(str, "    .file ");
+    string_append_int(str, idx);
+    string_append_cstr(str, " \"");
+    string_append_cstr(str, filename);
+    string_push(str, '"');
     cc_out(self, string_cstr(str));
     free_string(str);
 end

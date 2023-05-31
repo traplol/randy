@@ -31,6 +31,19 @@ proc string_len self in
     return u64@(self + TSTRING_length);
 end
 
+proc string_set_len self, n in
+    if n >= 0 and n <= string_cap(self) then
+        u64!(self + TSTRING_length, n);
+        return true;
+    else
+        return false;
+    end
+end
+
+proc string_reset self in
+    string_set_len(self, 0);
+end
+
 proc string_cap self in
     return u64@(self + TSTRING_capacity);
 end
@@ -65,6 +78,25 @@ proc string_push self, val in
     end
     string_set(self, len, val);
     u64!(self + TSTRING_length, len+1);
+end
+
+proc string_pop self in
+    var len = string_len(self);
+    if len > 0 then
+        u64!(self + TSTRING_length, len - 1);
+    else
+        printf("ERROR: string_pop out of bounds.\n");
+        abort();
+    end
+end
+
+proc string_back self in
+    var len = string_len(self);
+    if len > 0 then
+        return string_get(self, len-1);
+    end
+    printf("ERROR: string_back out of bounds.\n");
+    abort();
 end
 
 proc string_append_string self, string in
@@ -153,4 +185,11 @@ proc cstr_len cstr in
         cstr = cstr + 1;
     done
     return i;
+end
+
+proc string_duplicate self in
+    var copy = make_string(string_cap(self));
+    memcpy(string_buf(copy), string_buf(self), string_len(self));
+    string_set_len(copy, string_len(self));
+    return copy;
 end

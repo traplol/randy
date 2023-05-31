@@ -164,8 +164,12 @@ proc print_token self in
     end
 end
 
-proc print_token_loc self in
-    var line_no = token_line(self);
-    var filename = token_filename(self);
+proc print_src_loc self in
+    var line_no = src_loc_line(self);
+    var filename = src_loc_filename(self);
     printf("  File \"%s\", line %d\n", filename, line_no);
+end
+
+proc print_token_loc self in
+    print_src_loc(token_src_loc(self));
 end

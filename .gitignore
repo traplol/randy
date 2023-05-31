@@ -1,5 +1,6 @@
 /.mypy_cache/
 /asm/
 /out/
+/bootstrap/
 notes.txt
 .gdb_history

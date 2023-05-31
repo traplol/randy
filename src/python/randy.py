@@ -917,8 +917,9 @@ class IRInstr:
         self.asm: Any = None
         self.keys = []
         for k, v in kwargs.items():
-            self.keys.append(k)
             setattr(self, k, v)
+            if k != "src_loc":
+                self.keys.append(k)
 
     def __repr__(self):
         if len(self.keys) > 0:
@@ -1007,7 +1008,8 @@ class IRContext:
     def add_string(self, string: str) -> str:
         if string in self.strings:
             return self.strings[string]
-        str_label = "__string__" + str(len(self.data))
+        #str_label = "__string__" + str(len(self.data))
+        str_label = self.new_label("__string__")
         str_bytes = bytearray(string, "utf-8")
         str_bytes.append(0)
         self.add_data(str_label, len(str_bytes), str_bytes)
@@ -1023,7 +1025,8 @@ class IRContext:
         return None, None, None
 
     def new_label(self, hint: str) -> str:
-        label = f".L{hint}_{self.label_id}"
+        #label = f".L{hint}_{self.label_id}"
+        label = f".L{self.label_id}"
         self.labels.add(label)
         self.label_id += 1
         return label
@@ -1205,12 +1208,12 @@ def ir_emit_procedure(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.CloseProc, name=label)
 
 def ir_emit_if_else(ast: Ast, ir: IRContext) -> None:
-    l_then = ir.new_label("then")
+    #l_then = ir.new_label("then")
     l_else = ir.new_label("else")
     l_out = ir.new_label("out")
     ir_compile(ast.test, ir)
     ir.append(IRK.GotoFalse, label=l_else)
-    ir.append(IRK.Label, label=l_then)
+    #ir.append(IRK.Label, label=l_then)
     for stmt in ast.consequence:
         ir_compile(stmt, ir)
     ir.append(IRK.Goto, label=l_out)
@@ -1284,7 +1287,7 @@ def ir_emit_extern(ast: Ast, ir: IRContext) -> None:
             print(f"ERROR: Redefinition of `extern {ident}` with different number of arguments.")
             print(ast.ident.fmt_src_loc())
             exit(1)
-    ir.add_extern(ident, ast.params, ast.varargs)
+    ir.add_extern(ident, list(map(lambda x: x.value, ast.params)), ast.varargs)
 
 def ir_emit_asm(ast: Ast, ir: IRContext) -> None:
     ir.declare_asm(ast.name.value)
@@ -1318,6 +1321,33 @@ def ir_compile(ast: Ast, ir: IRContext) -> None:
     else:
         assert False, f"TODO: compile Ast({k})"
 
+def ir_resolve_lazy_idents(ir: IRContext) -> None:
+    for i, ins in enumerate(ir.instructions):
+        if ins.kind == IRK.LazyIdent:
+            ident = ins.ident.value
+            val = ir.get_const(ident)
+            if isinstance(val, str):
+                ir.instructions[i] = IRInstr(IRK.PushLabel, src_loc=ins.src_loc, label=val)
+                continue
+            if isinstance(val, int):
+                ir.instructions[i] = IRInstr(IRK.PushInt, src_loc=ins.src_loc, value=val)
+                continue
+            #print(ins);
+        elif ins.kind == IRK.CallLazyIdent:
+            ident = ins.ident.value
+            label, params, varargs = ir.get_proc(ident)
+            if label is not None:
+                ir.instructions[i] = IRInstr(IRK.Call, src_loc=ins.src_loc, label=label, varargs=varargs)
+                continue
+            label, params, varargs = ir.get_extern(ident)
+            if label is not None:
+                ir.instructions[i] = IRInstr(IRK.Call, src_loc=ins.src_loc, label=label, varargs=varargs)
+                continue
+            print(f"ERROR: Undeclared identifier: `{ident}`")
+            print(f"    did you forget to declare 'extern {ident} ...;'?")
+            print(ins.ident.fmt_src_loc())
+            exit(1)
+
 ########################################################################################
 #                                     COMPILER
 ########################################################################################
@@ -1342,6 +1372,8 @@ class CompilerContext:
         return None, None, None
 
     def out(self, msg: str) -> None:
+        if msg.startswith("    .loc"):
+            return
         if self.no_comments and msg.startswith("/*"):
             return
         if self.no_comments and msg.startswith("    .loc"):
@@ -1443,11 +1475,11 @@ def sized_register(size: int, reg: str) -> str:
 
 def emit_new_proc(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.new_proc(ir.src_name, ir.name, ir.params, ir.locals)
-    ctx.out(f"    .globl {ir.name}")
+    ctx.out(f"    .global {ir.name}")
     ctx.out(f"    .align 16")
     id, line, col, file = ir.src_loc
     ctx.out(f"    .loc {id} {line} {col}")
-    ctx.out(f"{ir.name}: /* params={ir.params} */")
+    ctx.out(f"{ir.name}:")
     ctx.out(f"/* {ir} */")
     ctx.out(f"    pushq %rbp")
     ctx.out(f"    movq %rsp, %rbp")
@@ -1533,39 +1565,10 @@ def emit_set_arg_temp(ctx: CompilerContext, ir: IRInstr) -> None:
         ctx.out(f"    pushq {offs}(%rsp)")
         
 def emit_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
-    name, _, _ = ctx.proc_name(ir.ident.value)
-    if name is None:
-        print(f"ERROR: Undeclared identifier: `{ir.ident.value}`")
-        print(f"    did you forget to declare 'extern {ir.ident.value} ...;'?")
-        print(ir.ident.fmt_src_loc())
-        exit(1)
-    ctx.out(f"/* {ir} */")
-    id, line, col, file = ir.src_loc
-    ctx.out(f"    .loc {id} {line} {col}")
-    ctx.out(f"    leaq {name}, %rax")
-    ctx.out(f"    pushq %rax")
+    assert False, f"LazyIdent should have been resolved before getting here.\n it was {ir}"
 
 def emit_call_lazy_ident(ctx: CompilerContext, ir: IRInstr) -> None:
-    name, params, varargs = ctx.proc_name(ir.ident.value)
-    if name is None:
-        print(f"ERROR: Undeclared identifier: `{ir.ident.value}`")
-        print(f"    did you forget to declare 'extern {ir.ident.value} ...;'?")
-        print(ir.ident.fmt_src_loc())
-        exit(1)
-
-    if (not varargs and ir.nargs != len(params)) or \
-       (varargs and ir.nargs < len(params)):
-        print(f"ERROR: Call to `{ir.ident.value}` expects {len(params)} arguments, got {ir.nargs}")
-        print(ir.ident.fmt_src_loc())
-        exit(1)
-
-    ctx.out(f"/* {ir} */")
-    id, line, col, file = ir.src_loc
-    ctx.out(f"    .loc {id} {line} {col}")
-    if ir.varargs:
-        ctx.out(f"    xor %al, %al")
-    ctx.out(f"    call {name}")
-    ctx.out(f"    pushq %rax")
+    assert False, f"CallLazyIdent should have been resolved before getting here.\n it was {ir}"
 
 def emit_call(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"/* {ir} */")
@@ -1890,6 +1893,7 @@ def main(config: Config):
     for ast in roots:
         ir_compile(ast, ir)
     assert len(ir.src_locs) == 0, f"Forgot to pop ir src_loc for something: len={len(ir.src_locs)} last={ir.src_locs[-1]}"
+    ir_resolve_lazy_idents(ir);
     end = time.time()
     if config.verbosity > 0:
         print(f"IR compile took {(end-start)*1000}ms")
@@ -1938,7 +1942,7 @@ def main(config: Config):
         print(f"ASM compile took {(end-start)*1000}ms")
 
     start = time.time()
-    ctx.optimize1(config.verbosity > 0)
+    #ctx.optimize1(config.verbosity > 0)
     end = time.time()
     if config.verbosity > 0:
         print(f"ASM optimize took {(end-start)*1000}ms")

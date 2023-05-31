@@ -153,6 +153,7 @@ proc map_begin self in
 end
 
 proc map_next self, iter in
+    iter = iter + sizeof_TMAP_PAIR;
     var end_ = map_end(self);
     while iter != end_ do
         if u64@(iter) then

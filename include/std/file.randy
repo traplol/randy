@@ -1,5 +1,6 @@
 
 #include syscall
+#include string
 
 const O_RDONLY = 0;
 const O_WRONLY = 1;
@@ -29,5 +30,34 @@ proc write_file fd, buf, count in
     return syscall(SYS_write, fd, buf, count);
 end
 
+proc getcwd in
+    var str = make_string(1024);
+    while not syscall(SYS_getcwd, string_buf(str), string_cap(str)) do
+        var temp = make_string(string_cap(str) + 1024);
+        free_string(str);
+        str = temp;
+    done
+    string_set_len(str, cstr_len(string_buf(str)));
+    return str;
+end
 
+const R_OK = 4; // Test for read permission.
+const W_OK = 2; // Test for write permission.
+const X_OK = 1; // Test for execute permission.
+const F_OK = 0; // Test for existence.
+
+proc file_is_readable path in
+    return not syscall(SYS_access, path, R_OK);
+end
+
+proc file_is_writable path in
+    return not syscall(SYS_access, path, W_OK);
+end
+
+proc file_is_executable path in
+    return not syscall(SYS_access, path, X_OK);
+end
     
+proc file_exists path in
+    return not syscall(SYS_access, path, F_OK);
+end

@@ -35,6 +35,17 @@ proc read_file_to_string path in
     return string;
 end
 
+proc cstr_hash cstr in
+    var hash = 5381;
+    var c = u8@(cstr);
+    while c do
+        hash = hash * 33 + c;
+        c = u8@(cstr);
+        cstr = cstr + 1;
+    done
+    return hash;
+end
+
 proc string_hash string in
     var hash = 5381;
     var len = string_len(string);

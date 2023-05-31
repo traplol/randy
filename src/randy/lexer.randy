@@ -74,7 +74,7 @@ proc get_ident_kind string in
     return TK_Ident;
 end
 
-proc lex_code filename, code in
+proc _lex_code filename, code, include_paths, included_already in
     var i = 0;
     var tokens = make_vector(0);
     var length = string_len(code);
@@ -150,9 +150,46 @@ proc lex_code filename, code in
                 i = i + 2; // skip char and close quote
                 vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
             else if c == '#' then
-                while i < length and string_get(code, i) != '\n' do
-                    i = i + 1;
+                var directive = make_string(2);
+                var arg = make_string(2);
+                var breaking = false;
+                // gather #directive chars up to next space
+                while i < length and not breaking do
+                    c = string_get(code, i);
+                    if is_whitespace(c) then
+                        breaking = true;
+                    else
+                        string_push(directive, c);
+                        i = i + 1;
+                    end
                 done
+                breaking = false;
+                // consume all whitespace up to newline or non-whitespace
+                while i < length and not breaking do
+                    c = string_get(code, i);
+                    if c == '\n' then
+                        breaking = true;
+                    else if is_whitespace(c) then
+                        i = i + 1;
+                    else
+                        breaking = true;
+                    end
+                done
+                // gather the rest of the line into arg
+                while i < length and c != '\n' do
+                    c = string_get(code, i);
+                    if c != '\n' then
+                        string_push(arg, c);
+                        i = i + 1;
+                    end
+                done
+                // trim whitespace off end of arg
+                while string_len(arg) > 0 and is_whitespace(string_back(arg)) do
+                    string_pop(arg);
+                done
+                handle_directive(filename, line_no, tokens, include_paths, included_already, directive, arg);
+                free_string(directive);
+                free_string(arg);
             else if c == ';' then
                 vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
                 i = i + 1;
@@ -239,10 +276,74 @@ proc lex_code filename, code in
     return tokens;
 end
 
-proc lex_file path in
+proc _lex_file_aux path, include_paths, included_already in
     var code = read_file_to_string(path);
     if not code then
         return NULL;
     end
-    return lex_code(path, code);
+    return _lex_code(path, code, include_paths, included_already);
+end
+
+proc lex_file path, include_paths in
+    var included_already = make_set(0, string_eq, string_hash);
+    return _lex_file_aux(path, include_paths, included_already);
+end
+
+proc handle_include src_file, line_no, tokens, include_paths, included_already, arg in
+    string_append_cstr(arg, ".randy");
+
+    var i = 0;
+    var cur_dir = string_from_cstr(src_file);
+    while string_len(cur_dir) > 0 and string_back(cur_dir) != '/' do
+        string_pop(cur_dir);
+    done
+    var found = cur_dir;
+    string_append_string(found, arg);
+    if not file_is_readable(string_cstr(found)) then
+        found = NULL;
+        free_string(cur_dir);
+    end
+
+    if not found then
+        i = vector_len(include_paths) - 1;
+        while i >= 0 do
+            cur_dir = vector_get(include_paths, i);
+            found = string_duplicate(cur_dir);
+            string_push(found, '/');
+            string_append_string(found, arg);
+            if file_is_readable(string_cstr(found)) then
+                i = 0;
+            else
+                free_string(found);
+                found = NULL;
+            end
+            i = i - 1;
+        done
+    end
+
+    if found then
+        if not set_contains(included_already, found) then
+            set_add(included_already, found);
+            var included = _lex_file_aux(string_cstr(found), include_paths, included_already);
+            i = 0;
+            var len = vector_len(included);
+            while i < len do
+                vector_push(tokens, vector_get(included, i));
+                i = i + 1;
+            done
+        else
+            free_string(found);
+        end
+    else
+        printf("ERROR: Included file is not readable or does not exist\n");
+        printf("NOTE: The included file was '%s'\n", string_cstr(arg));
+        printf("  File \"%s\", line %d\n", src_file, line_no);
+        exit(1);
+    end
+end
+
+proc handle_directive src_file, line_no, tokens, include_paths, included_already, directive, arg in
+    if cstr_eq("#include", string_cstr(directive)) then
+        handle_include(src_file, line_no, tokens, include_paths, included_already, arg);
+    end
 end

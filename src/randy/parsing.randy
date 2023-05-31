@@ -124,10 +124,12 @@ proc parse_pointer_op ts in
         printf("ERROR: Expected pointer read (%s) to have exactly one argument but got %d\n",
                 token_cstr(token), vector_len(args));
         print_token_loc(token);
+        exit(1);
     else if op == PointerOp_Write and vector_len(args) != 2 then
         printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
                 token_cstr(token), vector_len(args));
         print_token_loc(token);
+        exit(1);
     end
 
     return make_ast_pointer_op(token, size, op, args);
@@ -440,6 +442,7 @@ proc parse ts in
         else
             tk = ts_peek(ts);
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(token_kind(tk)));
+            print_token(tk);
             print_token_loc(tk);
             exit(1);
         end
