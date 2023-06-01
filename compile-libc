@@ -1,6 +1,13 @@
 #!/bin/bash
 
-set -xe
+set -e
 
-python3 src/python/randy.py $@ -I include -ld -dynamic-linker /home/max/workspace/musl-1.2.4/lib/libc.so -lc
+#python3 src/python/randy.py $@ -I include -ld -dynamic-linker /home/max/workspace/musl-1.2.4/lib/libc.so -lc
+
+INFILE=$2
+OUTFILE=$4
+
+bin/randy -c $INFILE -o $OUTFILE.s
+as -c $OUTFILE.s -o $OUTFILE.o
+ld -o $OUTFILE $OUTFILE.o -dynamic-linker /home/max/workspace/musl-1.2.4/lib/libc.so -lc
 

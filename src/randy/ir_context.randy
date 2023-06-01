@@ -495,9 +495,9 @@ proc print_ir ir in
     end
 end
 
-const TPROC_INFO_label = 0;
-const TPROC_INFO_params = 8;
-const TPROC_INFO_varargs = 16;
+const TPROC_INFO_label = 0;    // cstr
+const TPROC_INFO_params = 8;   // cstr vector
+const TPROC_INFO_varargs = 16; // bool
 const sizeof_TPROC_INFO = 24;
 
 proc make_proc_info label, params, varargs in

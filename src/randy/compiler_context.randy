@@ -83,7 +83,11 @@ proc cc_out_string self, string in
             string_append_cstr(str, ", ");
         end
     done
-    string_append_cstr(str, ", 0");
+    if len > 0 then
+        string_append_cstr(str, ", 0");
+    else
+        string_append_cstr(str, "0");
+    end
     cc_out(self, string_cstr(str));
     free_string(str);
 end
