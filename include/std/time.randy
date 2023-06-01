@@ -1,0 +1,50 @@
+#include core
+#include syscall
+#include memory
+
+const TTIMESPEC_tv_sec  = 0;
+const TTIMESPEC_tv_nsec = 8;
+const sizeof_TTIMESPEC = 16;
+
+proc make_timespec sec, nsec in
+    var self = malloc(sizeof_TTIMESPEC);
+    u64!(self + TTIMESPEC_tv_sec, sec);
+    u64!(self + TTIMESPEC_tv_nsec, nsec);
+    return self;
+end
+
+proc make_empty_timespec in
+    return malloc(sizeof_TTIMESPEC);
+end
+
+proc free_timespec self in
+    free(self);
+end
+
+proc timespec_sec self in
+    return u64@(self + TTIMESPEC_tv_sec);
+end
+
+proc timespec_set_sec self, val in
+    u64!(self + TTIMESPEC_tv_sec, val);
+end
+
+proc timespec_nsec self in
+    return u64@(self + TTIMESPEC_tv_nsec);
+end
+
+proc timespec_set_nsec self, val in
+    u64!(self + TTIMESPEC_tv_nsec, val);
+end
+
+const CLOCK_REALTIME      = 0;
+const CLOCK_MONOTONIC_RAW = 4;
+
+proc time timespec in
+    return syscall(SYS_clock_gettime, CLOCK_MONOTONIC_RAW, timespec);
+end
+
+proc clock timespec in
+    return syscall(SYS_clock_gettime, CLOCK_REALTIME, timespec);
+end
+
