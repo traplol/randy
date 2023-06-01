@@ -6,6 +6,8 @@ const O_RDONLY = 0;
 const O_WRONLY = 1;
 const O_RDWR = 2;
 
+const _O_CREAT_WRONLY_TRUNC = 577;
+
 proc close fd in
     return syscall(SYS_close, fd);
 end
@@ -15,11 +17,7 @@ proc open_for_read path in
 end
 
 proc open_for_write path in
-    return syscall(SYS_open, path, O_WRONLY);
-end
-
-proc open_for_read_write path in
-    return syscall(SYS_open, path, O_RDWR);
+    return syscall(SYS_open, path, _O_CREAT_WRONLY_TRUNC, 436); // 436 is 0664 or -rw-rw-r--
 end
 
 proc read_file fd, buf, count in
