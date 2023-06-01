@@ -10,9 +10,10 @@ import os
 supports_color = sys.stdout.isatty() and (os.name != "nt" or
                                           ("ANSICON" in os.environ and bool(os.environ["ANSICON"])))
 if supports_color:
-    FAILED = "\033[1;91m[FAILED]\033[0m"
-    PASSED = "\033[1;92m[PASSED]\033[0m"
-    WARN = "\033[1;93m[WARN]\033[0m"
+    FAILED = "\033[2K\033[1;91m[FAILED]\033[0m"
+    PASSED = "\033[2K\033[1;92m[PASSED]\033[0m"
+    WARN = "\033[2K\033[1;93m[WARN]\033[0m"
+    RUN = "\033[1;93m[RUN]\033[0m"
 else:
     FAILED = "[FAILED]"
     PASSED = "[PASSED]"
@@ -91,6 +92,8 @@ def run1(output_file, print_diff):
     with open(f"test/{no_ext}.output", "rb") as expected_output_file:
         expected_output = expected_output_file.read().decode("utf-8")
     try:
+        if sys.stdout.isatty():
+            print(f"{RUN} {color_path(randy_file)}", end="\r")
         process = subprocess.Popen([f"out/{no_ext}"], stdout=subprocess.PIPE)
         generated_output, _ = process.communicate()
         generated_output = generated_output.decode("utf-8")
@@ -110,8 +113,10 @@ def run_all():
     # create test directory if it doesn"t exist
     if not os.path.exists("test/"):
         os.mkdir("test/")
-    for output_file in os.listdir("test/"):
+    files = os.listdir("test/")
+    for i, output_file in enumerate(files):
         if output_file.endswith(".output"):
+            print(f"[{i+1}/{len(files)}] ", end="")
             run1(output_file, False)
 
 def usage():
