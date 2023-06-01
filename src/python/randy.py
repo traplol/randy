@@ -1055,6 +1055,7 @@ class IRContext:
     def is_local(self, name: str) -> bool:
         return name in self.proc_locals
     
+uniques = set()
 def ir_emit_body(body: List[Ast], ir: IRContext) -> None:
     ir_statements = {
         AstK.Return,
@@ -1064,14 +1065,17 @@ def ir_emit_body(body: List[Ast], ir: IRContext) -> None:
         AstK.Procedure,
         AstK.IfElse,
         AstK.While,
+        AstK.PointerWrite,
         AstK.Const,
         AstK.Extern,
         AstK.InlineAsm,
-        AstK.PointerWrite,
     }
     for stmt in body:
         ir_compile(stmt, ir)
         if stmt.kind not in ir_statements:
+            if stmt.kind not in uniques:
+                print(f"did a drop top for a {stmt}")
+                uniques.add(stmt.kind)
             ir.append(IRK.DropTop)
 
 def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
@@ -1740,6 +1744,7 @@ def emit_goto_top_true(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    cmpq $0, (%rsp)")
     ctx.out(f"    jne {ir.label}")
+    ctx.out(f"    addq $8, %rsp")
 
 def emit_goto_top_false(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"/* {ir} */")
@@ -1747,6 +1752,7 @@ def emit_goto_top_false(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"    .loc {id} {line} {col}")
     ctx.out(f"    cmpq $0, (%rsp)")
     ctx.out(f"    je {ir.label}")
+    ctx.out(f"    addq $8, %rsp")
 
 def emit_ptr_write(ctx: CompilerContext, ir: IRInstr) -> None:
     ctx.out(f"/* {ir} */")
