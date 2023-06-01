@@ -1074,7 +1074,6 @@ def ir_emit_body(body: List[Ast], ir: IRContext) -> None:
         ir_compile(stmt, ir)
         if stmt.kind not in ir_statements:
             if stmt.kind not in uniques:
-                print(f"did a drop top for a {stmt}")
                 uniques.add(stmt.kind)
             ir.append(IRK.DropTop)
 
