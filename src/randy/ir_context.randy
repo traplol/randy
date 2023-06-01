@@ -40,6 +40,7 @@ const IRK_LogicNot      = 35;
 const IRK_InlineAsm     = 38;
 const IRK_LazyIdent     = 39;
 const IRK_CallLazyIdent = 40;
+const IRK_DropTop       = 41;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -80,6 +81,7 @@ proc ir_instr_kind_cstr k in
     if k == IRK_InlineAsm then return "IRK_InlineAsm"; end
     if k == IRK_LazyIdent then return "IRK_LazyIdent"; end
     if k == IRK_CallLazyIdent then return "IRK_CallLazyIdent"; end
+    if k == IRK_DropTop then return "IRK_DropTop"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -294,6 +296,11 @@ proc make_ir_store_temp n in
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
+proc make_ir_drop_top in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_DropTop);
+    return self;
+end
 proc print_ir_alloc_temps self in
     printf("(IR.AllocTemps ");
     printf("n=%d)\n", u64@(self + TIR_INSTR_n));
@@ -439,6 +446,9 @@ proc print_ir_store_temp self in
     printf("(IR.StoreTemp ");
     printf("n=%d)\n", u64@(self + TIR_INSTR_n));
 end
+proc print_ir_drop_top self in
+    printf("(IR.DropTop)\n");
+end
 proc print_ir ir in
     var k = ir_instr_kind(ir);
     if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
@@ -479,6 +489,7 @@ proc print_ir ir in
     else if k == IRK_SetLocalArg then print_ir_set_local_arg(ir);
     else if k == IRK_StoreTemp then print_ir_store_temp(ir);
     else if k == IRK_LazyIdent then print_ir_lazy_ident(ir);
+    else if k == IRK_DropTop then print_ir_drop_top(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -726,6 +737,33 @@ proc check_ast_kind expect, ast in
         abort();
     end
 end
+
+proc ir_emit_body self, body in
+    var i = 0;
+    var len = vector_len(body);
+    var ast; var astk;
+    while i < len do
+        ast = vector_get(body, i);
+        astk = ast_kind(ast);
+        ir_compile(self, ast);
+        if astk == AstK_Return or
+            astk == AstK_VarDecl or
+            astk == AstK_VarAssign or
+            astk == AstK_Assign or
+            astk == AstK_Procedure or
+            astk == AstK_IfElse or
+            astk == AstK_While or
+            astk == AstK_PointerWrite or
+            astk == AstK_Const or
+            astk == AstK_Extern or
+            astk == AstK_InlineAsm then
+            // nothing
+        else
+            ir_append(self, make_ir_drop_top());
+        end
+        i = i + 1;
+    done
+end
         
 proc ir_emit_ident self, ast in
     check_ast_kind(AstK_Ident, ast);
@@ -946,15 +984,7 @@ proc ir_emit_procedure self, ast in
         ir_append(self, make_ir_set_local_arg(param, n, i));
         i = i + 1;
     done
-
-    var body = ast_body(ast);
-    i = 0;
-    len = vector_len(body);
-    while i < len do
-        ir_compile(self, vector_get(body, i));
-        i = i + 1;
-    done
-
+    ir_emit_body(self, ast_body(ast));
     u64!(insn + TIR_INSTR_locals, ir_proc_locals(self));
     ir_append(self, make_ir_close_proc(ident));
 end
@@ -966,24 +996,10 @@ proc ir_emit_if_else self, ast in
     var l_out = ir_new_label(self, NULL);
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_else));
-
-    var conseq = ast_consequence(ast);
-    i = 0; len = vector_len(conseq);
-    while i < len do
-        ir_compile(self, vector_get(conseq, i));
-        i = i + 1;
-    done
-
+    ir_emit_body(self, ast_consequence(ast));
     ir_append(self, make_ir_goto(l_out));
     ir_append(self, make_ir_label(l_else));
-
-    var altern = ast_alternative(ast);
-    i = 0; len = vector_len(altern);
-    while i < len do
-        ir_compile(self, vector_get(altern, i));
-        i = i + 1;
-    done
-
+    ir_emit_body(self, ast_alternative(ast));
     ir_append(self, make_ir_label(l_out));
 end
 
@@ -995,20 +1011,13 @@ proc ir_emit_while self, ast in
     ir_append(self, make_ir_label(l_test));
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_out));
-
-    var body = ast_body(ast);
-    i = 0; len = vector_len(body);
-    while i < len do
-        ir_compile(self, vector_get(body, i));
-        i = i + 1;
-    done
-
+    ir_emit_body(self, ast_body(ast));
     ir_append(self, make_ir_goto(l_test));
     ir_append(self, make_ir_label(l_out));
 end
 
 proc ir_emit_pointer_op self, ast in
-    check_ast_kind(AstK_PointerOp, ast);
+    //check_ast_kind(AstK_PointerOp, ast);
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
     var op = ast_op(ast);
@@ -1122,7 +1131,8 @@ proc ir_compile self, ast in
     else if k == AstK_Procedure then ir_emit_procedure(self, ast);
     else if k == AstK_IfElse then ir_emit_if_else(self, ast);
     else if k == AstK_While then ir_emit_while(self, ast);
-    else if k == AstK_PointerOp then ir_emit_pointer_op(self, ast);
+    else if k == AstK_PointerRead then ir_emit_pointer_op(self, ast);
+    else if k == AstK_PointerWrite then ir_emit_pointer_op(self, ast);
     else if k == AstK_Prefix then ir_emit_prefix_op(self, ast);
     else if k == AstK_Const then ir_emit_const(self, ast);
     else if k == AstK_Extern then ir_emit_extern(self, ast);

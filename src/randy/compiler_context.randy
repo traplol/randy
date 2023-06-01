@@ -19,10 +19,8 @@ proc make_compiler_context in
     return self;
 end
 
-proc compiler_context_new_proc self, src_name, label, params, locals in
-end
-
 proc compiler_context_file_map self in return u64@(self + TCOMPILER_CONTEXT_file_map); end
+proc compiler_context_lines self in return u64@(self + TCOMPILER_CONTEXT_out_lines); end
 
 proc compiler_context_get_file_id self, path in
     var found = map_find(compiler_context_file_map(self), path);

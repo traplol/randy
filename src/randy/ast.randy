@@ -2,23 +2,24 @@
 const PointerOp_Read  = 0;
 const PointerOp_Write = 1;
 
-const AstK_Ident     = 0;
-const AstK_Integer   = 1;
-const AstK_String    = 2;
-const AstK_Call      = 3;
-const AstK_BinOp     = 4;
-const AstK_Return    = 5;
-const AstK_VarDecl   = 6;
-const AstK_VarAssign = 7;
-const AstK_Assign    = 8;
-const AstK_Procedure = 9;
-const AstK_IfElse    = 10;
-const AstK_While     = 11;
-const AstK_PointerOp = 12;
-const AstK_Prefix    = 13;
-const AstK_Const     = 14;
-const AstK_Extern    = 15;
-const AstK_InlineAsm = 16;
+const AstK_Ident        = 0;
+const AstK_Integer      = 1;
+const AstK_String       = 2;
+const AstK_Call         = 3;
+const AstK_BinOp        = 4;
+const AstK_Return       = 5;
+const AstK_VarDecl      = 6;
+const AstK_VarAssign    = 7;
+const AstK_Assign       = 8;
+const AstK_Procedure    = 9;
+const AstK_IfElse       = 10;
+const AstK_While        = 11;
+const AstK_PointerRead  = 12;
+const AstK_PointerWrite = 13;
+const AstK_Prefix       = 14;
+const AstK_Const        = 15;
+const AstK_Extern       = 16;
+const AstK_InlineAsm    = 17;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -33,7 +34,8 @@ proc ast_kind_cstr k in
     if k == AstK_Procedure then return "AstK_Procedure"; end
     if k == AstK_IfElse then return "AstK_IfElse"; end
     if k == AstK_While then return "AstK_While"; end
-    if k == AstK_PointerOp then return "AstK_PointerOp"; end
+    if k == AstK_PointerRead then return "AstK_PointerRead"; end
+    if k == AstK_PointerWrite then return "AstK_PointerWrite"; end
     if k == AstK_Prefix then return "AstK_Prefix"; end
     if k == AstK_Const then return "AstK_Const"; end
     if k == AstK_Extern then return "AstK_Extern"; end
@@ -75,7 +77,7 @@ const TAST_alternative = 32; // ast vector
 // While
 const TAST_test        = 16; // ast
 const TAST_body        = 24; // ast vector
-// PointerOp
+// PointerRead, PointerWrite
 const TAST_size        = 16; // int
 const TAST_op          = 24; // int
 const TAST_pop_args    = 32; // ast vector
@@ -214,7 +216,11 @@ end
 
 proc make_ast_pointer_op token, size, op, args in
     var self= malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_PointerOp);
+    if op == PointerOp_Read then
+        u64!(self + TAST_kind, AstK_PointerRead);
+    else
+        u64!(self + TAST_kind, AstK_PointerWrite);
+    end
     u64!(self + TAST_token, token);
     u64!(self + TAST_size, size);
     u64!(self + TAST_op, op);
@@ -490,7 +496,8 @@ proc _print_ast ast, indent in
     else if k == AstK_Procedure then _print_ast_procedure(ast, indent);
     else if k == AstK_IfElse then _print_ast_if_else(ast, indent);
     else if k == AstK_While then _print_ast_while(ast, indent);
-    else if k == AstK_PointerOp then _print_ast_pointer_op(ast, indent);
+    else if k == AstK_PointerRead then _print_ast_pointer_op(ast, indent);
+    else if k == AstK_PointerWrite then _print_ast_pointer_op(ast, indent);
     else if k == AstK_Prefix then _print_ast_prefix(ast, indent);
     else if k == AstK_Const then _print_ast_const(ast, indent);
     else if k == AstK_Extern then _print_ast_extern(ast, indent);

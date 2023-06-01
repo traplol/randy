@@ -370,6 +370,7 @@ proc x86_64_emit_goto_top_false cc, ir in
     string_append_cstr(str, ir_instr_label(ir));
     cc_out(cc, string_cstr(str));
     free_string(str);
+    cc_out(cc, "    addq $8, %rsp");
 end
 
 proc x86_64_emit_goto_top_true cc, ir in
@@ -382,6 +383,7 @@ proc x86_64_emit_goto_top_true cc, ir in
     string_append_cstr(str, ir_instr_label(ir));
     cc_out(cc, string_cstr(str));
     free_string(str);
+    cc_out(cc, "    addq $8, %rsp");
 end
 
 proc x86_64_emit_goto_false cc, ir in
@@ -514,6 +516,12 @@ proc x86_64_emit_call_lazy_ident cc, ir in
     NYI_ERR("IRK_CallLazyIdent should have been handled in ir_context.randy");
 end
 
+proc x86_64_emit_drop_top cc, ir in
+    check_ir_kind(IRK_DropTop, ir);
+    //print_ir(ir);
+    cc_out(cc, "    addq $8, %rsp");
+end
+
 
 proc x86_64_emit_instruction cc, ir in
     var k = ir_instr_kind(ir);
@@ -555,6 +563,7 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_InlineAsm then x86_64_emit_inline_asm(cc, ir);
     else if k == IRK_LazyIdent then x86_64_emit_lazy_ident(cc, ir);
     else if k == IRK_CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
+    else if k == IRK_DropTop then x86_64_emit_drop_top(cc, ir);
     else
         printf("Unknown IRK: %d\n", k);
         abort();
