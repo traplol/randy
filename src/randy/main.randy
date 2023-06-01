@@ -3,6 +3,7 @@
 #include std/vector
 #include std/set
 #include std/map
+#include std/time
 
 #include utils
 #include token
@@ -77,6 +78,45 @@ proc cc_out_start cctx in
     cc_out(cctx, "    int3");
 end
 
+proc cc_lines_to_file cctx, path in
+    var fd = open_for_write(path);
+    if fd < 0 then
+        printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
+        return false;
+    end
+    var i = 0;
+    var lines = compiler_context_lines(cctx);
+    var len = vector_len(lines);
+    var line;
+    while i < len do
+        line = vector_get(lines, i);
+        write_file(fd, string_buf(line), string_len(line));
+        write_file(fd, "\n", 1);
+        i = i + 1;
+    done
+    close(fd);
+    return true;
+end
+
+proc print_timespan msg, starttime, endtime in
+    var elap_s = timespec_sec(endtime) - timespec_sec(starttime);
+    var elap_ns = timespec_nsec(endtime) - timespec_nsec(starttime);
+    var elap_ms = (elap_s * 1000) + (elap_ns / 1000000);
+    printf("%s%dms\n", msg, elap_ms);
+end
+
+proc print_usage in
+    printf("usage: randy -c file -o path [flags]\n");
+    printf("Options and arguments:\n");
+    printf("-h            : Show this message\n");
+    printf("-c file       : Compile file\n");
+    printf("-o path       : The path to compile the file provided by the -c flag.\n");
+    printf("-I path       : Specify a path to search for #include directives.\n");
+    printf("TODO:-ld flags...  : Everything after -ld will be passed to the linker directly.\n");
+    printf("                see 'man ld' for linker flags.\n");
+    printf("TODO:-v -vv -vvv   : Compiler verbosity level\n");
+end
+
 proc main argc, argv in
     var i = 0;
     if argc < 2 then
@@ -86,12 +126,66 @@ proc main argc, argv in
         var include_paths = make_vector(8);
         vector_push(include_paths, getcwd());
         vector_push(include_paths, string_from_cstr("/home/max/workspace/randy/include")); // @HACK
-        var source_dir = getcwd();
-        vector_push(include_paths, source_dir);
 
-        var path = u64@(argv + sizeof_PTR);
+        var in_path = NULL;
+        var out_path = NULL;
+        
+        i = 1; var p;
+        while i < argc do
+            if cstr_eq("-h", u64@(argv + i*sizeof_PTR)) then
+                print_usage();
+                return 1;
+            else if cstr_eq("-c", u64@(argv + i*sizeof_PTR)) then
+                i = i + 1;
+                if in_path then
+                    printf("More than one input file not supported.\n");
+                    return 1;
+                end
+                p = u64@(argv + i*sizeof_PTR);
+                if not p then
+                    printf("No input file supplied with -c flag.\n");
+                    return 1;
+                end
+                in_path = p;
+            else if cstr_eq("-o", u64@(argv + i*sizeof_PTR)) then
+                i = i + 1;
+                if out_path then
+                    printf("More than one output file not supported.\n");
+                    return 1;
+                end
+                p = u64@(argv + i*sizeof_PTR);
+                if not p then
+                    printf("No output file supplied with -o flag.\n");
+                    return 1;
+                end
+                out_path = p;
+            else if cstr_eq("-I", u64@(argv + i*sizeof_PTR)) then
+                i = i + 1;
+                p = u64@(argv + i*sizeof_PTR);
+                if not p then
+                    printf("No path supplied with -I flag.\n");
+                    return 1;
+                end
+                vector_push(include_paths, string_from_cstr(p));
+            else if cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
+                printf("TODO: -ld flags\n");
+                return 1;
+            end
+            i = i + 1;
+        done
+
+        if not in_path then
+            printf("No input file.\n");
+            return 1;
+        end
+        if not out_path then
+            printf("No output path.\n");
+            return 1;
+        end
+
+        var source_dir = getcwd();
         string_push(source_dir, '/');
-        string_append_cstr(source_dir, path);
+        string_append_cstr(source_dir, in_path);
         var abspath = string_duplicate(source_dir);
         while string_len(source_dir) > 0 and string_back(source_dir) != '/' do
             string_pop(source_dir);
@@ -99,14 +193,26 @@ proc main argc, argv in
         if string_len(source_dir) > 1 then
             string_pop(source_dir);
         end
+        vector_push(include_paths, source_dir);
 
+        var starttime = make_empty_timespec();
+        var endtime = make_empty_timespec();
+
+        time(starttime);
         var tokens = lex_file(string_cstr(abspath), include_paths);
         if not tokens then
             return 1;
         end
-
         var token_stream = make_token_stream(tokens);
+        time(endtime);
+        print_timespan("Lexing took: ", starttime, endtime);
+
+        time(starttime);
         var roots = parse(token_stream);
+        time(endtime);
+        print_timespan("Parsing took: ", starttime, endtime);
+
+        time(starttime);
         var cctx = make_compiler_context();
         var irctx = make_ir_context();
         i = 0;
@@ -115,14 +221,20 @@ proc main argc, argv in
             i = i + 1;
         done
         ir_resolve_lazy_idents(irctx);
+        time(endtime);
+        print_timespan("IR compile took: ", starttime, endtime);
 
+        time(starttime);
         cc_out(cctx, ".text");
         cc_out_files(irctx, cctx);
         cc_out_instructions(irctx, cctx);
         cc_out_start(cctx);
         cc_out_externs(irctx, cctx);
         cc_out_data_section(irctx, cctx);
-        cc_print_lines(cctx);
+        time(endtime);
+        print_timespan("ASM compile took: ", starttime, endtime);
+
+        cc_lines_to_file(cctx, out_path);
         return 0;
     end
 end
