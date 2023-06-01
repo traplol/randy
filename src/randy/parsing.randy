@@ -1,21 +1,22 @@
 
 proc parse_args_until ts, into, until in
-    var breaking = false;
     var arg;
-    while not breaking do
+    while true do
         if ts_peekk(ts, until) then
-            breaking = true;
-        else
-            arg = parse_expression(ts);
-            if not arg then
-                return NULL;
-            end
-            vector_push(into, arg);
-            if ts_accept(ts, TK_Comma) then
-                if ts_peekk(ts, until) then
-                    printf("ERROR: Unexpected token after ','\n");
-                    print_token_loc(ts_peek(ts));
-                end
+            return;
+        end
+        arg = parse_expression(ts);
+        if not arg then
+            return;
+        end
+        vector_push(into, arg);
+        if ts_peekk(ts, until) then
+            return;
+        end
+        if ts_expect(ts, TK_Comma) then
+            if ts_peekk(ts, until) then
+                printf("ERROR: Unexpected token after ','\n");
+                print_token_loc(ts_peek(ts));
             end
         end
     done
