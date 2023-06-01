@@ -482,7 +482,8 @@ class AstK(Enum):
     Procedure = auto()
     IfElse    = auto()
     While     = auto()
-    PointerOp = auto()
+    PointerRead = auto()
+    PointerWrite = auto()
     Prefix    = auto()
     Const     = auto()
     Extern    = auto()
@@ -556,7 +557,9 @@ def parse_postfix(tokens: TokenStream) -> Optional[Ast]:
         if arg is None:
             return None
         args.append(arg)
-        if tokens.accept(TK.Comma):
+        if tokens.peekk(TK.RParen):
+            break
+        if tokens.expect(TK.Comma):
             if tokens.peekk(TK.RParen):
                 print(f"ERROR: Unexpected ')' after ','")
                 print(tokens.peek().fmt_src_loc())
@@ -736,7 +739,7 @@ def parse_pointer_op(tokens: TokenStream) -> Optional[Ast]:
         print(tokens.peek().fmt_src_loc())
         exit(1)
         
-    return Ast(AstK.PointerOp, peek, size=size, op=op, args=args)
+    return Ast(AstK.PointerRead if op == "READ" else AstK.PointerWrite, peek, size=size, op=op, args=args)
 
 def parse_statement(tokens: TokenStream) -> Optional[Ast]:
     peek = tokens.peek()
@@ -901,6 +904,7 @@ class IRK(Enum):
     InlineAsm    = auto()
     LazyIdent    = auto()
     CallLazyIdent = auto()
+    DropTop      = auto()
 
 class IRInstr:
     def __init__(self, kind: IRK, **kwargs):
@@ -1051,6 +1055,24 @@ class IRContext:
     def is_local(self, name: str) -> bool:
         return name in self.proc_locals
     
+def ir_emit_body(body: List[Ast], ir: IRContext) -> None:
+    ir_statements = {
+        AstK.Return,
+        AstK.VarDecl,
+        AstK.VarAssign,
+        AstK.Assign,
+        AstK.Procedure,
+        AstK.IfElse,
+        AstK.While,
+        AstK.Const,
+        AstK.Extern,
+        AstK.InlineAsm,
+        AstK.PointerWrite,
+    }
+    for stmt in body:
+        ir_compile(stmt, ir)
+        if stmt.kind not in ir_statements:
+            ir.append(IRK.DropTop)
 
 def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
     ident = ast.ident
@@ -1078,7 +1100,6 @@ def ir_emit_ident(ast: Ast, ir: IRContext) -> None:
     if extern is not None:
         ir.append(IRK.PushLabel, label=extern)
         return
-
     ir.append(IRK.LazyIdent, ident=ast.token)
 
 
@@ -1201,8 +1222,7 @@ def ir_emit_procedure(ast: Ast, ir: IRContext) -> None:
         local = ir.new_local(param)
         ir.append(IRK.SetLocalArg, local=param, arg=i)
 
-    for stmt in ast.body:
-        ir_compile(stmt, ir)
+    ir_emit_body(ast.body, ir)
 
     instr.locals = ir.proc_locals
     ir.append(IRK.CloseProc, name=label)
@@ -1213,13 +1233,10 @@ def ir_emit_if_else(ast: Ast, ir: IRContext) -> None:
     l_out = ir.new_label("out")
     ir_compile(ast.test, ir)
     ir.append(IRK.GotoFalse, label=l_else)
-    #ir.append(IRK.Label, label=l_then)
-    for stmt in ast.consequence:
-        ir_compile(stmt, ir)
+    ir_emit_body(ast.consequence, ir)
     ir.append(IRK.Goto, label=l_out)
     ir.append(IRK.Label, label=l_else)
-    for stmt in ast.alternative:
-        ir_compile(stmt, ir)
+    ir_emit_body(ast.alternative, ir)
     ir.append(IRK.Label, label=l_out)
 
 def ir_emit_while(ast: Ast, ir: IRContext) -> None:
@@ -1228,8 +1245,7 @@ def ir_emit_while(ast: Ast, ir: IRContext) -> None:
     ir.append(IRK.Label, label=l_test)
     ir_compile(ast.test, ir)
     ir.append(IRK.GotoFalse, label=l_out)
-    for stmt in ast.body:
-        ir_compile(stmt, ir)
+    ir_emit_body(ast.body, ir)
     ir.append(IRK.Goto, label=l_test)
     ir.append(IRK.Label, label=l_out)
 
@@ -1306,7 +1322,8 @@ ir_emitters = MappingProxyType({
     AstK.Procedure: ir_emit_procedure,
     AstK.IfElse: ir_emit_if_else,
     AstK.While: ir_emit_while,
-    AstK.PointerOp: ir_emit_pointer_op,
+    AstK.PointerRead: ir_emit_pointer_op,
+    AstK.PointerWrite: ir_emit_pointer_op,
     AstK.Prefix: ir_emit_prefix_op,
     AstK.Const: ir_emit_const,
     AstK.Extern: ir_emit_extern,
@@ -1372,8 +1389,8 @@ class CompilerContext:
         return None, None, None
 
     def out(self, msg: str) -> None:
-        if msg.startswith("    .loc"):
-            return
+        # if msg.startswith("    .loc"):
+        #     return
         if self.no_comments and msg.startswith("/*"):
             return
         if self.no_comments and msg.startswith("    .loc"):
@@ -1763,6 +1780,10 @@ def emit_inline_asm(ctx: CompilerContext, ir: IRInstr) -> None:
         if asm != "":
             ctx.out(f"    {asm}")
 
+def emit_drop_top(ctx: CompilerContext, ir: IRInstr) -> None:
+    ctx.out(f"/* {ir} */")
+    ctx.out(f"    addq $8, %rsp")
+
 x86_64_emitters = MappingProxyType({
     IRK.NewProc: emit_new_proc,
     IRK.SetLocalArg: emit_set_local_arg,
@@ -1802,6 +1823,7 @@ x86_64_emitters = MappingProxyType({
     IRK.InlineAsm: emit_inline_asm,
     IRK.LazyIdent: emit_lazy_ident,
     IRK.CallLazyIdent: emit_call_lazy_ident,
+    IRK.DropTop: emit_drop_top
 })
 def emit_instruction(ctx: CompilerContext, ir: IRInstr) -> None:
     k = ir.kind

@@ -27,3 +27,5 @@ pass: same cstring with different case are not equal
 pass: different cstring are not equal
 pass: cstring "foo" length is 3
 pass: cstring "" length is 0
+Testing strings can be large.
+pass: string len is correct

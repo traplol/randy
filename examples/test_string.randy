@@ -59,9 +59,21 @@ proc test_cstrings in
     test("cstring \"\" length is 0", 0 == cstr_len(""));
 end
 
+proc test_large_string in
+    printf("Testing strings can be large.\n");
+    var str = make_string(0);
+    var i = 0; var n = 500000000;
+    while i < n do
+        string_push(str, 'a');
+        i = i + 1;
+    done
+    test("string len is correct", n == string_len(str));
+end
+
 proc main in
     test_strings();
     test_cstrings();
+    test_large_string();
     return 0;
 end
 
