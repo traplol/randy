@@ -1,0 +1,57 @@
+#include core
+#include memory
+#include syscall
+
+proc execve path, argv, envp in
+    return syscall(SYS_execve, path, argv, envp);
+end
+
+proc fork in
+    return syscall(SYS_fork);
+end
+
+const P_PID = 1;
+proc waitpid pid, siginfo, options in
+    return syscall(SYS_waitid, P_PID, pid, siginfo, options);
+end
+
+const TSIGINFO_si_signo  = 0;
+const TSIGINFO_si_code   = 8;
+const TSIGINFO_si_value  = 24;
+const TSIGINFO_si_errno  = 4;
+const TSIGINFO_si_pid    = 16;
+const TSIGINFO_si_uid    = 20;
+const TSIGINFO_si_addr   = 16;
+const TSIGINFO_si_status = 24;
+const TSIGINFO_si_band   = 16;
+const sizeof_TSIGINFO    = 128;
+
+proc make_siginfo in
+    return malloc(sizeof_TSIGINFO);
+end
+
+proc free_siginfo self in
+    free(self);
+end
+
+proc siginfo_si_signo self in return u32@(self + TSIGINFO_si_signo); end
+proc siginfo_si_code self in return u32@(self + TSIGINFO_si_code); end
+proc siginfo_si_value self in return u64@(self + TSIGINFO_si_value); end
+proc siginfo_si_errno self in return u32@(self + TSIGINFO_si_errno); end
+proc siginfo_si_pid self in return u32@(self + TSIGINFO_si_pid); end
+proc siginfo_si_uid self in return u32@(self + TSIGINFO_si_uid); end
+proc siginfo_si_addr self in return u64@(self + TSIGINFO_si_addr); end
+proc siginfo_si_status self in return u32@(self + TSIGINFO_si_status); end
+proc siginfo_si_band self in return u64@(self + TSIGINFO_si_band); end
+
+proc subprocess_blocking path, argv, envp in
+    var pid = fork();
+    if pid == 0 then // child proc
+        return execve(path, argv, envp);
+    else
+        var siginfo = make_siginfo();
+        waitpid(pid, siginfo, 4);
+        free_siginfo(siginfo);
+    end
+    return 0;
+end
