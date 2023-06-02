@@ -825,12 +825,7 @@ proc check_ast_kind expect, ast in
     end
 end
 
-//const AstK_Ident        = 0;
-//const AstK_Integer      = 1;
-//const AstK_String       = 2;
-//const AstK_BinOp        = 4;
-//const AstK_Prefix       = 14;
-proc ir_comptime_eval self, ast in
+proc ir_comptime_eval self, ast, error_on_fail in
     var evaled; var result;
     var op; var ident; var ci;
     var lhs; var rhs;
@@ -853,8 +848,8 @@ proc ir_comptime_eval self, ast in
         end
     else if k == AstK_BinOp then
         op = ast_op(ast);
-        lhs = ir_comptime_eval(self, ast_lhs(ast));
-        rhs = ir_comptime_eval(self, ast_rhs(ast));
+        lhs = ir_comptime_eval(self, ast_lhs(ast), error_on_fail);
+        rhs = ir_comptime_eval(self, ast_rhs(ast), error_on_fail);
         if ast_kind(lhs) == ast_kind(rhs) then
             if ast_kind(lhs) == AstK_Integer then
                 lhs_val = ast_value(lhs);
@@ -887,13 +882,13 @@ proc ir_comptime_eval self, ast in
                     end
                 end
                 if evaled then
-                    return make_ast_integer(ast_token(ast), result);
+                    return make_ast_integer(ast_token(ast), result); // @LEAK
                 end
             end
         end
     else if k == AstK_Prefix then
         op = ast_op(ast);
-        rhs = ir_comptime_eval(self, ast_expr(ast));
+        rhs = ir_comptime_eval(self, ast_expr(ast), error_on_fail);
         evaled = false;
         if ast_kind(rhs) == AstK_Integer then
             rhs_val = ast_value(rhs);
@@ -908,16 +903,19 @@ proc ir_comptime_eval self, ast in
                 result = ~rhs_val;
             end
             if evaled then
-                return make_ast_integer(ast_token(ast), result);
+                return make_ast_integer(ast_token(ast), result); // @LEAK
             end
         end
     end
 
-    printf("ERROR: Expression is not compile-time evaluable.\n");
-    printf("NOTE: The expression was: ");
-    print_ast(ast);
-    ir_print_src_loc(self);
-    exit(1);
+    if error_on_fail then
+        printf("ERROR: Expression is not compile-time evaluable.\n");
+        printf("NOTE: The expression was: ");
+        print_ast(ast);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    return ast;
 end
 
 proc ir_emit_body self, body in
@@ -1248,7 +1246,7 @@ end
 proc ir_emit_const self, ast in
     check_ast_kind(AstK_Const, ast);
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr);
+    var val = ir_comptime_eval(self, expr, true);
     var const_info = NULL;
     var k = ast_kind(val);
     if k == AstK_String then
@@ -1312,7 +1310,7 @@ proc ir_emit_global self, ast in
     end
 
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr);
+    var val = ir_comptime_eval(self, expr, true);
     var k = ast_kind(val);
     if k == AstK_String then
         ir_add_global_string(self, ident, ast_value(val));
@@ -1324,6 +1322,8 @@ proc ir_emit_global self, ast in
 end
 
 proc ir_compile self, ast in
+    // comptime eval will just return back the ast node if it's not evaluable
+    ast = ir_comptime_eval(self, ast, false);
     var k = ast_kind(ast);
     ir_push_src_loc(self, token_src_loc(ast_token(ast)));
     if k == AstK_Ident then ir_emit_ident(self, ast);
