@@ -522,6 +522,30 @@ proc x86_64_emit_drop_top cc, ir in
     cc_out(cc, "    addq $8, %rsp");
 end
 
+proc x86_64_emit_set_global cc, ir in
+    check_ir_kind(IRK_SetGlobal, ir);
+    //print_ir(ir);
+    cc_out(cc, "    popq %rax");
+    var str = make_string(20);
+    string_append_cstr(str, "    movq %rax, (");
+    string_append_cstr(str, ir_instr_label(ir));
+    string_append_cstr(str, ")");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+end
+
+proc x86_64_emit_get_global cc, ir in
+    check_ir_kind(IRK_GetGlobal, ir);
+    //print_ir(ir);
+    var str = make_string(20);
+    string_append_cstr(str, "    movq (");
+    string_append_cstr(str, ir_instr_label(ir));
+    string_append_cstr(str, "), %rax");
+    cc_out(cc, string_cstr(str));
+    cc_out(cc, "    pushq %rax");
+    free_string(str);
+end
+
 
 proc x86_64_emit_instruction cc, ir in
     var k = ir_instr_kind(ir);
@@ -564,8 +588,12 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_LazyIdent then x86_64_emit_lazy_ident(cc, ir);
     else if k == IRK_CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
     else if k == IRK_DropTop then x86_64_emit_drop_top(cc, ir);
+    else if k == IRK_SetGlobal then x86_64_emit_set_global(cc, ir);
+    else if k == IRK_GetGlobal then x86_64_emit_get_global(cc, ir);
     else
-        printf("Unknown IRK: %d\n", k);
-        abort();
+        printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
+        printf("Unhandled IRK: %d\n", k);
+        print_ir(ir);
+        exit(1);
     end
 end

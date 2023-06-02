@@ -1,0 +1,21 @@
+
+extern printf fmt, ...;
+
+global string = "hello world";
+global foo = 42;
+
+proc change_foo n in
+    foo = n;
+end
+
+proc main in
+    printf("foo is %d\n", foo);
+    change_foo(999);
+    printf("foo is %d\n", foo);
+
+    printf("string is '%s'\n", string);
+    string = "asdf";
+    printf("string is '%s'\n", string);
+    printf("string[0] is %c\n", u8@(string));
+    return 0;
+end

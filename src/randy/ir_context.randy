@@ -41,6 +41,8 @@ const IRK_InlineAsm     = 38;
 const IRK_LazyIdent     = 39;
 const IRK_CallLazyIdent = 40;
 const IRK_DropTop       = 41;
+const IRK_SetGlobal     = 42;
+const IRK_GetGlobal     = 43;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -82,6 +84,8 @@ proc ir_instr_kind_cstr k in
     if k == IRK_LazyIdent then return "IRK_LazyIdent"; end
     if k == IRK_CallLazyIdent then return "IRK_CallLazyIdent"; end
     if k == IRK_DropTop then return "IRK_DropTop"; end
+    if k == IRK_SetGlobal then return "IRK_SetGlobal"; end
+    if k == IRK_GetGlobal then return "IRK_GetGlobal"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -301,6 +305,20 @@ proc make_ir_drop_top in
     u64!(self + TIR_INSTR_kind, IRK_DropTop);
     return self;
 end
+proc make_ir_set_global name, label in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_SetGlobal);
+    u64!(self + TIR_INSTR_label, label);
+    u64!(self + TIR_INSTR_src_name, name);
+    return self;
+end
+proc make_ir_get_global name, label  in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_GetGlobal);
+    u64!(self + TIR_INSTR_label, label);
+    u64!(self + TIR_INSTR_src_name, name);
+    return self;
+end
 proc print_ir_alloc_temps self in
     printf("(IR.AllocTemps ");
     printf("n=%d)\n", u64@(self + TIR_INSTR_n));
@@ -449,6 +467,16 @@ end
 proc print_ir_drop_top self in
     printf("(IR.DropTop)\n");
 end
+proc print_ir_set_global self in
+    printf("(IR.SetGlobal ");
+    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_get_global self in
+    printf("(IR.GetGlobal ");
+    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
 proc print_ir ir in
     var k = ir_instr_kind(ir);
     if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
@@ -490,6 +518,8 @@ proc print_ir ir in
     else if k == IRK_StoreTemp then print_ir_store_temp(ir);
     else if k == IRK_LazyIdent then print_ir_lazy_ident(ir);
     else if k == IRK_DropTop then print_ir_drop_top(ir);
+    else if k == IRK_SetGlobal then print_ir_set_global(ir);
+    else if k == IRK_GetGlobal then print_ir_get_global(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -542,18 +572,40 @@ end
 proc const_info_kind self in return u64@(self + TCONST_INFO_kind); end
 proc const_info_value self in return u64@(self + TCONST_INFO_value); end
 
+const TGLOBAL_INFO_kind = 0;
+const TGLOBAL_INFO_label = 8;
+const TGLOBAL_INFO_value = 16;
+const sizeof_TGLOBAL_INFO = 24;
+const GIK_String = 0;
+const GIK_Integer = 1;
+
+proc make_global_info kind, label, value in
+    var self = malloc(sizeof_TGLOBAL_INFO);
+    u64!(self + TGLOBAL_INFO_kind, kind);
+    u64!(self + TGLOBAL_INFO_label, label);
+    u64!(self + TGLOBAL_INFO_value, value);
+    return self;
+end
+
+proc global_info_kind self in return u64@(self + TGLOBAL_INFO_kind); end
+proc global_info_label self in return u64@(self + TGLOBAL_INFO_label); end
+proc global_info_value self in return u64@(self + TGLOBAL_INFO_value); end
+
 const TIR_CONTEXT_instructions =  0; // ir_instruction vector
 const TIR_CONTEXT_label_id     =  8; // int
-const TIR_CONTEXT_strings      = 16; // (string, cstr) map : string -> label
-const TIR_CONTEXT_externs      = 24; // (cstr, proc_info) map : name -> label
+const TIR_CONTEXT_strings      = 16; // (string, cstr) map      : string -> label
+const TIR_CONTEXT_externs      = 24; // (cstr, proc_info) map   : name -> proc_info
 const TIR_CONTEXT_labels       = 32; // string set : all labels
-const TIR_CONTEXT_constants    = 40; // (cstr, const_info) map : name -> value
+const TIR_CONTEXT_constants    = 40; // (cstr, const_info) map  : name -> const_info
 const TIR_CONTEXT_src_locs     = 48; // src_loc vector
 const TIR_CONTEXT_file_set     = 56; // cstr set : paths
 const TIR_CONTEXT_files        = 64; // cstr vector
-const TIR_CONTEXT_procs        = 72; // (cstr, proc_info) map : name -> proc_info
-const TIR_CONTEXT_proc_locals  = 80; // (cstr, int) map : name -> location
-const sizeof_TIR_CONTEXT       = 88;
+const TIR_CONTEXT_procs        = 72; // (cstr, proc_info) map   : name -> proc_info
+const TIR_CONTEXT_proc_locals  = 80; // (cstr, int) map         : name -> location
+const TIR_CONTEXT_globals_map  = 88; // (cstr, global_info) map : name -> global_info
+// Order of definition is preserved in the `globals' vector.
+const TIR_CONTEXT_globals      = 96; // global_info vector
+const sizeof_TIR_CONTEXT       = 104;
 
 proc make_ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
@@ -568,6 +620,8 @@ proc make_ir_context in
     u64!(self + TIR_CONTEXT_files, make_vector(0));
     u64!(self + TIR_CONTEXT_procs, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_proc_locals, NULL);
+    u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_globals, make_vector(0));
     return self;
 end
 
@@ -581,6 +635,8 @@ proc ir_file_set self in return u64@(self + TIR_CONTEXT_file_set); end
 proc ir_files self in return u64@(self + TIR_CONTEXT_files); end
 proc ir_procs self in return u64@(self + TIR_CONTEXT_procs); end
 proc ir_proc_locals self in return u64@(self + TIR_CONTEXT_proc_locals); end
+proc ir_globals_map self in return u64@(self + TIR_CONTEXT_globals_map); end
+proc ir_globals self in return u64@(self + TIR_CONTEXT_globals); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -675,10 +731,6 @@ proc ir_string_label self, string in
     return label;
 end
 
-proc ir_string_bytes self in
-    NYI_ERR("ir_string_bytes");
-end
-
 proc ir_is_label self, ident in
     return set_contains(ir_labels(self), ident);
 end
@@ -726,6 +778,30 @@ end
 
 proc ir_add_const self, ident, value in
     map_set(ir_constants(self), ident, value);
+end
+
+proc ir_is_global self, ident in
+    return map_find(ir_globals_map(self), ident) != NULL;
+end
+
+proc ir_get_global self, ident in
+    var found = map_find(ir_globals_map(self), ident);
+    return map_pair_val(found);
+end
+
+proc ir_add_global_string self, ident, value in
+    var label = ir_new_label(self, NULL);
+    var val_label = ir_string_label(self, value);
+    var gi = make_global_info(GIK_String, label, val_label);
+    map_set(ir_globals_map(self), ident, gi);
+    vector_push(ir_globals(self), gi);
+end
+
+proc ir_add_global_int self, ident, value in
+    var label = ir_new_label(self, NULL);
+    var gi = make_global_info(GIK_Integer, label, value);
+    map_set(ir_globals_map(self), ident, gi);
+    vector_push(ir_globals(self), gi);
 end
 
 proc check_ast_kind expect, ast in
@@ -789,6 +865,9 @@ proc ir_emit_ident self, ast in
     else if ir_is_extern(self, ident) then
         var extern_info = ir_get_extern(self, ident);
         ir_append(self, make_ir_push_label(proc_info_label(extern_info)));
+    else if ir_is_global(self, ident) then
+        var gi = ir_get_global(self, ident);
+        ir_append(self, make_ir_get_global(ident, global_info_label(gi)));
     else
         ir_append(self, make_ir_lazy_ident(ast_token(ast)));
     end
@@ -957,13 +1036,18 @@ proc ir_emit_assign self, ast in
     check_ast_kind(AstK_Assign, ast);
     ir_compile(self, ast_assign_expr(ast));
     var ident = ast_ident(ast);
-    if not ir_is_local(self, ident) then
-        printf("ERROR: No local named `%s` exists.\n", ident);
+    if ir_is_local(self, ident) then
+        var n = ir_get_local(self, ident);
+        ir_append(self, make_ir_set_local(ident, n));
+    else if ir_is_global(self, ident) then
+        var gi = ir_get_global(self, ident);
+        var label = global_info_label(gi);
+        ir_append(self, make_ir_set_global(ident, label));
+    else
+        printf("ERROR: No variable named `%s` exists.\n", ident);
         ir_print_src_loc(self);
         exit(1);
     end
-    var n = ir_get_local(self, ident);
-    ir_append(self, make_ir_set_local(ident, n));
 end
 
 proc ir_emit_procedure self, ast in
@@ -1109,11 +1193,30 @@ proc ir_emit_extern self, ast in
 end
 
 proc ir_emit_inline_asm self, ast in
+    // TODO: Check if asm name already defined.
     check_ast_kind(AstK_InlineAsm, ast);
     var asm_name = ast_ident(ast);
     var asm_code = ast_asm(ast);
     ir_append(self, make_ir_inline_asm(asm_name, asm_code));
     set_add(ir_labels(self), asm_name);
+end
+
+proc ir_emit_global self, ast in
+    check_ast_kind(AstK_Global, ast);
+    var ident = ast_ident(ast);
+    if ir_is_global(self, ident) then
+        printf("ERROR: global `%s` already defined.\n", ident);
+        ir_print_src_loc(self);
+        exit(1);
+    end
+
+    var tok = ast_val_tok(ast);
+    var tok_k = token_kind(tok);
+    if tok_k == TK_Integer then
+        ir_add_global_int(self, ident, token_value(tok));
+    else if tok_k == TK_String then
+        ir_add_global_string(self, ident, token_value(tok));
+    end
 end
 
 proc ir_compile self, ast in
@@ -1137,9 +1240,13 @@ proc ir_compile self, ast in
     else if k == AstK_Const then ir_emit_const(self, ast);
     else if k == AstK_Extern then ir_emit_extern(self, ast);
     else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast);
+    else if k == AstK_Global then ir_emit_global(self, ast);
     else
-        printf("Unknown AstK: %d\n", k);
-        abort();
+        printf("`ir_compile` in ir_context.randy");
+        printf("Unhandled AstK: %d\n", k);
+        print_token(ast_token(ast));
+        print_token_loc(ast_token(ast));
+        exit(1);
     end
     ir_pop_src_loc(self);
 end

@@ -43,6 +43,8 @@ proc get_ident_kind string in
         if cstr_eq("else", cstr) then return TK_KW_else; end
         if cstr_eq("end", cstr) then return TK_KW_end; end
         if cstr_eq("extern", cstr) then return TK_KW_extern; end
+    else if 'g' == first then
+        if cstr_eq("global", cstr) then return TK_KW_global; end
     else if 'i' == first then
         if cstr_eq("if", cstr) then return TK_KW_if; end
         if cstr_eq("in", cstr) then return TK_KW_in; end

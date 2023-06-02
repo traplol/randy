@@ -20,6 +20,7 @@ const AstK_Prefix       = 14;
 const AstK_Const        = 15;
 const AstK_Extern       = 16;
 const AstK_InlineAsm    = 17;
+const AstK_Global       = 18;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -40,6 +41,7 @@ proc ast_kind_cstr k in
     if k == AstK_Const then return "AstK_Const"; end
     if k == AstK_Extern then return "AstK_Extern"; end
     if k == AstK_InlineAsm then return "AstK_InlineAsm"; end
+    if k == AstK_Global then return "AstK_Global"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -265,6 +267,15 @@ proc make_ast_inline_asm token, ident, asmcode in
     return self;
 end
 
+proc make_ast_global token, ident, val_tok in
+    var self= malloc(sizeof_TAST);
+    u64!(self + TAST_kind, AstK_Global);
+    u64!(self + TAST_token, token);
+    u64!(self + TAST_ident, ident);
+    u64!(self + TAST_val_tok, val_tok);
+    return self;
+end
+
 proc ast_kind self in return u64@(self + TAST_kind); end
 proc ast_token self in return u64@(self + TAST_token); end
 proc ast_alternative self in return u64@(self + TAST_alternative); end
@@ -482,6 +493,21 @@ proc _print_ast_inline_asm ast, indent in
     printf("end");
 end
 
+proc _print_ast_global ast, indent in
+    printf("global %s = ", ast_ident(ast));
+    var tok = ast_val_tok(ast);
+    var k = token_kind(tok);
+    if k == TK_String then
+        printf("\"%s\"", string_cstr(token_value(tok)));
+    else if k == TK_Integer then
+        printf("%ld", token_value(tok));
+    else if k == TK_Char then
+        printf("'%c'", token_value(tok));
+    else
+        printf("???");
+    end
+end
+
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -502,6 +528,7 @@ proc _print_ast ast, indent in
     else if k == AstK_Const then _print_ast_const(ast, indent);
     else if k == AstK_Extern then _print_ast_extern(ast, indent);
     else if k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
+    else if k == AstK_Global then _print_ast_global(ast, indent);
     end
 end
 

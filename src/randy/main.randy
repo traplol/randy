@@ -50,6 +50,32 @@ proc cc_out_data_section irctx, cctx in
     cc_out(cctx, ".align 8");
     cc_out(cctx, "__argc__: .quad 0");
     cc_out(cctx, "__argv__: .quad 0");
+
+    var globals = ir_globals(irctx);
+    var i = 0; var len = vector_len(globals);
+    var str = make_string(0);
+    while i < len do
+        string_reset(str);
+        var gi = vector_get(globals, i);
+        var kind = global_info_kind(gi);
+        var label = global_info_label(gi);
+        var value = global_info_value(gi);
+        if kind == GIK_String then
+            string_append_cstr(str, label);
+            string_append_cstr(str, ": .quad ");
+            string_append_cstr(str, value);
+            cc_out(cctx, string_cstr(str));
+        else if kind == GIK_Integer then
+            string_append_cstr(str, label);
+            string_append_cstr(str, ": .quad ");
+            string_append_int(str, value);
+            cc_out(cctx, string_cstr(str));
+        else
+            NYI_ERR("cc_out_data_section: unknown global kind");
+        end
+        i = i + 1;
+    done
+
     cc_out(cctx, ".section .rodata, \"a\"");
     var strings = ir_strings(irctx);
     var cur_string = map_begin(strings);

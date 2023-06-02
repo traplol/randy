@@ -425,6 +425,19 @@ proc parse_asm ts in
     return make_ast_inline_asm(asm_, token_value(ident), string_cstr(token_value(asmcode)));
 end
 
+proc parse_global ts in
+    var global_ = ts_expect(ts, TK_KW_global);
+    var ident = ts_expect(ts, TK_Ident);
+    ts_expect(ts, TK_Assign);
+    if not ts_peekk_one_of_3(ts, TK_Integer, TK_Char, TK_String) then
+        printf("ERROR: Expected one of [TK_Integer, TK_Char, TK_String] for 'global.'\n");
+        print_token_loc(global_);
+        exit(1);
+    end
+    var val_tok = ts_next(ts);
+    return make_ast_global(global_, token_value(ident), val_tok);
+end
+
 proc parse ts in
     var roots = make_vector(0);
     var parsed; var tk;
@@ -440,6 +453,9 @@ proc parse ts in
             ts_expect(ts, TK_Semicolon);
         else if ts_peekk(ts, TK_KW_asm) then
             parsed = parse_asm(ts);
+        else if ts_peekk(ts, TK_KW_global) then
+            parsed = parse_global(ts);
+            ts_expect(ts, TK_Semicolon);
         else
             tk = ts_peek(ts);
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(token_kind(tk)));
