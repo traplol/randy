@@ -57,7 +57,48 @@ proc string_hash string in
     return hash;
 end
 
+proc _string_append_int_slow string, n in
+    // no zero check because this isn't called unless very positive or very negative number.
+    var temp = n;
+    var len = 0;
+    while temp != 0 do
+        len = len + 1;
+        temp = temp / 10;
+    done
+    if n < 0 then
+        len = len + 1;
+    end
+    var str = malloc(len + 1);
+    var idx = 0;
+    var k = 0;
+    if n < 0 then
+        u8!(str + idx, '-');
+        idx = idx + 1;
+        k = 1;
+        n = 0 - n;
+    end
+    var digit;
+    while idx < len do
+        digit = n % 10;
+        n = n / 10;
+        u8!(str + (len - idx - (1 - k)), '0' + digit);
+        idx = idx + 1;
+    done
+    u8!(str + len, 0);
+    string_append_cstr(string, str);
+    free(str);
+end
+
 proc string_append_int string, n in
+    // This will iteratively generate the characters for n -> str in left-to-right
+    // order but it will fail when we start to approach numbers that will overflow.
+    // We consider the alternative method "slow" because it does the same length
+    // calculation and but it also does a malloc/free for the intermediate result
+    // while this procedure does not.
+    if n < 0-100000000000000000 or n > 100000000000000000 then
+        _string_append_int_slow(string, n);
+        return;
+    end
     if n < 0 then
         string_push(string, '-');
     end
