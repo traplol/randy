@@ -43,6 +43,7 @@ const IRK_CallLazyIdent = 40;
 const IRK_DropTop       = 41;
 const IRK_SetGlobal     = 42;
 const IRK_GetGlobal     = 43;
+const IRK_Negative      = 44;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -86,6 +87,7 @@ proc ir_instr_kind_cstr k in
     if k == IRK_DropTop then return "IRK_DropTop"; end
     if k == IRK_SetGlobal then return "IRK_SetGlobal"; end
     if k == IRK_GetGlobal then return "IRK_GetGlobal"; end
+    if k == IRK_Negative then return "IRK_Negative"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -218,6 +220,11 @@ end
 proc make_ir_logic_not in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LogicNot);
+    return self;
+end
+proc make_ir_negative in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_Negative);
     return self;
 end
 proc make_ir_new_proc src_name, name, params, locals in
@@ -380,6 +387,9 @@ end
 proc print_ir_logic_not self in
     printf("(IR.LogicNot)\n");
 end
+proc print_ir_negative self in
+    printf("(IR.Negative)\n");
+end
 proc print_ir_new_proc self in
     printf("(IR.NewProc ");
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
@@ -520,6 +530,7 @@ proc print_ir ir in
     else if k == IRK_DropTop then print_ir_drop_top(ir);
     else if k == IRK_SetGlobal then print_ir_set_global(ir);
     else if k == IRK_GetGlobal then print_ir_get_global(ir);
+    else if k == IRK_Negative then print_ir_negative(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -724,7 +735,7 @@ proc ir_string_label self, string in
         return map_pair_val(found);
     end
 
-    var label = ir_new_label(self, NULL);
+    var label = ir_new_label(self, "C");
     set_add(ir_labels(self), label);
     map_set(strings, string, label);
 
@@ -790,7 +801,7 @@ proc ir_get_global self, ident in
 end
 
 proc ir_add_global_string self, ident, value in
-    var label = ir_new_label(self, NULL);
+    var label = ir_new_label(self, "G");
     var val_label = ir_string_label(self, value);
     var gi = make_global_info(GIK_String, label, val_label);
     map_set(ir_globals_map(self), ident, gi);
@@ -798,7 +809,7 @@ proc ir_add_global_string self, ident, value in
 end
 
 proc ir_add_global_int self, ident, value in
-    var label = ir_new_label(self, NULL);
+    var label = ir_new_label(self, "G");
     var gi = make_global_info(GIK_Integer, label, value);
     map_set(ir_globals_map(self), ident, gi);
     vector_push(ir_globals(self), gi);
@@ -812,6 +823,101 @@ proc check_ast_kind expect, ast in
             ast_kind_cstr(actual));
         abort();
     end
+end
+
+//const AstK_Ident        = 0;
+//const AstK_Integer      = 1;
+//const AstK_String       = 2;
+//const AstK_BinOp        = 4;
+//const AstK_Prefix       = 14;
+proc ir_comptime_eval self, ast in
+    var evaled; var result;
+    var op; var ident; var ci;
+    var lhs; var rhs;
+    var lhs_val; var rhs_val;
+
+    var k = ast_kind(ast);
+    if k == AstK_Integer then
+        return ast;
+    else if k == AstK_String then
+        return ast;
+    else if k == AstK_Ident then
+        ident = ast_ident(ast);
+        if ir_is_const(self, ident) then
+            ci = ir_get_const(self, ident);
+            if const_info_kind(ci) == CIK_String then
+                return make_ast_string(ast_token(ast), const_info_value(ci)); // @LEAK
+            else if const_info_kind(ci) == CIK_Integer then
+                return make_ast_integer(ast_token(ast), const_info_value(ci)); // @LEAK
+            end
+        end
+    else if k == AstK_BinOp then
+        op = ast_op(ast);
+        lhs = ir_comptime_eval(self, ast_lhs(ast));
+        rhs = ir_comptime_eval(self, ast_rhs(ast));
+        if ast_kind(lhs) == ast_kind(rhs) then
+            if ast_kind(lhs) == AstK_Integer then
+                lhs_val = ast_value(lhs);
+                rhs_val = ast_value(rhs);
+                evaled = false;
+                if op == TK_Plus then
+                    evaled = true;
+                    result = lhs_val + rhs_val;
+                else if op == TK_Minus then
+                    evaled = true;
+                    result = lhs_val - rhs_val;
+                else if op == TK_Star then
+                    evaled = true;
+                    result = lhs_val * rhs_val;
+                else if op == TK_KW_and then
+                    evaled = true;
+                    result = lhs_val and rhs_val;
+                else if op == TK_KW_or then
+                    evaled = true;
+                    result = lhs_val or rhs_val;
+                else if op == TK_Slash then
+                    if rhs_val != 0 then
+                        evaled = true;
+                        result = lhs_val / rhs_val;
+                    end
+                else if op == TK_Percent then
+                    if rhs_val != 0 then
+                        evaled = true;
+                        result = lhs_val % rhs_val;
+                    end
+                end
+                if evaled then
+                    return make_ast_integer(ast_token(ast), result);
+                end
+            end
+        end
+    else if k == AstK_Prefix then
+        op = ast_op(ast);
+        rhs = ir_comptime_eval(self, ast_expr(ast));
+        evaled = false;
+        if ast_kind(rhs) == AstK_Integer then
+            rhs_val = ast_value(rhs);
+            if op == TK_Minus then
+                evaled = true;
+                result = 0 - rhs_val;
+            else if op == TK_KW_not then
+                evaled = true;
+                result = not rhs_val;
+            else if op == TK_Tilde then
+                evaled = true;
+                result = ~rhs_val;
+            end
+            if evaled then
+                return make_ast_integer(ast_token(ast), result);
+            end
+        end
+    end
+
+    printf("ERROR: Expression is not compile-time evaluable.\n");
+    printf("NOTE: The expression was: ");
+    print_ast(ast);
+    ir_print_src_loc(self);
+    exit(1);
 end
 
 proc ir_emit_body self, body in
@@ -883,7 +989,6 @@ proc ir_emit_string self, ast in
     var string = ast_value(ast);
     var string_label = ir_string_label(self, string);
     ir_append(self, make_ir_push_label(string_label));
-    //printf("  /* Mapping %s to '%s' */\n", string_label, string_cstr(string));
 end
 
 proc _ir_check_arg_count self, ident, info, nargs in
@@ -1120,13 +1225,21 @@ end
 
 proc ir_emit_prefix_op self, ast in
     check_ast_kind(AstK_Prefix, ast);
+    var expr = ast_expr(ast);
     var op = ast_op(ast);
     if op == TK_Tilde then
-        ir_compile(self, ast_expr(ast));
+        ir_compile(self, expr);
         ir_append(self, make_ir_bit_not());
     else if op == TK_KW_not then
-        ir_compile(self, ast_expr(ast));
+        ir_compile(self, expr);
         ir_append(self, make_ir_logic_not());
+    else if op == TK_Minus then
+        if ast_kind(expr) == AstK_Integer then
+            ir_append(self, make_ir_push_int(0 - ast_value(expr)));
+        else
+            ir_compile(self, expr);
+            ir_append(self, make_ir_negative());
+        end
     else
         NYI_ERR("unhandled ir_emit_prefix_op");
     end
@@ -1134,28 +1247,16 @@ end
 
 proc ir_emit_const self, ast in
     check_ast_kind(AstK_Const, ast);
+    var expr = ast_assign_expr(ast);
+    var val = ir_comptime_eval(self, expr);
     var const_info = NULL;
-    var tok = ast_val_tok(ast);
-    var k = token_kind(tok);
-    if k == TK_Ident then
-        if ir_is_const(self, token_value(tok)) then
-            var tmp = ir_get_const(self, token_value(tok));
-            const_info = make_const_info(const_info_kind(tmp), const_info_value(tmp));
-        else
-            printf("ERROR: Referencing a non-const as a const is not permitted.\n");
-            printf("NOTE: The non-const is `%s.`\n", token_value(tok));
-            ir_print_src_loc(self);
-            exit(1);
-        end
-    else if k == TK_String then
-        var string_label = ir_string_label(self, token_value(tok));
+    var k = ast_kind(val);
+    if k == AstK_String then
+        var string_label = ir_string_label(self, ast_value(val));
         const_info = make_const_info(CIK_String, string_label);
-    else if k == TK_Integer then
-        const_info = make_const_info(CIK_Integer, token_value(tok));
-    else if k == TK_Char then
-        const_info = make_const_info(CIK_Integer, token_value(tok));
+    else if k == AstK_Integer then
+        const_info = make_const_info(CIK_Integer, ast_value(val));
     end
-
     if const_info then
         if ir_is_const(self, ast_ident(ast)) then
             var existing = ir_get_const(self, ast_ident(ast));
@@ -1169,7 +1270,7 @@ proc ir_emit_const self, ast in
             ir_add_const(self, ast_ident(ast), const_info);
         end
     else
-        NYI_ERR("ir_emit_const: unsupported constant");
+        NYI_ERR("ir_emit_const_comptime: unsupported constant");
     end
 end
 
@@ -1210,12 +1311,15 @@ proc ir_emit_global self, ast in
         exit(1);
     end
 
-    var tok = ast_val_tok(ast);
-    var tok_k = token_kind(tok);
-    if tok_k == TK_Integer then
-        ir_add_global_int(self, ident, token_value(tok));
-    else if tok_k == TK_String then
-        ir_add_global_string(self, ident, token_value(tok));
+    var expr = ast_assign_expr(ast);
+    var val = ir_comptime_eval(self, expr);
+    var k = ast_kind(val);
+    if k == AstK_String then
+        ir_add_global_string(self, ident, ast_value(val));
+    else if k == AstK_Integer then
+        ir_add_global_int(self, ident, ast_value(val));
+    else
+        NYI_ERR("ir_emit_global:comptime failed");
     end
 end
 

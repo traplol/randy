@@ -1,0 +1,4 @@
+pass: i is less than 0
+pass: i is -123456
+pass: const foo is less than 0
+pass: const foo is -1234567890123456789

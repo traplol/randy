@@ -546,6 +546,13 @@ proc x86_64_emit_get_global cc, ir in
     free_string(str);
 end
 
+proc x86_64_emit_negative cc, ir in
+    check_ir_kind(IRK_Negative, ir);
+    //print_ir(ir);
+    cc_out(cc, "    popq %rax");
+    cc_out(cc, "    neg %rax");
+    cc_out(cc, "    pushq %rax");
+end
 
 proc x86_64_emit_instruction cc, ir in
     var k = ir_instr_kind(ir);
@@ -590,6 +597,7 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_DropTop then x86_64_emit_drop_top(cc, ir);
     else if k == IRK_SetGlobal then x86_64_emit_set_global(cc, ir);
     else if k == IRK_GetGlobal then x86_64_emit_get_global(cc, ir);
+    else if k == IRK_Negative then x86_64_emit_negative(cc, ir);
     else
         printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
         printf("Unhandled IRK: %d\n", k);

@@ -178,7 +178,7 @@ proc parse_prefix ts in
         return postfix;
     end
 
-    if ts_peekk_one_of_2(ts, TK_Tilde, TK_KW_not) then
+    if ts_peekk_one_of_3(ts, TK_Tilde, TK_KW_not, TK_Minus) then
         var tok = ts_next(ts);
         var expr = parse_prefix(ts);
         return make_ast_prefix(tok, token_kind(tok), expr);
@@ -387,13 +387,8 @@ proc parse_const ts in
     var const_ = ts_expect(ts, TK_KW_const);
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, TK_Assign);
-    if not ts_peekk_one_of_4(ts, TK_Ident, TK_Integer, TK_Char, TK_String) then
-        printf("ERROR: Expected one of [TK_Ident, TK_Integer, TK_Char, TK_String] for 'const.'\n");
-        print_token_loc(const_);
-        exit(1);
-    end
-    var val_tok = ts_next(ts);
-    return make_ast_const(const_, token_value(ident), val_tok);
+    var expr = parse_expression(ts);
+    return make_ast_const(const_, token_value(ident), expr);
 end
 
 proc parse_extern ts in
@@ -429,13 +424,8 @@ proc parse_global ts in
     var global_ = ts_expect(ts, TK_KW_global);
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, TK_Assign);
-    if not ts_peekk_one_of_3(ts, TK_Integer, TK_Char, TK_String) then
-        printf("ERROR: Expected one of [TK_Integer, TK_Char, TK_String] for 'global.'\n");
-        print_token_loc(global_);
-        exit(1);
-    end
-    var val_tok = ts_next(ts);
-    return make_ast_global(global_, token_value(ident), val_tok);
+    var expr = parse_expression(ts);
+    return make_ast_global(global_, token_value(ident), expr);
 end
 
 proc parse ts in
