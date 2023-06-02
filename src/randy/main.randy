@@ -214,7 +214,6 @@ proc main argc, argv in
 
         var include_paths = make_vector(8);
         vector_push(include_paths, getcwd());
-        vector_push(include_paths, string_from_cstr("/home/max/workspace/randy/include")); // @HACK
 
         var in_path = NULL;
         var out_path = NULL;
