@@ -119,17 +119,40 @@ proc cc_lines_to_file cctx, path in
         printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
         return false;
     end
-    var i = 0;
+    var i = 0; var j = 0;
+    var BUFLEN = 4096;
+    var buffer = malloc(BUFLEN);
+    var buffer_end = buffer + BUFLEN;
+    var p = buffer;
+
     var lines = compiler_context_lines(cctx);
-    var len = vector_len(lines);
-    var line;
-    while i < len do
+    var num_lines = vector_len(lines);
+    var line; var line_len;
+    while i < num_lines do
         line = vector_get(lines, i);
-        write_file(fd, string_buf(line), string_len(line));
-        write_file(fd, "\n", 1);
+        j = 0; line_len = string_len(line);
+        while j < line_len do
+            if p == buffer_end then
+                write_file(fd, buffer, BUFLEN);
+                p = buffer;
+            end
+            u8!(p, string_get(line, j));
+            p = p + 1;
+            j = j + 1;
+        done
+        if p == buffer_end then
+            write_file(fd, buffer, BUFLEN);
+            p = buffer;
+        end
+        u8!(p, '\n');
+        p = p + 1;
         i = i + 1;
     done
+    if p != buffer then
+        write_file(fd, buffer, p - buffer);
+    end
     close(fd);
+    free(buffer);
     return true;
 end
 
@@ -185,6 +208,10 @@ proc main argc, argv in
         printf("No input file.\n");
         return 1;
     else
+        var true_starttime = make_empty_timespec();
+        var true_endtime = make_empty_timespec();
+        time(true_starttime);
+
         var include_paths = make_vector(8);
         vector_push(include_paths, getcwd());
         vector_push(include_paths, string_from_cstr("/home/max/workspace/randy/include")); // @HACK
@@ -327,6 +354,7 @@ proc main argc, argv in
             print_timespan("ASM compile took: ", starttime, endtime);
         end
 
+        time(starttime);
         var out_asm_path = string_from_cstr(out_path);
         string_append_cstr(out_asm_path, ".s");
         var out_obj_path = string_from_cstr(out_path);
@@ -334,8 +362,16 @@ proc main argc, argv in
         cc_lines_to_file(cctx, string_cstr(out_asm_path));
 
         assemble_and_link(string_cstr(out_asm_path), string_cstr(out_obj_path), out_path, ld_flags);
+        time(endtime);
+        if verbosity > 0 then
+            print_timespan("Assemble and Link took: ", starttime, endtime);
+        end
         free_string(out_asm_path);
         free_string(out_obj_path);
+        time(true_endtime);
+        if verbosity > 0 then
+            print_timespan("Total elapsed: ", true_starttime, true_endtime);
+        end
         return 0;
     end
 end
