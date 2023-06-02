@@ -841,7 +841,7 @@ proc ir_comptime_eval self, ast, error_on_fail in
         if ir_is_const(self, ident) then
             ci = ir_get_const(self, ident);
             if const_info_kind(ci) == CIK_String then
-                return make_ast_string(ast_token(ast), const_info_value(ci)); // @LEAK
+                return ast;
             else if const_info_kind(ci) == CIK_Integer then
                 return make_ast_integer(ast_token(ast), const_info_value(ci)); // @LEAK
             end
