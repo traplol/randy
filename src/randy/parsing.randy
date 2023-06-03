@@ -316,6 +316,9 @@ proc parse_statement ts in
     else if ts_peekk(ts, TK_KW_break) then
         stmt = make_ast_break(ts_next(ts));
         expect_semi = true;
+    else if ts_peekk(ts, TK_KW_continue) then
+        stmt = make_ast_continue(ts_next(ts));
+        expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
         stmt = parse_assign(ts);
         expect_semi = true;

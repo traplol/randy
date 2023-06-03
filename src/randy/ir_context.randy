@@ -617,7 +617,8 @@ const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> globa
 // Order of definition is preserved in the `globals' vector.
 const TIR_CONTEXT_globals      = 96;  // global_info vector
 const TIR_CONTEXT_break_dests  = 104; // cstr vector -> label to goto
-const sizeof_TIR_CONTEXT       = 112;
+const TIR_CONTEXT_conti_dests  = 112; // cstr vector -> label to goto
+const sizeof_TIR_CONTEXT       = 120;
 
 proc make_ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
@@ -635,6 +636,7 @@ proc make_ir_context in
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_globals, make_vector(0));
     u64!(self + TIR_CONTEXT_break_dests, make_vector(0));
+    u64!(self + TIR_CONTEXT_conti_dests, make_vector(0));
     return self;
 end
 
@@ -651,6 +653,7 @@ proc ir_proc_locals self in return u64@(self + TIR_CONTEXT_proc_locals); end
 proc ir_globals_map self in return u64@(self + TIR_CONTEXT_globals_map); end
 proc ir_globals self in return u64@(self + TIR_CONTEXT_globals); end
 proc ir_break_dests self in return u64@(self + TIR_CONTEXT_break_dests); end
+proc ir_continue_dests self in return u64@(self + TIR_CONTEXT_conti_dests); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -828,6 +831,22 @@ end
 
 proc ir_get_break_dest self in
     var dests = ir_break_dests(self);
+    if vector_len(dests) == 0 then
+        return NULL;
+    end
+    return vector_back(dests);
+end
+
+proc ir_push_continue_dest self, dest in
+    vector_push(ir_continue_dests(self), dest);
+end
+
+proc ir_pop_continue_dest self in
+    vector_pop(ir_continue_dests(self));
+end
+
+proc ir_get_continue_dest self in
+    var dests = ir_continue_dests(self);
     if vector_len(dests) == 0 then
         return NULL;
     end
@@ -1207,8 +1226,10 @@ proc ir_emit_while self, ast in
     ir_append(self, make_ir_label(l_test));
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_out));
-    ir_push_break_dest(self, l_out);
+    ir_push_break_dest(self, l_out);     // break jumps to out
+    ir_push_continue_dest(self, l_test); // continue jumps to test
     ir_emit_body(self, ast_body(ast));
+    ir_pop_continue_dest(self);
     ir_pop_break_dest(self);
     ir_append(self, make_ir_goto(l_test));
     ir_append(self, make_ir_label(l_out));
@@ -1341,7 +1362,17 @@ proc ir_emit_break self, ast in
         exit(1);
     end
     ir_append(self, make_ir_goto(dest));
-    //NYI_ERR("ir_emit_break");
+end
+
+proc ir_emit_continue self, ast in
+    check_ast_kind(AstK_Continue, ast);
+    var dest = ir_get_continue_dest(self);
+    if not dest then
+        printf("ERROR: 'continue' must be within a loop body.\n");
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    ir_append(self, make_ir_goto(dest));
 end
 
 proc ir_compile self, ast in
@@ -1369,6 +1400,7 @@ proc ir_compile self, ast in
     else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast);
     else if k == AstK_Global then ir_emit_global(self, ast);
     else if k == AstK_Break then ir_emit_break(self, ast);
+    else if k == AstK_Continue then ir_emit_continue(self, ast);
     else
         printf("`ir_compile` in ir_context.randy");
         printf("Unhandled AstK: %d\n", k);

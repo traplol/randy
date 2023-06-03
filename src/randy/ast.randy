@@ -22,6 +22,7 @@ const AstK_Extern       = 16;
 const AstK_InlineAsm    = 17;
 const AstK_Global       = 18;
 const AstK_Break        = 19;
+const AstK_Continue     = 20;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -44,6 +45,7 @@ proc ast_kind_cstr k in
     if k == AstK_InlineAsm then return "AstK_InlineAsm"; end
     if k == AstK_Global then return "AstK_Global"; end
     if k == AstK_Break then return "AstK_Break"; end
+    if k == AstK_Continue then return "AstK_Continue"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -285,6 +287,13 @@ proc make_ast_break token in
     return self;
 end
 
+proc make_ast_continue token in
+    var self= malloc(sizeof_TAST);
+    u64!(self + TAST_kind, AstK_Continue);
+    u64!(self + TAST_token, token);
+    return self;
+end
+
 proc ast_kind self in return u64@(self + TAST_kind); end
 proc ast_token self in return u64@(self + TAST_token); end
 proc ast_alternative self in return u64@(self + TAST_alternative); end
@@ -496,6 +505,10 @@ end
 
 proc _print_ast_break ast, indent in
     printf("break");
+end
+
+proc _print_ast_continue ast, indent in
+    printf("continue");
 end
 
 proc _print_ast ast, indent in

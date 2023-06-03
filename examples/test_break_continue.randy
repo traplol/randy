@@ -1,0 +1,70 @@
+#include std/core
+
+proc test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+
+proc test_break in
+    printf("Testing basic break\n");
+    var i = 0;
+    while i < 10 do
+        if i > 5 then
+            break;
+        end
+        i = i + 1;
+    end
+    test("i is 6", 6 == i);
+
+    printf("Testing nested break\n");
+    var j; i = 0;
+    while i < 10 do
+        j = 0;
+        while j < 10 do
+            if j + i == 10 then
+                printf("i=%d + j=%d => 10\n", i, j);
+                break;
+            end
+            j = j + 1;
+        end
+        i = i + 1;
+    end
+end
+
+proc test_continue in
+    printf("Testing basic continue\n");
+    var i = 0;
+    while i < 10 do
+        if i == 9 then
+            i = i + 2;
+            continue;
+        end
+        i = i + 1;
+    end
+    test("i is 11", 11 == i);
+
+    printf("Testing nested continue\n");
+    var j; i = 0;
+    while i < 10 do
+        j = 0;
+        while j < 15 do
+            if j + i > 10 then
+                printf("i=%d + j=%d > 10\n", i, j);
+                j = j + 3;
+                continue;
+            end
+            j = j + 1;
+        end
+        i = i + 1;
+    end
+end
+
+proc main in
+    test_break();
+    test_continue();
+    return 0;
+end
