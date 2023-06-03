@@ -61,9 +61,8 @@ proc parse_while ts in
     var test = parse_expression(ts);
     var body = make_vector(0);
     ts_expect(ts, TK_KW_do);
-    parse_statements_until_either(ts, body, TK_KW_end, TK_KW_end);
-    ts_next(ts);
-    //ts_expect(ts, TK_KW_end);
+    parse_statements_until(ts, body, TK_KW_end);
+    ts_expect(ts, TK_KW_end);
     return make_ast_while(while_, test, body);
 end
 
