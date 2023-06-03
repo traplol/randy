@@ -374,11 +374,10 @@ proc parse_proc ts in
     var ident = ts_expect(ts, TK_Ident);
     var body = make_vector(0);
     var params = make_vector(0);
-    var breaking = false;
-    while not breaking and ts_peekk(ts, TK_Ident) do
+    while ts_peekk(ts, TK_Ident) do
         vector_push(params, token_value(ts_next(ts)));
         if ts_peekk(ts, TK_KW_in) then
-            breaking = true;
+            break;
         else
             ts_expect(ts, TK_Comma);
         end
@@ -402,11 +401,10 @@ proc parse_extern ts in
     var ident = ts_expect(ts, TK_Ident);
     var is_varargs = false;
     var params = make_vector(0);
-    var breaking = false;
-    while not breaking and ts_peekk(ts, TK_Ident) do
+    while ts_peekk(ts, TK_Ident) do
         vector_push(params, token_value(ts_next(ts)));
         if ts_peekk(ts, TK_Semicolon) then
-            breaking = true;
+            break;
         else
             ts_expect(ts, TK_Comma);
         end

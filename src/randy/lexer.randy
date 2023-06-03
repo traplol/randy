@@ -156,27 +156,25 @@ proc _lex_code filename, code, include_paths, included_already in
             else if c == '#' then
                 var directive = make_string(2);
                 var arg = make_string(2);
-                var breaking = false;
                 // gather #directive chars up to next space
-                while i < length and not breaking do
+                while i < length do
                     c = string_get(code, i);
                     if is_whitespace(c) then
-                        breaking = true;
+                        break;
                     else
                         string_push(directive, c);
                         i = i + 1;
                     end
                 end
-                breaking = false;
                 // consume all whitespace up to newline or non-whitespace
-                while i < length and not breaking do
+                while i < length do
                     c = string_get(code, i);
                     if c == '\n' then
-                        breaking = true;
+                        break;
                     else if is_whitespace(c) then
                         i = i + 1;
                     else
-                        breaking = true;
+                        break;
                     end
                 end
                 // gather the rest of the line into arg
