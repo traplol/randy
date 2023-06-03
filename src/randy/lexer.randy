@@ -34,8 +34,11 @@ proc get_ident_kind string in
     if 'a' == first then
         if cstr_eq("asm", cstr) then return TK_KW_asm; end
         if cstr_eq("and", cstr) then return TK_KW_and; end
+    else if 'b' == first then
+        if cstr_eq("break", cstr) then return TK_KW_break; end
     else if 'c' == first then
         if cstr_eq("const", cstr) then return TK_KW_const; end
+        if cstr_eq("continue", cstr) then return TK_KW_continue; end
     else if 'd' == first then
         if cstr_eq("do", cstr) then return TK_KW_do; end
     else if 'e' == first then

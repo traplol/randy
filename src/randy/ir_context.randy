@@ -602,21 +602,22 @@ proc global_info_kind self in return u64@(self + TGLOBAL_INFO_kind); end
 proc global_info_label self in return u64@(self + TGLOBAL_INFO_label); end
 proc global_info_value self in return u64@(self + TGLOBAL_INFO_value); end
 
-const TIR_CONTEXT_instructions =  0; // ir_instruction vector
-const TIR_CONTEXT_label_id     =  8; // int
-const TIR_CONTEXT_strings      = 16; // (string, cstr) map      : string -> label
-const TIR_CONTEXT_externs      = 24; // (cstr, proc_info) map   : name -> proc_info
-const TIR_CONTEXT_labels       = 32; // string set : all labels
-const TIR_CONTEXT_constants    = 40; // (cstr, const_info) map  : name -> const_info
-const TIR_CONTEXT_src_locs     = 48; // src_loc vector
-const TIR_CONTEXT_file_set     = 56; // cstr set : paths
-const TIR_CONTEXT_files        = 64; // cstr vector
-const TIR_CONTEXT_procs        = 72; // (cstr, proc_info) map   : name -> proc_info
-const TIR_CONTEXT_proc_locals  = 80; // (cstr, int) map         : name -> location
-const TIR_CONTEXT_globals_map  = 88; // (cstr, global_info) map : name -> global_info
+const TIR_CONTEXT_instructions =  0;  // ir_instruction vector
+const TIR_CONTEXT_label_id     =  8;  // int
+const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : string -> label
+const TIR_CONTEXT_externs      = 24;  // (cstr, proc_info) map   : name -> proc_info
+const TIR_CONTEXT_labels       = 32;  // string set : all labels
+const TIR_CONTEXT_constants    = 40;  // (cstr, const_info) map  : name -> const_info
+const TIR_CONTEXT_src_locs     = 48;  // src_loc vector
+const TIR_CONTEXT_file_set     = 56;  // cstr set : paths
+const TIR_CONTEXT_files        = 64;  // cstr vector
+const TIR_CONTEXT_procs        = 72;  // (cstr, proc_info) map   : name -> proc_info
+const TIR_CONTEXT_proc_locals  = 80;  // (cstr, int) map         : name -> location
+const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> global_info
 // Order of definition is preserved in the `globals' vector.
-const TIR_CONTEXT_globals      = 96; // global_info vector
-const sizeof_TIR_CONTEXT       = 104;
+const TIR_CONTEXT_globals      = 96;  // global_info vector
+const TIR_CONTEXT_break_dests  = 104; // cstr vector -> label to goto
+const sizeof_TIR_CONTEXT       = 112;
 
 proc make_ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
@@ -633,6 +634,7 @@ proc make_ir_context in
     u64!(self + TIR_CONTEXT_proc_locals, NULL);
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_globals, make_vector(0));
+    u64!(self + TIR_CONTEXT_break_dests, make_vector(0));
     return self;
 end
 
@@ -648,6 +650,7 @@ proc ir_procs self in return u64@(self + TIR_CONTEXT_procs); end
 proc ir_proc_locals self in return u64@(self + TIR_CONTEXT_proc_locals); end
 proc ir_globals_map self in return u64@(self + TIR_CONTEXT_globals_map); end
 proc ir_globals self in return u64@(self + TIR_CONTEXT_globals); end
+proc ir_break_dests self in return u64@(self + TIR_CONTEXT_break_dests); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -813,6 +816,22 @@ proc ir_add_global_int self, ident, value in
     var gi = make_global_info(GIK_Integer, label, value);
     map_set(ir_globals_map(self), ident, gi);
     vector_push(ir_globals(self), gi);
+end
+
+proc ir_push_break_dest self, dest in
+    vector_push(ir_break_dests(self), dest);
+end
+
+proc ir_pop_break_dest self in
+    vector_pop(ir_break_dests(self));
+end
+
+proc ir_get_break_dest self in
+    var dests = ir_break_dests(self);
+    if vector_len(dests) == 0 then
+        return NULL;
+    end
+    return vector_back(dests);
 end
 
 proc ir_comptime_eval self, ast, error_on_fail in
@@ -1188,7 +1207,9 @@ proc ir_emit_while self, ast in
     ir_append(self, make_ir_label(l_test));
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_out));
+    ir_push_break_dest(self, l_out);
     ir_emit_body(self, ast_body(ast));
+    ir_pop_break_dest(self);
     ir_append(self, make_ir_goto(l_test));
     ir_append(self, make_ir_label(l_out));
 end
@@ -1311,6 +1332,18 @@ proc ir_emit_global self, ast in
     end
 end
 
+proc ir_emit_break self, ast in
+    check_ast_kind(AstK_Break, ast);
+    var dest = ir_get_break_dest(self);
+    if not dest then
+        printf("ERROR: 'break' must be within a loop body.\n");
+        ir_print_src_loc(self);
+        exit(1);
+    end
+    ir_append(self, make_ir_goto(dest));
+    //NYI_ERR("ir_emit_break");
+end
+
 proc ir_compile self, ast in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, false);
@@ -1335,6 +1368,7 @@ proc ir_compile self, ast in
     else if k == AstK_Extern then ir_emit_extern(self, ast);
     else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast);
     else if k == AstK_Global then ir_emit_global(self, ast);
+    else if k == AstK_Break then ir_emit_break(self, ast);
     else
         printf("`ir_compile` in ir_context.randy");
         printf("Unhandled AstK: %d\n", k);

@@ -50,7 +50,9 @@ const TK_Amper     = 46;
 const TK_Caret     = 47;
 const TK_Ellipsis  = 48;
 const TK_KW_global = 49;
-const TK_MAX_VAL   = 50;
+const TK_KW_break  = 50;
+const TK_KW_continue = 51;
+const TK_MAX_VAL   = 52;
 
 proc token_kind_cstr k in
     if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
@@ -104,6 +106,8 @@ proc token_kind_cstr k in
     else if k == TK_Caret then return "TK_Caret";
     else if k == TK_Ellipsis then return "TK_Ellipsis";
     else if k == TK_KW_global then return "TK_KW_global";
+    else if k == TK_KW_break then return "TK_KW_break";
+    else if k == TK_KW_continue then return "TK_KW_continue";
     end
 end
 
