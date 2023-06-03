@@ -58,7 +58,7 @@ proc _map_expand self in
             map_set(self, u64@(elt), u64@(elt + TMAP_PAIR_val));
         end
         i = i + 1;
-    done
+    end
     free(old_buf);
 end
 
@@ -80,7 +80,7 @@ proc map_find self, key in
         end
         idx = (idx + 1) % cap;
         cur = _map_at(self, idx);
-    done
+    end
     return NULL;
 end
 
@@ -103,7 +103,7 @@ proc map_set self, key, value in
             idx = (idx + 1) % cap;
             cur = _map_at(self, idx);
         end
-    done
+    end
     cur = _map_at(self, idx);
     if not u64@(cur) then
         // increment length
@@ -127,7 +127,7 @@ proc map_remove self, elem in
             idx = (idx + 1) % cap;
             cur = _map_at(self, idx);
         end
-    done
+    end
     cur = _map_at(self, idx);
     if u64@(cur) then
         // decrement length
@@ -148,7 +148,7 @@ proc map_begin self in
             return cur;
         end
         cur = cur + sizeof_TMAP_PAIR;
-    done
+    end
     return end_;
 end
 
@@ -160,7 +160,7 @@ proc map_next self, iter in
             return iter;
         end
         iter = iter + sizeof_TMAP_PAIR;
-    done
+    end
     return end_;
 end
 

@@ -21,6 +21,6 @@ proc main argc, argv in
     while i < argc do
         fprintf(u64@(stderr), "arg%d = %s\n", i, u64@(argv + i*8));
         i = i + 1;
-    done
+    end
     return 0;
 end

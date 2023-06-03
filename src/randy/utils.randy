@@ -26,9 +26,9 @@ proc read_file_to_string path in
             while x < result do
                 string_push(string, u8@(buf+x));
                 x = x + 1;
-            done
+            end
         end
-    done
+    end
     free(buf);
 
     string_push(string, 0);
@@ -42,7 +42,7 @@ proc cstr_hash cstr in
         hash = hash * 33 + c;
         c = u8@(cstr);
         cstr = cstr + 1;
-    done
+    end
     return hash;
 end
 
@@ -53,7 +53,7 @@ proc string_hash string in
     while i < len do
         hash = hash * 33 + string_get(string, i);
         i = i + 1;
-    done
+    end
     return hash;
 end
 
@@ -64,7 +64,7 @@ proc _string_append_int_slow string, n in
     while temp != 0 do
         len = len + 1;
         temp = temp / 10;
-    done
+    end
     if n < 0 then
         len = len + 1;
     end
@@ -83,7 +83,7 @@ proc _string_append_int_slow string, n in
         n = n / 10;
         u8!(str + (len - idx - (1 - k)), '0' + digit);
         idx = idx + 1;
-    done
+    end
     u8!(str + len, 0);
     string_append_cstr(string, str);
     free(str);
@@ -115,14 +115,14 @@ proc string_append_int string, n in
     var k = 1;
     while (n / k) != 0 do
         k = k * 10;
-    done
+    end
     k = k / 10;
         
     while k != 0 do
         string_push(string, '0' + (n / k));
         n = n % k;
         k = k / 10;
-    done
+    end
 end
 
 proc int_from_string string in
@@ -139,7 +139,7 @@ proc int_from_string string in
             k = k * 10;
         end
         i = i - 1;
-    done
+    end
     return result;
 end
 

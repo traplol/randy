@@ -13,7 +13,7 @@ const TK_KW_else   = 9;
 const TK_KW_then   = 10;
 const TK_KW_end    = 11;
 const TK_KW_while  = 12;
-const TK_KW_done   = 13;
+//const TK_KW_end   = 13;
 const TK_KW_return = 14;
 const TK_KW_and    = 15;
 const TK_KW_or     = 16;
@@ -68,7 +68,7 @@ proc token_kind_cstr k in
     else if k == TK_KW_then then return "TK_KW_then";
     else if k == TK_KW_end then return "TK_KW_end";
     else if k == TK_KW_while then return "TK_KW_while";
-    else if k == TK_KW_done then return "TK_KW_done";
+    //else if k == TK_KW_end then return "TK_KW_end";
     else if k == TK_KW_return then return "TK_KW_return";
     else if k == TK_KW_and then return "TK_KW_and";
     else if k == TK_KW_or then return "TK_KW_or";

@@ -9,14 +9,14 @@ proc main in
     while i < 10 do
         list_append(list, i);
         i = i + 1;
-    done
+    end
 
     printf("Enumerate the list\n");
     var cur = list_head(list);
     while cur do
         printf("%d\n", list_node_data(cur));
         cur = list_node_next(cur);
-    done
+    end
 
     free_list(list);
     return 0;

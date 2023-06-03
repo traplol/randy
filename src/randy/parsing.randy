@@ -19,7 +19,7 @@ proc parse_args_until ts, into, until in
                 print_token_loc(ts_peek(ts));
             end
         end
-    done
+    end
 end
 
 proc parse_var ts in
@@ -61,9 +61,9 @@ proc parse_while ts in
     var test = parse_expression(ts);
     var body = make_vector(0);
     ts_expect(ts, TK_KW_do);
-    parse_statements_until_either(ts, body, TK_KW_done, TK_KW_end);
+    parse_statements_until_either(ts, body, TK_KW_end, TK_KW_end);
     ts_next(ts);
-    //ts_expect(ts, TK_KW_done);
+    //ts_expect(ts, TK_KW_end);
     return make_ast_while(while_, test, body);
 end
 
@@ -201,7 +201,7 @@ proc parse_binary_multiplicative ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -219,7 +219,7 @@ proc parse_binary_additive ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -237,7 +237,7 @@ proc parse_binary_relational ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -255,7 +255,7 @@ proc parse_binary_equality ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -273,7 +273,7 @@ proc parse_binary_land ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -291,7 +291,7 @@ proc parse_binary_lor ts in
             return NULL;
         end
         lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
-    done
+    end
     return lhs;
 end
 
@@ -346,7 +346,7 @@ proc parse_statements_until ts, into, kind in
         else
             stmt = parse_statement(ts);
         end
-    done
+    end
 end
 
 proc parse_statements_until_either ts, into, k1, k2 in
@@ -361,7 +361,7 @@ proc parse_statements_until_either ts, into, k1, k2 in
         else
             stmt = parse_statement(ts);
         end
-    done
+    end
 end
 
 proc parse_proc ts in
@@ -377,7 +377,7 @@ proc parse_proc ts in
         else
             ts_expect(ts, TK_Comma);
         end
-    done
+    end
     ts_expect(ts, TK_KW_in);
     parse_statements_until(ts, body, TK_KW_end);
     ts_expect(ts, TK_KW_end);
@@ -405,7 +405,7 @@ proc parse_extern ts in
         else
             ts_expect(ts, TK_Comma);
         end
-    done
+    end
     if ts_accept(ts, TK_Ellipsis) then
         is_varargs = true;
     end
@@ -461,6 +461,6 @@ proc parse ts in
             exit(1);
         end
         vector_push(roots, parsed);
-    done
+    end
     return roots;
 end

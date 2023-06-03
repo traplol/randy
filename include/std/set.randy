@@ -70,7 +70,7 @@ proc _set_expand self in
             set_add(self, elt);
         end
         i = i + 1;
-    done
+    end
     free(old_buf);
 end
 
@@ -92,7 +92,7 @@ proc set_contains self, elem in
         end
         idx = (idx + 1) % cap;
         cur = _set_at(self, idx);
-    done
+    end
     return false;
 end
 
@@ -115,7 +115,7 @@ proc set_add self, elem in
             idx = (idx + 1) % cap;
             cur = _set_at(self, idx);
         end
-    done
+    end
     cur = _set_at(self, idx);
     if not u64@(cur) then
         // increment length
@@ -138,7 +138,7 @@ proc set_remove self, elem in
             idx = (idx + 1) % cap;
             cur = _set_at(self, idx);
         end
-    done
+    end
     cur = _set_at(self, idx);
     if u64@(cur) then
         // decrement length

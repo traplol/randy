@@ -66,7 +66,7 @@ proc test_large_string in
     while i < n do
         string_push(str, 'a');
         i = i + 1;
-    done
+    end
     test("string len is correct", n == string_len(str));
 end
 

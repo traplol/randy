@@ -38,7 +38,7 @@ proc cc_print_lines self in
     while i < len do
         printf("%s\n", string_cstr(vector_get(lines, i)));
         i = i + 1;
-    done
+    end
 end
 
 proc cc_out self, cstr in
@@ -82,7 +82,7 @@ proc cc_out_string self, string in
         if i < len then
             string_append_cstr(str, ", ");
         end
-    done
+    end
     if len > 0 then
         string_append_cstr(str, ", 0");
     else

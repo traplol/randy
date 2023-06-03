@@ -55,7 +55,7 @@ proc free_list list in
             free_list_node(cur);
             cur = NULL;
         end
-    done
+    end
     free(list);
 end
 

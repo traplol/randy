@@ -151,11 +151,13 @@ def struct_gen(struct_name, fields):
     for f in fields:
         print(f"proc {struct_name}_{f} self in return u64@(self + {prefix}_{f}); end")
     
+if True:
+    struct_gen("field", ["name", "offset", "type"])
 
 if False:
     struct_gen("proc_info", ["label", "params", "varargs"])
 
-if True:
+if False:
     printers = {
         "label": "%s",
         "n": "%d",

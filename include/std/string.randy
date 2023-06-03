@@ -105,7 +105,7 @@ proc string_append_string self, string in
     while i < len do
         string_push(self, string_get(string, i));
         i = i + 1;
-    done
+    end
 end
 
 proc string_append_cstr self, cstr in
@@ -114,7 +114,7 @@ proc string_append_cstr self, cstr in
         string_push(self, u8@(cstr));
         cstr = cstr + 1;
         i = i + 1;
-    done
+    end
 end
 
 proc string_from_cstr cstr in
@@ -122,7 +122,7 @@ proc string_from_cstr cstr in
     while u8@(cstr) do
         string_push(string, u8@(cstr));
         cstr = cstr + 1;
-    done
+    end
     return string;
 end
 
@@ -146,7 +146,7 @@ proc string_eq string_a, string_b in
             return false;
         end
         i = i + 1;
-    done
+    end
     return true;
 end
 
@@ -174,7 +174,7 @@ proc cstr_eq cstr_a, cstr_b in
         b = u8@(cstr_b);
         cstr_a = cstr_a + 1;
         cstr_b = cstr_b + 1;
-    done
+    end
     return a == b;
 end
 
@@ -183,7 +183,7 @@ proc cstr_len cstr in
     while u8@(cstr) do
         i = i + 1;
         cstr = cstr + 1;
-    done
+    end
     return i;
 end
 

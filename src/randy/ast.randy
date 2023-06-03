@@ -306,7 +306,7 @@ proc _print_indent indent in
     while i < indent do
         printf("    ");
         i = i + 1;
-    done
+    end
 end
 
 proc _print_args args, indent in
@@ -318,7 +318,7 @@ proc _print_args args, indent in
         if i < len then
             printf(", ");
         end
-    done
+    end
 end
 
 proc _print_ast_ident ast, indent in
@@ -384,7 +384,7 @@ proc _print_ast_body body, indent in
             printf("\n");
         end
         i = i + 1;
-    done
+    end
 end
 
 proc _print_ast_procedure ast, indent in
@@ -398,7 +398,7 @@ proc _print_ast_procedure ast, indent in
         if i < len then
             printf(",");
         end
-    done
+    end
     printf(" in\n");
     _print_ast_body(ast_body(ast), indent + 1);
     printf("end\n");
@@ -429,7 +429,7 @@ proc _print_ast_while ast, indent in
     _print_ast(ast_test(ast), indent);
     printf(" do\n");
     _print_ast_body(ast_body(ast), indent+1);
-    _print_indent(indent); printf("done");
+    _print_indent(indent); printf("end");
 end
 
 proc _print_ast_pointer_op ast, indent in
@@ -469,7 +469,7 @@ proc _print_ast_extern ast, indent in
         if i < len then
             printf(",");
         end
-    done
+    end
     if ast_varargs(ast) then
         if len != 0 then
             printf(", ...");

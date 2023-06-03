@@ -18,7 +18,7 @@ proc cstr_hash cstr in
         hash = hash * 33 + c;
         c = u8@(cstr);
         cstr = cstr + 1;
-    done
+    end
     return hash;
 end
 

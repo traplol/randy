@@ -11,7 +11,7 @@ proc test_string begin
     while i < 10 do
         string_push(string, i);
         i = i + 1;
-    done
+    end
 
     printf("The string len is %ld\n", string_len(string));
     printf("The string cap is %ld\n", string_cap(string));
@@ -21,7 +21,7 @@ proc test_string begin
     while i < 10 do
         printf("at i=%ld -> %d\n", i, string_get(string, i));
         i = i + 1;
-    done
+    end
 
     printf("===== Try to expand string: =====\n");
     string_push(string, i);
@@ -31,7 +31,7 @@ proc test_string begin
     while i < 10 do
         string_push(string, i+11);
         i = i + 1;
-    done
+    end
     printf("The string len is %ld\n", string_len(string));
     printf("The string cap is %ld\n", string_cap(string));
 
@@ -41,7 +41,7 @@ proc test_string begin
     while i < x do
         printf("at i=%ld -> %d\n", i, string_get(string, i));
         i = i + 1;
-    done
+    end
     
 end
 
@@ -65,9 +65,9 @@ proc main in
             while x < result do
                 string_push(string, u8@(buf+x));
                 x = x + 1;
-            done
+            end
         end
-    done
+    end
     free(buf);
 
     string_push(string, 0);

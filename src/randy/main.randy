@@ -24,7 +24,7 @@ proc cc_out_files irctx, cctx in
         cc_out_file(cctx, i, vector_get(files, i));
         compiler_context_add_file(cctx, vector_get(files, i), i);
         i = i + 1;
-    done
+    end
 end
 
 proc cc_out_instructions irctx, cctx in
@@ -33,7 +33,7 @@ proc cc_out_instructions irctx, cctx in
     while i < vector_len(instructions) do
         x86_64_emit_instruction(cctx, vector_get(instructions, i));
         i = i + 1;
-    done
+    end
 end
 
 proc cc_out_externs irctx, cctx in
@@ -43,7 +43,7 @@ proc cc_out_externs irctx, cctx in
     while cur_extern != end_extern do
         cc_out_extern(cctx, map_pair_key(cur_extern));
         cur_extern = map_next(externs, cur_extern);
-    done
+    end
 end
 
 proc cc_out_data_section irctx, cctx in
@@ -75,7 +75,7 @@ proc cc_out_data_section irctx, cctx in
             NYI_ERR("cc_out_data_section: unknown global kind");
         end
         i = i + 1;
-    done
+    end
 
     cc_out(cctx, ".section .rodata, \"a\"");
     var strings = ir_strings(irctx);
@@ -86,7 +86,7 @@ proc cc_out_data_section irctx, cctx in
         cc_out_label(cctx, map_pair_val(cur_string));
         cc_out_string(cctx, map_pair_key(cur_string));
         cur_string = map_next(strings, cur_string);
-    done
+    end
 end
 
 proc cc_out_start cctx, main_proc, exit_proc in
@@ -140,7 +140,7 @@ proc cc_lines_to_file cctx, path in
             u8!(p, string_get(line, j));
             p = p + 1;
             j = j + 1;
-        done
+        end
         if p == buffer_end then
             write_file(fd, buffer, BUFLEN);
             p = buffer;
@@ -148,7 +148,7 @@ proc cc_lines_to_file cctx, path in
         u8!(p, '\n');
         p = p + 1;
         i = i + 1;
-    done
+    end
     if p != buffer then
         write_file(fd, buffer, p - buffer);
     end
@@ -195,7 +195,7 @@ proc assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     while i < len do
         vector_push(ld_args, vector_get(ld_flags, i));
         i = i + 1;
-    done
+    end
     vector_push(ld_args, NULL);
     subprocess_blocking("/usr/bin/ld", vector_buf(ld_args), NULL);
 
@@ -269,10 +269,10 @@ proc main argc, argv in
                 while i < argc do
                     vector_push(ld_flags, u64@(argv + i*sizeof_PTR));
                     i = i + 1;
-                done
+                end
             end
             i = i + 1;
-        done
+        end
 
         if not in_path then
             printf("No input file.\n");
@@ -289,7 +289,7 @@ proc main argc, argv in
         var abspath = string_duplicate(source_dir);
         while string_len(source_dir) > 0 and string_back(source_dir) != '/' do
             string_pop(source_dir);
-        done
+        end
         if string_len(source_dir) > 1 then
             string_pop(source_dir);
         end

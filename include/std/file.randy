@@ -34,7 +34,7 @@ proc getcwd in
         var temp = make_string(string_cap(str) + 1024);
         free_string(str);
         str = temp;
-    done
+    end
     string_set_len(str, cstr_len(string_buf(str)));
     return str;
 end

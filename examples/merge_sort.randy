@@ -14,21 +14,21 @@ proc merge dest, left, right in
             j = j + 1;
         end
         k = k + 1;
-    done
+    end
 
     // copy remaining elements from left
     while i < vector_len(left) do
         vector_set(dest, k, vector_get(left, i));
         i = i + 1;
         k = k + 1;
-    done
+    end
 
     // copy remaining elements from right
     while j < vector_len(right) do
         vector_set(dest, k, vector_get(right, j));
         j = j + 1;
         k = k + 1;
-    done
+    end
 end
 
 proc merge_sort arr in
@@ -44,13 +44,13 @@ proc merge_sort arr in
     while i < mid do
         vector_push(left, vector_get(arr, i));
         i = i + 1;
-    done
+    end
 
     i = mid;
     while i < vector_len(arr) do
         vector_push(right, vector_get(arr, i));
         i = i + 1;
-    done
+    end
 
     var new_left = merge_sort(left);
     var new_right = merge_sort(right);
@@ -86,7 +86,7 @@ proc main in
     while i < vector_len(arr) do
         printf("%d ", vector_get(arr, i));
         i = i + 1;
-    done
+    end
     putchar('\n');
 
     merge_sort(arr);
@@ -96,7 +96,7 @@ proc main in
     while i < vector_len(arr) do
         printf("%d ", vector_get(arr, i));
         i = i + 1;
-    done
+    end
     putchar('\n');
 
     free_vector(arr);

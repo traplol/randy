@@ -33,7 +33,7 @@ proc test_default_set in
     while i < cap+1 do
         set_add(set, i);
         i = i + 1;
-    done
+    end
     test("set length is cap+2", cap+2 == set_length(set));
     test("set still contains 234", set_contains(set, 234));
     test("set still contains 123", set_contains(set, 123));
@@ -47,7 +47,7 @@ proc test_default_set in
     while i <= 200000 do
         set_add(set, i);
         i = i + 1;
-    done
+    end
     test("set length is 200000", 200000 == set_length(set));
     test("set contains 1000", set_contains(set, 1000));
     test("set contains 65536", set_contains(set, 65536));
@@ -64,7 +64,7 @@ proc cstr_hash cstr in
         hash = hash * 33 + c;
         c = u8@(cstr);
         cstr = cstr + 1;
-    done
+    end
     return hash;
 end
 

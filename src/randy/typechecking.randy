@@ -198,6 +198,6 @@ proc typecheck roots in
     while i < len do
         tc_check(tc, vector_get(roots, i));
         i = i + 1;
-    done
+    end
     return 0;
 end

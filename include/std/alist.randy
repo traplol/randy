@@ -68,7 +68,7 @@ proc free_alist alist in
         next = alist_node_next(cur); 
         free_alist_node(cur);
         cur = next;
-    done
+    end
     free(alist);
 end
 
@@ -87,6 +87,6 @@ proc alist_find alist, key in
             return cur;
         end
         cur = alist_node_next(cur); 
-    done
+    end
     return NULL;
 end

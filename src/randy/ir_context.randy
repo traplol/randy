@@ -563,7 +563,7 @@ proc print_proc_info self in
         if i < len then
             printf(", ");
         end
-    done
+    end
     printf("], varargs=%d)\n", proc_info_varargs(self));
 end
 
@@ -932,7 +932,7 @@ proc ir_emit_body self, body in
             ir_append(self, make_ir_drop_top());
         end
         i = i + 1;
-    done
+    end
 end
         
 proc ir_emit_ident self, ast in
@@ -1003,13 +1003,13 @@ proc ir_emit_call self, ast in
         ir_compile(self, vector_get(args, i));
         ir_append(self, make_ir_store_temp(i));
         i = i + 1;
-    done
+    end
 
     i = 0;
     while i < len do
         ir_append(self, make_ir_set_arg_temp(i));
         i = i + 1;
-    done
+    end
     ir_append(self, make_ir_free_temps(len));
 
     var expr = ast_expr(ast);
@@ -1160,7 +1160,7 @@ proc ir_emit_procedure self, ast in
         n = ir_new_local(self, param);
         ir_append(self, make_ir_set_local_arg(param, n, i));
         i = i + 1;
-    done
+    end
     ir_emit_body(self, ast_body(ast));
     u64!(insn + TIR_INSTR_locals, ir_proc_locals(self));
     ir_append(self, make_ir_close_proc(ident));
@@ -1408,7 +1408,7 @@ proc ir_resolve_lazy_idents self in
             vector_set(instrs, i, call);
         end
         i = i + 1;
-    done
+    end
 end
 
 proc ir_compile_roots self, roots in
@@ -1416,7 +1416,7 @@ proc ir_compile_roots self, roots in
     while i < len do
         ir_compile(self, vector_get(roots, i));
         i = i + 1;
-    done
+    end
     ir_resolve_lazy_idents(self);
 end
 

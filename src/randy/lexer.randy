@@ -38,7 +38,7 @@ proc get_ident_kind string in
         if cstr_eq("const", cstr) then return TK_KW_const; end
     else if 'd' == first then
         if cstr_eq("do", cstr) then return TK_KW_do; end
-        if cstr_eq("done", cstr) then return TK_KW_done; end
+        //if cstr_eq("end", cstr) then return TK_KW_end; end
     else if 'e' == first then
         if cstr_eq("else", cstr) then return TK_KW_else; end
         if cstr_eq("end", cstr) then return TK_KW_end; end
@@ -89,14 +89,14 @@ proc _lex_code filename, code, include_paths, included_already in
                 line_no = line_no + 1;
             end
             i = i + 1;
-        done
+        end
 
         if i < length then
             c = string_get(code, i);
             if c == '/' and i+1 < length and string_get(code, i+1) == '/' then
                 while i < length and string_get(code, i) != '\n' do
                     i = i + 1;
-                done
+                end
             else if is_ident_start(c) then
                 temp = make_string(2);
                 string_push(temp, c);
@@ -106,7 +106,7 @@ proc _lex_code filename, code, include_paths, included_already in
                    if is_ident_char(c) then
                        string_push(temp, c);
                    end
-                done
+                end
                 vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no, filename));
             else if is_digit(c) then
                 temp = make_string(2);
@@ -117,7 +117,7 @@ proc _lex_code filename, code, include_paths, included_already in
                    if is_digit(c) then
                        string_push(temp, c);
                    end
-                done
+                end
                 val = int_from_string(temp);
                 vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
             else if c == '"' then
@@ -134,7 +134,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     end
                     string_push(temp, c);
                     i = i + 1;
-                done
+                end
                 i = i + 1; // skip close quote
                 vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no, filename));
             else if c == '\'' then
@@ -164,7 +164,7 @@ proc _lex_code filename, code, include_paths, included_already in
                         string_push(directive, c);
                         i = i + 1;
                     end
-                done
+                end
                 breaking = false;
                 // consume all whitespace up to newline or non-whitespace
                 while i < length and not breaking do
@@ -176,7 +176,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     else
                         breaking = true;
                     end
-                done
+                end
                 // gather the rest of the line into arg
                 while i < length and c != '\n' do
                     c = string_get(code, i);
@@ -184,11 +184,11 @@ proc _lex_code filename, code, include_paths, included_already in
                         string_push(arg, c);
                         i = i + 1;
                     end
-                done
+                end
                 // trim whitespace off end of arg
                 while string_len(arg) > 0 and is_whitespace(string_back(arg)) do
                     string_pop(arg);
-                done
+                end
                 handle_directive(filename, line_no, tokens, include_paths, included_already, directive, arg);
                 free_string(directive);
                 free_string(arg);
@@ -274,7 +274,7 @@ proc _lex_code filename, code, include_paths, included_already in
                 exit(1);
             end
         end
-    done
+    end
     return tokens;
 end
 
@@ -298,7 +298,7 @@ proc handle_include src_file, line_no, tokens, include_paths, included_already, 
     var cur_dir = string_from_cstr(src_file);
     while string_len(cur_dir) > 0 and string_back(cur_dir) != '/' do
         string_pop(cur_dir);
-    done
+    end
     var found = cur_dir;
     string_append_string(found, arg);
     if not file_is_readable(string_cstr(found)) then
@@ -320,7 +320,7 @@ proc handle_include src_file, line_no, tokens, include_paths, included_already, 
                 found = NULL;
             end
             i = i - 1;
-        done
+        end
     end
 
     if found then
@@ -332,7 +332,7 @@ proc handle_include src_file, line_no, tokens, include_paths, included_already, 
             while i < len do
                 vector_push(tokens, vector_get(included, i));
                 i = i + 1;
-            done
+            end
         else
             free_string(found);
         end

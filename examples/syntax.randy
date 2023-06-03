@@ -71,7 +71,7 @@ proc count_to_n n in
     while i < n do
         printf("num=%d\n", i);
         i = i + 1;
-    done 
+    end 
 end
 
 proc mod5 n in
@@ -91,7 +91,7 @@ proc fizz_buzz n in
             printf("%d\n", i);
         end
         i = i + 1;
-    done
+    end
 end
 
 proc memory_access in
@@ -163,7 +163,7 @@ proc main in
     while i < 46 do
         printf("hello world. i = %d, %d, %d, %d\n", i, i % 3, i % 5, i % 15);
         i = i + 1;
-    done
+    end
 
     printf("num=%d\n", SYS_write);
 
