@@ -678,8 +678,8 @@ proc ir_current_src_loc self in
     return vector_back(src_locs);
 end
 
-proc ir_print_src_loc ir in
-    var src_loc = ir_current_src_loc(ir);
+proc ir_print_src_loc self in
+    var src_loc = ir_current_src_loc(self);
     print_src_loc(src_loc);
 end
 
@@ -813,16 +813,6 @@ proc ir_add_global_int self, ident, value in
     var gi = make_global_info(GIK_Integer, label, value);
     map_set(ir_globals_map(self), ident, gi);
     vector_push(ir_globals(self), gi);
-end
-
-proc check_ast_kind expect, ast in
-    var actual = ast_kind(ast);
-    if expect != actual then
-        printf("check_ast_kind failed: expected %s, actual was %s\n",
-            ast_kind_cstr(expect),
-            ast_kind_cstr(actual));
-        abort();
-    end
 end
 
 proc ir_comptime_eval self, ast, error_on_fail in
@@ -1419,4 +1409,23 @@ proc ir_resolve_lazy_idents self in
         end
         i = i + 1;
     done
+end
+
+proc ir_compile_roots self, roots in
+    var i = 0; var len = vector_len(roots);
+    while i < len do
+        ir_compile(self, vector_get(roots, i));
+        i = i + 1;
+    done
+    ir_resolve_lazy_idents(self);
+end
+
+proc check_ir_kind expect, ir in
+    var actual = ir_instr_kind(ir);
+    if expect != actual then
+        printf("check_ir_kind failed: expected %s, actual was %s\n",
+            ir_instr_kind_cstr(expect),
+            ir_instr_kind_cstr(actual));
+        abort();
+    end
 end

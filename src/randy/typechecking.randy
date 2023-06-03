@@ -1,0 +1,203 @@
+
+const TFIELD_name   = 0;  // cstr
+const TFIELD_offset = 8;  // int
+const TFIELD_type   = 16; // type
+const sizeof_TFIELD = 24;
+
+proc make_field name, offset, type in
+    var self = malloc(sizeof_TFIELD);
+    u64!(self + TFIELD_name, name);
+    u64!(self + TFIELD_offset, offset);
+    u64!(self + TFIELD_type, type);
+    return self;
+end
+
+proc field_name self in return u64@(self + TFIELD_name); end
+proc field_offset self in return u64@(self + TFIELD_offset); end
+proc field_type self in return u64@(self + TFIELD_type); end
+proc field_set_type self, type in
+    u64!(self + TFIELD_type, type);
+end
+
+const TTYPE_name     = 0;  // cstr
+const TTYPE_size     = 8;  // int
+const TTYPE_fields   = 16; // field vector
+const TTYPE_ref_type = 24; // int -> levels of indirection
+const sizeof_TTYPE   = 32;
+
+proc make_type name, size, fields, ref_type in
+    var self = malloc(sizeof_TTYPE);
+    u64!(self + TTYPE_name, name);
+    u64!(self + TTYPE_size, size);
+    u64!(self + TTYPE_fields, fields);
+    u64!(self + TTYPE_ref_type, ref_type);
+    return self;
+end
+
+proc type_name self in return u64@(self + TTYPE_name); end
+proc type_size self in return u64@(self + TTYPE_size); end
+proc type_fields self in return u64@(self + TTYPE_fields); end
+proc type_ref_type self in return u64@(self + TTYPE_ref_type); end
+
+const TTYPE_CHECK_types      = 0;  // (cstr, type) map : type_name -> type
+const TTYPE_CHECK_expr_types = 8;  // (ast, type) map : ast -> type
+const TTYPE_CHECK_src_locs   = 16; // src_loc vector
+const TTYPE_CHECK_globals    = 24; // (cstr, type) map : global_name -> type
+const TTYPE_CHECK_consts     = 32; // (cstr, type) map : const_name -> type
+const TTYPE_CHECK_procs      = 40; 
+const TTYPE_CHECK_locals     = 48; // (cstr, type) map : local_name -> type
+const sizeof_TTYPE_CHECK     = 56;
+
+proc make_type_check in
+    var self = malloc(sizeof_TTYPE_CHECK);
+    u64!(self + TTYPE_CHECK_types, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_expr_types, make_map(0, NULL, NULL));
+    u64!(self + TTYPE_CHECK_src_locs, make_vector(0));
+    u64!(self + TTYPE_CHECK_globals, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_consts, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_procs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_locals, make_map(0, cstr_eq, cstr_hash));
+    return self;
+end
+
+proc tc_types self in return u64@(self + TTYPE_CHECK_types); end
+proc tc_expr_types self in return u64@(self + TTYPE_CHECK_expr_types); end
+proc tc_src_locs self in return u64@(self + TTYPE_CHECK_src_locs); end
+
+proc tc_get_type self, ast in
+    var found = map_find(tc_expr_types(self), ast);
+    if found then
+        return map_pair_val(found);
+    end
+    return NULL;
+end
+
+proc tc_set_type self, ast, type in
+    map_set(tc_expr_types(self), ast, type);
+end
+
+proc tc_current_src_loc self in
+    return vector_back(tc_src_locs(self));
+end
+
+proc tc_print_src_loc self in
+    print_src_loc(ir_current_src_loc(self));
+end
+
+proc tc_check_ident self, ast in
+    check_ast_kind(AstK_Ident, ast);
+end
+
+proc tc_check_integer self, ast in
+    check_ast_kind(AstK_Integer, ast);
+end
+
+proc tc_check_string self, ast in
+    check_ast_kind(AstK_String, ast);
+end
+
+proc tc_check_call self, ast in
+    check_ast_kind(AstK_Call, ast);
+end
+
+proc tc_check_binop self, ast in
+    check_ast_kind(AstK_BinOp, ast);
+end
+
+proc tc_check_return self, ast in
+    check_ast_kind(AstK_Return, ast);
+end
+
+proc tc_check_var_decl self, ast in
+    check_ast_kind(AstK_VarDecl, ast);
+end
+
+proc tc_check_var_assign self, ast in
+    check_ast_kind(AstK_VarAssign, ast);
+end
+
+proc tc_check_assign self, ast in
+    check_ast_kind(AstK_Assign, ast);
+end
+
+proc tc_check_procedure self, ast in
+    check_ast_kind(AstK_Procedure, ast);
+end
+
+proc tc_check_if_else self, ast in
+    check_ast_kind(AstK_IfElse, ast);
+end
+
+proc tc_check_while self, ast in
+    check_ast_kind(AstK_While, ast);
+end
+
+proc tc_check_pointer_read self, ast in
+    check_ast_kind(AstK_PointerRead, ast);
+end
+
+proc tc_check_pointer_write self, ast in
+    check_ast_kind(AstK_PointerWrite, ast);
+end
+
+proc tc_check_prefix_op self, ast in
+    check_ast_kind(AstK_Prefix, ast);
+end
+
+proc tc_check_const self, ast in
+    check_ast_kind(AstK_Const, ast);
+end
+
+proc tc_check_extern self, ast in
+    check_ast_kind(AstK_Extern, ast);
+end
+
+proc tc_check_inline_asm self, ast in
+    check_ast_kind(AstK_InlineAsm, ast);
+end
+
+proc tc_check_global self, ast in
+    check_ast_kind(AstK_Global, ast);
+end
+
+proc tc_check self, ast in
+    var k = ast_kind(ast);
+    vector_push(tc_src_locs(self), token_src_loc(ast_token(ast)));
+    if k == AstK_Ident then tc_check_ident(self, ast);
+    else if k == AstK_Integer then tc_check_integer(self, ast);
+    else if k == AstK_String then tc_check_string(self, ast);
+    else if k == AstK_Call then tc_check_call(self, ast);
+    else if k == AstK_BinOp then tc_check_binop(self, ast);
+    else if k == AstK_Return then tc_check_return(self, ast);
+    else if k == AstK_VarDecl then tc_check_var_decl(self, ast);
+    else if k == AstK_VarAssign then tc_check_var_assign(self, ast);
+    else if k == AstK_Assign then tc_check_assign(self, ast);
+    else if k == AstK_Procedure then tc_check_procedure(self, ast);
+    else if k == AstK_IfElse then tc_check_if_else(self, ast);
+    else if k == AstK_While then tc_check_while(self, ast);
+    else if k == AstK_PointerRead then tc_check_pointer_read(self, ast);
+    else if k == AstK_PointerWrite then tc_check_pointer_write(self, ast);
+    else if k == AstK_Prefix then tc_check_prefix_op(self, ast);
+    else if k == AstK_Const then tc_check_const(self, ast);
+    else if k == AstK_Extern then tc_check_extern(self, ast);
+    else if k == AstK_InlineAsm then tc_check_inline_asm(self, ast);
+    else if k == AstK_Global then tc_check_global(self, ast);
+    else
+        printf("`tc_check` in typechecking.randy");
+        printf("Unhandled AstK: %d\n", k);
+        print_token(ast_token(ast));
+        print_token_loc(ast_token(ast));
+        exit(1);
+    end
+    vector_pop(tc_src_locs(self));
+end
+
+proc typecheck roots in
+    var tc = make_type_check(); // @LEAK
+    var i = 0; var len = vector_len(roots);
+    while i < len do
+        tc_check(tc, vector_get(roots, i));
+        i = i + 1;
+    done
+    return 0;
+end

@@ -517,3 +517,13 @@ proc print_ast ast in
         printf("\n");
     end
 end
+
+proc check_ast_kind expect, ast in
+    var actual = ast_kind(ast);
+    if expect != actual then
+        printf("check_ast_kind failed: expected %s, actual was %s\n",
+            ast_kind_cstr(expect),
+            ast_kind_cstr(actual));
+        abort();
+    end
+end
