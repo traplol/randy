@@ -918,6 +918,21 @@ proc ir_comptime_eval self, ast, error_on_fail in
                         evaled = true;
                         result = lhs_val % rhs_val;
                     end
+                else if op == TK_Caret then
+                    evaled = true;
+                    result = lhs_val ^ rhs_val;
+                else if op == TK_Amper then
+                    evaled = true;
+                    result = lhs_val & rhs_val;
+                else if op == TK_Bar then
+                    evaled = true;
+                    result = lhs_val | rhs_val;
+                else if op == TK_LShift then
+                    evaled = true;
+                    result = lhs_val << rhs_val;
+                else if op == TK_RShift then
+                    evaled = true;
+                    result = lhs_val >> rhs_val;
                 end
                 if evaled then
                     return make_ast_integer(ast_token(ast), result); // @LEAK
