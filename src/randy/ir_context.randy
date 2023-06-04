@@ -820,6 +820,13 @@ proc ir_is_local self, ident in
     return false;
 end
 
+proc ir_is_cur_scope_local self, ident in
+    if map_find(ir_cur_scope(self), ident) then
+        return true;
+    end
+    return false;
+end
+
 proc ir_get_local self, ident in
     var proc_locals = ir_proc_locals(self);
     var i = vector_len(proc_locals) - 1;
@@ -1214,7 +1221,7 @@ end
 proc ir_emit_var_decl self, ast in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
-    if ir_is_local(self, ident) then
+    if ir_is_cur_scope_local(self, ident) then
         printf("ERROR: Local `%s` already declared.\n", ident);
         ir_print_src_loc(self);
         exit(1);
@@ -1225,7 +1232,7 @@ end
 proc ir_emit_var_assign self, ast in
     check_ast_kind(AstK_VarAssign, ast);
     var ident = ast_ident(ast);
-    if ir_is_local(self, ident) then
+    if ir_is_cur_scope_local(self, ident) then
         printf("ERROR: Local `%s` already declared.\n", ident);
         ir_print_src_loc(self);
         exit(1);
