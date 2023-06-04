@@ -2,6 +2,9 @@
 #include std/string
 #include std/time
 
+// This is an implementation of the Rule 110 cellular automaton
+// more info at: https://en.wikipedia.org/wiki/Rule_110
+
 proc next_state state in
     var next = make_string(0);
     var left; var center; var right;
