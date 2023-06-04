@@ -11,6 +11,11 @@ proc main in
             foo = 69;
             printf("L2: foo is %d\n", foo);
         end
+        if true then
+            var foo = 111;
+            foo = 444;
+            printf("L2': foo is %d\n", foo);
+        end
         printf("L1: foo is %d\n", foo);
         foo = 4444;
     end
