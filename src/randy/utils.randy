@@ -68,25 +68,24 @@ proc _string_append_int_slow string, n in
     if n < 0 then
         len = len + 1;
     end
-    var str = malloc(len + 1);
+    var buf = malloc(len + 1);
     var idx = 0;
     var k = 0;
     if n < 0 then
-        u8!(str + idx, '-');
+        u8!(buf + idx, '-');
         idx = idx + 1;
         k = 1;
-        n = 0 - n;
+        n = -n;
     end
-    var digit;
+    var DIGITS = "098765432101234567890" + 10;
     while idx < len do
-        digit = n % 10;
+        u8!(buf + (len - idx - (1 - k)), u8@(DIGITS + n % 10));
         n = n / 10;
-        u8!(str + (len - idx - (1 - k)), '0' + digit);
         idx = idx + 1;
     end
-    u8!(str + len, 0);
-    string_append_cstr(string, str);
-    free(str);
+    u8!(buf + len, 0);
+    string_append_cstr(string, buf);
+    free(buf);
 end
 
 proc string_append_int string, n in
@@ -95,7 +94,7 @@ proc string_append_int string, n in
     // We consider the alternative method "slow" because it does the same length
     // calculation and but it also does a malloc/free for the intermediate result
     // while this procedure does not.
-    if n < 0-100000000000000000 or n > 100000000000000000 then
+    if n < -100000000000000000 or n > 100000000000000000 then
         _string_append_int_slow(string, n);
         return;
     end
@@ -104,7 +103,7 @@ proc string_append_int string, n in
     end
 
     if n < 0 then
-        n = 0 - n;
+        n = -n;
     end
 
     if n < 10 then
