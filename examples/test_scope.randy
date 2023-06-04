@@ -1,0 +1,20 @@
+#include std/core
+
+proc main in
+    var foo = 123;
+    printf("L0: foo is %d\n", foo);
+    if true then
+        var foo = 333;
+        printf("L1: foo is %d\n", foo);
+        if true then
+            var foo = 111;
+            foo = 69;
+            printf("L2: foo is %d\n", foo);
+        end
+        printf("L1: foo is %d\n", foo);
+        foo = 4444;
+    end
+    printf("L0: foo is %d\n", foo);
+    return 0;
+end
+
