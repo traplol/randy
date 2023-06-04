@@ -1,0 +1,52 @@
+#include std/core
+#include std/string
+#include std/time
+
+proc next_state state in
+    var next = make_string(0);
+    var left; var center; var right;
+    var i = 0; var len = string_len(state);
+    while i < len do
+        if i == 0 then
+            left = ' ';
+        else
+            left = string_get(state, i-1);
+        end
+
+        center = string_get(state, i);
+
+        if i+1 == len then
+            right = ' ';
+        else
+            right = string_get(state, i+1);
+        end
+
+             if left == '*' and center == '*' and right == '*' then string_push(next, ' ');
+        else if left == '*' and center == '*' and right == ' ' then string_push(next, '*');
+        else if left == '*' and center == ' ' and right == '*' then string_push(next, '*');
+        else if left == '*' and center == ' ' and right == ' ' then string_push(next, ' ');
+        else if left == ' ' and center == '*' and right == '*' then string_push(next, '*');
+        else if left == ' ' and center == '*' and right == ' ' then string_push(next, '*');
+        else if left == ' ' and center == ' ' and right == '*' then string_push(next, '*');
+        else if left == ' ' and center == ' ' and right == ' ' then string_push(next, ' ');
+        end
+        i = i + 1;
+    end
+    return next;
+end
+
+proc main in
+    var steps = 500;
+    var i = 0;
+    var state = string_from_cstr("    *   *      *         *             *              *      *                 *");
+    var next;
+    while i < steps do
+        printf("%s\n", string_cstr(state));
+        next = next_state(state);
+        free_string(state);
+        state = next;
+        i = i + 1;
+        //usleep(20 * CLOCK_MS_PER_US);
+    end
+    
+end
