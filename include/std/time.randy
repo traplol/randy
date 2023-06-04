@@ -48,3 +48,21 @@ proc clock timespec in
     return syscall(SYS_clock_gettime, CLOCK_REALTIME, timespec);
 end
 
+const CLOCK_US_PER_NS = 1000;
+const CLOCK_MS_PER_US = 1000;
+const CLOCK_S_PER_MS  = 1000;
+const CLOCK_S_PER_US  = CLOCK_S_PER_MS * CLOCK_MS_PER_US;
+const CLOCK_NS_BOUNDS = CLOCK_S_PER_MS * CLOCK_MS_PER_US * CLOCK_US_PER_NS;
+
+proc usleep usec in
+    if usec < 0 then
+        return;
+    end
+    var sec = usec / CLOCK_S_PER_US;
+    var rem = usec % CLOCK_S_PER_US;
+    var sleeptime = make_timespec(sec, rem * CLOCK_US_PER_NS);
+    var remtime = make_empty_timespec();
+    syscall(SYS_nanosleep, sleeptime, remtime);
+    free_timespec(sleeptime);
+    free_timespec(remtime);
+end
