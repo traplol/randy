@@ -120,7 +120,7 @@ const TIR_INSTR_asm      = 32;
 const TIR_INSTR_arg      = 32;
 const TIR_INSTR_src_name = 32;
 
-const TIR_INSTR_locals   = 40;
+const TIR_INSTR_nlocals  = 40;
 const sizeof_TIR_INSTR   = 48;
 
 proc ir_instr_kind self in return u64@(self + TIR_INSTR_kind); end
@@ -138,7 +138,7 @@ proc ir_instr_varargs self in return u64@(self + TIR_INSTR_varargs); end
 proc ir_instr_asm self in return u64@(self + TIR_INSTR_asm); end
 proc ir_instr_arg self in return u64@(self + TIR_INSTR_arg); end
 proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
-proc ir_instr_locals self in return u64@(self + TIR_INSTR_locals); end
+proc ir_instr_nlocals self in return u64@(self + TIR_INSTR_nlocals); end
 
 proc make_ir_alloc_temps n in
     var self = malloc(sizeof_TIR_INSTR);
@@ -243,7 +243,7 @@ proc make_ir_new_proc src_name, name, params, locals in
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_params, params);
-    u64!(self + TIR_INSTR_locals, locals);
+    u64!(self + TIR_INSTR_nlocals, locals);
     return self;
 end
 proc make_ir_simple_op op in
@@ -405,7 +405,7 @@ proc print_ir_new_proc self in
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
     printf("params=TODO(params) %p, ", u64@(self + TIR_INSTR_params));
-    printf("locals=TODO(locals) %p)\n", u64@(self + TIR_INSTR_locals));
+    printf("nlocals=%d)\n", u64@(self + TIR_INSTR_nlocals));
 end
 proc print_ir_op_add self in
     printf("(IR.OpAdd)\n");
@@ -622,13 +622,14 @@ const TIR_CONTEXT_src_locs     = 48;  // src_loc vector
 const TIR_CONTEXT_file_set     = 56;  // cstr set : paths
 const TIR_CONTEXT_files        = 64;  // cstr vector
 const TIR_CONTEXT_procs        = 72;  // (cstr, proc_info) map   : name -> proc_info
-const TIR_CONTEXT_proc_locals  = 80;  // (cstr, int) map         : name -> location
+const TIR_CONTEXT_proc_locals  = 80;  // (cstr, int) map vector  : stack of scope: name -> location
 const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> global_info
 // Order of definition is preserved in the `globals' vector.
 const TIR_CONTEXT_globals      = 96;  // global_info vector
 const TIR_CONTEXT_break_dests  = 104; // cstr vector -> label to goto
 const TIR_CONTEXT_conti_dests  = 112; // cstr vector -> label to goto
-const sizeof_TIR_CONTEXT       = 120;
+const TIR_CONTEXT_nlocals      = 120; // int : max number of locals allocated
+const sizeof_TIR_CONTEXT       = 128;
 
 proc make_ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
@@ -642,7 +643,7 @@ proc make_ir_context in
     u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_files, make_vector(0));
     u64!(self + TIR_CONTEXT_procs, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_proc_locals, NULL);
+    u64!(self + TIR_CONTEXT_proc_locals, make_vector(0));
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_globals, make_vector(0));
     u64!(self + TIR_CONTEXT_break_dests, make_vector(0));
@@ -664,6 +665,7 @@ proc ir_globals_map self in return u64@(self + TIR_CONTEXT_globals_map); end
 proc ir_globals self in return u64@(self + TIR_CONTEXT_globals); end
 proc ir_break_dests self in return u64@(self + TIR_CONTEXT_break_dests); end
 proc ir_continue_dests self in return u64@(self + TIR_CONTEXT_conti_dests); end
+proc ir_nlocals self in return u64@(self + TIR_CONTEXT_nlocals); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -699,6 +701,18 @@ proc ir_print_src_loc self in
     print_src_loc(src_loc);
 end
 
+proc ir_push_scope self in
+    vector_push(ir_proc_locals(self), make_map(0, cstr_eq, cstr_hash));
+end
+
+proc ir_pop_scope self in
+    vector_pop(ir_proc_locals(self));
+end
+
+proc ir_cur_scope self in
+    return vector_back(ir_proc_locals(self));
+end
+
 proc ir_new_proc self, ident, params in
     var procs = ir_procs(self);
     var found = map_find(procs, ident);
@@ -716,16 +730,25 @@ proc ir_new_proc self, ident, params in
     set_add(ir_labels(self), label_cstr);
     map_set(procs, ident, make_proc_info(label_cstr, params, false));
 
-    u64!(self + TIR_CONTEXT_proc_locals, make_map(0, cstr_eq, cstr_hash));
-
+    if vector_len(ir_proc_locals(self)) != 0 then
+        printf("WARN: Compiler bug? proc locals not empty when creating new proc\n");
+    end
+    u64!(self + TIR_CONTEXT_nlocals, 0);
+    ir_push_scope(self);
     return label_cstr;
 end
 
 proc ir_new_local self, ident in
     var proc_locals = ir_proc_locals(self);
-    var n = map_len(proc_locals);
-    map_set(proc_locals, ident, n);
-    return n;
+    var offs = 0;
+    var i = 0; var len = vector_len(proc_locals);
+    while i < len do
+        offs = offs + map_len(vector_get(proc_locals, i));
+        i = i + 1;
+    end
+    map_set(ir_cur_scope(self), ident, offs);
+    u64!(self + TIR_CONTEXT_nlocals, ir_nlocals(self) + 1);
+    return offs;
 end
 
 proc ir_new_label self, hint in
@@ -786,12 +809,31 @@ proc ir_add_extern self, ident, params, is_varargs in
 end
 
 proc ir_is_local self, ident in
-    return map_find(ir_proc_locals(self), ident) != NULL;
+    var proc_locals = ir_proc_locals(self);
+    var i = 0; var len = vector_len(proc_locals);
+    while i < len do
+        if map_find(vector_get(proc_locals, i), ident) then
+            return true;
+        end
+        i = i + 1;
+    end
+    return false;
 end
 
 proc ir_get_local self, ident in
-    var found = map_find(ir_proc_locals(self), ident);
-    return map_pair_val(found);
+    var proc_locals = ir_proc_locals(self);
+    var i = vector_len(proc_locals) - 1;
+    var found;
+    while i >= 0 do
+        found = map_find(vector_get(proc_locals, i), ident);
+        if found then
+            return map_pair_val(found);
+        end
+        i = i - 1;
+    end
+    printf("local not found: %s\n", ident);
+    abort();
+    return NULL; // should we error here instead?
 end
 
 proc ir_is_const self, ident in
@@ -1216,7 +1258,7 @@ proc ir_emit_procedure self, ast in
     var ident = ast_ident(ast);
     var params = ast_params(ast);
     var label = ir_new_proc(self, ident, params);
-    var insn = make_ir_new_proc(ident, label, params, NULL);
+    var insn = make_ir_new_proc(ident, label, params, 0);
     ir_append(self, insn);
 
     var i = 0;
@@ -1230,8 +1272,9 @@ proc ir_emit_procedure self, ast in
         i = i + 1;
     end
     ir_emit_body(self, ast_body(ast));
-    u64!(insn + TIR_INSTR_locals, ir_proc_locals(self));
+    u64!(insn + TIR_INSTR_nlocals, ir_nlocals(self));
     ir_append(self, make_ir_close_proc(ident));
+    ir_pop_scope(self);
 end
 
 proc ir_emit_if_else self, ast in
@@ -1239,13 +1282,17 @@ proc ir_emit_if_else self, ast in
     var i; var len;
     var l_else = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
+    ir_push_scope(self);
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_else));
     ir_emit_body(self, ast_consequence(ast));
+    ir_pop_scope(self);
+    ir_push_scope(self);
     ir_append(self, make_ir_goto(l_out));
     ir_append(self, make_ir_label(l_else));
     ir_emit_body(self, ast_alternative(ast));
     ir_append(self, make_ir_label(l_out));
+    ir_pop_scope(self);
 end
 
 proc ir_emit_while self, ast in
@@ -1253,6 +1300,7 @@ proc ir_emit_while self, ast in
     var i; var len;
     var l_test = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
+    ir_push_scope(self);
     ir_append(self, make_ir_label(l_test));
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_out));
@@ -1263,6 +1311,7 @@ proc ir_emit_while self, ast in
     ir_pop_break_dest(self);
     ir_append(self, make_ir_goto(l_test));
     ir_append(self, make_ir_label(l_out));
+    ir_pop_scope(self);
 end
 
 proc ir_emit_pointer_op self, ast in

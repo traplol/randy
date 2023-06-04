@@ -349,7 +349,7 @@ proc x86_64_emit_new_proc cc, ir in
     cc_out_label(cc, label);
     cc_out(cc, "    pushq %rbp");
     cc_out(cc, "    movq %rsp, %rbp");
-    var n = map_len(ir_instr_locals(ir));
+    var n = ir_instr_nlocals(ir);
     if n > 0 then
         var str = make_string(20);
         string_append_cstr(str, "    subq $");
