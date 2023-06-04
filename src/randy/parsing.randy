@@ -222,8 +222,26 @@ proc parse_binary_additive ts in
     return lhs;
 end
 
-proc parse_binary_relational ts in
+proc parse_binary_shift ts in
     var lhs = parse_binary_additive(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk_one_of_2(ts, TK_LShift, TK_RShift) do
+        tok = ts_next(ts);
+        rhs = parse_binary_additive(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    end
+    return lhs;
+end
+
+proc parse_binary_relational ts in
+    var lhs = parse_binary_shift(ts);
     if not lhs then
         return NULL;
     end
@@ -231,7 +249,7 @@ proc parse_binary_relational ts in
     var tok; var rhs;
     while ts_peekk_one_of_4(ts, TK_Less, TK_Greater, TK_LessEq, TK_GreaterEq) do
         tok = ts_next(ts);
-        rhs = parse_binary_additive(ts);
+        rhs = parse_binary_shift(ts);
         if not rhs then
             return NULL;
         end
@@ -258,8 +276,62 @@ proc parse_binary_equality ts in
     return lhs;
 end
 
-proc parse_binary_land ts in
+proc parse_binary_bit_and ts in
     var lhs = parse_binary_equality(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk(ts, TK_Amper) do
+        tok = ts_next(ts);
+        rhs = parse_binary_equality(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    end
+    return lhs;
+end
+
+proc parse_binary_bit_xor ts in
+    var lhs = parse_binary_bit_and(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk(ts, TK_Caret) do
+        tok = ts_next(ts);
+        rhs = parse_binary_bit_and(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    end
+    return lhs;
+end
+
+proc parse_binary_bit_or ts in
+    var lhs = parse_binary_bit_xor(ts);
+    if not lhs then
+        return NULL;
+    end
+
+    var tok; var rhs;
+    while ts_peekk(ts, TK_Bar) do
+        tok = ts_next(ts);
+        rhs = parse_binary_bit_xor(ts);
+        if not rhs then
+            return NULL;
+        end
+        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+    end
+    return lhs;
+end
+
+proc parse_binary_land ts in
+    var lhs = parse_binary_bit_or(ts);
     if not lhs then
         return NULL;
     end
@@ -267,7 +339,7 @@ proc parse_binary_land ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_KW_and) do
         tok = ts_next(ts);
-        rhs = parse_binary_equality(ts);
+        rhs = parse_binary_bit_or(ts);
         if not rhs then
             return NULL;
         end

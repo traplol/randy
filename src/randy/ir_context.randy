@@ -44,6 +44,11 @@ const IRK_DropTop       = 41;
 const IRK_SetGlobal     = 42;
 const IRK_GetGlobal     = 43;
 const IRK_Negative      = 44;
+const IRK_OpBitXOR      = 45;
+const IRK_OpBitAND      = 46;
+const IRK_OpBitOR       = 47;
+const IRK_OpBitShiftL   = 48;
+const IRK_OpBitShiftR   = 49;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -88,6 +93,11 @@ proc ir_instr_kind_cstr k in
     if k == IRK_SetGlobal then return "IRK_SetGlobal"; end
     if k == IRK_GetGlobal then return "IRK_GetGlobal"; end
     if k == IRK_Negative then return "IRK_Negative"; end
+    if k == IRK_OpBitXOR then return "IRK_OpBitXOR"; end
+    if k == IRK_OpBitAND then return "IRK_OpBitAND"; end
+    if k == IRK_OpBitOR then return "IRK_OpBitOR"; end
+    if k == IRK_OpBitShiftL then return "IRK_OpBitShiftL"; end
+    if k == IRK_OpBitShiftR then return "IRK_OpBitShiftR"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -1102,7 +1112,7 @@ end
 proc ir_emit_binop self, ast in
     check_ast_kind(AstK_BinOp, ast);
     var op = ast_op(ast);
-    var simple = 0-1;
+    var simple = -1;
     if op == TK_Plus then simple = IRK_OpAdd;
     else if op == TK_Minus then simple = IRK_OpSub;
     else if op == TK_Star then simple = IRK_OpMul;
@@ -1114,6 +1124,11 @@ proc ir_emit_binop self, ast in
     else if op == TK_Greater then simple = IRK_OpGreater;
     else if op == TK_LessEq then simple = IRK_OpLessEq;
     else if op == TK_GreaterEq then simple = IRK_OpGreaterEq;
+    else if op == TK_Caret then simple = IRK_OpBitXOR;
+    else if op == TK_Amper then simple = IRK_OpBitAND;
+    else if op == TK_Bar then simple = IRK_OpBitOR;
+    else if op == TK_LShift then simple = IRK_OpBitShiftL;
+    else if op == TK_RShift then simple = IRK_OpBitShiftR;
     else if op == TK_KW_and then ir_emit_logic_and(self, ast);
     else if op == TK_KW_or then ir_emit_logic_or(self, ast);
     else

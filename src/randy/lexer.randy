@@ -248,6 +248,9 @@ proc _lex_code filename, code, include_paths, included_already in
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no, filename));
                     i = i + 2;
+                else if i+1 < length and string_get(code, i+1) == '<' then
+                    vector_push(tokens, make_token(TK_LShift, "<<", "<<", line_no, filename));
+                    i = i + 2;
                 else
                     vector_push(tokens, make_token(TK_Less, "<", "<", line_no, filename));
                     i = i + 1;
@@ -255,6 +258,9 @@ proc _lex_code filename, code, include_paths, included_already in
             else if c == '>' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no, filename));
+                    i = i + 2;
+                else if i+1 < length and string_get(code, i+1) == '>' then
+                    vector_push(tokens, make_token(TK_RShift, ">>", ">>", line_no, filename));
                     i = i + 2;
                 else
                     vector_push(tokens, make_token(TK_Greater, ">", ">", line_no, filename));

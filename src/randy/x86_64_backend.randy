@@ -201,6 +201,56 @@ proc x86_64_emit_op_mod cc, ir in
     cc_out(cc, "    pushq %rdx");
 end
 
+proc x86_64_emit_op_bit_xor cc, ir in
+    check_ir_kind(IRK_OpBitXOR, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    xorq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
+end
+
+proc x86_64_emit_op_bit_and cc, ir in
+    check_ir_kind(IRK_OpBitAND, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    andq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
+end
+
+proc x86_64_emit_op_bit_or cc, ir in
+    check_ir_kind(IRK_OpBitOR, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rdx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    orq %rdx, %rax");
+    cc_out(cc, "    pushq %rax");
+end
+
+proc x86_64_emit_op_bit_shift_l cc, ir in
+    check_ir_kind(IRK_OpBitShiftL, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rcx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    salq %cl, %rax");
+    cc_out(cc, "    pushq %rax");
+end
+
+proc x86_64_emit_op_bit_shift_r cc, ir in
+    check_ir_kind(IRK_OpBitShiftR, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rcx"); // -- b
+    cc_out(cc, "    popq %rax"); // -- a
+    cc_out(cc, "    sarq %cl, %rax");
+    cc_out(cc, "    pushq %rax");
+end
+
 proc _x86_64_emit_compare cc, op in
     cc_out(cc, "    popq %r10"); // -- a
     cc_out(cc, "    popq %r11"); // -- a
@@ -588,6 +638,11 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_SetGlobal then x86_64_emit_set_global(cc, ir);
     else if k == IRK_GetGlobal then x86_64_emit_get_global(cc, ir);
     else if k == IRK_Negative then x86_64_emit_negative(cc, ir);
+    else if k == IRK_OpBitXOR then x86_64_emit_op_bit_xor(cc, ir);
+    else if k == IRK_OpBitAND then x86_64_emit_op_bit_and(cc, ir);
+    else if k == IRK_OpBitOR then x86_64_emit_op_bit_or(cc, ir);
+    else if k == IRK_OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
+    else if k == IRK_OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
     else
         printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
         printf("Unhandled IRK: %d\n", k);
