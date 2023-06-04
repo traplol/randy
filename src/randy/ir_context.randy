@@ -740,15 +740,17 @@ end
 
 proc ir_new_local self, ident in
     var proc_locals = ir_proc_locals(self);
-    var offs = 0;
+    var local_idx = 0;
     var i = 0; var len = vector_len(proc_locals);
     while i < len do
-        offs = offs + map_len(vector_get(proc_locals, i));
+        local_idx = local_idx + map_len(vector_get(proc_locals, i));
         i = i + 1;
     end
-    map_set(ir_cur_scope(self), ident, offs);
-    u64!(self + TIR_CONTEXT_nlocals, ir_nlocals(self) + 1);
-    return offs;
+    map_set(ir_cur_scope(self), ident, local_idx);
+    if local_idx + 1 > ir_nlocals(self) then
+        u64!(self + TIR_CONTEXT_nlocals, local_idx + 1);
+    end
+    return local_idx;
 end
 
 proc ir_new_label self, hint in
@@ -838,9 +840,8 @@ proc ir_get_local self, ident in
         end
         i = i - 1;
     end
-    printf("local not found: %s\n", ident);
+    printf("Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
     abort();
-    return NULL; // should we error here instead?
 end
 
 proc ir_is_const self, ident in
