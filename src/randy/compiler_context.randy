@@ -5,9 +5,10 @@ const TCOMPILER_CONTEXT_proc_name     = 16;
 const TCOMPILER_CONTEXT_proc_params   = 24;
 const TCOMPILER_CONTEXT_proc_locals   = 32;
 const TCOMPILER_CONTEXT_file_map      = 40; // (cstr, int) : path -> id
-const sizeof_TCOMPILER_CONTEXT        = 48;
+const TCOMPILER_CONTEXT_nodebug       = 48; // bool
+const sizeof_TCOMPILER_CONTEXT        = 56;
 
-proc make_compiler_context in
+proc make_compiler_context debug in
     var self = malloc(sizeof_TCOMPILER_CONTEXT);
     var lines = make_vector(0);
     u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
@@ -16,11 +17,13 @@ proc make_compiler_context in
     u64!(self + TCOMPILER_CONTEXT_proc_params, NULL);
     u64!(self + TCOMPILER_CONTEXT_proc_locals, NULL);
     u64!(self + TCOMPILER_CONTEXT_file_map, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TCOMPILER_CONTEXT_nodebug, not debug);
     return self;
 end
 
 proc compiler_context_file_map self in return u64@(self + TCOMPILER_CONTEXT_file_map); end
 proc compiler_context_lines self in return u64@(self + TCOMPILER_CONTEXT_out_lines); end
+proc compiler_context_nodebug self in return u64@(self + TCOMPILER_CONTEXT_nodebug); end
 
 proc compiler_context_get_file_id self, path in
     var found = map_find(compiler_context_file_map(self), path);
@@ -93,14 +96,17 @@ proc cc_out_string self, string in
 end
 
 proc cc_out_src_loc self, src_loc in
-    // var str = make_string(20);
-    // var id = compiler_context_get_file_id(self, src_loc_filename(src_loc));
-    // string_append_cstr(str, "    .loc ");
-    // string_append_int(str, id);
-    // string_push(str, ' ');
-    // string_append_int(str, src_loc_line(src_loc));
-    // cc_out(self, string_cstr(str));
-    // free_string(str);
+    if compiler_context_nodebug(self) then
+        return;
+    end
+    var str = make_string(20);
+    var id = compiler_context_get_file_id(self, src_loc_filename(src_loc));
+    string_append_cstr(str, "    .loc ");
+    string_append_int(str, id);
+    string_push(str, ' ');
+    string_append_int(str, src_loc_line(src_loc));
+    cc_out(self, string_cstr(str));
+    free_string(str);
 end
 
 proc cc_out_file self, idx, filename in
