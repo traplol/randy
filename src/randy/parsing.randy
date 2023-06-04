@@ -17,6 +17,7 @@ proc parse_args_until ts, into, until in
             if ts_peekk(ts, until) then
                 printf("ERROR: Unexpected token after ','\n");
                 print_token_loc(ts_peek(ts));
+                exit(1);
             end
         end
     end
