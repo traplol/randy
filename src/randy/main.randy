@@ -221,6 +221,8 @@ proc main argc, argv in
         var out_path = NULL;
         var verbosity = 0;
         var debug = 0;
+        var print_ir = false;
+        var will_compile = true;
         var ld_flags = make_vector(0);
         
         i = 1; var p;
@@ -268,6 +270,9 @@ proc main argc, argv in
                 verbosity = 3;
             else if cstr_eq("-g", u64@(argv + i*sizeof_PTR)) then
                 debug = 1;
+            else if cstr_eq("-ir", u64@(argv + i*sizeof_PTR)) then
+                print_ir = true;
+                will_compile = false;
             else if cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
                 i = i + 1;
                 while i < argc do
@@ -282,7 +287,7 @@ proc main argc, argv in
             printf("No input file.\n");
             return 1;
         end
-        if not out_path then
+        if not out_path and will_compile then
             printf("No output path.\n");
             return 1;
         end
@@ -333,6 +338,14 @@ proc main argc, argv in
         time(endtime);
         if verbosity > 0 then
             print_timespan("IR compile took: ", starttime, endtime);
+        end
+
+        if print_ir then
+            ir_print_whole_ir(irctx);
+        end
+
+        if not will_compile then
+            return 1;
         end
 
         var main_proc = NULL;

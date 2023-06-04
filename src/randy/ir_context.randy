@@ -49,6 +49,8 @@ const IRK_OpBitAND      = 46;
 const IRK_OpBitOR       = 47;
 const IRK_OpBitShiftL   = 48;
 const IRK_OpBitShiftR   = 49;
+const IRK_ScopeOpen     = 50;
+const IRK_ScopeClose    = 51;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -98,6 +100,8 @@ proc ir_instr_kind_cstr k in
     if k == IRK_OpBitOR then return "IRK_OpBitOR"; end
     if k == IRK_OpBitShiftL then return "IRK_OpBitShiftL"; end
     if k == IRK_OpBitShiftR then return "IRK_OpBitShiftR"; end
+    if k == IRK_ScopeOpen then return "IRK_ScopeOpen"; end
+    if k == IRK_ScopeClose then return "IRK_ScopeClose"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -235,6 +239,16 @@ end
 proc make_ir_negative in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Negative);
+    return self;
+end
+proc make_ir_scope_open in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_ScopeOpen);
+    return self;
+end
+proc make_ir_scope_close in
+    var self = malloc(sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_ScopeClose);
     return self;
 end
 proc make_ir_new_proc src_name, name, params, locals in
@@ -385,7 +399,7 @@ proc print_ir_goto_top_true self in
 end
 proc print_ir_inline_asm self in
     printf("(IR.InlineAsm ");
-    printf("name='%s')\n", u64@(self + TIR_INSTR_name));
+    printf("name='%s', asm=\"...\")\n", u64@(self + TIR_INSTR_name));
 end
 proc print_ir_label self in
     printf("(IR.Label ");
@@ -400,12 +414,27 @@ end
 proc print_ir_negative self in
     printf("(IR.Negative)\n");
 end
+proc print_ir_scope_open self in
+    printf("(IR.ScopeOpen)\n");
+end
+proc print_ir_scope_close self in
+    printf("(IR.ScopeClose)\n");
+end
 proc print_ir_new_proc self in
     printf("(IR.NewProc ");
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
-    printf("params=TODO(params) %p, ", u64@(self + TIR_INSTR_params));
-    printf("nlocals=%d)\n", u64@(self + TIR_INSTR_nlocals));
+    printf("params=[");
+    var params = u64@(self + TIR_INSTR_params);
+    var i = 0; var len = vector_len(params);
+    while i < len do
+        printf("'%s'", vector_get(params, i));
+        i = i + 1;
+        if i < len then
+            printf(", ");
+        end
+    end
+    printf("], nlocals=%d)\n", u64@(self + TIR_INSTR_nlocals));
 end
 proc print_ir_op_add self in
     printf("(IR.OpAdd)\n");
@@ -541,6 +570,8 @@ proc print_ir ir in
     else if k == IRK_SetGlobal then print_ir_set_global(ir);
     else if k == IRK_GetGlobal then print_ir_get_global(ir);
     else if k == IRK_Negative then print_ir_negative(ir);
+    else if k == IRK_ScopeOpen then print_ir_scope_open(ir);
+    else if k == IRK_ScopeClose then print_ir_scope_close(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -703,10 +734,12 @@ end
 
 proc ir_push_scope self in
     vector_push(ir_proc_locals(self), make_map(0, cstr_eq, cstr_hash));
+    ir_append(self, make_ir_scope_open());
 end
 
 proc ir_pop_scope self in
     vector_pop(ir_proc_locals(self));
+    ir_append(self, make_ir_scope_close());
 end
 
 proc ir_cur_scope self in
@@ -1580,5 +1613,14 @@ proc check_ir_kind expect, ir in
             ir_instr_kind_cstr(expect),
             ir_instr_kind_cstr(actual));
         abort();
+    end
+end
+
+proc ir_print_whole_ir self in
+    var instrs = ir_instructions(self);
+    var i = 0; var len = vector_len(instrs);
+    while i < len do
+        print_ir(vector_get(instrs, i));
+        i = i + 1;
     end
 end

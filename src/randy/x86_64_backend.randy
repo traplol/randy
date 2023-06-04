@@ -643,6 +643,8 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_OpBitOR then x86_64_emit_op_bit_or(cc, ir);
     else if k == IRK_OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
     else if k == IRK_OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
+    else if k == IRK_ScopeOpen then // nothing to do
+    else if k == IRK_ScopeClose then // nothing to do
     else
         printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
         printf("Unhandled IRK: %d\n", k);
