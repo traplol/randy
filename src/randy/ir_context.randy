@@ -170,9 +170,10 @@ proc make_ir_call_lazy_ident ident, nargs in
     u64!(self + TIR_INSTR_nargs, nargs);
     return self;
 end
-proc make_ir_close_proc name in
+proc make_ir_close_proc src_name, name in
     var self = malloc(sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CloseProc);
+    u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     return self;
 end
@@ -370,6 +371,7 @@ proc print_ir_lazy_ident self in
 end
 proc print_ir_close_proc self in
     printf("(IR.CloseProc ");
+    printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s')\n", u64@(self + TIR_INSTR_name));
 end
 proc print_ir_free_temps self in
@@ -738,8 +740,11 @@ proc ir_push_scope self in
 end
 
 proc ir_pop_scope self in
-    vector_pop(ir_proc_locals(self));
+    var vec = ir_proc_locals(self);
+    var map = vector_back(vec);
+    vector_pop(vec);
     ir_append(self, make_ir_scope_close());
+    free_map(map);
 end
 
 proc ir_cur_scope self in
@@ -767,7 +772,6 @@ proc ir_new_proc self, ident, params in
         printf("WARN: Compiler bug? proc locals not empty when creating new proc\n");
     end
     u64!(self + TIR_CONTEXT_nlocals, 0);
-    ir_push_scope(self);
     return label_cstr;
 end
 
@@ -1143,7 +1147,9 @@ proc ir_emit_call self, ast in
     check_ast_kind(AstK_Call, ast);
     var args = ast_args(ast);
     var len = vector_len(args);
-    ir_append(self, make_ir_alloc_temps(len));
+    if len > 0 then
+        ir_append(self, make_ir_alloc_temps(len));
+    end
     var i = 0;
     while i < len do
         ir_compile(self, vector_get(args, i));
@@ -1156,7 +1162,9 @@ proc ir_emit_call self, ast in
         ir_append(self, make_ir_set_arg_temp(i));
         i = i + 1;
     end
-    ir_append(self, make_ir_free_temps(len));
+    if len > 0 then
+        ir_append(self, make_ir_free_temps(len));
+    end
 
     var expr = ast_expr(ast);
     if ast_kind(expr) == AstK_Ident then
@@ -1300,6 +1308,7 @@ proc ir_emit_procedure self, ast in
     var params = ast_params(ast);
     var label = ir_new_proc(self, ident, params);
     var insn = make_ir_new_proc(ident, label, params, 0);
+    ir_push_scope(self);
     ir_append(self, insn);
 
     var i = 0;
@@ -1314,7 +1323,7 @@ proc ir_emit_procedure self, ast in
     end
     ir_emit_body(self, ast_body(ast));
     u64!(insn + TIR_INSTR_nlocals, ir_nlocals(self));
-    ir_append(self, make_ir_close_proc(ident));
+    ir_append(self, make_ir_close_proc(ident, label));
     ir_pop_scope(self);
 end
 
@@ -1323,17 +1332,18 @@ proc ir_emit_if_else self, ast in
     var i; var len;
     var l_else = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
-    ir_push_scope(self);
     ir_compile(self, ast_test(ast));
     ir_append(self, make_ir_goto_false(l_else));
+    ir_push_scope(self);
     ir_emit_body(self, ast_consequence(ast));
     ir_pop_scope(self);
-    ir_push_scope(self);
     ir_append(self, make_ir_goto(l_out));
+
     ir_append(self, make_ir_label(l_else));
+    ir_push_scope(self);
     ir_emit_body(self, ast_alternative(ast));
-    ir_append(self, make_ir_label(l_out));
     ir_pop_scope(self);
+    ir_append(self, make_ir_label(l_out));
 end
 
 proc ir_emit_while self, ast in
