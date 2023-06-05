@@ -78,6 +78,12 @@ proc get_ident_kind string in
     return TK_Ident;
 end
 
+proc _unrecognized_char filename, line_no, c in
+    printf("Unrecognized character: '%c' (%d)\n", c, c);
+    printf("  File \"%s\", line %d\n", filename, line_no);
+    exit(1);
+end
+
 proc _lex_code filename, code, include_paths, included_already in
     var i = 0;
     var tokens = make_vector(0);
@@ -241,8 +247,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no, filename));
                     i = i + 2;
                 else
-                    printf("Unrecognized character: '%c' (%d) on line %d\n", c, c, line_no);
-                    exit(1);
+                    _unrecognized_char(filename, line_no, c);
                 end
             else if c == '<' then
                 if i+1 < length and string_get(code, i+1) == '=' then
@@ -275,9 +280,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     i = i + 1;
                 end
             else
-                printf("Unrecognized character: '%c' (%d)\n", c, c);
-                printf("  File \"%s\", line %d", filename, line_no);
-                exit(1);
+                _unrecognized_char(filename, line_no, c);
             end
         end
     end
