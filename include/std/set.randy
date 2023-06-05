@@ -42,8 +42,8 @@ proc make_set_default in
     return make_set(0, NULL, NULL);
 end
 
-proc set_length self in return u64@(self + TSET_length); end
-proc set_capacity self in return u64@(self + TSET_capacity); end
+proc set_len self in return u64@(self + TSET_length); end
+proc set_cap self in return u64@(self + TSET_capacity); end
 proc set_buffer self in return u64@(self + TSET_buffer); end
 proc set_comparer self in return u64@(self + TSET_comparer); end
 proc set_hasher self in return u64@(self + TSET_hasher); end
@@ -56,7 +56,7 @@ proc free_set self in
 end
 
 proc _set_expand self in
-    var old_cap = set_capacity(self);
+    var old_cap = set_cap(self);
     var old_buf = set_buffer(self);
     var new_cap = old_cap * 2;
     u64!(self + TSET_length, 0);
@@ -80,7 +80,7 @@ proc _set_at self, idx in
 end
 
 proc set_contains self, elem in
-    var cap = set_capacity(self);
+    var cap = set_cap(self);
     var hasher = set_hasher(self); 
     var idx = hasher(elem) % cap;
     if idx < 0 then idx = 0 - idx; end
@@ -97,10 +97,10 @@ proc set_contains self, elem in
 end
 
 proc set_add self, elem in
-    var cap = set_capacity(self);
-    if set_length(self) >= cap / SET_Load_Factor then
+    var cap = set_cap(self);
+    if set_len(self) >= cap / SET_Load_Factor then
         _set_expand(self);
-        cap = set_capacity(self);
+        cap = set_cap(self);
     end
     
     var hasher = set_hasher(self);
@@ -125,7 +125,7 @@ proc set_add self, elem in
 end
 
 proc set_remove self, elem in
-    var cap = set_capacity(self);
+    var cap = set_cap(self);
     var hasher = set_hasher(self);
     var idx = hasher(elem) % cap;
     if idx < 0 then idx = 0 - idx; end
@@ -145,4 +145,32 @@ proc set_remove self, elem in
         u64!(self + TSET_length, u64@(self + TSET_length) - 1);
     end
     u64!(cur, NULL);
+end
+
+proc set_end self in
+    return _set_at(self, set_cap(self));
+end
+
+proc set_begin self in
+    var cur = _set_at(self, 0);
+    var end_ = set_end(self);
+    while cur != end_ do
+        if u64@(cur) then
+            return cur;
+        end
+        cur = cur + sizeof_TSET_ELEM;
+    end
+    return end_;
+end
+
+proc set_next self, iter in
+    iter = iter + sizeof_TSET_ELEM;
+    var end_ = set_end(self);
+    while iter != end_ do
+        if u64@(iter) then
+            return iter;
+        end
+        iter = iter + sizeof_TSET_ELEM;
+    end
+    return end_;
 end
