@@ -15,32 +15,32 @@ proc test_default_set in
     printf("Testing default set.\n");
     var set = make_set_default();
 
-    test("empty set length is 0", 0 == set_length(set));
+    test("empty set length is 0", 0 == set_len(set));
     
     set_add(set, 123);
-    test("set length is 1 after adding 123", 1 == set_length(set));
+    test("set length is 1 after adding 123", 1 == set_len(set));
     set_add(set, 234);
-    test("set length is 2 after adding 234", 2 == set_length(set));
+    test("set length is 2 after adding 234", 2 == set_len(set));
     set_add(set, 234);
-    test("set length is 2 after adding 234 again", 2 == set_length(set));
+    test("set length is 2 after adding 234 again", 2 == set_len(set));
 
     test("set contains 123", set_contains(set, 123));
     test("set contains 234", set_contains(set, 234));
 
     printf("forcing set to resize\n");
     var i = 1;
-    var cap = set_capacity(set);
+    var cap = set_cap(set);
     while i < cap+1 do
         set_add(set, i);
         i = i + 1;
     end
-    test("set length is cap+2", cap+2 == set_length(set));
+    test("set length is cap+2", cap+2 == set_len(set));
     test("set still contains 234", set_contains(set, 234));
     test("set still contains 123", set_contains(set, 123));
 
-    var len = set_length(set);
+    var len = set_len(set);
     set_remove(set, 234);
-    test("set supports removal", (len-1) == set_length(set));
+    test("set supports removal", (len-1) == set_len(set));
     test("set no longer contains 234", not set_contains(set, 234));
 
     i = 1;
@@ -48,7 +48,7 @@ proc test_default_set in
         set_add(set, i);
         i = i + 1;
     end
-    test("set length is 200000", 200000 == set_length(set));
+    test("set length is 200000", 200000 == set_len(set));
     test("set contains 1000", set_contains(set, 1000));
     test("set contains 65536", set_contains(set, 65536));
     test("set contains 100000", set_contains(set, 100000));
@@ -72,21 +72,21 @@ proc test_cstr_set in
     printf("Testing set with cstrings.\n");
     var set = make_set(16, cstr_eq, cstr_hash);
 
-    test("set is empty", 0 == set_length(set));
+    test("set is empty", 0 == set_len(set));
 
     set_add(set, "hello world");
-    test("set length is 1", 1 == set_length(set));
+    test("set length is 1", 1 == set_len(set));
     test("set contains \"hello world\"", set_contains(set, "hello world"));
 
     set_add(set, "hello world");
-    test("set length is 1", 1 == set_length(set));
+    test("set length is 1", 1 == set_len(set));
 
     set_add(set, "helloworld");
-    test("set length is 2", 2 == set_length(set));
+    test("set length is 2", 2 == set_len(set));
     test("set contains \"helloworld\"", set_contains(set, "helloworld"));
 
     set_remove(set, "hello world");
-    test("set supports removal", 1 == set_length(set));
+    test("set supports removal", 1 == set_len(set));
     test("set no longer contains \"hello world\"", not set_contains(set, "hello world"));
 end
 
