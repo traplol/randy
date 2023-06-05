@@ -14,6 +14,14 @@ const sizeof_TMAP_PAIR = 16;
 const MAP_Load_Factor = 2; // resize & rehash when size >= capacity/2
 const MAP_Default_Cap = 16;
 
+proc _default_map_compare a, b in
+    return a == b;
+end
+
+proc _default_map_hash e in
+    return e;
+end
+
 proc make_map capacity, comparer, hasher in
     var self = malloc(sizeof_TMAP);
     if capacity <= 0 then
@@ -22,6 +30,12 @@ proc make_map capacity, comparer, hasher in
     u64!(self + TMAP_length, 0);
     u64!(self + TMAP_capacity, capacity);
     u64!(self + TMAP_buffer, calloc(capacity, sizeof_TMAP_PAIR));
+    if not comparer then
+        comparer = _default_map_compare;
+    end
+    if not hasher then
+        hasher = _default_map_hash;
+    end
     u64!(self + TMAP_comparer, comparer);
     u64!(self + TMAP_hasher, hasher);
     return self;
@@ -163,6 +177,3 @@ proc map_next self, iter in
     end
     return end_;
 end
-
-
-        
