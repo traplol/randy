@@ -55,7 +55,7 @@ const TK_KW_continue = 51;
 const TK_LShift      = 52;
 const TK_RShift      = 53;
 const TK_Colon       = 54;
-const TK_RightArrow  = 54;
+const TK_RightArrow  = 55;
 const TK_MAX_VAL     = 56;
 
 proc token_kind_cstr k in
