@@ -222,6 +222,7 @@ proc main argc, argv in
         var verbosity = 0;
         var debug = 0;
         var print_ir = false;
+        var do_typecheck = false;
         var will_compile = true;
         var ld_flags = make_vector(0);
         
@@ -272,6 +273,9 @@ proc main argc, argv in
                 debug = 1;
             else if cstr_eq("-ir", u64@(argv + i*sizeof_PTR)) then
                 print_ir = true;
+                will_compile = false;
+            else if cstr_eq("-tc", u64@(argv + i*sizeof_PTR)) then
+                do_typecheck = true;
                 will_compile = false;
             else if cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
                 i = i + 1;
@@ -325,11 +329,15 @@ proc main argc, argv in
             print_timespan("Parsing took: ", starttime, endtime);
         end
 
-        time(starttime);
-        typecheck(roots);
-        time(endtime);
-        if verbosity > 0 then
-            print_timespan("Typechecking took: ", starttime, endtime);
+        if do_typecheck then
+            time(starttime);
+            var tc = make_type_check();
+            typecheck(tc, roots);
+            time(endtime);
+            tc_print_types(tc);
+            if verbosity > 0 then
+                print_timespan("Typechecking took: ", starttime, endtime);
+            end
         end
 
         time(starttime);
