@@ -1,0 +1,193 @@
+====================================================================================================
+TODO:
+
+core:
+  - [x] string
+  - [x] vector
+  - [x] list
+  - [x] arena
+  - [x] associative list
+  - [x] set
+  - [x] map
+  - [ ] memory allocator
+       - realloc could be useful but it's a needlessly complex requirement.
+    - [ ] malloc
+    - [ ] calloc
+    - [ ] free
+  - [ ] printing utils
+       - use buffered IO
+       - typechecking the format strings would be nice but is likely complex
+    - [ ] fprint   - equiv to libc fputs
+    - [ ] print    - equiv to libc puts
+    - [ ] fformat  - equiv to libc fprintf
+    - [ ] format   - equiv to libc printf
+    - [ ] fflush   - equiv to libc fflush
+  - [ ] memcpy
+  - [ ] memset
+
+[x] self-host:
+  - [x] lexing
+  - [x] parsing
+  - [x] pretty print
+  - [x] IR
+  - [x] codegen
+  - [x] invoke as & ld from randy compiler
+  - [x] time each step of the compiler to compare with python
+
+utils:
+  - [ ] easier asm generator interface
+
+features:
+  - [x] global/static variables
+  - [x] variable scoping
+  - [x] outline enitre type checking and type inference model
+  - [ ] basic type checking
+  - [ ] variadic functions
+  - [ ] native array support
+  - [x] bitwise ops: ^ | & << >>
+  - [x] assignment ops: += -= *= etc
+  - [ ] structs
+  - [ ] enums
+  - [ ] tagged unions
+  - [ ] tail call elimination
+  - [ ] inlinable functions
+       - probably implement an `inline` keyword and leave inlining at the discretion of the
+         programmer. there should also be some metric to determine if a function is even inlinable
+         and when it's not, just give a warning and emit a regular call.
+  - [ ] closures
+       - do I really care about this or is it just more uneeded complexity?
+  - [x] decide on memory model, manual? GC? mixed? opt-in GC?
+     -> full manual with analysis for and warnings about dangling references.
+  - [ ] basic `match` syntax, similar to switch in other languages with extra features.
+        no intention to have ML-style full pattern matching.
+
+====================================================================================================
+gripes:
+Currently, assignment ops require an identifier on the left side but I want to allow qualified
+names, field accessors, and maybe '[i]' subscript to utilize them.
+
+====================================================================================================
+extra ideas:
+Once type checking is implemented should I allow "string literals" to be automatically interpreted
+as `cstr` or `string` depending on usage? e.g.
+
+    var x: cstr   = "hello world"; // automatically use the null-terminated char array
+    var y: string = "hello world"; // automatically compile this into a std/string type
+    var z         = "ambiguous";   // what should the type of this be?
+
+    extern printf fmt: cstr, ... -> int;
+
+    proc greet x: cstr in
+        printf("Hello, %s\n", x);
+    end
+
+    greet("max"); // this already make sense
+
+I can see problems already arising with deciding conversions before the function's type signature
+is known; for example below: `do_action` is defined after its usage. This can be resolved by having
+a second pass to resolve symbols before type checking.
+
+    do_action("bark"); // is this automatically converted to a std/string?
+
+    proc do_action action: string in
+        ...
+    end
+
+====================================================================================================
+type model and checking:
+The language is strongly- and statically-typed. The type model tries to allow for type inference
+everywhere but does not allow polymorphic types when there are usage conflicts. Procedure parameter
+types are not overloadable, meaning you cannot have a `proc foo a: int` and a `proc foo a: cstr`.
+e.g.
+    proc foo a in
+        return a + 3;
+    end
+
+    // here the type of foo's `a` is `any` and foo's return type is also `any`
+
+    foo(123);    // foo's `a` parameter now has a deduced type of `int` and the return type
+                 // is also deduced to `int`
+    foo("asdf"); // illegal even though "asdf" + 3 is a legal expression.
+
+Basic type checking can probably be done in two shallow passes and one or two deep passes.
+The first shallow pass will look for specific type definitions: enums, structs, unions and declare
+them with empty bodies. The second shallow pass will look at all top-level statements and annotate
+them with the known types; particularly this is where `proc`s and `extern`s will be declared with
+known types. The third, and first deep, pass will visit every expression and assignment and attempt
+to resolve a concrete type out of the `any` types. Generics will probably be instantiated into
+monomorphs during this pass. The fourth pass may be unecessary but it will do the same as the
+previous deep pass and display warnings or errors about types it cannot deduce.
+
+
+Alternatively, instead of a third pass we can lazily compile and type check functions when they
+are called. This also gives us an easier path to monomorphing generics. Check at the call site for
+a version of that function with our argument types and either call that instance or instantiate
+and compile a new monomorph. There is also the added benefit of not compiling functions that aren't
+called which is especially nice for reducing binary size when including library code.
+
+====================================================================================================
+enum syntax:
+
+    enum ir_kind in
+        GetLocal;    // starts at 0
+        PushLabel;   // 1
+        PushInt;     // 2
+        AllocTemps;  // 3
+        SetLocal = 23; // jump to 23
+        NewProc;     // 24
+        SetLocalArg; // 25
+        CloseProc;   // 26...
+    end
+
+no implicit conversion between int and enum: must use `ir_kind.from(int)`
+the `<enum>.from` function doesn't error on out of bounds, it is merely for casting convenience
+automatic generation of `ir_kind.to_string(ir_kind)`
+automatic generation of `ir_kind.contains(int)`
+enums will support bitwise ops to support flags
+
+====================================================================================================
+union syntax:
+
+    union ir_instr in
+        foo: string;
+
+        struct alloc_temps in
+            n: int;
+        end
+
+        struct call in
+            label: string;
+            varargs: bool;
+        end
+    end
+
+unions will be implemented as a c-style tagged union: a struct with a tag field and a chunk
+of memory for the union contents.
+the underlying value of a union will only be reachable within `match` blocks
+
+    var ir = get_ir_instr(...);
+    match ir as u in
+        | foo -> puts(u);
+        | alloc_temps -> procress_alloc_temps(u);
+        | call -> printf("calling %s, varargs? %d\n", u.label, u.varargs);
+        | else -> // else keyword captures the default/unhandled cases
+    end
+
+compiler will warn or error when a union value goes unused in a match block.
+
+====================================================================================================
+struct syntax:
+
+    struct point in
+        x: int;
+        y: int;
+    end
+
+automatic generation of `make_point x: int, y: int -> point&`
+automatic generation of `free_point self: point`
+
+    var pt = make_point(10, 20);
+    pt.x += 1;
+    pt.y += 1;
+    free_point(pt);
+
