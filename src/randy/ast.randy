@@ -356,7 +356,7 @@ proc _print_args args, indent in
 end
 
 proc _print_ast_ident ast, indent in
-    printf("%s", ast_ident(ast));
+    printf("[%p]%s", ast_ident(ast), ast_ident(ast));
 end
 
 proc _print_ast_integer ast, indent in
@@ -391,16 +391,16 @@ proc _print_ast_return ast, indent in
 end
 
 proc _print_ast_var_decl ast, indent in
-    printf("var %s", ast_ident(ast));
+    printf("var [%p]%s", ast_ident(ast), ast_ident(ast));
 end
 
 proc _print_ast_var_assign ast, indent in
-    printf("var %s = ", ast_ident(ast));
+    printf("var [%p]%s = ", ast_ident(ast), ast_ident(ast));
     _print_ast(ast_assign_expr(ast), indent);
 end
 
 proc _print_ast_assign ast, indent in
-    printf("%s = ", ast_ident(ast));
+    printf("[%p]%s = ", ast_ident(ast), ast_ident(ast));
     _print_ast(ast_assign_expr(ast), indent);
 end
 
@@ -422,12 +422,12 @@ proc _print_ast_body body, indent in
 end
 
 proc _print_ast_procedure ast, indent in
-    printf("proc %s", ast_ident(ast));
+    printf("proc [%p]%s", ast_ident(ast), ast_ident(ast));
     var i = 0;
     var params = ast_params(ast);
     var len = vector_len(params);
     while i < len do
-        printf(" %s", vector_get(params, i));
+        printf(" [%p]%s", vector_get(params, i), vector_get(params, i));
         i += 1;
         if i < len then
             printf(",");
@@ -483,17 +483,17 @@ proc _print_ast_prefix ast, indent in
 end
 
 proc _print_ast_const ast, indent in
-    printf("const %s = ", ast_ident(ast));
+    printf("const [%p]%s = ", ast_ident(ast), ast_ident(ast));
     _print_ast(ast_assign_expr(ast), indent);
 end
 
 proc _print_ast_global ast, indent in
-    printf("global %s = ", ast_ident(ast));
+    printf("global [%p]%s = ", ast_ident(ast), ast_ident(ast));
     _print_ast(ast_assign_expr(ast), indent);
 end
 
 proc _print_ast_extern ast, indent in
-    printf("extern %s", ast_ident(ast));
+    printf("extern [%p]%s", ast_ident(ast), ast_ident(ast));
     var i = 0;
     var params = ast_params(ast);
     var len = vector_len(params);
@@ -514,7 +514,7 @@ proc _print_ast_extern ast, indent in
 end
 
 proc _print_ast_inline_asm ast, indent in
-    printf("asm %s in\n", ast_ident(ast));
+    printf("asm [%p]%s in\n", ast_ident(ast), ast_ident(ast));
     printf("\"%s\"\n", ast_asm(ast));
     printf("end");
 end
@@ -568,5 +568,13 @@ proc check_ast_kind expect, ast in
             ast_kind_cstr(expect),
             ast_kind_cstr(actual));
         abort();
+    end
+end
+
+proc print_whole_ast roots in
+    var i = 0; var len = vector_len(roots);
+    while i < len do
+        print_ast(vector_get(roots, i));
+        i += 1;
     end
 end

@@ -1,11 +1,11 @@
 
-proc parse_args_until ts, into, until in
+proc parse_args_until ts, st, into, until in
     var arg;
     while true do
         if ts_peekk(ts, until) then
             return;
         end
-        arg = parse_expression(ts);
+        arg = parse_expression(ts, st);
         if not arg then
             return;
         end
@@ -23,7 +23,7 @@ proc parse_args_until ts, into, until in
     end
 end
 
-proc parse_var ts in
+proc parse_var ts, st in
     var var_ = ts_expect(ts, TK_KW_var);
     var ident = ts_expect(ts, TK_Ident);
     if ts_peekk(ts, TK_Colon) then
@@ -35,67 +35,83 @@ proc parse_var ts in
         return make_ast_var_decl(var_, token_value(ident));
     end
     ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts);
-    return make_ast_var_assign(var_, token_value(ident), expr);
+    var expr = parse_expression(ts, st);
+    var symbol = st_get_symbol_local(st, token_value(ident));
+    if symbol then
+        printf("ERROR: var `%s` already defined.\n", token_value(ident));
+        print_token_loc(ident);
+        printf("NOTE: It was previously defined here:\n");
+        print_token_loc(symbol_token(symbol));
+        exit(1);
+    end
+    symbol = st_make_local(st, token_value(ident), ident);
+    return make_ast_var_assign(var_, symbol_name(symbol), expr);
 end
 
-proc parse_if_else ts in
+proc parse_if_else ts, st in
     var if_ = ts_expect(ts, TK_KW_if);
-    var test = parse_expression(ts);
+    st_push_scope(st);
+    var test = parse_expression(ts, st);
     if not test then
+        st_pop_scope(st);
         return NULL;
     end
     ts_expect(ts, TK_KW_then);
     var conseq = make_vector(0);
     var altern = make_vector(0);
-    parse_statements_until_either(ts, conseq, TK_KW_else, TK_KW_end);
+    parse_statements_until_either(ts, st, conseq, TK_KW_else, TK_KW_end);
     if ts_accept(ts, TK_KW_end) then
+        st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
     ts_expect(ts, TK_KW_else);
     if ts_peekk(ts, TK_KW_if) then
-        vector_push(altern, parse_if_else(ts));
+        vector_push(altern, parse_if_else(ts, st));
+        st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
-    parse_statements_until(ts, altern, TK_KW_end);
+    parse_statements_until(ts, st, altern, TK_KW_end);
     ts_next(ts);
+    st_pop_scope(st);
     return make_ast_if_else(if_, test, conseq, altern);
 end
 
-proc parse_while ts in
+proc parse_while ts, st in
     var while_ = ts_expect(ts, TK_KW_while);
-    var test = parse_expression(ts);
+    st_push_scope(st);
+    var test = parse_expression(ts, st);
     var body = make_vector(0);
     ts_expect(ts, TK_KW_do);
-    parse_statements_until(ts, body, TK_KW_end);
+    parse_statements_until(ts, st, body, TK_KW_end);
     ts_expect(ts, TK_KW_end);
+    st_pop_scope(st);
     return make_ast_while(while_, test, body);
 end
 
-proc parse_return ts in
+proc parse_return ts, st in
     var return_ = ts_expect(ts, TK_KW_return);
     if ts_peekk(ts, TK_Semicolon) then
         return make_ast_return(return_, NULL);
     end
-    var expr = parse_expression(ts);
+    var expr = parse_expression(ts, st);
     return make_ast_return(return_, expr);
 end
 
-proc parse_assign ts in
+proc parse_assign ts, st in
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts);
+    var expr = parse_expression(ts, st);
     return make_ast_assign(ident, token_value(ident), expr);
 end
 
-proc parse_assign_op ts, op in
+proc parse_assign_op ts, st, op in
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, op);
-    var expr = parse_expression(ts);
+    var expr = parse_expression(ts, st);
     return make_ast_assign_op(ident, token_value(ident), op, expr);
 end
 
-proc parse_pointer_op ts in
+proc parse_pointer_op ts, st in
     var token = ts_peek(ts);
     var size;
     var op;
@@ -131,7 +147,7 @@ proc parse_pointer_op ts in
 
     ts_expect(ts, TK_LParen);
     var args = make_vector(0);
-    parse_args_until(ts, args, TK_RParen);
+    parse_args_until(ts, st, args, TK_RParen);
     ts_expect(ts, TK_RParen);
 
     if op == PointerOp_Read and vector_len(args) != 1 then
@@ -149,29 +165,34 @@ proc parse_pointer_op ts in
     return make_ast_pointer_op(token, size, op, args);
 end
 
-proc parse_primary ts in
+proc parse_primary ts, st in
     if ts_accept(ts, TK_LParen) then
-        var expr = parse_expression(ts);
+        var expr = parse_expression(ts, st);
         ts_expect(ts, TK_RParen);
         return expr;
     end
     var peek = ts_peek(ts);
     var k = token_kind(peek);
     if k == TK_Ident then
-        return make_ast_ident(peek, token_value(ts_next(ts)));
+        var ident = ts_next(ts);
+        var symbol = st_get_symbol(st, token_value(ident));
+        if not symbol then
+            symbol = st_prepare_undef(st, token_value(ident), ident);
+        end
+        return make_ast_ident(peek, symbol_name(symbol));
     else if k == TK_Integer or k == TK_Char then
         return make_ast_integer(peek, token_value(ts_next(ts)));
     else if k == TK_String then
         return make_ast_string(peek, token_value(ts_next(ts)));
     else if k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
-        return parse_pointer_op(ts);
+        return parse_pointer_op(ts, st);
     end
     return NULL;
 end
 
-proc parse_postfix ts in
+proc parse_postfix ts, st in
     var peek = ts_peek(ts);
-    var expr = parse_primary(ts);
+    var expr = parse_primary(ts, st);
     if not expr then
         return NULL;
     end
@@ -180,27 +201,27 @@ proc parse_postfix ts in
         return expr;
     end
     var args = make_vector(0);
-    parse_args_until(ts, args, TK_RParen);
+    parse_args_until(ts, st, args, TK_RParen);
     ts_expect(ts, TK_RParen);
     return make_ast_call(peek, expr, args);
 end
 
-proc parse_prefix ts in
-    var postfix = parse_postfix(ts);
+proc parse_prefix ts, st in
+    var postfix = parse_postfix(ts, st);
     if postfix then
         return postfix;
     end
 
     if ts_peekk_one_of_3(ts, TK_Tilde, TK_KW_not, TK_Minus) then
         var tok = ts_next(ts);
-        var expr = parse_prefix(ts);
+        var expr = parse_prefix(ts, st);
         return make_ast_prefix(tok, token_kind(tok), expr);
     end
     return NULL;
 end
 
-proc parse_binary_multiplicative ts in
-    var lhs = parse_prefix(ts);
+proc parse_binary_multiplicative ts, st in
+    var lhs = parse_prefix(ts, st);
     if not lhs then
         return NULL;
     end
@@ -208,7 +229,7 @@ proc parse_binary_multiplicative ts in
     var tok; var rhs;
     while ts_peekk_one_of_3(ts, TK_Star, TK_Slash, TK_Percent) do
         tok = ts_next(ts);
-        rhs = parse_prefix(ts);
+        rhs = parse_prefix(ts, st);
         if not rhs then
             return NULL;
         end
@@ -217,8 +238,8 @@ proc parse_binary_multiplicative ts in
     return lhs;
 end
 
-proc parse_binary_additive ts in
-    var lhs = parse_binary_multiplicative(ts);
+proc parse_binary_additive ts, st in
+    var lhs = parse_binary_multiplicative(ts, st);
     if not lhs then
         return NULL;
     end
@@ -226,7 +247,7 @@ proc parse_binary_additive ts in
     var tok; var rhs;
     while ts_peekk_one_of_2(ts, TK_Plus, TK_Minus) do
         tok = ts_next(ts);
-        rhs = parse_binary_multiplicative(ts);
+        rhs = parse_binary_multiplicative(ts, st);
         if not rhs then
             return NULL;
         end
@@ -235,8 +256,8 @@ proc parse_binary_additive ts in
     return lhs;
 end
 
-proc parse_binary_shift ts in
-    var lhs = parse_binary_additive(ts);
+proc parse_binary_shift ts, st in
+    var lhs = parse_binary_additive(ts, st);
     if not lhs then
         return NULL;
     end
@@ -244,7 +265,7 @@ proc parse_binary_shift ts in
     var tok; var rhs;
     while ts_peekk_one_of_2(ts, TK_LShift, TK_RShift) do
         tok = ts_next(ts);
-        rhs = parse_binary_additive(ts);
+        rhs = parse_binary_additive(ts, st);
         if not rhs then
             return NULL;
         end
@@ -253,8 +274,8 @@ proc parse_binary_shift ts in
     return lhs;
 end
 
-proc parse_binary_relational ts in
-    var lhs = parse_binary_shift(ts);
+proc parse_binary_relational ts, st in
+    var lhs = parse_binary_shift(ts, st);
     if not lhs then
         return NULL;
     end
@@ -262,7 +283,7 @@ proc parse_binary_relational ts in
     var tok; var rhs;
     while ts_peekk_one_of_4(ts, TK_Less, TK_Greater, TK_LessEq, TK_GreaterEq) do
         tok = ts_next(ts);
-        rhs = parse_binary_shift(ts);
+        rhs = parse_binary_shift(ts, st);
         if not rhs then
             return NULL;
         end
@@ -271,8 +292,8 @@ proc parse_binary_relational ts in
     return lhs;
 end
 
-proc parse_binary_equality ts in
-    var lhs = parse_binary_relational(ts);
+proc parse_binary_equality ts, st in
+    var lhs = parse_binary_relational(ts, st);
     if not lhs then
         return NULL;
     end
@@ -280,7 +301,7 @@ proc parse_binary_equality ts in
     var tok; var rhs;
     while ts_peekk_one_of_2(ts, TK_EqEq, TK_NotEq) do
         tok = ts_next(ts);
-        rhs = parse_binary_relational(ts);
+        rhs = parse_binary_relational(ts, st);
         if not rhs then
             return NULL;
         end
@@ -289,8 +310,8 @@ proc parse_binary_equality ts in
     return lhs;
 end
 
-proc parse_binary_bit_and ts in
-    var lhs = parse_binary_equality(ts);
+proc parse_binary_bit_and ts, st in
+    var lhs = parse_binary_equality(ts, st);
     if not lhs then
         return NULL;
     end
@@ -298,7 +319,7 @@ proc parse_binary_bit_and ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_Amper) do
         tok = ts_next(ts);
-        rhs = parse_binary_equality(ts);
+        rhs = parse_binary_equality(ts, st);
         if not rhs then
             return NULL;
         end
@@ -307,8 +328,8 @@ proc parse_binary_bit_and ts in
     return lhs;
 end
 
-proc parse_binary_bit_xor ts in
-    var lhs = parse_binary_bit_and(ts);
+proc parse_binary_bit_xor ts, st in
+    var lhs = parse_binary_bit_and(ts, st);
     if not lhs then
         return NULL;
     end
@@ -316,7 +337,7 @@ proc parse_binary_bit_xor ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_Caret) do
         tok = ts_next(ts);
-        rhs = parse_binary_bit_and(ts);
+        rhs = parse_binary_bit_and(ts, st);
         if not rhs then
             return NULL;
         end
@@ -325,8 +346,8 @@ proc parse_binary_bit_xor ts in
     return lhs;
 end
 
-proc parse_binary_bit_or ts in
-    var lhs = parse_binary_bit_xor(ts);
+proc parse_binary_bit_or ts, st in
+    var lhs = parse_binary_bit_xor(ts, st);
     if not lhs then
         return NULL;
     end
@@ -334,7 +355,7 @@ proc parse_binary_bit_or ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_Bar) do
         tok = ts_next(ts);
-        rhs = parse_binary_bit_xor(ts);
+        rhs = parse_binary_bit_xor(ts, st);
         if not rhs then
             return NULL;
         end
@@ -343,8 +364,8 @@ proc parse_binary_bit_or ts in
     return lhs;
 end
 
-proc parse_binary_land ts in
-    var lhs = parse_binary_bit_or(ts);
+proc parse_binary_land ts, st in
+    var lhs = parse_binary_bit_or(ts, st);
     if not lhs then
         return NULL;
     end
@@ -352,7 +373,7 @@ proc parse_binary_land ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_KW_and) do
         tok = ts_next(ts);
-        rhs = parse_binary_bit_or(ts);
+        rhs = parse_binary_bit_or(ts, st);
         if not rhs then
             return NULL;
         end
@@ -361,8 +382,8 @@ proc parse_binary_land ts in
     return lhs;
 end
 
-proc parse_binary_lor ts in
-    var lhs = parse_binary_land(ts);
+proc parse_binary_lor ts, st in
+    var lhs = parse_binary_land(ts, st);
     if not lhs then
         return NULL;
     end
@@ -370,7 +391,7 @@ proc parse_binary_lor ts in
     var tok; var rhs;
     while ts_peekk(ts, TK_KW_or) do
         tok = ts_next(ts);
-        rhs = parse_binary_land(ts);
+        rhs = parse_binary_land(ts, st);
         if not rhs then
             return NULL;
         end
@@ -379,24 +400,24 @@ proc parse_binary_lor ts in
     return lhs;
 end
 
-proc parse_expression ts in
-    return parse_binary_lor(ts);
+proc parse_expression ts, st in
+    return parse_binary_lor(ts, st);
 end
 
-proc parse_statement ts in
+proc parse_statement ts, st in
     var stmt;
     var expect_semi = true;
     if ts_peekk(ts, TK_KW_var) then
-        stmt = parse_var(ts);
+        stmt = parse_var(ts, st);
         expect_semi = true;
     else if ts_peekk(ts, TK_KW_if) then
-        stmt = parse_if_else(ts);
+        stmt = parse_if_else(ts, st);
         expect_semi = false;
     else if ts_peekk(ts, TK_KW_while) then
-        stmt = parse_while(ts);
+        stmt = parse_while(ts, st);
         expect_semi = false;
     else if ts_peekk(ts, TK_KW_return) then
-        stmt = parse_return(ts);
+        stmt = parse_return(ts, st);
         expect_semi = true;
     else if ts_peekk(ts, TK_KW_break) then
         stmt = make_ast_break(ts_next(ts));
@@ -405,43 +426,43 @@ proc parse_statement ts in
         stmt = make_ast_continue(ts_next(ts));
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
-        stmt = parse_assign(ts);
+        stmt = parse_assign(ts, st);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_PlusEq) then
-        stmt = parse_assign_op(ts, TK_PlusEq);
+        stmt = parse_assign_op(ts, st, TK_PlusEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_MinusEq) then
-        stmt = parse_assign_op(ts, TK_MinusEq);
+        stmt = parse_assign_op(ts, st, TK_MinusEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_StarEq) then
-        stmt = parse_assign_op(ts, TK_StarEq);
+        stmt = parse_assign_op(ts, st, TK_StarEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_SlashEq) then
-        stmt = parse_assign_op(ts, TK_SlashEq);
+        stmt = parse_assign_op(ts, st, TK_SlashEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_PercentEq) then
-        stmt = parse_assign_op(ts, TK_PercentEq);
+        stmt = parse_assign_op(ts, st, TK_PercentEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_LShiftEq) then
-        stmt = parse_assign_op(ts, TK_LShiftEq);
+        stmt = parse_assign_op(ts, st, TK_LShiftEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_RShiftEq) then
-        stmt = parse_assign_op(ts, TK_RShiftEq);
+        stmt = parse_assign_op(ts, st, TK_RShiftEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_AmperEq) then
-        stmt = parse_assign_op(ts, TK_AmperEq);
+        stmt = parse_assign_op(ts, st, TK_AmperEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_CaretEq) then
-        stmt = parse_assign_op(ts, TK_CaretEq);
+        stmt = parse_assign_op(ts, st, TK_CaretEq);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_BarEq) then
-        stmt = parse_assign_op(ts, TK_BarEq);
+        stmt = parse_assign_op(ts, st, TK_BarEq);
         expect_semi = true;
     else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
-        stmt = parse_pointer_op(ts);
+        stmt = parse_pointer_op(ts, st);
         expect_semi = true;
     else
-        stmt = parse_expression(ts);
+        stmt = parse_expression(ts, st);
         expect_semi = true;
     end
 
@@ -454,43 +475,69 @@ proc parse_statement ts in
     return stmt;
 end
     
-proc parse_statements_until ts, into, kind in
+proc parse_statements_until ts, st, into, kind in
     if ts_peekk(ts, kind) then
         return;
     end
-    var stmt = parse_statement(ts);
+    var stmt = parse_statement(ts, st);
     while stmt do
         vector_push(into, stmt);
         if ts_peekk(ts, kind) then
             stmt = NULL;
         else
-            stmt = parse_statement(ts);
+            stmt = parse_statement(ts, st);
         end
     end
 end
 
-proc parse_statements_until_either ts, into, k1, k2 in
+proc parse_statements_until_either ts, st, into, k1, k2 in
     if ts_peekk_one_of_2(ts, k1, k2) then
         return;
     end
-    var stmt = parse_statement(ts);
+    var stmt = parse_statement(ts, st);
     while stmt do
         vector_push(into, stmt);
         if ts_peekk_one_of_2(ts, k1, k2) then
             stmt = NULL;
         else
-            stmt = parse_statement(ts);
+            stmt = parse_statement(ts, st);
         end
     end
 end
 
-proc parse_proc ts in
+proc parse_proc ts, st in
     var proc_ = ts_expect(ts, TK_KW_proc);
     var ident = ts_expect(ts, TK_Ident);
+    var proc_symbol = st_get_symbol_local(st, token_value(ident));
+    if proc_symbol then
+        if symbol_undef(proc_symbol) then
+            symbol_set_kind(proc_symbol, SK_proc);
+        else
+            printf("ERROR: proc `%s` already defined.\n", token_value(ident));
+            print_token_loc(ident);
+            printf("NOTE: It was previously defined here:\n");
+            print_token_loc(symbol_token(proc_symbol));
+            exit(1);
+        end
+    else
+        proc_symbol = st_make_proc(st, token_value(ident), ident);
+    end
+
+    st_push_scope(st);
     var body = make_vector(0);
     var params = make_vector(0);
     while ts_peekk(ts, TK_Ident) do
-        vector_push(params, token_value(ts_next(ts)));
+        var param_id = ts_next(ts);
+        var param_symbol = st_get_symbol_local(st, token_value(param_id));
+        if param_symbol then
+            printf("ERROR: param `%s` already defined.\n", token_value(param_id));
+            print_token_loc(param_id);
+            printf("NOTE: It was previously defined here:\n");
+            print_token_loc(symbol_token(param_symbol));
+            exit(1);
+        end
+        param_symbol = st_make_param(st, token_value(param_id), param_id);
+        vector_push(params, symbol_name(param_symbol));
         if ts_peekk(ts, TK_KW_in) then
             break;
         else if ts_accept(ts, TK_Colon) then
@@ -514,12 +561,13 @@ proc parse_proc ts in
         ts_expect(ts, TK_Ident);
     end
     ts_expect(ts, TK_KW_in);
-    parse_statements_until(ts, body, TK_KW_end);
+    parse_statements_until(ts, st, body, TK_KW_end);
     ts_expect(ts, TK_KW_end);
+    st_pop_scope(st);
     return make_ast_procedure(proc_, token_value(ident), params, body);
 end
 
-proc parse_const ts in
+proc parse_const ts, st in
     var const_ = ts_expect(ts, TK_KW_const);
     var ident = ts_expect(ts, TK_Ident);
     if ts_accept(ts, TK_Colon) then
@@ -527,11 +575,17 @@ proc parse_const ts in
         ts_expect(ts, TK_Ident);
     end
     ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts);
-    return make_ast_const(const_, token_value(ident), expr);
+    var expr = parse_expression(ts, st);
+    var symbol = st_get_symbol_local(st, token_value(ident));
+    // No error here because we allow you to have multiple definitions of `const`
+    // if they share the same value and that won't be checked until IR generation.
+    if not symbol then
+        symbol = st_make_const(st, token_value(ident), ident);
+    end
+    return make_ast_const(const_, symbol_name(symbol), expr);
 end
 
-proc parse_extern ts in
+proc parse_extern ts, st in
     var extern_ = ts_expect(ts, TK_KW_extern);
     var ident = ts_expect(ts, TK_Ident);
     var is_varargs = false;
@@ -563,19 +617,39 @@ proc parse_extern ts in
         // TODO: Do something with return type annotations.
         ts_expect(ts, TK_Ident);
     end
+    var symbol = st_get_symbol_local(st, token_value(ident));
+    // Like with const, No error here because we allow you to have multiple declarations
+    // of `extern` if they share the type signature and that won't be checked until IR generation.
+    if not symbol then
+        symbol = st_make_extern(st, token_value(ident), ident);
+    end
     return make_ast_extern(extern_, token_value(ident), params, is_varargs);
 end
 
-proc parse_asm ts in
+proc parse_asm ts, st in
     var asm_ = ts_expect(ts, TK_KW_asm);
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, TK_KW_in);
     var asmcode = ts_expect(ts, TK_String);
     ts_expect(ts, TK_KW_end);
-    return make_ast_inline_asm(asm_, token_value(ident), string_cstr(token_value(asmcode)));
+    var symbol = st_get_symbol_local(st, token_value(ident));
+    if symbol then
+        if symbol_undef(symbol) then
+            symbol_set_kind(symbol, SK_asm);
+        else
+            printf("ERROR: asm `%s` already defined.\n", token_value(ident));
+            print_token_loc(ident);
+            printf("NOTE: It was previously defined here:\n");
+            print_token_loc(symbol_token(symbol));
+            exit(1);
+        end
+    else
+        symbol = st_make_asm(st, token_value(ident), ident);
+    end
+    return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(token_value(asmcode)));
 end
 
-proc parse_global ts in
+proc parse_global ts, st in
     var global_ = ts_expect(ts, TK_KW_global);
     var ident = ts_expect(ts, TK_Ident);
     if ts_accept(ts, TK_Colon) then
@@ -583,27 +657,41 @@ proc parse_global ts in
         ts_expect(ts, TK_Ident);
     end
     ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts);
-    return make_ast_global(global_, token_value(ident), expr);
+    var expr = parse_expression(ts, st);
+    var symbol = st_get_symbol_local(st, token_value(ident));
+    if symbol then
+        if symbol_undef(symbol) then
+            symbol_set_kind(symbol, SK_asm);
+        else
+            printf("ERROR: global `%s` already defined.\n", token_value(ident));
+            print_token_loc(ident);
+            printf("NOTE: It was previously defined here:\n");
+            print_token_loc(symbol_token(symbol));
+            exit(1);
+        end
+    else
+        symbol = st_make_global(st, token_value(ident), ident);
+    end
+    return make_ast_global(global_, symbol_name(symbol), expr);
 end
 
-proc parse ts in
+proc parse ts, st in
     var roots = make_vector(0);
-    var parsed; var tk;
+    var parsed = NULL; var tk;
     while ts_peek(ts) do
         tk = ts_peek(ts);
         if ts_peekk(ts, TK_KW_proc) then
-            parsed = parse_proc(ts);
+            parsed = parse_proc(ts, st);
         else if ts_peekk(ts, TK_KW_const) then
-            parsed = parse_const(ts);
+            parsed = parse_const(ts, st);
             ts_expect(ts, TK_Semicolon);
         else if ts_peekk(ts, TK_KW_extern) then
-            parsed = parse_extern(ts);
+            parsed = parse_extern(ts, st);
             ts_expect(ts, TK_Semicolon);
         else if ts_peekk(ts, TK_KW_asm) then
-            parsed = parse_asm(ts);
+            parsed = parse_asm(ts, st);
         else if ts_peekk(ts, TK_KW_global) then
-            parsed = parse_global(ts);
+            parsed = parse_global(ts, st);
             ts_expect(ts, TK_Semicolon);
         else
             tk = ts_peek(ts);
@@ -619,6 +707,7 @@ proc parse ts in
             exit(1);
         end
         vector_push(roots, parsed);
+        parsed = NULL;
     end
     return roots;
 end

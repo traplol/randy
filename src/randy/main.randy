@@ -11,6 +11,7 @@
 #include lexer
 #include token_stream
 #include ast
+#include symbol_table
 #include parsing
 #include typechecking
 #include ir_context
@@ -221,7 +222,8 @@ proc main argc, argv in
         var out_path = NULL;
         var verbosity = 0;
         var debug = 0;
-        var print_ir = false;
+        var do_print_ir = false;
+        var do_print_ast = false;
         var do_typecheck = false;
         var will_compile = true;
         var ld_flags = make_vector(0);
@@ -272,10 +274,13 @@ proc main argc, argv in
             else if cstr_eq("-g", u64@(argv + i*sizeof_PTR)) then
                 debug = 1;
             else if cstr_eq("-ir", u64@(argv + i*sizeof_PTR)) then
-                print_ir = true;
+                do_print_ir = true;
                 will_compile = false;
             else if cstr_eq("-tc", u64@(argv + i*sizeof_PTR)) then
                 do_typecheck = true;
+                will_compile = false;
+            else if cstr_eq("-ast", u64@(argv + i*sizeof_PTR)) then
+                do_print_ast = true;
                 will_compile = false;
             else if cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
                 i += 1;
@@ -323,10 +328,21 @@ proc main argc, argv in
         end
 
         time(starttime);
-        var roots = parse(token_stream);
+        var symbol_table = make_symbol_table();
+        st_push_scope(symbol_table);
+        var roots = parse(token_stream, symbol_table);
+        st_pop_scope(symbol_table);
+        if st_depth(symbol_table) != 0 then
+            printf("Compiler bug: Didn't pop symbol table scope somewhere.\n");
+            return 1;
+        end
         time(endtime);
         if verbosity > 0 then
             print_timespan("Parsing took: ", starttime, endtime);
+        end
+
+        if do_print_ast then
+            print_whole_ast(roots);
         end
 
         if do_typecheck then
@@ -348,7 +364,7 @@ proc main argc, argv in
             print_timespan("IR compile took: ", starttime, endtime);
         end
 
-        if print_ir then
+        if do_print_ir then
             ir_print_whole_ir(irctx);
         end
 
