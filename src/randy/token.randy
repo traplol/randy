@@ -56,7 +56,17 @@ const TK_LShift      = 52;
 const TK_RShift      = 53;
 const TK_Colon       = 54;
 const TK_RightArrow  = 55;
-const TK_MAX_VAL     = 56;
+const TK_PlusEq      = 56;
+const TK_MinusEq     = 57;
+const TK_StarEq      = 58;
+const TK_SlashEq     = 59;
+const TK_PercentEq   = 60;
+const TK_LShiftEq    = 61;
+const TK_RShiftEq    = 62;
+const TK_AmperEq     = 63;
+const TK_CaretEq     = 64;
+const TK_BarEq       = 65;
+const TK_MAX_VAL     = 66;
 
 proc token_kind_cstr k in
     if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
@@ -116,6 +126,16 @@ proc token_kind_cstr k in
     else if k == TK_RShift then return "TK_RShift";
     else if k == TK_Colon then return "TK_Colon";
     else if k == TK_RightArrow then return "TK_RightArrow";
+    else if k == TK_PlusEq then return "TK_PlusEq";
+    else if k == TK_MinusEq then return "TK_MinusEq";
+    else if k == TK_StarEq then return "TK_StarEq";
+    else if k == TK_SlashEq then return "TK_SlashEq";
+    else if k == TK_PercentEq then return "TK_PercentEq";
+    else if k == TK_LShiftEq then return "TK_LShiftEq";
+    else if k == TK_RShiftEq then return "TK_RShiftEq";
+    else if k == TK_AmperEq then return "TK_AmperEq";
+    else if k == TK_CaretEq then return "TK_CaretEq";
+    else if k == TK_BarEq then return "TK_BarEq";
     end
 end
 

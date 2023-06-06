@@ -23,6 +23,7 @@ const AstK_InlineAsm    = 17;
 const AstK_Global       = 18;
 const AstK_Break        = 19;
 const AstK_Continue     = 20;
+const AstK_AssignOp     = 21;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -46,6 +47,7 @@ proc ast_kind_cstr k in
     if k == AstK_Global then return "AstK_Global"; end
     if k == AstK_Break then return "AstK_Break"; end
     if k == AstK_Continue then return "AstK_Continue"; end
+    if k == AstK_AssignOp then return "AstK_AssignOp"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -91,10 +93,14 @@ const TAST_pop_args    = 32; // ast vector
 const TAST_ident       = 16; // cstr
 // VarAssign
 const TAST_ident       = 16; // cstr
-const TAST_assign_expr = 24; // ast
+const TAST_assign_expr = 32; // ast
 // Assign
 const TAST_ident       = 16; // cstr
-const TAST_assign_expr = 24; // ast
+const TAST_assign_expr = 32; // ast
+// AssignOp
+const TAST_ident       = 16; // cstr
+const TAST_op          = 24; // TK
+const TAST_assign_expr = 32; // ast
 // Return
 const TAST_expr        = 16; // ast
 // Procedure
@@ -103,7 +109,7 @@ const TAST_body        = 24; // ast vector
 const TAST_params      = 32; // cstr vector
 // Const
 const TAST_ident       = 16; // cstr
-const TAST_assign_expr = 24; // ast
+const TAST_assign_expr = 32; // ast
 // Extern
 const TAST_ident       = 16; // cstr
 const TAST_varargs     = 24; // bool
@@ -187,6 +193,16 @@ proc make_ast_assign token, ident, expr in
     u64!(self + TAST_kind, AstK_Assign);
     u64!(self + TAST_token, token);
     u64!(self + TAST_ident, ident);
+    u64!(self + TAST_assign_expr, expr);
+    return self;
+end
+
+proc make_ast_assign_op token, ident, op, expr in
+    var self = malloc(sizeof_TAST);
+    u64!(self + TAST_kind, AstK_AssignOp);
+    u64!(self + TAST_token, token);
+    u64!(self + TAST_ident, ident);
+    u64!(self + TAST_op, op);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end

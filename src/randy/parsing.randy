@@ -88,6 +88,13 @@ proc parse_assign ts in
     return make_ast_assign(ident, token_value(ident), expr);
 end
 
+proc parse_assign_op ts, op in
+    var ident = ts_expect(ts, TK_Ident);
+    ts_expect(ts, op);
+    var expr = parse_expression(ts);
+    return make_ast_assign_op(ident, token_value(ident), op, expr);
+end
+
 proc parse_pointer_op ts in
     var token = ts_peek(ts);
     var size;
@@ -399,6 +406,36 @@ proc parse_statement ts in
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
         stmt = parse_assign(ts);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_PlusEq) then
+        stmt = parse_assign_op(ts, TK_PlusEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_MinusEq) then
+        stmt = parse_assign_op(ts, TK_MinusEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_StarEq) then
+        stmt = parse_assign_op(ts, TK_StarEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_SlashEq) then
+        stmt = parse_assign_op(ts, TK_SlashEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_PercentEq) then
+        stmt = parse_assign_op(ts, TK_PercentEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_LShiftEq) then
+        stmt = parse_assign_op(ts, TK_LShiftEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_RShiftEq) then
+        stmt = parse_assign_op(ts, TK_RShiftEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_AmperEq) then
+        stmt = parse_assign_op(ts, TK_AmperEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_CaretEq) then
+        stmt = parse_assign_op(ts, TK_CaretEq);
+        expect_semi = true;
+    else if ts_peekk2(ts, TK_Ident, TK_BarEq) then
+        stmt = parse_assign_op(ts, TK_BarEq);
         expect_semi = true;
     else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
         stmt = parse_pointer_op(ts);
