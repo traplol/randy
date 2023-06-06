@@ -26,6 +26,11 @@ end
 proc parse_var ts in
     var var_ = ts_expect(ts, TK_KW_var);
     var ident = ts_expect(ts, TK_Ident);
+    if ts_peekk(ts, TK_Colon) then
+        // TODO: Do something with type annotation.
+        ts_next(ts); // consume :
+        ts_expect(ts, TK_Ident);
+    end
     if ts_peekk(ts, TK_Semicolon) then
         return make_ast_var_decl(var_, token_value(ident));
     end
@@ -451,9 +456,25 @@ proc parse_proc ts in
         vector_push(params, token_value(ts_next(ts)));
         if ts_peekk(ts, TK_KW_in) then
             break;
+        else if ts_accept(ts, TK_Colon) then
+            // TODO: Do something with type annotations.
+            ts_expect(ts, TK_Ident);
+            if ts_peekk(ts, TK_KW_in) then
+                break;
+            end
+            if ts_peekk(ts, TK_RightArrow) then
+                break;
+            end
+            ts_expect(ts, TK_Comma);
+        else if ts_peekk(ts, TK_RightArrow) then
+            break;
         else
             ts_expect(ts, TK_Comma);
         end
+    end
+    if ts_accept(ts, TK_RightArrow) then
+        // TODO: Do something with return type annotations.
+        ts_expect(ts, TK_Ident);
     end
     ts_expect(ts, TK_KW_in);
     parse_statements_until(ts, body, TK_KW_end);
@@ -464,6 +485,10 @@ end
 proc parse_const ts in
     var const_ = ts_expect(ts, TK_KW_const);
     var ident = ts_expect(ts, TK_Ident);
+    if ts_accept(ts, TK_Colon) then
+        // TODO: Do something with type annotation.
+        ts_expect(ts, TK_Ident);
+    end
     ts_expect(ts, TK_Assign);
     var expr = parse_expression(ts);
     return make_ast_const(const_, token_value(ident), expr);
@@ -478,12 +503,28 @@ proc parse_extern ts in
         vector_push(params, token_value(ts_next(ts)));
         if ts_peekk(ts, TK_Semicolon) then
             break;
+        else if ts_accept(ts, TK_Colon) then
+            // TODO: Do something with type annotations.
+            ts_expect(ts, TK_Ident);
+            if ts_peekk(ts, TK_KW_in) then
+                break;
+            end
+            if ts_peekk(ts, TK_RightArrow) then
+                break;
+            end
+            ts_expect(ts, TK_Comma);
+        else if ts_peekk(ts, TK_RightArrow) then
+            break;
         else
             ts_expect(ts, TK_Comma);
         end
     end
     if ts_accept(ts, TK_Ellipsis) then
         is_varargs = true;
+    end
+    if ts_accept(ts, TK_RightArrow) then
+        // TODO: Do something with return type annotations.
+        ts_expect(ts, TK_Ident);
     end
     return make_ast_extern(extern_, token_value(ident), params, is_varargs);
 end
@@ -500,6 +541,10 @@ end
 proc parse_global ts in
     var global_ = ts_expect(ts, TK_KW_global);
     var ident = ts_expect(ts, TK_Ident);
+    if ts_accept(ts, TK_Colon) then
+        // TODO: Do something with type annotation.
+        ts_expect(ts, TK_Ident);
+    end
     ts_expect(ts, TK_Assign);
     var expr = parse_expression(ts);
     return make_ast_global(global_, token_value(ident), expr);
