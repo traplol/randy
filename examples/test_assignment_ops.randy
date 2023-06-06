@@ -1,0 +1,64 @@
+#include std/core
+
+proc test msg, expect, actual in
+    if expect == actual then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s, expect: %d, actual: %d\n", msg, expect, actual);
+    end
+end
+
+proc test_simple in
+    var foo = 10;
+    foo += 5;
+    test("foo is 15", 15, foo);
+    foo -= 10;
+    test("foo is 5", 5, foo);
+    foo *= 4;
+    test("foo is 20", 20, foo);
+    foo /= 10;
+    test("foo is 2", 2, foo);
+    foo <<= 5;
+    test("foo is 64", 64, foo);
+    foo >>= 1;
+    test("foo is 32", 32, foo);
+    foo |= 3;
+    test("foo is 35", 35, foo);
+    foo ^= 77;
+    test("foo is 110", 110, foo);
+    foo &= 63;
+    test("foo is 46", 46, foo);
+    foo %= 30;
+    test("foo is 16", 16, foo);
+end
+
+proc test_compound in
+    var foo = 123;
+    foo += 3 * 4;
+    test("foo is 135", 135, foo);
+    foo -= 10 + 3;
+    test("foo is 122", 122, foo);
+    foo *= 3 * 3;
+    test("foo is 1098", 1098, foo);
+    foo /= 100 / 10;
+    test("foo is 109", 109, foo);
+    foo <<= 3 * 3;
+    test("foo is 55808", 55808, foo);
+    foo >>= 3 * 3;
+    test("foo is 109", 109, foo);
+    foo |= 10 + 12;
+    test("foo is 127", 127, foo);
+    foo ^= 99 * 4;
+    test("foo is 499", 499, foo);
+    foo &= (1 << 8) - 1;
+    test("foo is 243", 243, foo);
+    foo %= 100 + 100;
+    test("foo is 43", 43, foo);
+end
+
+proc main in
+    test_simple();
+    test_compound();
+    return 0;
+end
+
