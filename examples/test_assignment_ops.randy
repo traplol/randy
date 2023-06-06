@@ -56,9 +56,23 @@ proc test_compound in
     test("foo is 43", 43, foo);
 end
 
+global gfoo = 123;
+proc change_gfoo in
+    gfoo = 100;
+    test("gfoo is 100", 100, gfoo);
+    return gfoo - 1;
+end
+
+proc test_edge1 in
+    test("gfoo is 123", 123, gfoo);
+    gfoo += change_gfoo(); // should be 123 + 99 = 222
+    test("gfoo is 222", 222, gfoo);
+end
+
 proc main in
     test_simple();
     test_compound();
+    test_edge1();
     return 0;
 end
 
