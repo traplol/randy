@@ -96,20 +96,20 @@ proc _lex_code filename, code, include_paths, included_already in
             if string_get(code, i) == '\n' then
                 line_no = line_no + 1;
             end
-            i = i + 1;
+            i += 1;
         end
 
         if i < length then
             c = string_get(code, i);
             if c == '/' and i+1 < length and string_get(code, i+1) == '/' then
                 while i < length and string_get(code, i) != '\n' do
-                    i = i + 1;
+                    i += 1;
                 end
             else if is_ident_start(c) then
                 temp = make_string(2);
                 string_push(temp, c);
                 while i < length and is_ident_char(c) do
-                   i = i + 1;
+                   i += 1;
                    c = string_get(code, i);
                    if is_ident_char(c) then
                        string_push(temp, c);
@@ -120,7 +120,7 @@ proc _lex_code filename, code, include_paths, included_already in
                 temp = make_string(2);
                 string_push(temp, c);
                 while i < length and is_digit(c) do
-                   i = i + 1;
+                   i += 1;
                    c = string_get(code, i);
                    if is_digit(c) then
                        string_push(temp, c);
@@ -130,34 +130,34 @@ proc _lex_code filename, code, include_paths, included_already in
                 vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
             else if c == '"' then
                 temp = make_string(2);
-                i = i + 1; // skip open quote
+                i += 1; // skip open quote
                 while i < length and string_get(code, i) != '"' do
                     c = string_get(code, i);
                     if c == '\\' then
-                        i = i + 1; // skip \
+                        i += 1; // skip \
                         c = string_get(code, i);
                         c = get_escaped_char(c);
                     else if c == '\n' then
                         line_no = line_no + 1;
                     end
                     string_push(temp, c);
-                    i = i + 1;
+                    i += 1;
                 end
-                i = i + 1; // skip close quote
+                i += 1; // skip close quote
                 vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no, filename));
             else if c == '\'' then
                 temp = make_string(2);
-                i = i + 1; // skip open quote
+                i += 1; // skip open quote
                 c = string_get(code, i);
                 if c == '\\' then
-                    i = i + 1; // skip \
+                    i += 1; // skip \
                     c = string_get(code, i);
                     c = get_escaped_char(c);
                 else if cc == '\n' then
                     line_no = line_no + 1;
                 end
                 string_push(temp, c);
-                i = i + 2; // skip char and close quote
+                i += 2; // skip char and close quote
                 vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
             else if c == '#' then
                 var directive = make_string(2);
@@ -169,7 +169,7 @@ proc _lex_code filename, code, include_paths, included_already in
                         break;
                     else
                         string_push(directive, c);
-                        i = i + 1;
+                        i += 1;
                     end
                 end
                 // consume all whitespace up to newline or non-whitespace
@@ -178,7 +178,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     if c == '\n' then
                         break;
                     else if is_whitespace(c) then
-                        i = i + 1;
+                        i += 1;
                     else
                         break;
                     end
@@ -188,7 +188,7 @@ proc _lex_code filename, code, include_paths, included_already in
                     c = string_get(code, i);
                     if c != '\n' then
                         string_push(arg, c);
-                        i = i + 1;
+                        i += 1;
                     end
                 end
                 // trim whitespace off end of arg
@@ -200,140 +200,140 @@ proc _lex_code filename, code, include_paths, included_already in
                 free_string(arg);
             else if c == ';' then
                 vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == ':' then
                 vector_push(tokens, make_token(TK_Colon, ":", ":", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == ',' then
                 vector_push(tokens, make_token(TK_Comma, ",", ",", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == '(' then
                 vector_push(tokens, make_token(TK_LParen, "(", "(", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == ')' then
                 vector_push(tokens, make_token(TK_RParen, ")", ")", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == '+' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_PlusEq, "+=", "+=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Plus, "+", "+", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '-' then
                 if i+1 < length and string_get(code, i+1) == '>' then
                     vector_push(tokens, make_token(TK_RightArrow, "->", "->", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_MinusEq, "-=", "-=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Minus, "-", "-", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '*' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_StarEq, "*=", "*=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Star, "*", "*", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '/' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_SlashEq, "/=", "/=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Slash, "/", "/", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '%' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_PercentEq, "%=", "%=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Percent, "%", "%", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '|' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_BarEq, "|=", "|=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Bar, "|", "|", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '&' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_AmperEq, "&=", "&=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Amper, "&", "&", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '^' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_CaretEq, "^=", "^=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Caret, "^", "^", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '~' then
                 vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no, filename));
-                i = i + 1;
+                i += 1;
             else if c == '.' then
                 if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
                     vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no, filename));
-                    i = i + 3;
+                    i += 3;
                 end
             else if c == '!' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     _unrecognized_char(filename, line_no, c);
                 end
             else if c == '<' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else if i+1 < length and string_get(code, i+1) == '<' then
                     if i+2 < length and string_get(code, i+2) == '=' then
                         vector_push(tokens, make_token(TK_LShiftEq, "<<=", "<<=", line_no, filename));
-                        i = i + 3;
+                        i += 3;
                     else
                         vector_push(tokens, make_token(TK_LShift, "<<", "<<", line_no, filename));
-                        i = i + 2;
+                        i += 2;
                     end
                 else
                     vector_push(tokens, make_token(TK_Less, "<", "<", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '>' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else if i+1 < length and string_get(code, i+1) == '>' then
                     if i+2 < length and string_get(code, i+2) == '=' then
                         vector_push(tokens, make_token(TK_RShiftEq, ">>=", ">>=", line_no, filename));
-                        i = i + 3;
+                        i += 3;
                     else
                         vector_push(tokens, make_token(TK_RShift, ">>", ">>", line_no, filename));
-                        i = i + 2;
+                        i += 2;
                     end
                 else
                     vector_push(tokens, make_token(TK_Greater, ">", ">", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else if c == '=' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no, filename));
-                    i = i + 2;
+                    i += 2;
                 else
                     vector_push(tokens, make_token(TK_Assign, "=", "=", line_no, filename));
-                    i = i + 1;
+                    i += 1;
                 end
             else
                 _unrecognized_char(filename, line_no, c);
@@ -384,7 +384,7 @@ proc handle_include src_file, line_no, tokens, include_paths, included_already, 
                 free_string(found);
                 found = NULL;
             end
-            i = i - 1;
+            i -= 1;
         end
     end
 
@@ -396,7 +396,7 @@ proc handle_include src_file, line_no, tokens, include_paths, included_already, 
             var len = vector_len(included);
             while i < len do
                 vector_push(tokens, vector_get(included, i));
-                i = i + 1;
+                i += 1;
             end
         else
             free_string(found);

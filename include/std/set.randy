@@ -69,7 +69,7 @@ proc _set_expand self in
         if elt then
             set_add(self, elt);
         end
-        i = i + 1;
+        i += 1;
     end
     free(old_buf);
 end

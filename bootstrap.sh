@@ -10,6 +10,7 @@ bin/randy -c src/randy/main.randy \
           -o bootstrap/randy0 \
           -I include \
           -v \
+          -g \
           -ld -dynamic-linker /home/max/workspace/musl-1.2.4/lib/libc.so -lc
 
 # Use version 0 to compile version 1

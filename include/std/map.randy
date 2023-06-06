@@ -71,7 +71,7 @@ proc _map_expand self in
         if u64@(elt) then
             map_set(self, u64@(elt), u64@(elt + TMAP_PAIR_val));
         end
-        i = i + 1;
+        i += 1;
     end
     free(old_buf);
 end

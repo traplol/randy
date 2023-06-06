@@ -339,7 +339,7 @@ proc _print_indent indent in
     var i = 0;
     while i < indent do
         printf("    ");
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -348,7 +348,7 @@ proc _print_args args, indent in
     var len = vector_len(args);
     while i < len do
         _print_ast(vector_get(args, i), indent);
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(", ");
         end
@@ -417,7 +417,7 @@ proc _print_ast_body body, indent in
         else
             printf("\n");
         end
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -428,7 +428,7 @@ proc _print_ast_procedure ast, indent in
     var len = vector_len(params);
     while i < len do
         printf(" %s", vector_get(params, i));
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(",");
         end
@@ -499,7 +499,7 @@ proc _print_ast_extern ast, indent in
     var len = vector_len(params);
     while i < len do
         printf(" %s", vector_get(params, i));
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(",");
         end

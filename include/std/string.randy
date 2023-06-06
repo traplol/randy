@@ -104,7 +104,7 @@ proc string_append_string self, string in
     var i = 0;
     while i < len do
         string_push(self, string_get(string, i));
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -113,7 +113,7 @@ proc string_append_cstr self, cstr in
     while u8@(cstr) do
         string_push(self, u8@(cstr));
         cstr = cstr + 1;
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -145,7 +145,7 @@ proc string_eq string_a, string_b in
         if string_get(string_a, i) != string_get(string_b, i) then
             return false;
         end
-        i = i + 1;
+        i += 1;
     end
     return true;
 end
@@ -172,8 +172,8 @@ proc cstr_eq cstr_a, cstr_b in
     while a == b and a do
         a = u8@(cstr_a);
         b = u8@(cstr_b);
-        cstr_a = cstr_a + 1;
-        cstr_b = cstr_b + 1;
+        cstr_a += 1;
+        cstr_b += 1;
     end
     return a == b;
 end
@@ -181,8 +181,8 @@ end
 proc cstr_len cstr in
     var i = 0;
     while u8@(cstr) do
-        i = i + 1;
-        cstr = cstr + 1;
+        i += 1;
+        cstr += 1;
     end
     return i;
 end

@@ -8,7 +8,7 @@ proc main in
     printf("Append to list\n");
     while i < 10 do
         list_append(list, i);
-        i = i + 1;
+        i += 1;
     end
 
     printf("Enumerate the list\n");

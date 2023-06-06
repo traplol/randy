@@ -16,7 +16,7 @@ proc test_break in
         if i > 5 then
             break;
         end
-        i = i + 1;
+        i += 1;
     end
     test("i is 6", 6 == i);
 
@@ -29,9 +29,9 @@ proc test_break in
                 printf("i=%d + j=%d => 10\n", i, j);
                 break;
             end
-            j = j + 1;
+            j += 1;
         end
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -40,10 +40,10 @@ proc test_continue in
     var i = 0;
     while i < 10 do
         if i == 9 then
-            i = i + 2;
+            i += 2;
             continue;
         end
-        i = i + 1;
+        i += 1;
     end
     test("i is 11", 11 == i);
 
@@ -54,12 +54,12 @@ proc test_continue in
         while j < 15 do
             if j + i > 10 then
                 printf("i=%d + j=%d > 10\n", i, j);
-                j = j + 3;
+                j += 3;
                 continue;
             end
-            j = j + 1;
+            j += 1;
         end
-        i = i + 1;
+        i += 1;
     end
 end
 

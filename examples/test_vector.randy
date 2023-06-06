@@ -10,7 +10,7 @@ proc main in
     printf("Set the vector\n");
     while i < 10 do
         vector_push(vector, i * 10);
-        i = i + 1;
+        i += 1;
     end
 
     printf("Vector len = %d\n", vector_len(vector));
@@ -23,7 +23,7 @@ proc main in
     i = 0;
     while i < 10 do
         vector_push(vector, 100 + i * 10);
-        i = i + 1;
+        i += 1;
     end
 
     printf("Vector len = %d\n", vector_len(vector));
@@ -33,7 +33,7 @@ proc main in
     i = 0;
     while i < vector_len(vector) do
         printf("%d = %d\n", i, vector_get(vector, i));
-        i = i + 1;
+        i += 1;
     end
 
     printf("Pop 3\n");
@@ -42,7 +42,7 @@ proc main in
         printf("Vector back is %d\n", vector_back(vector));
         printf("Pop from vector\n");
         vector_pop(vector);
-        i = i + 1;
+        i += 1;
     end
     
     printf("Vector len = %d\n", vector_len(vector));
@@ -52,7 +52,7 @@ proc main in
     i = 0;
     while i < 3 do
         vector_push(vector, i * 10);
-        i = i + 1;
+        i += 1;
     end
 
     printf("Vector len = %d\n", vector_len(vector));
@@ -67,7 +67,7 @@ proc main in
     i = 0;
     while i < vector_len(vector) do
         printf("%d = %d\n", i, vector_get(vector, i));
-        i = i + 1;
+        i += 1;
     end
 
     printf("Popping entire vector\n");

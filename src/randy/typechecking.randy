@@ -52,7 +52,7 @@ proc print_proc_type_info self in
     var i = 0; var len = vector_len(ptypes);
     while i < len do
         printf("%s", type_name(vector_get(ptypes, i)));
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(", ");
         end
@@ -176,7 +176,7 @@ proc tc_find_ident self, ident in
         if found then
             return found;
         end
-        i = i - 1;
+        i -= 1;
     end
     return NULL;
 end
@@ -196,7 +196,7 @@ proc tc_set_ident_type self, ident, type in
         else
             break;
         end
-        i = i - 1;
+        i -= 1;
     end
     if not map then
         map = vector_back(vec);
@@ -249,7 +249,7 @@ proc tc_check_body self, body in
         if ast_kind(ast) == AstK_Return then
             break;
         end
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -280,7 +280,7 @@ proc tc_check_call self, ast in
     var i = 0; var len = vector_len(args);
     while i < len do
         tc_check(self, vector_get(args, i));
-        i = i + 1;
+        i += 1;
     end
     tc_check(self, ast_expr(ast));
     return tc_any_type(self);
@@ -365,7 +365,7 @@ proc tc_check_procedure self, ast in
     while i < len do
         vector_push(param_types, any);
         tc_set_local_ident_type(self, vector_get(params, i), any);
-        i = i + 1;
+        i += 1;
     end
     var proc_type_info = make_proc_type_info(any, param_types);
     tc_set_cur_proc(self, proc_type_info);
@@ -403,7 +403,7 @@ proc tc_check_pointer_read self, ast in
     var i = 0; var len = vector_len(args);
     while i < len do
         tc_check(self, vector_get(args, i));
-        i = i + 1;
+        i += 1;
     end
     return tc_any_type(self);
 end
@@ -414,7 +414,7 @@ proc tc_check_pointer_write self, ast in
     var i = 0; var len = vector_len(args);
     while i < len do
         tc_check(self, vector_get(args, i));
-        i = i + 1;
+        i += 1;
     end
     return tc_void_type(self);
 end
@@ -512,7 +512,7 @@ proc typecheck self, roots in
     var i = 0; var len = vector_len(roots);
     while i < len do
         tc_check(self, vector_get(roots, i));
-        i = i + 1;
+        i += 1;
     end
 
     // var set = tc_resolve_later(self);

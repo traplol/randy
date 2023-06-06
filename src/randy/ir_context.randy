@@ -431,7 +431,7 @@ proc print_ir_new_proc self in
     var i = 0; var len = vector_len(params);
     while i < len do
         printf("'%s'", vector_get(params, i));
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(", ");
         end
@@ -602,7 +602,7 @@ proc print_proc_info self in
     var len = vector_len(params);
     while i < len do
         printf("'%s'", vector_get(params, i));
-        i = i + 1;
+        i += 1;
         if i < len then
             printf(", ");
         end
@@ -781,7 +781,7 @@ proc ir_new_local self, ident in
     var i = 0; var len = vector_len(proc_locals);
     while i < len do
         local_idx = local_idx + map_len(vector_get(proc_locals, i));
-        i = i + 1;
+        i += 1;
     end
     map_set(ir_cur_scope(self), ident, local_idx);
     if local_idx + 1 > ir_nlocals(self) then
@@ -854,7 +854,7 @@ proc ir_is_local self, ident in
         if map_find(vector_get(proc_locals, i), ident) then
             return true;
         end
-        i = i + 1;
+        i += 1;
     end
     return false;
 end
@@ -875,7 +875,7 @@ proc ir_get_local self, ident in
         if found then
             return map_pair_val(found);
         end
-        i = i - 1;
+        i -= 1;
     end
     printf("Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
     abort();
@@ -1082,7 +1082,7 @@ proc ir_emit_body self, body in
         else
             ir_append(self, make_ir_drop_top());
         end
-        i = i + 1;
+        i += 1;
     end
 end
         
@@ -1155,13 +1155,13 @@ proc ir_emit_call self, ast in
     while i < len do
         ir_compile(self, vector_get(args, i));
         ir_append(self, make_ir_store_temp(i));
-        i = i + 1;
+        i += 1;
     end
 
     i = 0;
     while i < len do
         ir_append(self, make_ir_set_arg_temp(i));
-        i = i + 1;
+        i += 1;
     end
     if len > 0 then
         ir_append(self, make_ir_free_temps(len));
@@ -1366,7 +1366,7 @@ proc ir_emit_procedure self, ast in
         param = vector_get(params, i);
         n = ir_new_local(self, param);
         ir_append(self, make_ir_set_local_arg(param, n, i));
-        i = i + 1;
+        i += 1;
     end
     ir_emit_body(self, ast_body(ast));
     u64!(insn + TIR_INSTR_nlocals, ir_nlocals(self));
@@ -1651,7 +1651,7 @@ proc ir_resolve_lazy_idents self in
             u64!(call + TIR_INSTR_src_loc, token_src_loc(token));
             vector_set(instrs, i, call);
         end
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -1659,7 +1659,7 @@ proc ir_compile_roots self, roots in
     var i = 0; var len = vector_len(roots);
     while i < len do
         ir_compile(self, vector_get(roots, i));
-        i = i + 1;
+        i += 1;
     end
     ir_resolve_lazy_idents(self);
 end
@@ -1679,6 +1679,6 @@ proc ir_print_whole_ir self in
     var i = 0; var len = vector_len(instrs);
     while i < len do
         print_ir(vector_get(instrs, i));
-        i = i + 1;
+        i += 1;
     end
 end

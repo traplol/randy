@@ -40,7 +40,7 @@ proc cc_print_lines self in
     var i = 0;
     while i < len do
         printf("%s\n", string_cstr(vector_get(lines, i)));
-        i = i + 1;
+        i += 1;
     end
 end
 
@@ -81,7 +81,7 @@ proc cc_out_string self, string in
     var len = string_len(string);
     while i < len do
         string_append_int(str, string_get(string, i));
-        i = i + 1;
+        i += 1;
         if i < len then
             string_append_cstr(str, ", ");
         end

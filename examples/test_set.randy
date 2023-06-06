@@ -32,7 +32,7 @@ proc test_default_set in
     var cap = set_cap(set);
     while i < cap+1 do
         set_add(set, i);
-        i = i + 1;
+        i += 1;
     end
     test("set length is cap+2", cap+2 == set_len(set));
     test("set still contains 234", set_contains(set, 234));
@@ -46,7 +46,7 @@ proc test_default_set in
     i = 1;
     while i <= 200000 do
         set_add(set, i);
-        i = i + 1;
+        i += 1;
     end
     test("set length is 200000", 200000 == set_len(set));
     test("set contains 1000", set_contains(set, 1000));

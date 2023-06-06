@@ -33,7 +33,7 @@ proc next_state state in
         else if left == ' ' and center == ' ' and right == '*' then string_push(next, '*');
         else if left == ' ' and center == ' ' and right == ' ' then string_push(next, ' ');
         end
-        i = i + 1;
+        i += 1;
     end
     return next;
 end
@@ -48,7 +48,7 @@ proc main in
         next = next_state(state);
         free_string(state);
         state = next;
-        i = i + 1;
+        i += 1;
         //usleep(20 * CLOCK_MS_PER_US);
     end
     
