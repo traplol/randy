@@ -101,14 +101,22 @@ proc parse_assign ts, st in
     var ident = ts_expect(ts, TK_Ident);
     ts_expect(ts, TK_Assign);
     var expr = parse_expression(ts, st);
-    return make_ast_assign(ident, token_value(ident), expr);
+    var symbol = st_get_symbol(st, token_value(ident));
+    if not symbol then
+        symbol = st_prepare_undef(st, token_value(ident), ident);
+    end
+    return make_ast_assign(ident, symbol_name(symbol), expr);
 end
 
 proc parse_assign_op ts, st, op in
     var ident = ts_expect(ts, TK_Ident);
-    ts_expect(ts, op);
+    var op_tk = ts_expect(ts, op);
     var expr = parse_expression(ts, st);
-    return make_ast_assign_op(ident, token_value(ident), op, expr);
+    var symbol = st_get_symbol(st, token_value(ident));
+    if not symbol then
+        symbol = st_prepare_undef(st, token_value(ident), ident);
+    end
+    return make_ast_assign_op(ident, symbol_name(symbol), op, expr);
 end
 
 proc parse_pointer_op ts, st in
