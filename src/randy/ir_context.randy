@@ -1020,6 +1020,24 @@ proc ir_comptime_eval self, ast, error_on_fail in
                 else if op == TK_RShift then
                     evaled = true;
                     result = lhs_val >> rhs_val;
+                else if op == TK_EqEq then
+                    evaled = true;
+                    result = lhs_val == rhs_val;
+                else if op == TK_NotEq then
+                    evaled = true;
+                    result = lhs_val != rhs_val;
+                else if op == TK_Less then
+                    evaled = true;
+                    result = lhs_val < rhs_val;
+                else if op == TK_LessEq then
+                    evaled = true;
+                    result = lhs_val <= rhs_val;
+                else if op == TK_Greater then
+                    evaled = true;
+                    result = lhs_val > rhs_val;
+                else if op == TK_GreaterEq then
+                    evaled = true;
+                    result = lhs_val >= rhs_val;
                 end
                 if evaled then
                     return make_ast_integer(ast_token(ast), result); // @LEAK
@@ -1193,7 +1211,6 @@ proc ir_emit_call self, ast in
         else
             ir_append(self, make_ir_call_lazy_ident(ast_token(expr), len));
         end
-            
     else
         ir_compile(self, expr);
         ir_append(self, make_ir_pop_call());
@@ -1297,6 +1314,8 @@ proc ir_emit_assign self, ast in
         var label = global_info_label(gi);
         ir_append(self, make_ir_set_global(ident, label));
     else
+        //ir_append(self, make_ir_set_lazy_ident(ast_token(ast)));
+        printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
         ir_print_src_loc(self);
         exit(1);
@@ -1314,6 +1333,8 @@ proc ir_emit_assign_op self, ast in
         var label = global_info_label(gi);
         ir_append(self, make_ir_get_global(ident, label));
     else
+        //ir_append(self, make_ir_lazy_ident(ast_token(ast)));
+        printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
         ir_print_src_loc(self);
         exit(1);
