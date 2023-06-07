@@ -404,6 +404,25 @@ proc _print_ast_assign ast, indent in
     _print_ast(ast_assign_expr(ast), indent);
 end
 
+proc _print_ast_assign_op ast, indent in
+    printf("[%p]%s ", ast_ident(ast), ast_ident(ast));
+    var k = ast_op(ast);
+    var x = "FIXME";
+    if k == TK_PlusEq then x = "+=";
+    else if k == TK_MinusEq then "-=";
+    else if k == TK_StarEq then "*=";
+    else if k == TK_SlashEq then "/=";
+    else if k == TK_PercentEq then "%=";
+    else if k == TK_LShiftEq then "<<=";
+    else if k == TK_RShiftEq then ">>=";
+    else if k == TK_AmperEq then "&=";
+    else if k == TK_CaretEq then "^=";
+    else if k == TK_BarEq then "|=";
+    end
+    printf("%s ", x);
+    _print_ast(ast_assign_expr(ast), indent);
+end
+
 proc _print_ast_body body, indent in
     var i = 0;
     var len = vector_len(body);
@@ -549,6 +568,12 @@ proc _print_ast ast, indent in
     else if k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
     else if k == AstK_Global then _print_ast_global(ast, indent);
     else if k == AstK_Break then _print_ast_break(ast, indent);
+    else if k == AstK_Continue then _print_ast_continue(ast, indent);
+    else if k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
+    else
+        printf("`_print_ast` in ast.randy\n");
+        printf("Unhandled AstK: %d\n", k);
+        exit(1);
     end
 end
 
