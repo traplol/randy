@@ -950,6 +950,10 @@ proc ir_get_continue_dest self in
     return vector_back(dests);
 end
 
+proc _comptime_eval_is_n n, ast in
+    return ast_kind(ast) == AstK_Integer and ast_value(ast) == n;
+end
+
 proc ir_comptime_eval self, ast, error_on_fail in
     var evaled; var result;
     var op; var ident; var ci;
@@ -975,6 +979,14 @@ proc ir_comptime_eval self, ast, error_on_fail in
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), error_on_fail);
         rhs = ir_comptime_eval(self, ast_rhs(ast), error_on_fail);
+
+        if op == TK_Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
+        if op == TK_Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
+        if op == TK_Minus and _comptime_eval_is_n(0, rhs) then return lhs; end // k - 0
+        if op == TK_Star  and _comptime_eval_is_n(1, rhs) then return lhs; end // k * 1
+        if op == TK_Star  and _comptime_eval_is_n(1, lhs) then return rhs; end // 1 * k
+        if op == TK_Slash and _comptime_eval_is_n(1, rhs) then return lhs; end // k / 1
+
         if ast_kind(lhs) == ast_kind(rhs) then
             if ast_kind(lhs) == AstK_Integer then
                 lhs_val = ast_value(lhs);
