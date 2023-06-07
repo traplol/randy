@@ -1,10 +1,9 @@
 
-
-proc tc_check_body self, body in
+proc tc_check_body tt, st, body in
     var i = 0; var len = vector_len(body);
     while i < len do
         var ast = vector_get(body, i);
-        tc_check(self, ast);
+        tc_check(tt, st, ast);
         if ast_kind(ast) == AstK_Return then
             break;
         end
@@ -12,73 +11,73 @@ proc tc_check_body self, body in
     end
 end
 
-proc tc_check_ident self, ast in
+proc tc_check_ident tt, st, ast in
     check_ast_kind(AstK_Ident, ast);
-    var found = tc_find_ident(self, ast_ident(ast));
+    var found = tt_find_ident(tt, ast_ident(ast));
     if found then
         return map_pair_val(found);
     else
-        tc_add_resolve_later(self, ast);
-        return tc_any_type(self);
+        tt_add_resolve_later(tt, ast);
+        return tt_any_type(tt);
     end
 end
 
-proc tc_check_integer self, ast in
+proc tc_check_integer tt, st, ast in
     check_ast_kind(AstK_Integer, ast);
-    return tc_get_type(self, "int");
+    return tt_get_type(tt, "int");
 end
 
-proc tc_check_string self, ast in
+proc tc_check_string tt, st, ast in
     check_ast_kind(AstK_String, ast);
-    return tc_get_type(self, "cstr");
+    return tt_get_type(tt, "cstr");
 end
 
-proc tc_check_call self, ast in
+proc tc_check_call tt, st, ast in
     check_ast_kind(AstK_Call, ast);
     var args = ast_args(ast);
     var i = 0; var len = vector_len(args);
     while i < len do
-        tc_check(self, vector_get(args, i));
+        tc_check(tt, st, vector_get(args, i));
         i += 1;
     end
-    tc_check(self, ast_expr(ast));
-    return tc_any_type(self);
+    tc_check(tt, st, ast_expr(ast));
+    return tt_any_type(tt);
 end
 
-proc tc_check_binop self, ast in
+proc tc_check_binop tt, st, ast in
     check_ast_kind(AstK_BinOp, ast);
-    var lhs = tc_check(self, ast_lhs(ast));
-    var rhs = tc_check(self, ast_rhs(ast));
-    var any = tc_any_type(self);
-    var int = tc_int_type(self);
-    // var ptr = tc_ptr_type(self);
+    var lhs = tc_check(tt, st, ast_lhs(ast));
+    var rhs = tc_check(tt, st, ast_rhs(ast));
+    var any = tt_any_type(tt);
+    var int = tt_int_type(tt);
+    // var ptr = tt_ptr_type(tt);
     if lhs == any and rhs == any then
-        tc_set_ast_type(self, ast_lhs(ast), int);
-        tc_set_ast_type(self, ast_rhs(ast), int);
+        tt_set_ast_type(tt, ast_lhs(ast), int);
+        tt_set_ast_type(tt, ast_rhs(ast), int);
         return int;
     else if lhs == rhs then
         return lhs;
     else if lhs == any and rhs == int then
-        tc_set_ast_type(self, ast_lhs(ast), int);
+        tt_set_ast_type(tt, ast_lhs(ast), int);
         return int;
     else if lhs == int and rhs == any then
-        tc_set_ast_type(self, ast_rhs(ast), int);
+        tt_set_ast_type(tt, ast_rhs(ast), int);
         return int;
     end
-    return tc_any_type(self);
+    return tt_any_type(tt);
 end
 
-proc tc_check_return self, ast in
+proc tc_check_return tt, st, ast in
     check_ast_kind(AstK_Return, ast);
     var type;
     if ast_expr(ast) then
-        type = tc_check(self, ast_expr(ast));
+        type = tc_check(tt, st, ast_expr(ast));
     else
-        type = tc_void_type(self);
+        type = tt_void_type(tt);
     end
-    var cur_proc = tc_cur_proc(self);
+    var cur_proc = tt_cur_proc(tt);
     var otype = proc_type_info_return_type(cur_proc);
-    if otype != tc_any_type(self) and otype != type then
+    if otype != tt_any_type(tt) and otype != type then
         printf("WARN: Changing procedure return type.\n");
         printf("NOTE: The expression is: ");
         print_ast(ast);
@@ -86,152 +85,160 @@ proc tc_check_return self, ast in
         print_type(otype);
         printf("NOTE: The new type is: ");
         print_type(type);
-        tc_print_src_loc(self);
+        tt_print_src_loc(tt);
     end
-    tc_set_did_return(self, true);
+    tt_set_did_return(tt, true);
     proc_type_info_set_return_type(cur_proc, type);
-    return tc_void_type(self);
+    return tt_void_type(tt);
 end
 
-proc tc_check_var_decl self, ast in
+proc tc_check_var_decl tt, st, ast in
     check_ast_kind(AstK_VarDecl, ast);
-    tc_set_local_ident_type(self, ast_ident(ast), tc_any_type(self));
-    return tc_void_type(self);
+    tt_set_local_ident_type(tt, ast_ident(ast), tt_any_type(tt));
+    return tt_void_type(tt);
 end
 
-proc tc_check_var_assign self, ast in
+proc tc_check_var_assign tt, st, ast in
     check_ast_kind(AstK_VarAssign, ast);
-    var type = tc_check(self, ast_assign_expr(ast));
-    tc_set_local_ident_type(self, ast_ident(ast), type);
-    return tc_void_type(self);
+    var type = tc_check(tt, st, ast_assign_expr(ast));
+    tt_set_local_ident_type(tt, ast_ident(ast), type);
+    return tt_void_type(tt);
 end
 
-proc tc_check_assign self, ast in
+proc tc_check_assign tt, st, ast in
     check_ast_kind(AstK_Assign, ast);
-    var type = tc_check(self, ast_assign_expr(ast));
-    tc_set_ident_type(self, ast_ident(ast), type);
-    return tc_void_type(self);
+    var type = tc_check(tt, st, ast_assign_expr(ast));
+    tt_set_ident_type(tt, ast_ident(ast), type);
+    return tt_void_type(tt);
 end
 
-proc tc_check_procedure self, ast in
+proc tc_check_assign_op tt, st, ast in
+    check_ast_kind(AstK_AssignOp, ast);
+    var type = tc_check(tt, st, ast_assign_expr(ast));
+    tt_set_ident_type(tt, ast_ident(ast), type);
+    return tt_void_type(tt);
+end
+
+proc tc_check_procedure tt, st, ast in
     check_ast_kind(AstK_Procedure, ast);
-    tc_push_scope(self);
+    tt_push_scope(tt);
     var params = ast_params(ast);
     var len = vector_len(params);
     var param_types = make_vector(len);
     var i = 0;
-    var any = tc_any_type(self);
+    var any = tt_any_type(tt);
     while i < len do
         vector_push(param_types, any);
-        tc_set_local_ident_type(self, vector_get(params, i), any);
+        tt_set_local_ident_type(tt, vector_get(params, i), any);
         i += 1;
     end
     var proc_type_info = make_proc_type_info(any, param_types);
-    tc_set_cur_proc(self, proc_type_info);
-    tc_set_did_return(self, false);
-    tc_add_proc(self, ast_ident(ast), proc_type_info);
+    tt_set_cur_proc(tt, proc_type_info);
+    tt_set_did_return(tt, false);
+    tt_add_proc(tt, ast_ident(ast), proc_type_info);
 
-    tc_check_body(self, ast_body(ast));
+    tc_check_body(tt, st, ast_body(ast));
 
-    if not tc_did_return(self) then
-        proc_type_info_set_return_type(proc_type_info, tc_void_type(self));
+    if not tt_did_return(tt) then
+        proc_type_info_set_return_type(proc_type_info, tt_void_type(tt));
     end
 
-    tc_pop_scope(self);
-    return tc_void_type(self);
+    tt_pop_scope(tt);
+    return tt_void_type(tt);
 end
 
-proc tc_check_if_else self, ast in
+proc tc_check_if_else tt, st, ast in
     check_ast_kind(AstK_IfElse, ast);
-    tc_check(self, ast_test(ast));
-    tc_check_body(self, ast_consequence(ast));
-    tc_check_body(self, ast_alternative(ast));
-    return tc_void_type(self);
+    tc_check(tt, st, ast_test(ast));
+    tc_check_body(tt, st, ast_consequence(ast));
+    tc_check_body(tt, st, ast_alternative(ast));
+    return tt_void_type(tt);
 end
 
-proc tc_check_while self, ast in
+proc tc_check_while tt, st, ast in
     check_ast_kind(AstK_While, ast);
-    tc_check(self, ast_test(ast));
-    tc_check_body(self, ast_body(ast));
-    return tc_void_type(self);
+    tc_check(tt, st, ast_test(ast));
+    tc_check_body(tt, st, ast_body(ast));
+    return tt_void_type(tt);
 end
 
-proc tc_check_pointer_read self, ast in
+proc tc_check_pointer_read tt, st, ast in
     check_ast_kind(AstK_PointerRead, ast);
     var args = ast_pop_args(ast);
     var i = 0; var len = vector_len(args);
     while i < len do
-        tc_check(self, vector_get(args, i));
+        tc_check(tt, st, vector_get(args, i));
         i += 1;
     end
-    return tc_any_type(self);
+    return tt_any_type(tt);
 end
 
-proc tc_check_pointer_write self, ast in
+proc tc_check_pointer_write tt, st, ast in
     check_ast_kind(AstK_PointerWrite, ast);
     var args = ast_pop_args(ast);
     var i = 0; var len = vector_len(args);
     while i < len do
-        tc_check(self, vector_get(args, i));
+        tc_check(tt, st, vector_get(args, i));
         i += 1;
     end
-    return tc_void_type(self);
+    return tt_void_type(tt);
 end
 
-proc tc_check_prefix_op self, ast in
+proc tc_check_prefix_op tt, st, ast in
     check_ast_kind(AstK_Prefix, ast);
-    return tc_check(self, ast_expr(ast));
+    return tc_check(tt, st, ast_expr(ast));
 end
 
-proc tc_check_const self, ast in
+proc tc_check_const tt, st, ast in
     check_ast_kind(AstK_Const, ast);
-    var type = tc_check(self, ast_assign_expr(ast));
-    tc_set_ident_type(self, ast_ident(ast), type);
-    return tc_void_type(self);
+    var type = tc_check(tt, st, ast_assign_expr(ast));
+    tt_set_ident_type(tt, ast_ident(ast), type);
+    return tt_void_type(tt);
 end
 
-proc tc_check_extern self, ast in
+proc tc_check_extern tt, st, ast in
     check_ast_kind(AstK_Extern, ast);
-    return tc_void_type(self);
+    return tt_void_type(tt);
 end
 
-proc tc_check_inline_asm self, ast in
+proc tc_check_inline_asm tt, st, ast in
     check_ast_kind(AstK_InlineAsm, ast);
-    return tc_void_type(self);
+    return tt_void_type(tt);
 end
 
-proc tc_check_global self, ast in
+proc tc_check_global tt, st, ast in
     check_ast_kind(AstK_Global, ast);
-    var type = tc_check(self, ast_assign_expr(ast));
-    tc_set_ident_type(self, ast_ident(ast), type);
-    return tc_void_type(self);
+    var type = tc_check(tt, st, ast_assign_expr(ast));
+    tt_set_ident_type(tt, ast_ident(ast), type);
+    return tt_void_type(tt);
 end
 
-proc tc_check self, ast in
+proc tc_check tt, st, ast in
     var k = ast_kind(ast);
-    vector_push(tc_src_locs(self), token_src_loc(ast_token(ast)));
+    vector_push(tt_src_locs(tt), token_src_loc(ast_token(ast)));
     var type;
-    if k == AstK_Ident then type = tc_check_ident(self, ast);
-    else if k == AstK_Integer then type = tc_check_integer(self, ast);
-    else if k == AstK_String then type = tc_check_string(self, ast);
-    else if k == AstK_Call then type = tc_check_call(self, ast);
-    else if k == AstK_BinOp then type = tc_check_binop(self, ast);
-    else if k == AstK_Return then type = tc_check_return(self, ast);
-    else if k == AstK_VarDecl then type = tc_check_var_decl(self, ast);
-    else if k == AstK_VarAssign then type = tc_check_var_assign(self, ast);
-    else if k == AstK_Assign then type = tc_check_assign(self, ast);
-    else if k == AstK_Procedure then type = tc_check_procedure(self, ast);
-    else if k == AstK_IfElse then type = tc_check_if_else(self, ast);
-    else if k == AstK_While then type = tc_check_while(self, ast);
-    else if k == AstK_PointerRead then type = tc_check_pointer_read(self, ast);
-    else if k == AstK_PointerWrite then type = tc_check_pointer_write(self, ast);
-    else if k == AstK_Prefix then type = tc_check_prefix_op(self, ast);
-    else if k == AstK_Const then type = tc_check_const(self, ast);
-    else if k == AstK_Extern then type = tc_check_extern(self, ast);
-    else if k == AstK_InlineAsm then type = tc_check_inline_asm(self, ast);
-    else if k == AstK_Global then type = tc_check_global(self, ast);
-    else if k == AstK_Break then type = tc_void_type(self);
-    else if k == AstK_Continue then type = tc_void_type(self);
+    if k == AstK_Ident then type = tc_check_ident(tt, st, ast);
+    else if k == AstK_Integer then type = tc_check_integer(tt, st, ast);
+    else if k == AstK_String then type = tc_check_string(tt, st, ast);
+    else if k == AstK_Call then type = tc_check_call(tt, st, ast);
+    else if k == AstK_BinOp then type = tc_check_binop(tt, st, ast);
+    else if k == AstK_Return then type = tc_check_return(tt, st, ast);
+    else if k == AstK_VarDecl then type = tc_check_var_decl(tt, st, ast);
+    else if k == AstK_VarAssign then type = tc_check_var_assign(tt, st, ast);
+    else if k == AstK_Assign then type = tc_check_assign(tt, st, ast);
+    else if k == AstK_Procedure then type = tc_check_procedure(tt, st, ast);
+    else if k == AstK_IfElse then type = tc_check_if_else(tt, st, ast);
+    else if k == AstK_While then type = tc_check_while(tt, st, ast);
+    else if k == AstK_PointerRead then type = tc_check_pointer_read(tt, st, ast);
+    else if k == AstK_PointerWrite then type = tc_check_pointer_write(tt, st, ast);
+    else if k == AstK_Prefix then type = tc_check_prefix_op(tt, st, ast);
+    else if k == AstK_Const then type = tc_check_const(tt, st, ast);
+    else if k == AstK_Extern then type = tc_check_extern(tt, st, ast);
+    else if k == AstK_InlineAsm then type = tc_check_inline_asm(tt, st, ast);
+    else if k == AstK_Global then type = tc_check_global(tt, st, ast);
+    else if k == AstK_Break then type = tt_void_type(tt);
+    else if k == AstK_Continue then type = tt_void_type(tt);
+    else if k == AstK_AssignOp then type = tc_check_assign_op(tt, st, ast);
     else
         printf("`tc_check` in typechecking.randy");
         printf("Unhandled AstK: %d\n", k);
@@ -239,53 +246,47 @@ proc tc_check self, ast in
         print_token_loc(ast_token(ast));
         exit(1);
     end
-    tc_set_ast_type(self, ast, type);
-    vector_pop(tc_src_locs(self));
+    tt_set_ast_type(tt, ast, type);
+    vector_pop(tt_src_locs(tt));
     return type;
 end
 
-proc typecheck self, roots, sym_table in
+proc typecheck tt, sym_table, roots in
     var t;
-    tc_push_scope(self);
+    tt_push_scope(tt);
 
     t = make_type("any", 0, false); // temporary "black hole" type, matches anything
-    u64!(self + TTYPE_CHECK_any_type, t);
-    tc_add_type(self, t);
+    u64!(tt + TTYPE_TABLE_any_type, t);
+    tt_add_type(tt, t);
 
     t = make_type("void", 0, false); // only usable for proc return types
-    u64!(self + TTYPE_CHECK_void_type, t);
-    tc_add_type(self, t);
+    u64!(tt + TTYPE_TABLE_void_type, t);
+    tt_add_type(tt, t);
 
     t = make_type("int", 8, false);
-    u64!(self + TTYPE_CHECK_int_type, t);
-    tc_add_type(self, t);
+    u64!(tt + TTYPE_TABLE_int_type, t);
+    tt_add_type(tt, t);
 
     t = make_type("ptr", 8, true);
-    u64!(self + TTYPE_CHECK_ptr_type, t);
-    tc_add_type(self, t);
+    u64!(tt + TTYPE_TABLE_ptr_type, t);
+    tt_add_type(tt, t);
 
     t = make_type("cstr", 8, true);
-    u64!(self + TTYPE_CHECK_cstr_type, t);
-    tc_add_type(self, t);
+    u64!(tt + TTYPE_TABLE_cstr_type, t);
+    tt_add_type(tt, t);
 
     var i = 0; var len = vector_len(roots);
     while i < len do
-        tc_check(self, vector_get(roots, i));
+        tc_check(tt, sym_table, vector_get(roots, i));
         i += 1;
     end
 
-    // var set = tc_resolve_later(self);
-    // var cur = set_begin(set);
-    // while cur != set_end(set) do
-    //     printf(">>> %p: ", u64@(cur)); print_ast(u64@(cur));
-    //     cur = set_next(set, cur);
-    // end
 end
 
-proc tc_print_types self in
+proc tc_print_types tt in
     // var cur; var map;
 
-    // map = tc_ast_types(self);
+    // map = tt_ast_types(tt);
     // cur = map_begin(map);
     // while cur != map_end(map) do
     //     printf("===========\n");
@@ -296,7 +297,7 @@ proc tc_print_types self in
 
     // printf("~~~~~~~~~~~~\n");
 
-    // map = tc_procs(self);
+    // map = tt_procs(tt);
     // cur = map_begin(map);
     // while cur != map_end(map) do
     //     printf("%s: ", map_pair_key(cur));

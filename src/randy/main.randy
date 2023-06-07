@@ -209,10 +209,10 @@ proc main argc, argv in
 
         if do_typecheck then
             time(starttime);
-            var tc = make_type_check();
-            typecheck(tc, roots, symbol_table);
+            var type_table = make_type_table();
+            typecheck(type_table, symbol_table, roots);
             time(endtime);
-            tc_print_types(tc);
+            tc_print_types(type_table);
             if verbosity > 0 then
                 print_timespan("Typechecking took: ", starttime, endtime);
             end
