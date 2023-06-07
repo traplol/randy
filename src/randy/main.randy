@@ -13,150 +13,12 @@
 #include ast
 #include symbol_table
 #include parsing
-#include typechecking
+#include type_table
+#include type_checker
 #include ir_context
 #include compiler_context
 #include x86_64_backend
 
-proc cc_out_files irctx, cctx in
-    var files = ir_files(irctx);
-    var i = 0;
-    while i < vector_len(files) do
-        cc_out_file(cctx, i, vector_get(files, i));
-        compiler_context_add_file(cctx, vector_get(files, i), i);
-        i += 1;
-    end
-end
-
-proc cc_out_instructions irctx, cctx in
-    var instructions = ir_instructions(irctx);
-    var i = 0;
-    while i < vector_len(instructions) do
-        x86_64_emit_instruction(cctx, vector_get(instructions, i));
-        i += 1;
-    end
-end
-
-proc cc_out_externs irctx, cctx in
-    var externs = ir_externs(irctx);
-    var cur_extern = map_begin(externs);
-    var end_extern = map_end(externs);
-    while cur_extern != end_extern do
-        cc_out_extern(cctx, map_pair_key(cur_extern));
-        cur_extern = map_next(externs, cur_extern);
-    end
-end
-
-proc cc_out_data_section irctx, cctx in
-    cc_out(cctx, ".data");
-    cc_out(cctx, ".align 8");
-    cc_out(cctx, "__argc__: .quad 0");
-    cc_out(cctx, "__argv__: .quad 0");
-
-    var globals = ir_globals(irctx);
-    var i = 0; var len = vector_len(globals);
-    var str = make_string(0);
-    while i < len do
-        string_reset(str);
-        var gi = vector_get(globals, i);
-        var kind = global_info_kind(gi);
-        var label = global_info_label(gi);
-        var value = global_info_value(gi);
-        if kind == GIK_String then
-            string_append_cstr(str, label);
-            string_append_cstr(str, ": .quad ");
-            string_append_cstr(str, value);
-            cc_out(cctx, string_cstr(str));
-        else if kind == GIK_Integer then
-            string_append_cstr(str, label);
-            string_append_cstr(str, ": .quad ");
-            string_append_int(str, value);
-            cc_out(cctx, string_cstr(str));
-        else
-            NYI_ERR("cc_out_data_section: unknown global kind");
-        end
-        i += 1;
-    end
-
-    cc_out(cctx, ".section .rodata, \"a\"");
-    var strings = ir_strings(irctx);
-    var cur_string = map_begin(strings);
-    var end_string = map_end(strings);
-    while cur_string != end_string do
-        cc_out(cctx, ".align 8");
-        cc_out_label(cctx, map_pair_val(cur_string));
-        cc_out_string(cctx, map_pair_key(cur_string));
-        cur_string = map_next(strings, cur_string);
-    end
-end
-
-proc cc_out_start cctx, main_proc, exit_proc in
-    cc_out(cctx, "    .global _start");
-    cc_out(cctx, "    .align 16");
-    cc_out(cctx, "_start:");
-    cc_out(cctx, "    movq (%rsp), %rdi");
-    cc_out(cctx, "    movq %rsp, %rsi");
-    cc_out(cctx, "    addq $8, %rsi");
-    cc_out(cctx, "    movq %rdi, (__argc__)");
-    cc_out(cctx, "    movq %rsi, (__argv__)");
-    var str = make_string(0);
-    string_append_cstr(str, "    call ");
-    string_append_cstr(str, main_proc);
-    cc_out(cctx, string_cstr(str));
-    cc_out(cctx, "    movq %rax, %rdi");
-    if exit_proc then
-        string_reset(str);
-        string_append_cstr(str, "    call ");
-        string_append_cstr(str, exit_proc);
-        cc_out(cctx, string_cstr(str));
-    end
-    cc_out(cctx, "    movq $60, %rax");
-    cc_out(cctx, "    syscall");
-    cc_out(cctx, "    int3");
-end
-
-proc cc_lines_to_file cctx, path in
-    var fd = open_for_write(path);
-    if fd < 0 then
-        printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
-        return false;
-    end
-    var i = 0; var j = 0;
-    var BUFLEN = 4096;
-    var buffer = malloc(BUFLEN);
-    var buffer_end = buffer + BUFLEN;
-    var p = buffer;
-
-    var lines = compiler_context_lines(cctx);
-    var num_lines = vector_len(lines);
-    var line; var line_len;
-    while i < num_lines do
-        line = vector_get(lines, i);
-        j = 0; line_len = string_len(line);
-        while j < line_len do
-            if p == buffer_end then
-                write_file(fd, buffer, BUFLEN);
-                p = buffer;
-            end
-            u8!(p, string_get(line, j));
-            p += 1;
-            j += 1;
-        end
-        if p == buffer_end then
-            write_file(fd, buffer, BUFLEN);
-            p = buffer;
-        end
-        u8!(p, '\n');
-        p += 1;
-        i += 1;
-    end
-    if p != buffer then
-        write_file(fd, buffer, p - buffer);
-    end
-    close(fd);
-    free(buffer);
-    return true;
-end
 
 proc print_timespan msg, starttime, endtime in
     var elap_s = timespec_sec(endtime) - timespec_sec(starttime);
@@ -348,7 +210,7 @@ proc main argc, argv in
         if do_typecheck then
             time(starttime);
             var tc = make_type_check();
-            typecheck(tc, roots);
+            typecheck(tc, roots, symbol_table);
             time(endtime);
             tc_print_types(tc);
             if verbosity > 0 then

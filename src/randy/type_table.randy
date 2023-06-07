@@ -1,0 +1,242 @@
+
+const TTYPE_name     = 0;  // cstr
+const TTYPE_size     = 8;  // int
+const TTYPE_ref_type = 16; // bool
+const sizeof_TTYPE   = 32;
+
+proc make_type name, size, ref_type in
+    var self = malloc(sizeof_TTYPE);
+    u64!(self + TTYPE_name, name);
+    u64!(self + TTYPE_size, size);
+    u64!(self + TTYPE_ref_type, ref_type);
+    return self;
+end
+
+proc type_name self in return u64@(self + TTYPE_name); end
+proc type_size self in return u64@(self + TTYPE_size); end
+proc type_ref_type self in return u64@(self + TTYPE_ref_type); end
+
+proc print_type self in
+    var name = type_name(self);
+    var size = type_size(self);
+    var ref_type = type_ref_type(self);
+    printf("type=%s, size=%d, ref_type=%d\n", name, size, ref_type);
+end
+
+const TPROC_TYPE_INFO_return_type = 0; // type
+const TPROC_TYPE_INFO_param_types = 8; // type vector
+const sizeof_TPROC_TYPE_INFO = 16;
+
+proc make_proc_type_info return_type, param_types in
+    var self = malloc(sizeof_TPROC_TYPE_INFO);
+    u64!(self + TPROC_TYPE_INFO_return_type, return_type);
+    u64!(self + TPROC_TYPE_INFO_param_types, param_types);
+    return self;
+end
+
+proc proc_type_info_return_type self in return u64@(self + TPROC_TYPE_INFO_return_type); end
+proc proc_type_info_param_types self in return u64@(self + TPROC_TYPE_INFO_param_types); end
+
+proc proc_type_info_set_return_type self, type in
+    u64!(self + TPROC_TYPE_INFO_return_type, type);
+end
+
+proc proc_type_info_set_param_type self, idx, type in
+    var ptypes = proc_type_info_param_types(self);
+    vector_set(ptypes, idx, type);
+end
+
+proc print_proc_type_info self in
+    var ptypes = proc_type_info_param_types(self);
+    printf("(");
+    var i = 0; var len = vector_len(ptypes);
+    while i < len do
+        printf("%s", type_name(vector_get(ptypes, i)));
+        i += 1;
+        if i < len then
+            printf(", ");
+        end
+    end
+    var ret_type = proc_type_info_return_type(self);
+    printf(") -> %s\n", type_name(ret_type));
+end
+
+const TTYPE_CHECK_types         = 0;  // (cstr, type) map : type_name -> type
+const TTYPE_CHECK_ast_types     = 8;  // (ast, type) map : ast -> type
+const TTYPE_CHECK_src_locs      = 16; // src_loc vector
+const TTYPE_CHECK_any_type      = 24; // fast ref to `any` type
+const TTYPE_CHECK_void_type     = 32; // fast ref to `void` type
+const TTYPE_CHECK_int_type      = 40; // fast ref to `int` type
+const TTYPE_CHECK_ptr_type      = 48; // fast ref to `ptr` type
+const TTYPE_CHECK_cstr_type     = 56; // fast ref to `cstr` type
+const TTYPE_CHECK_procs         = 64; // (cstr, proc_type_info)
+const TTYPE_CHECK_scoped_idents = 72; // (cstr, type) map vector : ident -> type
+const TTYPE_CHECK_resolve_later = 80; // ast set
+const TTYPE_CHECK_cur_proc      = 88; // the current proc_type_info
+const TTYPE_CHECK_did_return    = 96; // whether or not a return was encountered
+const sizeof_TTYPE_CHECK        = 104;
+
+proc make_type_check in
+    var self = malloc(sizeof_TTYPE_CHECK);
+    u64!(self + TTYPE_CHECK_types, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_ast_types, make_map(0, NULL, NULL));
+    u64!(self + TTYPE_CHECK_src_locs, make_vector(0));
+    u64!(self + TTYPE_CHECK_any_type, NULL);
+    u64!(self + TTYPE_CHECK_void_type, NULL);
+    u64!(self + TTYPE_CHECK_int_type, NULL);
+    u64!(self + TTYPE_CHECK_ptr_type, NULL);
+    u64!(self + TTYPE_CHECK_cstr_type, NULL);
+    u64!(self + TTYPE_CHECK_procs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TTYPE_CHECK_scoped_idents, make_vector(0));
+    u64!(self + TTYPE_CHECK_resolve_later, make_set(0, NULL, NULL));
+    u64!(self + TTYPE_CHECK_cur_proc, NULL);
+    u64!(self + TTYPE_CHECK_did_return, false);
+    return self;
+end
+
+proc tc_types self in return u64@(self + TTYPE_CHECK_types); end
+proc tc_ast_types self in return u64@(self + TTYPE_CHECK_ast_types); end
+proc tc_src_locs self in return u64@(self + TTYPE_CHECK_src_locs); end
+proc tc_any_type self in return u64@(self + TTYPE_CHECK_any_type); end
+proc tc_void_type self in return u64@(self + TTYPE_CHECK_void_type); end
+proc tc_int_type self in return u64@(self + TTYPE_CHECK_int_type); end
+proc tc_ptr_type self in return u64@(self + TTYPE_CHECK_ptr_type); end
+proc tc_cstr_type self in return u64@(self + TTYPE_CHECK_cstr_type); end
+proc tc_procs self in return u64@(self + TTYPE_CHECK_procs); end
+proc tc_scoped_idents self in return u64@(self + TTYPE_CHECK_scoped_idents); end
+proc tc_resolve_later self in return u64@(self + TTYPE_CHECK_resolve_later); end
+proc tc_cur_proc self in return u64@(self + TTYPE_CHECK_cur_proc); end
+proc tc_did_return self in return u64@(self + TTYPE_CHECK_did_return); end
+
+proc tc_set_cur_proc self, val in u64!(self + TTYPE_CHECK_cur_proc, val); end
+proc tc_set_did_return self, val in u64!(self + TTYPE_CHECK_did_return, val); end
+
+proc tc_get_ast_type self, ast in
+    var found = map_find(tc_ast_types(self), ast);
+    if found then
+        return map_pair_val(found);
+    end
+    return NULL;
+end
+
+proc tc_set_ast_type self, ast, type in
+    var map = tc_ast_types(self);
+    var found = map_find(map, ast);
+    if found then
+        var otype = map_pair_val(found);
+        if otype != tc_any_type(self) and otype != type then
+            printf("WARN: Changing expression's type.\n");
+            printf("NOTE: The expression is: ");
+            print_ast(ast);
+            printf("NOTE: The old type was: ");
+            print_type(otype);
+            printf("NOTE: The new type is: ");
+            print_type(type);
+            tc_print_src_loc(self);
+        end
+    end
+    if ast_kind(ast) == AstK_Ident then
+        tc_set_ident_type(self, ast_ident(ast), type);
+    end
+    map_set(map, ast, type);
+end
+
+proc tc_add_type self, type in
+    var name = type_name(type);
+    var types = tc_types(self);
+    if map_find(types, name) then
+        printf("ERROR: A type named `%s` already exists.\n", name);
+        tc_print_src_loc(self);
+        exit(1);
+    end
+    map_set(types, name, type);
+end
+
+proc tc_get_type self, name in
+    var found = map_find(tc_types(self), name);
+    if found then
+        return map_pair_val(found);
+    end
+    return NULL;
+end
+
+proc tc_push_scope self in
+    vector_push(tc_scoped_idents(self), make_map(0, cstr_eq, cstr_hash));
+end
+
+proc tc_pop_scope self in
+    vector_pop(tc_scoped_idents(self)); // @LEAK
+end
+
+proc tc_find_ident self, ident in
+    var vec = tc_scoped_idents(self);
+    var i = vector_len(vec) - 1;
+    while i >= 0 do
+        var found = map_find(vector_get(vec, i), ident);
+        if found then
+            return found;
+        end
+        i -= 1;
+    end
+    return NULL;
+end
+
+proc tc_set_ident_type self, ident, type in
+    // First check if an ident resolves all of the way to top-level;
+    // if it doesn't then define it in the local scope.
+    var vec = tc_scoped_idents(self);
+    var i = vector_len(vec) - 1;
+    var map = NULL;
+    var found = NULL;
+    while i >= 0 do
+        map = vector_get(vec, i);
+        found = map_find(map, ident);
+        if not found then
+            map = NULL;
+        else
+            break;
+        end
+        i -= 1;
+    end
+    if not map then
+        map = vector_back(vec);
+    else
+        var otype = map_pair_val(found);
+        if otype != tc_any_type(self) and otype != type then
+            printf("WARN: Changing type of `%s`\n", ident);
+            printf("NOTE: The old type was: ");
+            print_type(otype);
+            printf("NOTE: The new type is: ");
+            print_type(type);
+            tc_print_src_loc(self);
+        end
+    end
+    map_set(map, ident, type);
+end
+
+proc tc_set_local_ident_type self, ident, type in
+    var map = vector_back(tc_scoped_idents(self));
+    map_set(map, ident, type);
+end
+
+proc tc_add_resolve_later self, ast in
+    set_add(tc_resolve_later(self), ast);
+end
+
+proc tc_current_src_loc self in
+    return vector_back(tc_src_locs(self));
+end
+
+proc tc_print_src_loc self in
+    print_src_loc(tc_current_src_loc(self));
+end
+
+proc tc_add_proc self, ident, proc_type_info in
+    var procs = tc_procs(self);
+    var found = map_find(procs, ident);
+    if found then
+        printf("WARN: Redefinition of procedure.\n");
+        tc_print_src_loc(self);
+    end
+    map_set(procs, ident, proc_type_info);
+end
