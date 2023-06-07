@@ -17,7 +17,9 @@ proc open_for_read path in
 end
 
 proc open_for_write path in
-    return syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 436); // 436 is 0664 or -rw-rw-r--
+    var mask = syscall(SYS_umask, 0);
+    syscall(SYS_umask, mask);
+    return syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask); // 438 is 0666 or -rw-rw-rw-
 end
 
 proc read_file fd, buf, count in
