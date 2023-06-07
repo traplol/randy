@@ -6,7 +6,7 @@ extern free ptr;
 extern memcpy dest, src, n;
 
 // proc _malloc_logger pointer in
-//     //printf("malloc'd %p\n", pointer);
+//     printf("malloc'd %p\n", pointer);
 // end
 
 // asm __proc_malloc in
@@ -37,7 +37,7 @@ extern memcpy dest, src, n;
 // end
 
 // proc calloc num, size in
-//     var mem = __proc_calloc(size);
+//     var mem = __proc_calloc(num, size);
 //     if not mem then
 //         _error("calloc returned nullptr");
 //         abort();
@@ -48,7 +48,7 @@ extern memcpy dest, src, n;
 
 
 // proc _free_logger ptr in
-//     //printf("freed'd %p\n", ptr);
+//     printf("freed'd %p\n", ptr);
 // end
 
 // asm __proc_free in
