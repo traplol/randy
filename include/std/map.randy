@@ -5,7 +5,8 @@ const TMAP_capacity =  8; // int
 const TMAP_buffer   = 16; // ptr
 const TMAP_comparer = 24; // compare_fn
 const TMAP_hasher   = 32; // hash_fn
-const sizeof_TMAP   = 40; 
+const TMAP_cache    = 40; // the last accessed via map_find/map_set map_pair, invalidated on expansion
+const sizeof_TMAP   = 48;
 
 const TMAP_PAIR_key = 0;
 const TMAP_PAIR_val = 8;
@@ -38,6 +39,7 @@ proc make_map capacity, comparer, hasher in
     end
     u64!(self + TMAP_comparer, comparer);
     u64!(self + TMAP_hasher, hasher);
+    u64!(self + TMAP_cache, NULL);
     return self;
 end
 
@@ -58,6 +60,7 @@ proc map_pair_key self in return u64@(self + TMAP_PAIR_key); end
 proc map_pair_val self in return u64@(self + TMAP_PAIR_val); end
 
 proc _map_expand self in
+    u64!(self + TMAP_cache, NULL);
     var old_cap = map_cap(self);
     var old_buf = map_buffer(self);
     var new_cap = old_cap * 2;
@@ -82,14 +85,19 @@ proc _map_at self, idx in
 end
 
 proc map_find self, key in
+    var comparer = map_comparer(self);
+    var cache = u64@(self + TMAP_cache);
+    if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
+        return cache;
+    end
     var cap = map_cap(self);
     var hasher = map_hasher(self); 
     var idx = hasher(key) % cap;
     if idx < 0 then idx = 0 - idx; end
-    var comparer = map_comparer(self);
     var cur = _map_at(self, idx);
     while u64@(cur) do
         if comparer(u64@(cur), key) then
+            u64!(self + TMAP_cache, cur);
             return cur;
         end
         idx = (idx + 1) % cap;
@@ -99,6 +107,12 @@ proc map_find self, key in
 end
 
 proc map_set self, key, value in
+    var comparer = map_comparer(self);
+    var cache = u64@(self + TMAP_cache);
+    if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
+        u64!(cache + TMAP_PAIR_val, value);
+        return;
+    end
     var cap = map_cap(self);
     if map_len(self) >= cap / MAP_Load_Factor then
         _map_expand(self);
@@ -108,7 +122,6 @@ proc map_set self, key, value in
     var hasher = map_hasher(self);
     var idx = hasher(key) % cap;
     if idx < 0 then idx = 0 - idx; end
-    var comparer = map_comparer(self);
     var cur = _map_at(self, idx);
     while cur and u64@(cur) do
         if comparer(u64@(cur), key) then
@@ -123,8 +136,9 @@ proc map_set self, key, value in
         // increment length
         u64!(self + TMAP_length, u64@(self + TMAP_length) + 1);
     end
-    u64!(cur, key);
+    u64!(cur + TMAP_PAIR_key, key);
     u64!(cur + TMAP_PAIR_val, value);
+    u64!(self + TMAP_cache, cur);
 end
 
 proc map_remove self, elem in
