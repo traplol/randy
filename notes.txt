@@ -1,12 +1,27 @@
 ====================================================================================================
 TODO:
 
+every procedure has its own type because a procedure without type declarations won't have a concrete
+type until after type inference. this means we need a special equality comparison for procedure
+types. we need this because we want to allow passing functions around and we need a way to specify
+that procedure's type. e.g.
 
-                      need to parse type descriptions including generics
-                      right now symbols think they have a cstr for the type
-                      should we pass the type table to the parser to create types???
-                      should type descriptions even be part of the ast?
+proc map[N,M] fn: (N -> M), vals: vector[N] -> vector[M] in
+    var result = make_vector[M](vals.length);
+    var i = 0;
+    while i < vals.length do
+        result.push(fn(vals.get(i)));
+    end
+    return result;
+end
 
+maybe we should do:
+  parsing + type definition -> type inference -> type solidification -> type checking
+- during parsing we declare + define types
+- during type inference we resolve types
+- during type solidification we turn all generic types into concrete types and all "same" procedure
+  types are unified into a single type
+- then type checking can verify that every expression has resolved into a concrete type
 
 
 core:
