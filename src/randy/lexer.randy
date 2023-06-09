@@ -213,6 +213,12 @@ proc _lex_code filename, code, include_paths, included_already in
             else if c == ')' then
                 vector_push(tokens, make_token(TK_RParen, ")", ")", line_no, filename));
                 i += 1;
+            else if c == '[' then
+                vector_push(tokens, make_token(TK_LSquare, "[", "[", line_no, filename));
+                i += 1;
+            else if c == ']' then
+                vector_push(tokens, make_token(TK_RSquare, "]", "]", line_no, filename));
+                i += 1;
             else if c == '+' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_PlusEq, "+=", "+=", line_no, filename));
