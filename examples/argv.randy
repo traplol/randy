@@ -1,25 +1,11 @@
+// -test "hello world" 1 2 3
 
-extern stderr;
-extern fprintf file, fmt, ...;
-
-asm argc in
-"
-    movq (__argc__), %rax
-    ret
-"
-end
-
-asm argv in
-"
-    movq (__argv__), %rax
-    ret
-"
-end
+#include std/core
 
 proc main argc, argv in
     var i = 0;
     while i < argc do
-        fprintf(u64@(stderr), "arg%d = %s\n", i, u64@(argv + i*8));
+        printf("arg%d = %s\n", i, u64@(argv + i*8));
         i += 1;
     end
     return 0;

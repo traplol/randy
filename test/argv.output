@@ -1,0 +1,5 @@
+arg0 = out/argv
+arg1 = hello world
+arg2 = 1
+arg3 = 2
+arg4 = 3
