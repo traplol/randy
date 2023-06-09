@@ -67,6 +67,14 @@ proc test_large_string in
         string_push(str, 'a');
         i += 1;
     end
+    i = 0;
+    while i < n do
+        if string_get(str, i) != 'a' then
+            printf("string contents incorrect.\n");
+            break;
+        end
+        i += 1;
+    end
     test("string len is correct", n == string_len(str));
 end
 
