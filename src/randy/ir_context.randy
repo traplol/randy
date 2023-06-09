@@ -1099,7 +1099,6 @@ proc ir_emit_body self, body in
         if astk == AstK_Return or
             astk == AstK_VarDecl or
             astk == AstK_VarAssign or
-            astk == AstK_Assign or
             astk == AstK_AssignOp or
             astk == AstK_Procedure or
             astk == AstK_IfElse or
@@ -1132,7 +1131,7 @@ proc ir_emit_ident self, ast in
             ir_append(self, make_ir_push_label(const_info_value(const_info)));
         else
             printf("Unhandled const_info kind: %d\n", cik);
-            NYI_ERR("ir_emit_ident:const");
+            NYI_ERR(__FILE__, __LINE__, "ir_emit_ident:const");
         end
     else if ir_is_proc(self, ident) then
         var proc_info = ir_get_proc(self, ident);
@@ -1270,7 +1269,7 @@ proc ir_emit_binop self, ast in
     else
         printf("Unhandled binop: %d\n", op);
         print_token(ast_token(ast));
-        NYI_ERR("ir_emit_binop");
+        NYI_ERR(__FILE__, __LINE__, "ir_emit_binop");
     end
     if simple >= 0 then
         ir_compile(self, ast_lhs(ast));
@@ -1314,26 +1313,6 @@ proc ir_emit_var_assign self, ast in
     ir_append(self, make_ir_set_local(ident, n));
 end
 
-proc ir_emit_assign self, ast in
-    check_ast_kind(AstK_Assign, ast);
-    ir_compile(self, ast_assign_expr(ast));
-    var ident = ast_ident(ast);
-    if ir_is_local(self, ident) then
-        var n = ir_get_local(self, ident);
-        ir_append(self, make_ir_set_local(ident, n));
-    else if ir_is_global(self, ident) then
-        var gi = ir_get_global(self, ident);
-        var label = global_info_label(gi);
-        ir_append(self, make_ir_set_global(ident, label));
-    else
-        //ir_append(self, make_ir_set_lazy_ident(ast_token(ast)));
-        printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
-        printf("ERROR: No variable named `%s` exists.\n", ident);
-        ir_print_src_loc(self);
-        exit(1);
-    end
-end
-
 proc ir_emit_assign_op self, ast in
     check_ast_kind(AstK_AssignOp, ast);
     var ident = ast_ident(ast);
@@ -1365,12 +1344,15 @@ proc ir_emit_assign_op self, ast in
     else if op == TK_AmperEq then ir_op = IRK_OpBitAND;
     else if op == TK_CaretEq then ir_op = IRK_OpBitXOR;
     else if op == TK_BarEq then ir_op = IRK_OpBitOR;
+    else if op == TK_Assign then // nothing
     else
         printf("Compiler bug: Unhandled assign op: %d\n", op);
         ir_print_src_loc(self);
         exit(1);
     end
-    ir_append(self, make_ir_simple_op(ir_op));
+    if op != TK_Assign then
+        ir_append(self, make_ir_simple_op(ir_op));
+    end
 
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
@@ -1379,6 +1361,10 @@ proc ir_emit_assign_op self, ast in
         var gi = ir_get_global(self, ident);
         var label = global_info_label(gi);
         ir_append(self, make_ir_set_global(ident, label));
+    else
+        printf("Compiler bug: Unhandled assignment for non-local and non-global\n");
+        ir_print_src_loc(self);
+        exit(1);
     end
 end
 
@@ -1459,7 +1445,7 @@ proc ir_emit_pointer_op self, ast in
         ir_compile(self, vector_get(args, 0));
         ir_append(self, make_ir_ptr_write(size));
     else
-        NYI_ERR("unhandled ir_emit_pointer_op");
+        NYI_ERR(__FILE__, __LINE__, "unhandled ir_emit_pointer_op");
     end
 end
 
@@ -1481,7 +1467,7 @@ proc ir_emit_prefix_op self, ast in
             ir_append(self, make_ir_negative());
         end
     else
-        NYI_ERR("unhandled ir_emit_prefix_op");
+        NYI_ERR(__FILE__, __LINE__, "unhandled ir_emit_prefix_op");
     end
 end
 
@@ -1510,7 +1496,7 @@ proc ir_emit_const self, ast in
             ir_add_const(self, ast_ident(ast), const_info);
         end
     else
-        NYI_ERR("ir_emit_const_comptime: unsupported constant");
+        NYI_ERR(__FILE__, __LINE__, "ir_emit_const_comptime: unsupported constant");
     end
 end
 
@@ -1559,7 +1545,7 @@ proc ir_emit_global self, ast in
     else if k == AstK_Integer then
         ir_add_global_int(self, ident, ast_value(val));
     else
-        NYI_ERR("ir_emit_global:comptime failed");
+        NYI_ERR(__FILE__, __LINE__, "ir_emit_global:comptime failed");
     end
 end
 
@@ -1598,7 +1584,6 @@ proc ir_compile self, ast in
     else if k == AstK_Return then ir_emit_return(self, ast);
     else if k == AstK_VarDecl then ir_emit_var_decl(self, ast);
     else if k == AstK_VarAssign then ir_emit_var_assign(self, ast);
-    else if k == AstK_Assign then ir_emit_assign(self, ast);
     else if k == AstK_Procedure then ir_emit_procedure(self, ast);
     else if k == AstK_IfElse then ir_emit_if_else(self, ast);
     else if k == AstK_While then ir_emit_while(self, ast);

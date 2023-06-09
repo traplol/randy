@@ -175,7 +175,7 @@ proc cc_out_data_section irctx, cctx in
             string_append_int(str, value);
             cc_out(cctx, string_cstr(str));
         else
-            NYI_ERR("cc_out_data_section: unknown global kind");
+            NYI_ERR(__FILE__, __LINE__, "cc_out_data_section: unknown global kind");
         end
         i += 1;
     end

@@ -172,14 +172,6 @@ proc tc_check_var_assign self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc tc_check_assign self, tt, st, ast in
-    check_ast_kind(AstK_Assign, ast);
-    var type = tc_check(self, tt, st, ast_assign_expr(ast));
-    var ident = ast_ident(ast);
-    var symbol = st_get_symbol(st, ident);
-    return tt_void_type(tt);
-end
-
 proc tc_check_assign_op self, tt, st, ast in
     check_ast_kind(AstK_AssignOp, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
@@ -302,7 +294,6 @@ proc tc_check self, tt, st, ast in
     else if k == AstK_Return then type = tc_check_return(self, tt, st, ast);
     else if k == AstK_VarDecl then type = tc_check_var_decl(self, tt, st, ast);
     else if k == AstK_VarAssign then type = tc_check_var_assign(self, tt, st, ast);
-    else if k == AstK_Assign then type = tc_check_assign(self, tt, st, ast);
     else if k == AstK_Procedure then type = tc_check_procedure(self, tt, st, ast);
     else if k == AstK_IfElse then type = tc_check_if_else(self, tt, st, ast);
     else if k == AstK_While then type = tc_check_while(self, tt, st, ast);

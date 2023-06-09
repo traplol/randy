@@ -548,12 +548,12 @@ end
 
 proc x86_64_emit_lazy_ident cc, ir in
     check_ir_kind(IRK_LazyIdent, ir);
-    NYI_ERR("IRK_LazyIdent should have been handled in ir_context.randy");
+    NYI_ERR(__FILE__, __LINE__, "IRK_LazyIdent should have been handled in ir_context.randy");
 end
 
 proc x86_64_emit_call_lazy_ident cc, ir in
     check_ir_kind(IRK_CallLazyIdent, ir);
-    NYI_ERR("IRK_CallLazyIdent should have been handled in ir_context.randy");
+    NYI_ERR(__FILE__, __LINE__, "IRK_CallLazyIdent should have been handled in ir_context.randy");
 end
 
 proc x86_64_emit_drop_top cc, ir in

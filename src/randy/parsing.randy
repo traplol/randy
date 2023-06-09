@@ -53,12 +53,12 @@ proc parse_type ts, st, tt, is_instance in
     var type = NULL;
     if is_instance then
         if inst_params and vector_len(inst_params) > 0 then
-            NYI_ERR("generic instance types");
+            NYI_ERR(__FILE__, __LINE__, "generic instance types");
         else
             type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
         end
     else
-        NYI_ERR("generic types");
+        NYI_ERR(__FILE__, __LINE__, "generic types");
     end
     if not type then
         printf("Compiler bug: type is NULL\n");
@@ -153,22 +153,6 @@ proc parse_return ts, st, tt in
     return make_ast_return(return_, expr);
 end
 
-proc parse_assign ts, st, tt in
-    var ident = ts_expect(ts, TK_Ident);
-    ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts, st, tt);
-    if not expr then
-        printf("ERROR: Expected expression after '='\n");
-        print_token_loc(ident);
-        exit(1);
-    end
-    var symbol = st_get_symbol(st, token_value(ident));
-    if not symbol then
-        symbol = st_prepare_undef(st, token_value(ident), ident);
-    end
-    return make_ast_assign(ident, symbol_name(symbol), expr);
-end
-
 proc parse_assign_op ts, st, tt, op in
     var ident = ts_expect(ts, TK_Ident);
     var op_tk = ts_expect(ts, op);
@@ -254,6 +238,12 @@ proc parse_primary ts, st, tt in
     var k = token_kind(peek);
     if k == TK_Ident then
         var ident = ts_next(ts);
+        var ident_cstr = token_value(ident);
+        if cstr_eq("__FILE__", ident_cstr) then
+            return make_ast_string(peek, string_from_cstr(token_filename(ident)));
+        else if cstr_eq("__LINE__", ident_cstr) then
+            return make_ast_integer(peek, token_line(ident));
+        end
         var symbol = st_get_symbol(st, token_value(ident));
         if not symbol then
             symbol = st_prepare_undef(st, token_value(ident), ident);
@@ -505,7 +495,7 @@ proc parse_statement ts, st, tt in
         stmt = make_ast_continue(ts_next(ts));
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
-        stmt = parse_assign(ts, st, tt);
+        stmt = parse_assign_op(ts, st, tt, TK_Assign);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_PlusEq) then
         stmt = parse_assign_op(ts, st, tt, TK_PlusEq);
