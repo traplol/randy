@@ -72,6 +72,16 @@ proc tc_print_src_loc self in
     print_src_loc(tc_current_src_loc(self));
 end
 
+proc tc_push_proc self in
+    vector_push(type_checker_cur_procs(self), NULL);
+    string_push(type_checker_did_returns(self), 0);
+end
+
+proc tc_pop_proc self in
+    vector_pop(type_checker_cur_procs(self));
+    string_pop(type_checker_did_returns(self));
+end
+
 proc tc_check_body self, tt, st, body in
     var i = 0; var len = vector_len(body);
     while i < len do
@@ -86,6 +96,8 @@ end
 
 proc tc_check_ident self, tt, st, ast in
     check_ast_kind(AstK_Ident, ast);
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_any_type(tt);
 end
 
@@ -141,59 +153,59 @@ proc tc_check_return self, tt, st, ast in
     else
         type = tt_void_type(tt);
     end
-    //var cur_proc = tc_current_proc(self);
-    // var otype = proc_type_info_return_type(cur_proc);
-    // if otype != tt_any_type(tt) and otype != type then
-    //     printf("WARN: Changing procedure return type.\n");
-    //     printf("NOTE: The expression is: ");
-    //     print_ast(ast);
-    //     printf("NOTE: The old type was: ");
-    //     print_type(otype);
-    //     printf("NOTE: The new type is: ");
-    //     print_type(type);
-    //     tt_print_src_loc(tt);
-    // end
     tc_set_did_return(self, true);
-    //proc_type_info_set_return_type(cur_proc, type);
     return tt_void_type(tt);
 end
 
 proc tc_check_var_decl self, tt, st, ast in
     check_ast_kind(AstK_VarDecl, ast);
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_var_assign self, tt, st, ast in
     check_ast_kind(AstK_VarAssign, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_assign self, tt, st, ast in
     check_ast_kind(AstK_Assign, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_assign_op self, tt, st, ast in
     check_ast_kind(AstK_AssignOp, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_procedure self, tt, st, ast in
     check_ast_kind(AstK_Procedure, ast);
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
+
     var params = ast_params(ast);
     var len = vector_len(params);
     var param_types = make_vector(len);
     var i = 0;
     var any = tt_any_type(tt);
     while i < len do
+        var param = vector_get(params, i);
+        symbol = st_get_symbol(st, param);
         vector_push(param_types, any);
         i += 1;
     end
     //var proc_type_info = make_proc_type_info(any, param_types);
-    //tc_push_proc(self, proc_type_info);
+    tc_push_proc(self);//, proc_type_info);
 
     tc_check_body(self, tt, st, ast_body(ast));
 
@@ -201,7 +213,7 @@ proc tc_check_procedure self, tt, st, ast in
         // TODO: set return type to void...
     end
 
-    //tc_pop_proc(self, proc_type_info);
+    tc_pop_proc(self);
 
     return tt_void_type(tt);
 end
@@ -251,22 +263,30 @@ end
 proc tc_check_const self, tt, st, ast in
     check_ast_kind(AstK_Const, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_extern self, tt, st, ast in
     check_ast_kind(AstK_Extern, ast);
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_inline_asm self, tt, st, ast in
     check_ast_kind(AstK_InlineAsm, ast);
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 proc tc_check_global self, tt, st, ast in
     check_ast_kind(AstK_Global, ast);
     var type = tc_check(self, tt, st, ast_assign_expr(ast));
+    var ident = ast_ident(ast);
+    var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
@@ -319,25 +339,5 @@ proc typecheck type_table, sym_table, roots in
 end
 
 proc tc_print_types tt in
-    // var cur; var map;
-
-    // map = tt_ast_types(tt);
-    // cur = map_begin(map);
-    // while cur != map_end(map) do
-    //     printf("===========\n");
-    //     printf("%p: ", map_pair_key(cur)); print_ast(map_pair_key(cur));
-    //     print_type(map_pair_val(cur));
-    //     cur = map_next(map, cur);
-    // end
-
-    // printf("~~~~~~~~~~~~\n");
-
-    // map = tt_procs(tt);
-    // cur = map_begin(map);
-    // while cur != map_end(map) do
-    //     printf("%s: ", map_pair_key(cur));
-    //     print_proc_type_info(map_pair_val(cur));
-    //     cur = map_next(map, cur);
-    // end
-        
+    printf("TODO: tc_print_types\n");
 end

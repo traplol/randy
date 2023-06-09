@@ -1,6 +1,14 @@
 ====================================================================================================
 TODO:
 
+
+                      need to parse type descriptions including generics
+                      right now symbols think they have a cstr for the type
+                      should we pass the type table to the parser to create types???
+                      should type descriptions even be part of the ast?
+
+
+
 core:
   - [x] string
   - [x] vector
@@ -151,14 +159,24 @@ union syntax:
     union ir_instr in
         foo: string;
 
-        struct alloc_temps in
+        alloc_temps: struct in
             n: int;
         end
 
-        struct call in
+        call: struct in
             label: string;
             varargs: bool;
         end
+
+        inner: union in
+            foo: int;
+            bar: string;
+        end
+    end
+
+    union optional[T] in
+        some: T;
+        none;
     end
 
 unions will be implemented as a c-style tagged union: a struct with a tag field and a chunk
@@ -174,6 +192,36 @@ the underlying value of a union will only be reachable within `match` blocks
     end
 
 compiler will warn or error when a union value goes unused in a match block.
+
+====================================================================================================
+generic syntax:
+
+    struct list[T] in
+        next: list[T];
+        data: T;
+    end
+
+    struct map[Key, Value, KHasher, KComparer] in
+        struct map_pair in
+            key: Key;
+            value: Value;
+        end
+
+        buckets: vector[map_pair];
+
+        proc set self, key, value in
+            var hash = KHasher.hash(key);
+            ...
+            if KComparer.equals(key, self.buckets.get(idx).key) then
+                ...
+                self.buckets.set(idx, make_map_pair(key, value));
+            end
+        end
+    end
+
+    proc foo a:[T1], b:[T2] in
+        return a.get(b);
+    end
 
 ====================================================================================================
 struct syntax:

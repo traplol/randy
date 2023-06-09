@@ -12,8 +12,8 @@
 #include token_stream
 #include ast
 #include symbol_table
-#include parsing
 #include type_table
+#include parsing
 #include type_checker
 #include ir_context
 #include compiler_context
@@ -190,9 +190,10 @@ proc main argc, argv in
         end
 
         time(starttime);
+        var type_table = make_type_table();
         var symbol_table = make_symbol_table();
         st_push_scope(symbol_table);
-        var roots = parse(token_stream, symbol_table);
+        var roots = parse(token_stream, symbol_table, type_table);
         st_pop_scope(symbol_table);
         if st_depth(symbol_table) != 0 then
             printf("Compiler bug: Didn't pop symbol table scope somewhere.\n");
@@ -209,7 +210,6 @@ proc main argc, argv in
 
         if do_typecheck then
             time(starttime);
-            var type_table = make_type_table();
             typecheck(type_table, symbol_table, roots);
             time(endtime);
             tc_print_types(type_table);

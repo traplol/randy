@@ -27,13 +27,18 @@ proc symbol_kind self in return u64@(self + TSYMBOL_kind); end
 proc symbol_name self in return u64@(self + TSYMBOL_name); end
 proc symbol_token self in return u64@(self + TSYMBOL_token); end
 proc symbol_type self in return u64@(self + TSYMBOL_type); end
+
+proc symbol_set_kind self, kind in u64!(self + TSYMBOL_kind, kind); end
 proc symbol_set_type self, type in u64!(self + TSYMBOL_type, type); end
-proc symbol_undef self in
-    return symbol_kind(self) == SK_undef;
-end
-proc symbol_set_kind self, kind in
-    u64!(self + TSYMBOL_kind, kind);
-end
+
+proc symbol_is_undef self in return symbol_kind(self) == SK_undef; end
+proc symbol_is_const self in return symbol_kind(self) == SK_const; end
+proc symbol_is_global self in return symbol_kind(self) == SK_global; end
+proc symbol_is_proc self in return symbol_kind(self) == SK_proc; end
+proc symbol_is_extern self in return symbol_kind(self) == SK_extern; end
+proc symbol_is_asm self in return symbol_kind(self) == SK_asm; end
+proc symbol_is_param self in return symbol_kind(self) == SK_param; end
+proc symbol_is_local self in return symbol_kind(self) == SK_local; end
 
 // This symbol table keeps track of identifiers relative to scope and internalizes
 // those idents to a specific id. In this case the id happens to be the same cstr
@@ -128,10 +133,14 @@ proc st_get_symbol self, ident in
         end
         i -= 1;
     end
+    var found = map_find(symbol_table_table(self), ident);
+    if found then
+        return map_pair_val(found);
+    end
     return NULL;
 end
 
-proc st_get_symbol_local self, ident in
+proc st_get_symbol_here self, ident in
     var scope = vector_back(symbol_table_scope(self));
     var found = map_find(scope, ident);
     if found then
