@@ -176,8 +176,8 @@ end
 proc token_kind self in return u64@(self + TTOKEN_kind); end
 proc token_cstr self in return u64@(self + TTOKEN_cstr); end
 proc token_value self in return u64@(self + TTOKEN_value); end
-proc token_line self in return u64@(self + TTOKEN_line); end
 proc token_filename self in return u64@(self + TTOKEN_filename); end
+proc token_line self in return u64@(self + TTOKEN_line); end
 
 proc token_src_loc self in return self + TTOKEN_filename; end
 proc src_loc_filename self in return u64@(self + TSRC_LOC_filename); end
