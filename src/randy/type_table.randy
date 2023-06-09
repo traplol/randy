@@ -136,7 +136,8 @@ end
 
 const TTYPE_TABLE_type_ids  = 0;  // (cstr, int) map : name -> type_id
 const TTYPE_TABLE_types     = 8;  // type vector : type_id is index into this vector
-const TTYPE_TABLE_ast_types = 16; // (ast, type) map : ast -> type
+const TTYPE_TABLE_names     = 16; // cstr vector : type_id is index into this vector, may have NULLs
+const TTYPE_TABLE_ast_types = 24; // (ast, type) map : ast -> type
 const TTYPE_TABLE_void_type = 32; // fast ref to `void` type
 const TTYPE_TABLE_any_type  = 40; // fast ref to `any` type
 const TTYPE_TABLE_int_type  = 48; // fast ref to `int` type
@@ -148,8 +149,10 @@ proc make_type_table in
     var self = malloc(sizeof_TTYPE_TABLE);
     var type_ids = make_map(0, cstr_eq, cstr_hash);
     var types = make_vector(0);
+    var names = make_vector(0);
     u64!(self + TTYPE_TABLE_type_ids, type_ids);
     u64!(self + TTYPE_TABLE_types, types);
+    u64!(self + TTYPE_TABLE_names, names);
     u64!(self + TTYPE_TABLE_ast_types, make_map(0, NULL, NULL));
 
     var t; var type_idx;
@@ -159,36 +162,42 @@ proc make_type_table in
     u64!(self + TTYPE_TABLE_void_type, t);
     map_set(type_ids, "void", type_idx);
     vector_push(types, t);
+    vector_push(names, "void");
 
     type_idx = vector_len(types);
     t = make_type(TyK_any, type_idx);
     u64!(self + TTYPE_TABLE_any_type, t);
     map_set(type_ids, "any", type_idx);
     vector_push(types, t);
+    vector_push(names, "any");
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
     u64!(self + TTYPE_TABLE_int_type, t);
     map_set(type_ids, "int", type_idx);
     vector_push(types, t);
+    vector_push(names, "int");
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
     u64!(self + TTYPE_TABLE_ptr_type, t);
     map_set(type_ids, "ptr", type_idx);
     vector_push(types, t);
+    vector_push(names, "ptr");
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
     u64!(self + TTYPE_TABLE_cstr_type, t);
     map_set(type_ids, "cstr", type_idx);
     vector_push(types, t);
+    vector_push(names, "cstr");
 
     return self;
 end
 
 proc type_table_type_ids self in return u64@(self + TTYPE_TABLE_type_ids); end
 proc type_table_types self in return u64@(self + TTYPE_TABLE_types); end
+proc type_table_names self in return u64@(self + TTYPE_TABLE_names); end
 proc type_table_ast_types self in return u64@(self + TTYPE_TABLE_ast_types); end
 proc tt_any_type self in return u64@(self + TTYPE_TABLE_any_type); end
 proc tt_void_type self in return u64@(self + TTYPE_TABLE_void_type); end
@@ -206,6 +215,10 @@ end
 
 proc tt_set_ast_type self, ast, type in
     map_set(type_table_ast_types(self), ast, type);
+end
+
+proc tt_get_type_name self, type in
+    return vector_get(type_table_names(self), type_id(type));
 end
 
 proc tt_get_type_or_null self, name in
@@ -229,6 +242,7 @@ proc tt_get_type_or_make_undefined self, name in
     var type = make_type_undefined(type_idx);
     map_set(type_ids, name, type_idx);
     vector_push(types, type);
+    vector_push(type_table_names(self), name);
     return type;
 end
 
@@ -236,6 +250,7 @@ proc tt_make_anon_proc self, return_type, params in
     var types = type_table_types(self);
     var type = make_type_procedure(vector_len(types), return_type, params);
     vector_push(types, type);
+    vector_push(type_table_names(self), NULL);
     return type;
 end
 
@@ -243,6 +258,7 @@ proc tt_make_anon_struct self, field_names, field_types in
     var types = type_table_types(self);
     var type = make_type_struct(vector_len(types), field_names, field_types);
     vector_push(types, type);
+    vector_push(type_table_names(self), NULL);
     return type;
 end
 
@@ -250,5 +266,6 @@ proc tt_make_anon_union self, field_names, field_types in
     var types = type_table_types(self);
     var type = make_type_union(vector_len(types), field_names, field_types);
     vector_push(types, type);
+    vector_push(type_table_names(self), NULL);
     return type;
 end
