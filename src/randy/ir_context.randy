@@ -1093,24 +1093,10 @@ end
 proc ir_emit_body self, body in
     var i = 0;
     var len = vector_len(body);
-    var ast; var astk;
     while i < len do
-        ast = vector_get(body, i);
-        astk = ast_kind(ast);
+        var ast = vector_get(body, i);
         ir_compile(self, ast);
-        if astk == AstK_Return or
-            astk == AstK_VarDecl or
-            astk == AstK_VarAssign or
-            astk == AstK_AssignOp or
-            astk == AstK_Procedure or
-            astk == AstK_IfElse or
-            astk == AstK_While or
-            astk == AstK_PointerWrite or
-            astk == AstK_Const or
-            astk == AstK_Extern or
-            astk == AstK_InlineAsm then
-            // nothing
-        else
+        if ast_is_expr(ast) then
             ir_append(self, make_ir_drop_top());
         end
         i += 1;

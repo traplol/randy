@@ -62,6 +62,7 @@ proc ast_requires_semi k in
 end
 
 const TAST_kind        = 0;  // AstK
+const TAST_is_expr     = 4;  // bool
 const TAST_token       = 8;  // token
 // This represents each AST node as a c-"union"
 // Ident
@@ -123,43 +124,41 @@ const TAST_type        = 24; // type
 
 const sizeof_TAST      = 40;
 
-proc make_ast_ident token, ident in
+proc _make_ast kind, is_expr, token in
     var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Ident);
+    u32!(self + TAST_kind, kind);
+    u8!(self + TAST_is_expr, is_expr);
     u64!(self + TAST_token, token);
+    return self;
+end
+
+proc make_ast_ident token, ident in
+    var self = _make_ast(AstK_Ident, true, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
 proc make_ast_integer token, value in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Integer);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Integer, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
 proc make_ast_string token, value in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_String);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_String, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
 proc make_ast_call token, expr, args in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Call);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Call, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_args, args);
     return self;
 end
 
 proc make_ast_binop token, lhs, op, rhs in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_BinOp);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_BinOp, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_op, op);
     u64!(self + TAST_rhs, rhs);
@@ -167,34 +166,26 @@ proc make_ast_binop token, lhs, op, rhs in
 end
 
 proc make_ast_return token, expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Return);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Return, false, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
 proc make_ast_var_decl token, ident in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_VarDecl);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_VarDecl, false, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
 proc make_ast_var_assign token, ident, expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_VarAssign);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_VarAssign, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
 proc make_ast_assign_op token, ident, op, expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_AssignOp);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_AssignOp, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_op, op);
     u64!(self + TAST_assign_expr, expr);
@@ -202,9 +193,7 @@ proc make_ast_assign_op token, ident, op, expr in
 end
 
 proc make_ast_procedure token, ident, params, body in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Procedure);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Procedure, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_body, body);
     u64!(self + TAST_params, params);
@@ -212,9 +201,7 @@ proc make_ast_procedure token, ident, params, body in
 end
 
 proc make_ast_if_else token, test, conseq, altern in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_IfElse);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_IfElse, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_consequence, conseq);
     u64!(self + TAST_alternative, altern);
@@ -222,22 +209,22 @@ proc make_ast_if_else token, test, conseq, altern in
 end
 
 proc make_ast_while token, test, body in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_While);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_While, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_body, body);
     return self;
 end
 
 proc make_ast_pointer_op token, size, op, args in
-    var self = malloc(sizeof_TAST);
+    var astk; var is_expr;
     if op == PointerOp_Read then
-        u64!(self + TAST_kind, AstK_PointerRead);
+        astk = AstK_PointerRead;
+        is_expr = true;
     else
-        u64!(self + TAST_kind, AstK_PointerWrite);
+        astk = AstK_PointerWrite;
+        is_expr = false;
     end
-    u64!(self + TAST_token, token);
+    var self = _make_ast(astk, is_expr, token);
     u64!(self + TAST_size, size);
     u64!(self + TAST_op, op);
     u64!(self + TAST_pop_args, args);
@@ -245,27 +232,21 @@ proc make_ast_pointer_op token, size, op, args in
 end
 
 proc make_ast_prefix token, op, expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Prefix);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Prefix, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_op, op);
     return self;
 end
 
 proc make_ast_const token, ident, expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Const);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Const, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
 proc make_ast_extern token, ident, params, varargs in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Extern);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Extern, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_varargs, varargs);
     u64!(self + TAST_params, params);
@@ -273,47 +254,36 @@ proc make_ast_extern token, ident, params, varargs in
 end
 
 proc make_ast_inline_asm token, ident, asmcode in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_InlineAsm);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_InlineAsm, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_asm, asmcode);
     return self;
 end
 
 proc make_ast_global token, ident, assign_expr in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Global);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Global, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, assign_expr);
     return self;
 end
 
 proc make_ast_break token in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Break);
-    u64!(self + TAST_token, token);
-    return self;
+    return _make_ast(AstK_Break, false, token);
 end
 
 proc make_ast_continue token in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Continue);
-    u64!(self + TAST_token, token);
-    return self;
+    return _make_ast(AstK_Continue, false, token);
 end
 
 proc make_ast_cast token, expr, type in
-    var self = malloc(sizeof_TAST);
-    u64!(self + TAST_kind, AstK_Cast);
-    u64!(self + TAST_token, token);
+    var self = _make_ast(AstK_Cast, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_type, type);
     return self;
 end
 
-proc ast_kind self in return u64@(self + TAST_kind); end
+proc ast_kind self in return u32@(self + TAST_kind); end
+proc ast_is_expr self in return u8@(self + TAST_is_expr); end
 proc ast_token self in return u64@(self + TAST_token); end
 proc ast_alternative self in return u64@(self + TAST_alternative); end
 proc ast_args self in return u64@(self + TAST_args); end
