@@ -68,7 +68,8 @@ const TK_CaretEq     = 64;
 const TK_BarEq       = 65;
 const TK_LSquare     = 66;
 const TK_RSquare     = 67;
-const TK_MAX_VAL     = 68;
+const TK_KW_cast     = 68;
+const TK_MAX_VAL     = 69;
 
 proc token_kind_cstr k in
     if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
@@ -140,6 +141,7 @@ proc token_kind_cstr k in
     else if k == TK_BarEq then return "TK_BarEq";
     else if k == TK_LSquare then return "TK_LSquare";
     else if k == TK_RSquare then return "TK_RSquare";
+    else if k == TK_KW_cast then return "TK_KW_cast";
     end
 end
 

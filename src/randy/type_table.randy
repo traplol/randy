@@ -157,6 +157,21 @@ proc types_eq a, b in
     return a == b;
 end
 
+proc types_assignable tt, a, b in
+    if types_eq(a, b) then
+        return true;
+    end
+    var ptr = tt_ptr_type(tt);
+    var cstr = tt_cstr_type(tt);
+    if a == ptr and b == cstr then
+        return true;
+    end
+    if a == cstr and b == ptr then
+        return true;
+    end
+    return false;
+end
+
 proc print_type self in
     var kind = type_kind(self);
     var id = type_id(self);

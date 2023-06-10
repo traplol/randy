@@ -1076,6 +1076,8 @@ proc ir_comptime_eval self, ast, error_on_fail in
                 return make_ast_integer(ast_token(ast), result); // @LEAK
             end
         end
+    else if k == AstK_Cast then
+        return ir_comptime_eval(self, ast_expr(ast), error_on_fail);
     end
 
     if error_on_fail then

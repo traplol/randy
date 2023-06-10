@@ -23,6 +23,7 @@ const AstK_Global       = 17;
 const AstK_Break        = 18;
 const AstK_Continue     = 19;
 const AstK_AssignOp     = 20;
+const AstK_Cast         = 21;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -46,6 +47,7 @@ proc ast_kind_cstr k in
     if k == AstK_Break then return "AstK_Break"; end
     if k == AstK_Continue then return "AstK_Continue"; end
     if k == AstK_AssignOp then return "AstK_AssignOp"; end
+    if k == AstK_Cast then return "AstK_Cast"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -115,6 +117,9 @@ const TAST_params      = 32; // cstr vector
 // InlineAsm
 const TAST_ident       = 16; // cstr
 const TAST_asm         = 24; // cstr
+// Cast
+const TAST_expr        = 16; // ast
+const TAST_type        = 24; // type
 
 const sizeof_TAST      = 40;
 
@@ -299,6 +304,15 @@ proc make_ast_continue token in
     return self;
 end
 
+proc make_ast_cast token, expr, type in
+    var self = malloc(sizeof_TAST);
+    u64!(self + TAST_kind, AstK_Cast);
+    u64!(self + TAST_token, token);
+    u64!(self + TAST_expr, expr);
+    u64!(self + TAST_type, type);
+    return self;
+end
+
 proc ast_kind self in return u64@(self + TAST_kind); end
 proc ast_token self in return u64@(self + TAST_token); end
 proc ast_alternative self in return u64@(self + TAST_alternative); end
@@ -318,6 +332,7 @@ proc ast_size self in return u64@(self + TAST_size); end
 proc ast_test self in return u64@(self + TAST_test); end
 proc ast_value self in return u64@(self + TAST_value); end
 proc ast_varargs self in return u64@(self + TAST_varargs); end
+proc ast_type self in return u64@(self + TAST_type); end
 
 proc ast_src_loc self in
     var token = ast_token(self);
@@ -536,6 +551,12 @@ proc _print_ast_continue ast, indent in
     printf("continue");
 end
 
+proc _print_ast_cast ast, indent in
+    printf("cast(");
+    _print_ast(ast_expr(ast), indent);
+    printf(", <type id %d>)", type_id(ast_type(ast)));
+end
+
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -559,6 +580,7 @@ proc _print_ast ast, indent in
     else if k == AstK_Break then _print_ast_break(ast, indent);
     else if k == AstK_Continue then _print_ast_continue(ast, indent);
     else if k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
+    else if k == AstK_Cast then _print_ast_cast(ast, indent);
     else
         printf("`_print_ast` in ast.randy\n");
         printf("Unhandled AstK: %d\n", k);

@@ -37,6 +37,7 @@ proc get_ident_kind string in
     else if 'b' == first then
         if cstr_eq("break", cstr) then return TK_KW_break; end
     else if 'c' == first then
+        if cstr_eq("cast", cstr) then return TK_KW_cast; end
         if cstr_eq("const", cstr) then return TK_KW_const; end
         if cstr_eq("continue", cstr) then return TK_KW_continue; end
     else if 'd' == first then

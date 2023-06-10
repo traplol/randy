@@ -198,7 +198,7 @@ proc ti_infer_return self, tt, st, ast in
     var any = tt_any_type(tt);
     if not ret_type or ret_type == any then
         type_set_proc_return_type(proc_type, type);
-    else if not types_eq(type, ret_type) then
+    else if not types_assignable(tt, type, ret_type) then
         printf("WARN: Return type for `%s` is `", symbol_name(cur_proc));
         _ti_print_type_name(tt, ret_type);
         printf("` cannot return `");
@@ -226,7 +226,7 @@ proc _ti_infer_assignment tt, type, symbol, ast in
     var sym_type = symbol_type(symbol);
     if not sym_type or sym_type == tt_any_type(tt) then
         symbol_set_type(symbol, type);
-    else if not types_eq(type, sym_type) then
+    else if not types_assignable(tt, type, sym_type) then
         printf("WARN: type of `%s` is `", symbol_name(symbol));
         _ti_print_type_name(tt, sym_type);
         printf("` cannot assign `");
@@ -365,6 +365,12 @@ proc ti_infer_global self, tt, st, ast in
     return tt_void_type(tt);
 end
 
+proc ti_infer_cast self, tt, st, ast in
+    check_ast_kind(AstK_Cast, ast);
+    ti_infer(self, tt, st, ast_expr(ast));
+    return ast_type(ast);
+end
+
 proc ti_infer self, tt, st, ast in
     var k = ast_kind(ast);
     var type;
@@ -389,8 +395,9 @@ proc ti_infer self, tt, st, ast in
     else if k == AstK_Break then type = tt_void_type(tt);
     else if k == AstK_Continue then type = tt_void_type(tt);
     else if k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
+    else if k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
     else
-        printf("`ti_infer` in typechecking.randy");
+        printf("`ti_infer` in typechecking.randy\n");
         printf("Unhandled AstK: %d\n", k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));

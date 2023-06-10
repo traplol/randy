@@ -225,6 +225,21 @@ proc parse_pointer_op ts, st, tt in
     return make_ast_pointer_op(token, size, op, args);
 end
 
+proc parse_cast ts, st, tt in
+    var cast_ = ts_expect(ts, TK_KW_cast);
+    ts_expect(ts, TK_LParen);
+    var expr = parse_expression(ts, st, tt);
+    if not expr then
+        printf("ERROR: Expected expression after '('\n");
+        print_token_loc(cast_);
+        exit(1);
+    end
+    ts_expect(ts, TK_Comma);
+    var type = parse_type(ts, st, tt, true);
+    ts_expect(ts, TK_RParen);
+    return make_ast_cast(cast_, expr, type);
+end
+
 proc parse_primary ts, st, tt in
     var peek = ts_peek(ts);
     if ts_accept(ts, TK_LParen) then
@@ -257,6 +272,8 @@ proc parse_primary ts, st, tt in
         return make_ast_string(peek, token_value(ts_next(ts)));
     else if k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
         return parse_pointer_op(ts, st, tt);
+    else if k == TK_KW_cast then
+        return parse_cast(ts, st, tt);
     end
     return NULL;
 end

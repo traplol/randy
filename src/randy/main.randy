@@ -234,7 +234,7 @@ proc main argc, argv in
         end
 
         if not will_compile then
-            return 1;
+            return 0;
         end
 
         var main_proc = NULL;
