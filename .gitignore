@@ -2,6 +2,7 @@
 /asm/
 /out/
 /bootstrap/
+/tmp/
 .gdb_history
 randy.bak
 randy.bak2

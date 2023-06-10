@@ -128,6 +128,35 @@ proc type_is_enum self in return type_kind(self) == TyK_enum; end
 proc type_is_union self in return type_kind(self) == TyK_union; end
 proc type_is_array self in return type_kind(self) == TyK_array; end
 
+proc types_eq a, b in
+    if a == b then
+        return true;
+    end
+    if type_is_procedure(a) and type_is_procedure(b) then
+        var a_ret = type_proc_return_type(a);
+        var b_ret = type_proc_return_type(b);
+        if not types_eq(a_ret, b_ret) then
+            return false;
+        end
+        var a_params = type_proc_parameters(a);
+        var b_params = type_proc_parameters(b);
+        if vector_len(a_params) != vector_len(b_params) then
+            return false;
+        end
+        var i = 0; var len = vector_len(a_params);
+        while i < len do
+            var ap = vector_get(a_params, i);
+            var bp = vector_get(b_params, i);
+            if not types_eq(ap, bp) then
+                return false;
+            end
+            i += 1;
+        end
+        return true;
+    end
+    return a == b;
+end
+
 proc print_type self in
     var kind = type_kind(self);
     var id = type_id(self);
@@ -268,4 +297,47 @@ proc tt_make_anon_union self, field_names, field_types in
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
+end
+
+proc _tt_append_proc_type_repr self, string, type in
+    if not type then
+        string_append_cstr(string, "{null}");
+    else if type_is_procedure(type) then
+        var ptn = tt_get_proc_type_name(self, type);
+        string_append_string(string, ptn);
+        free_string(ptn);
+    else
+        var tn = tt_get_type_name(self, type);
+        if tn then
+            string_append_cstr(string, tn);
+        else
+            string_append_cstr(string, "{no type}");
+        end
+    end
+end
+
+proc tt_get_proc_type_name self, type in
+    if not type_is_procedure(type) then
+        return NULL;
+    end
+
+    var string = make_string(20);
+    string_push(string, '(');
+    var params = type_proc_parameters(type);
+    var ret_ty = type_proc_return_type(type);
+
+    var i = 0; var len = vector_len(params);
+    while i < len do
+        var symbol = vector_get(params, i);
+        _tt_append_proc_type_repr(self, string, symbol_type(symbol));
+        i += 1;
+        if i < len then
+            string_append_cstr(string, ", ");
+        end
+    end
+
+    string_append_cstr(string, " -> ");
+    _tt_append_proc_type_repr(self, string, ret_ty);
+    string_push(string, ')');
+    return string;
 end

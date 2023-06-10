@@ -147,3 +147,6 @@ proc NYI_ERR file, line, what in
     printf("  File \"%s\", line %d\n", file, line);
     exit(1);
 end
+
+proc min a, b in if a < b then return a; else return b; end end
+proc max a, b in if a > b then return a; else return b; end end

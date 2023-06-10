@@ -14,6 +14,7 @@
 #include symbol_table
 #include type_table
 #include parsing
+#include type_infer
 #include type_checker
 #include ir_context
 #include compiler_context
@@ -210,9 +211,11 @@ proc main argc, argv in
 
         if do_typecheck then
             time(starttime);
-            typecheck(type_table, symbol_table, roots);
+            type_infer(type_table, symbol_table, roots);
+            type_check(type_table, symbol_table, roots);
             time(endtime);
-            tc_print_types(type_table);
+            //tc_print_types(type_table);
+            //tc_print_symbols(type_table, symbol_table);
             if verbosity > 0 then
                 print_timespan("Typechecking took: ", starttime, endtime);
             end

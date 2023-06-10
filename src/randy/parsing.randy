@@ -71,18 +71,17 @@ proc parse_var ts, st, tt in
     var var_ = ts_expect(ts, TK_KW_var);
     var ident = ts_expect(ts, TK_Ident);
     var type = NULL;
+    var expr = NULL;
     if ts_accept(ts, TK_Colon) then
         type = parse_type(ts, st, tt, true);
     end
-    if ts_peekk(ts, TK_Semicolon) then
-        return make_ast_var_decl(var_, token_value(ident));
-    end
-    ts_expect(ts, TK_Assign);
-    var expr = parse_expression(ts, st, tt);
-    if not expr then
-        printf("ERROR: Expected expression after '='\n");
-        print_token_loc(ident);
-        exit(1);
+    if ts_accept(ts, TK_Assign) then
+        expr = parse_expression(ts, st, tt);
+        if not expr then
+            printf("ERROR: Expected expression after '='\n");
+            print_token_loc(ident);
+            exit(1);
+        end
     end
     var symbol = st_get_symbol_here(st, token_value(ident));
     if symbol then
@@ -93,8 +92,11 @@ proc parse_var ts, st, tt in
         exit(1);
     end
     symbol = st_make_local(st, token_value(ident), ident);
-    symbol_set_type(symbol, type);
-    return make_ast_var_assign(var_, symbol_name(symbol), expr);
+    symbol_set_type(symbol, type); // OK if type is NULL
+    if expr then
+        return make_ast_var_assign(var_, symbol_name(symbol), expr);
+    end
+    return make_ast_var_decl(var_, symbol_name(symbol));
 end
 
 proc parse_if_else ts, st, tt in
@@ -272,7 +274,8 @@ proc parse_postfix ts, st, tt in
     var args = make_vector(0);
     parse_args_until(ts, st, tt, args, TK_RParen);
     ts_expect(ts, TK_RParen);
-    return make_ast_call(peek, expr, args);
+    var ast = make_ast_call(peek, expr, args);
+    return ast;
 end
 
 proc parse_prefix ts, st, tt in
@@ -595,8 +598,9 @@ proc parse_proc ts, st, tt in
     st_push_scope(st);
     var body = make_vector(0);
     var params = make_vector(0);
+    var param_symbols = make_vector(0);
+    var any_type = tt_any_type(tt);
     while ts_peekk(ts, TK_Ident) do
-        var type_ident = NULL;
         var param_id = ts_next(ts);
         var param_symbol = st_get_symbol_here(st, token_value(param_id));
         if param_symbol then
@@ -608,11 +612,12 @@ proc parse_proc ts, st, tt in
         end
         param_symbol = st_make_param(st, token_value(param_id), param_id);
         vector_push(params, symbol_name(param_symbol));
+        vector_push(param_symbols, param_symbol);
         if ts_peekk(ts, TK_KW_in) then
+            symbol_set_type(param_symbol, any_type);
             break;
         else if ts_accept(ts, TK_Colon) then
-            type_ident = ts_expect(ts, TK_Ident);
-            //symbol_set_type_token(param_symbol, type_ident);
+            symbol_set_type(param_symbol, parse_type(ts, st, tt, true));
             if ts_peekk(ts, TK_KW_in) then
                 break;
             end
@@ -621,20 +626,28 @@ proc parse_proc ts, st, tt in
             end
             ts_expect(ts, TK_Comma);
         else if ts_peekk(ts, TK_RightArrow) then
+            symbol_set_type(param_symbol, any_type);
             break;
         else
+            symbol_set_type(param_symbol, any_type);
             ts_expect(ts, TK_Comma);
         end
     end
+    var return_type = any_type;
     if ts_accept(ts, TK_RightArrow) then
-        var type_ident = ts_expect(ts, TK_Ident);
-        //symbol_set_type_token(proc_symbol, type_ident);
+        return_type = parse_type(ts, st, tt, true);
     end
     ts_expect(ts, TK_KW_in);
+
+    var proc_type = tt_make_anon_proc(tt, return_type, param_symbols);
+    symbol_set_type(proc_symbol, proc_type);
+
     parse_statements_until(ts, st, tt, body, TK_KW_end);
     ts_expect(ts, TK_KW_end);
     st_pop_scope(st);
-    return make_ast_procedure(proc_, token_value(ident), params, body);
+    var ast = make_ast_procedure(proc_, symbol_name(proc_symbol), params, body);
+    type_set_ast(proc_type, ast);
+    return ast;
 end
 
 proc parse_const ts, st, tt in
