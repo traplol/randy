@@ -45,12 +45,14 @@ proc get_ident_kind string in
     else if 'e' == first then
         if cstr_eq("else", cstr) then return TK_KW_else; end
         if cstr_eq("end", cstr) then return TK_KW_end; end
+        if cstr_eq("enum", cstr) then return TK_KW_enum; end
         if cstr_eq("extern", cstr) then return TK_KW_extern; end
     else if 'g' == first then
         if cstr_eq("global", cstr) then return TK_KW_global; end
     else if 'i' == first then
         if cstr_eq("if", cstr) then return TK_KW_if; end
         if cstr_eq("in", cstr) then return TK_KW_in; end
+        if cstr_eq("inline", cstr) then return TK_KW_inline; end
     else if 'n' == first then
         if cstr_eq("not", cstr) then return TK_KW_not; end
     else if 'o' == first then
@@ -59,6 +61,8 @@ proc get_ident_kind string in
         if cstr_eq("proc", cstr) then return TK_KW_proc; end
     else if 'r' == first then
         if cstr_eq("return", cstr) then return TK_KW_return; end
+    else if 's' == first then
+        if cstr_eq("struct", cstr) then return TK_KW_struct; end
     else if 't' == first then
         if cstr_eq("then", cstr) then return TK_KW_then; end
     else if 'u' == first then
@@ -71,6 +75,7 @@ proc get_ident_kind string in
         if cstr_eq("u16!", cstr) then return TK_KW_u16!; end
         if cstr_eq("u32!", cstr) then return TK_KW_u32!; end
         if cstr_eq("u64!", cstr) then return TK_KW_u64!; end
+        if cstr_eq("union", cstr) then return TK_KW_union; end
     else if 'v' == first then
         if cstr_eq("var", cstr) then return TK_KW_var; end
     else if 'w' == first then
@@ -294,6 +299,9 @@ proc _lex_code filename, code, include_paths, included_already in
                 if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
                     vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no, filename));
                     i += 3;
+                else
+                    vector_push(tokens, make_token(TK_Dot, ".", ".", line_no, filename));
+                    i += 1;
                 end
             else if c == '!' then
                 if i+1 < length and string_get(code, i+1) == '=' then
