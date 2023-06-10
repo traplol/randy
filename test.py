@@ -140,7 +140,7 @@ def run_all():
     # create test directory if it doesn"t exist
     if not os.path.exists("test/"):
         os.mkdir("test/")
-    files = os.listdir("test/")
+    files = sorted(os.listdir("test/"))
     for i, output_file in enumerate(files):
         if output_file.endswith(".output"):
             print(f"[{i+1}/{len(files)}] ", end="")
