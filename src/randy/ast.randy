@@ -395,20 +395,21 @@ end
 
 proc _print_ast_assign_op ast, indent in
     printf("%s ", ast_ident(ast));
-    var k = ast_op(ast);
-    var x = "FIXME";
-    if k == TK_PlusEq then x = "+=";
-    else if k == TK_MinusEq then "-=";
-    else if k == TK_StarEq then "*=";
-    else if k == TK_SlashEq then "/=";
-    else if k == TK_PercentEq then "%=";
-    else if k == TK_LShiftEq then "<<=";
-    else if k == TK_RShiftEq then ">>=";
-    else if k == TK_AmperEq then "&=";
-    else if k == TK_CaretEq then "^=";
-    else if k == TK_BarEq then "|=";
+    var op = ast_op(ast);
+    var op_str = "FIXME in ast.randy";
+    if op == TK_Assign         then op_str = "=";
+    else if op == TK_PlusEq    then op_str = "+=";
+    else if op == TK_MinusEq   then op_str = "-=";
+    else if op == TK_StarEq    then op_str = "*=";
+    else if op == TK_SlashEq   then op_str = "/=";
+    else if op == TK_PercentEq then op_str = "%=";
+    else if op == TK_LShiftEq  then op_str = "<<=";
+    else if op == TK_RShiftEq  then op_str = ">>=";
+    else if op == TK_AmperEq   then op_str = "&=";
+    else if op == TK_CaretEq   then op_str = "^=";
+    else if op == TK_BarEq     then op_str = "|=";
     end
-    printf("%s ", x);
+    printf("%s ", op_str);
     _print_ast(ast_assign_expr(ast), indent);
 end
 
