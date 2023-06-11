@@ -57,13 +57,10 @@ proc parse_type ts, st, tt, is_instance in
         else
             type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
         end
-    else
+    else if generic_params and vector_len(generic_params) > 0 then
         NYI_ERR(__FILE__, __LINE__, "generic types");
     end
-    if not type then
-        printf("Compiler bug: type is NULL\n");
-        exit(1);
-    end
+    assert(type, "Compiler bug: type is NULL\n");
     return type;
 end
 
@@ -240,6 +237,50 @@ proc parse_cast ts, st, tt in
     return make_ast_cast(cast_, expr, type);
 end
 
+proc parse_assert ts, st, tt in
+    var assert_ = ts_expect(ts, TK_KW_assert);
+    ts_expect(ts, TK_LParen);
+    var assert_args = make_vector(0);
+    parse_args_until(ts, st, tt, assert_args, TK_RParen);
+    ts_expect(ts, TK_RParen);
+    if vector_len(assert_args) == 0 then
+        printf("ERROR: Expected expression to test in 'assert'\n");
+        print_token_loc(assert_);
+        exit(1);
+    end
+    var test = vector_get(assert_args, 0);
+    var body = make_vector(0);
+    var printf_args = make_vector(0);
+    vector_push(printf_args, make_ast_string(assert_, string_from_cstr("Assertion failed:\n")));
+    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args));
+
+    var len = vector_len(assert_args);
+    if len > 1 then
+        printf_args = make_vector(0);
+        var i = 1;
+        while i < len do
+            vector_push(printf_args, vector_get(assert_args, i));
+            i += 1;
+        end
+        vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args));
+    end
+
+    printf_args = make_vector(1);
+    var string = string_from_cstr(" File \"");
+    string_append_cstr(string, token_filename(assert_));
+    string_append_cstr(string, "\", line ");
+    string_append_int(string, token_line(assert_));
+    string_push(string, '\n');
+    vector_push(printf_args, make_ast_string(assert_, string));
+    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args)); 
+    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "abort"), make_vector(0))); 
+
+    test = make_ast_prefix(assert_, TK_KW_not, test);
+    var ast = make_ast_if_else(assert_, test, body, make_vector(0));
+    free_vector(assert_args);
+    return ast;
+end
+
 proc parse_primary ts, st, tt in
     var peek = ts_peek(ts);
     if ts_accept(ts, TK_LParen) then
@@ -291,8 +332,7 @@ proc parse_postfix ts, st, tt in
     var args = make_vector(0);
     parse_args_until(ts, st, tt, args, TK_RParen);
     ts_expect(ts, TK_RParen);
-    var ast = make_ast_call(peek, expr, args);
-    return ast;
+    return make_ast_call(peek, expr, args);
 end
 
 proc parse_prefix ts, st, tt in
@@ -513,6 +553,9 @@ proc parse_statement ts, st, tt in
         expect_semi = true;
     else if ts_peekk(ts, TK_KW_continue) then
         stmt = make_ast_continue(ts_next(ts));
+        expect_semi = true;
+    else if ts_peekk(ts, TK_KW_assert) then
+        stmt = parse_assert(ts, st, tt);
         expect_semi = true;
     else if ts_peekk2(ts, TK_Ident, TK_Assign) then
         stmt = parse_assign_op(ts, st, tt, TK_Assign);
@@ -789,6 +832,13 @@ proc parse_global ts, st, tt in
     return make_ast_global(global_, symbol_name(symbol), expr);
 end
 
+proc parse_struct ts, st, tt in
+    var struct_ = ts_expect(ts, TK_KW_struct);
+    var type = parse_type(ts, st, tt, false);
+    ts_expect(ts, TK_KW_in);
+    NYI_ERR(__FILE__, __LINE__, "parse_struct");
+end
+
 proc parse ts, st, tt in
     var roots = make_vector(0);
     var parsed = NULL; var tk;
@@ -807,6 +857,8 @@ proc parse ts, st, tt in
         else if ts_peekk(ts, TK_KW_global) then
             parsed = parse_global(ts, st, tt);
             ts_expect(ts, TK_Semicolon);
+        else if ts_peekk(ts, TK_KW_struct) then
+            parsed = parse_struct(ts, st, tt);
         else
             tk = ts_peek(ts);
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(token_kind(tk)));
