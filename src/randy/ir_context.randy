@@ -877,8 +877,7 @@ proc ir_get_local self, ident in
         end
         i -= 1;
     end
-    printf("Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
-    abort();
+    assert(false, "Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
 end
 
 proc ir_is_const self, ident in
@@ -1334,9 +1333,8 @@ proc ir_emit_assign_op self, ast in
     else if op == TK_BarEq then ir_op = IRK_OpBitOR;
     else if op == TK_Assign then // nothing
     else
-        printf("Compiler bug: Unhandled assign op: %d\n", op);
         ir_print_src_loc(self);
-        exit(1);
+        assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
     end
     if op != TK_Assign then
         ir_append(self, make_ir_simple_op(ir_op));
@@ -1350,9 +1348,8 @@ proc ir_emit_assign_op self, ast in
         var label = global_info_label(gi);
         ir_append(self, make_ir_set_global(ident, label));
     else
-        printf("Compiler bug: Unhandled assignment for non-local and non-global\n");
         ir_print_src_loc(self);
-        exit(1);
+        assert(false, "Compiler bug: Unhandled assignment for non-local and non-global\n");
     end
 end
 

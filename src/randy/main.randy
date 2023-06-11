@@ -196,11 +196,8 @@ proc main argc, argv in
         st_push_scope(symbol_table);
         var roots = parse(token_stream, symbol_table, type_table);
         st_pop_scope(symbol_table);
-        if st_depth(symbol_table) != 0 then
-            printf("Compiler bug: Didn't pop symbol table scope somewhere.\n");
-            return 1;
-        end
         time(endtime);
+        assert(st_depth(symbol_table) == 0, "Compiler bug: Didn't pop symbol table scope somewhere.\n");
         if verbosity > 0 then
             print_timespan("Parsing took: ", starttime, endtime);
         end
@@ -283,4 +280,3 @@ proc main argc, argv in
         return 0;
     end
 end
-

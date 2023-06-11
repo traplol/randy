@@ -280,10 +280,8 @@ proc ti_infer_procedure self, tt, st, ast in
     ti_push_proc(self, symbol);
     ti_infer_body(self, tt, st, ast_body(ast));
     var proc_type = symbol_type(symbol);
-    if not type_is_procedure(proc_type) then
-        printf("Compiler bug: procedure type is not actually procedure type.\n");
-        exit(1);
-    end
+    assert(type_is_procedure(proc_type),
+           "Compiler bug: procedure type is not actually procedure type.\n");
     // don't handle the case where function is declared with a type but doesn't return here
     // because we'll let the IR compiler determine that.
     // it'just needless complexity to deal with checking every branch for returns here.

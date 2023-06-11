@@ -61,17 +61,15 @@ proc st_make_symbol self, kind, ident, token in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then
-        printf("Compiler bug: making a symbol that already exists: %s\n", ident);
         print_token_loc(token);
-        exit(1);
+        assert(false, "Compiler bug: making a symbol that already exists: `%s`\n", ident);
     end
 
     var local_scope = vector_back(symbol_table_scope(self));
     found = map_find(local_scope, ident);
     if found then
-        printf("Compiler bug: making a local symbol that already exists: %s\n", ident);
         print_token_loc(token);
-        exit(1);
+        assert(false, "Compiler bug: making a local symbol that already exists: `%s`\n", ident);
     end
     var symbol = make_symbol(kind, ident, token);
     map_set(table, ident, symbol);
@@ -105,17 +103,15 @@ proc st_prepare_undef self, ident, token in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then
-        printf("Compiler bug: making an undef symbol that already exists: %s\n", ident);
         print_token_loc(token);
-        exit(1);
+        assert(false, "Compiler bug: making an undef symbol that already exists: `%s`\n", ident);
     end
 
     var scope = vector_get(symbol_table_scope(self), 0);
     found = map_find(scope, ident);
     if found then
-        printf("Compiler bug: making an undef symbol that already exists: %s\n", ident);
         print_token_loc(token);
-        exit(1);
+        assert(false, "Compiler bug: making an undef symbol that already exists: `%s`\n", ident);
     end
     var symbol = make_symbol(SK_undef, ident, token);
     map_set(table, ident, symbol);
