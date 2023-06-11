@@ -32,8 +32,9 @@ proc get_ident_kind string in
     var cstr = string_cstr(string);
     var first = u8@(cstr);
     if 'a' == first then
-        if cstr_eq("asm", cstr) then return TK_KW_asm; end
         if cstr_eq("and", cstr) then return TK_KW_and; end
+        if cstr_eq("asm", cstr) then return TK_KW_asm; end
+        if cstr_eq("assert", cstr) then return TK_KW_assert; end
     else if 'b' == first then
         if cstr_eq("break", cstr) then return TK_KW_break; end
     else if 'c' == first then

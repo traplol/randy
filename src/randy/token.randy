@@ -74,7 +74,8 @@ const TK_KW_union    = 70;
 const TK_KW_enum     = 71;
 const TK_KW_inline   = 72;
 const TK_Dot         = 73;
-const TK_MAX_VAL     = 74;
+const TK_KW_assert   = 74;
+const TK_MAX_VAL     = 75;
 
 proc token_kind_cstr k in
     if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
@@ -152,6 +153,7 @@ proc token_kind_cstr k in
     else if k == TK_KW_enum then return "TK_KW_enum";
     else if k == TK_KW_inline then return "TK_KW_inline";
     else if k == TK_Dot then return "TK_Dot";
+    else if k == TK_KW_assert then return "TK_KW_assert";
     end
 end
 
