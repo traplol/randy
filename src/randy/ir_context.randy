@@ -51,6 +51,7 @@ const IRK_OpBitShiftL   = 48;
 const IRK_OpBitShiftR   = 49;
 const IRK_ScopeOpen     = 50;
 const IRK_ScopeClose    = 51;
+const IRK_PtrCopy       = 52;
 
 proc ir_instr_kind_cstr k in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -102,6 +103,7 @@ proc ir_instr_kind_cstr k in
     if k == IRK_OpBitShiftR then return "IRK_OpBitShiftR"; end
     if k == IRK_ScopeOpen then return "IRK_ScopeOpen"; end
     if k == IRK_ScopeClose then return "IRK_ScopeClose"; end
+    if k == IRK_PtrCopy then return "IRK_PtrCopy"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -123,6 +125,7 @@ const TIR_INSTR_varargs  = 32;
 const TIR_INSTR_asm      = 32;
 const TIR_INSTR_arg      = 32;
 const TIR_INSTR_src_name = 32;
+const TIR_INSTR_type     = 32;
 
 const TIR_INSTR_nlocals  = 40;
 const sizeof_TIR_INSTR   = 48;
@@ -143,117 +146,118 @@ proc ir_instr_asm self in return u64@(self + TIR_INSTR_asm); end
 proc ir_instr_arg self in return u64@(self + TIR_INSTR_arg); end
 proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
 proc ir_instr_nlocals self in return u64@(self + TIR_INSTR_nlocals); end
+proc ir_instr_type self in return u64@(self + TIR_INSTR_type); end
 
 proc make_ir_alloc_temps n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_AllocTemps);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_call label, varargs in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Call);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_varargs, varargs);
     return self;
 end
 proc make_ir_lazy_ident ident in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
     return self;
 end
 proc make_ir_call_lazy_ident ident, nargs in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
     u64!(self + TIR_INSTR_nargs, nargs);
     return self;
 end
 proc make_ir_close_proc src_name, name in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CloseProc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     return self;
 end
 proc make_ir_free_temps n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_FreeTemps);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_get_local local, n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_goto label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Goto);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_goto_false label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoFalse);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_goto_top_false label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopFalse);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_goto_top_true label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopTrue);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_inline_asm name, asmcode in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_InlineAsm);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_asm, asmcode);
     return self;
 end
 proc make_ir_label label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Label);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_bit_not in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_BitNot);
     return self;
 end
 proc make_ir_logic_not in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LogicNot);
     return self;
 end
 proc make_ir_negative in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Negative);
     return self;
 end
 proc make_ir_scope_open in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ScopeOpen);
     return self;
 end
 proc make_ir_scope_close in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ScopeClose);
     return self;
 end
 proc make_ir_new_proc src_name, name, params, locals in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_NewProc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
@@ -262,64 +266,70 @@ proc make_ir_new_proc src_name, name, params, locals in
     return self;
 end
 proc make_ir_simple_op op in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, op);
     return self;
 end
 proc make_ir_pop_call in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopCall);
     return self;
 end
 proc make_ir_pop_return in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopReturn);
     return self;
 end
 proc make_ir_ptr_read size in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrRead);
     u64!(self + TIR_INSTR_size, size);
     return self;
 end
 proc make_ir_ptr_write size in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrWrite);
     u64!(self + TIR_INSTR_size, size);
     return self;
 end
+proc make_ir_ptr_copy size in
+    var self = calloc(1, sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PtrCopy);
+    u64!(self + TIR_INSTR_size, size);
+    return self;
+end
 proc make_ir_push_int value in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushInt);
     u64!(self + TIR_INSTR_value, value);
     return self;
 end
 proc make_ir_push_label label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushLabel);
     u64!(self + TIR_INSTR_label, label);
     return self;
 end
 proc make_ir_return_void in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ReturnVoid);
     return self;
 end
 proc make_ir_set_arg_temp n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetArgTemp);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_set_local local, n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_set_local_arg local, local_n, arg in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, local_n);
@@ -327,25 +337,25 @@ proc make_ir_set_local_arg local, local_n, arg in
     return self;
 end
 proc make_ir_store_temp n in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_StoreTemp);
     u64!(self + TIR_INSTR_n, n);
     return self;
 end
 proc make_ir_drop_top in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_DropTop);
     return self;
 end
 proc make_ir_set_global name, label in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetGlobal);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_src_name, name);
     return self;
 end
 proc make_ir_get_global name, label  in
-    var self = malloc(sizeof_TIR_INSTR);
+    var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetGlobal);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_src_name, name);
@@ -485,6 +495,10 @@ proc print_ir_ptr_write self in
     printf("(IR.PtrWrite ");
     printf("size=%d)\n", u64@(self + TIR_INSTR_size));
 end
+proc print_ir_ptr_copy self in
+    printf("(IR.PtrCopy ");
+    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+end
 proc print_ir_push_int self in
     printf("(IR.PushInt ");
     printf("value=%d)\n", u64@(self + TIR_INSTR_value));
@@ -574,6 +588,7 @@ proc print_ir ir in
     else if k == IRK_Negative then print_ir_negative(ir);
     else if k == IRK_ScopeOpen then print_ir_scope_open(ir);
     else if k == IRK_ScopeClose then print_ir_scope_close(ir);
+    else if k == IRK_PtrCopy then print_ir_ptr_copy(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
