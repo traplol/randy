@@ -251,8 +251,15 @@ proc parse_assert ts, st, tt in
     var test = vector_get(assert_args, 0);
     var body = make_vector(0);
     var printf_args = make_vector(0);
+    var printf_symbol = st_get_symbol(st, "printf");
+    assert(printf_symbol, "`printf` not defined for assert.");
+    var abort_symbol = st_get_symbol(st, "abort");
+    assert(abort_symbol, "`abort` not defined for assert.");
+
     vector_push(printf_args, make_ast_string(assert_, string_from_cstr("Assertion failed:\n")));
-    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args));
+    vector_push(body, make_ast_call(assert_,
+                        make_ast_ident(assert_, symbol_name(printf_symbol)),
+                        printf_args));
 
     var len = vector_len(assert_args);
     if len > 1 then
@@ -262,7 +269,9 @@ proc parse_assert ts, st, tt in
             vector_push(printf_args, vector_get(assert_args, i));
             i += 1;
         end
-        vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args));
+        vector_push(body, make_ast_call(assert_,
+                            make_ast_ident(assert_, symbol_name(printf_symbol)),
+                            printf_args));
     end
 
     printf_args = make_vector(1);
@@ -272,8 +281,11 @@ proc parse_assert ts, st, tt in
     string_append_int(string, token_line(assert_));
     string_push(string, '\n');
     vector_push(printf_args, make_ast_string(assert_, string));
-    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "printf"), printf_args)); 
-    vector_push(body, make_ast_call(assert_, make_ast_ident(assert_, "abort"), make_vector(0))); 
+    vector_push(body, make_ast_call(assert_,
+                        make_ast_ident(assert_, symbol_name(printf_symbol)),
+                        printf_args));
+    vector_push(body, make_ast_call(assert_,
+                        make_ast_ident(assert_, symbol_name(abort_symbol)), make_vector(0))); 
 
     test = make_ast_prefix(assert_, TK_KW_not, test);
     var ast = make_ast_if_else(assert_, test, body, make_vector(0));
