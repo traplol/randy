@@ -518,6 +518,132 @@ proc x86_64_emit_ptr_write cc, ir in
     free_string(str);
 end
 
+proc x86_64_emit_ptr_copy cc, ir in
+    check_ir_kind(IRK_PtrCopy, ir);
+    //print_ir(ir);
+    var bits = ir_instr_size(ir);
+    if bits <= 0 then
+        return;
+    end
+    var size = (bits + 7) / 8; // num of bytes to copy
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax"); // -- dest
+    cc_out(cc, "    popq %rdx"); // -- src
+
+    var sse = size / 16;
+    size -= sse * 16;
+    var movq = size / 8;
+    size -= movq * 8;
+    var movl = size / 4;
+    size -= movl * 4;
+    var movw = size / 2;
+    size -= movw * 2;
+    var movb = size;
+    size -= movb * 1;
+    assert(size == 0, "x86_64_emit_ptr_copy: didn't resolve size to 0, it was %d\n", size);
+
+    var i = 0; var offs = 0;
+    var str = make_string(20);
+    while i < sse do
+        // load src+offs into xmm0
+        string_reset(str);
+        string_append_cstr(str, "    movdqu ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rdx), %xmm0");
+        cc_out(cc, string_cstr(str));
+
+        // store xmm0 into dest+offs
+        string_reset(str);
+        string_append_cstr(str, "    movups %xmm0, ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rax)");
+        cc_out(cc, string_cstr(str));
+
+        i += 1;
+        offs += 16;
+    end
+
+    while i < movq do
+        // load src+offs into rcx
+        string_reset(str);
+        string_append_cstr(str, "    movq ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rdx), %rcx");
+        cc_out(cc, string_cstr(str));
+
+        // store rcx into dest+offs
+        string_reset(str);
+        string_append_cstr(str, "    movq %rcx, ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rax)");
+        cc_out(cc, string_cstr(str));
+
+        i += 1;
+        offs += 8;
+    end
+
+    i = 0;
+    while i < movl do
+        // load src+offs into ecx
+        string_reset(str);
+        string_append_cstr(str, "    movl ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rdx), %ecx");
+        cc_out(cc, string_cstr(str));
+
+        // store ecx into dest+offs
+        string_reset(str);
+        string_append_cstr(str, "    movl %ecx, ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rax)");
+        cc_out(cc, string_cstr(str));
+
+        i += 1;
+        offs += 4;
+    end
+
+    i = 0;
+    while i < movw do
+        // load src+offs into cx
+        string_reset(str);
+        string_append_cstr(str, "    movw ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rdx), %cx");
+        cc_out(cc, string_cstr(str));
+
+        // store cx into dest+offs
+        string_reset(str);
+        string_append_cstr(str, "    movw %cx, ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rax)");
+        cc_out(cc, string_cstr(str));
+
+        i += 1;
+        offs += 2;
+    end
+
+    i = 0;
+    while i < movb do
+        // load src+offs into ecx
+        string_reset(str);
+        string_append_cstr(str, "    movzbl ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rdx), %ecx");
+        cc_out(cc, string_cstr(str));
+
+        // store cl into dest+offs
+        string_reset(str);
+        string_append_cstr(str, "    movb %cl, ");
+        string_append_int(str, offs);
+        string_append_cstr(str, "(%rax)");
+        cc_out(cc, string_cstr(str));
+
+        i += 1;
+        offs += 1;
+    end
+    free_string(str);
+end
+
 proc x86_64_emit_bit_not cc, ir in
     check_ir_kind(IRK_BitNot, ir);
     //print_ir(ir);
@@ -645,6 +771,7 @@ proc x86_64_emit_instruction cc, ir in
     else if k == IRK_OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
     else if k == IRK_ScopeOpen then // nothing to do
     else if k == IRK_ScopeClose then // nothing to do
+    else if k == IRK_PtrCopy then x86_64_emit_ptr_copy(cc, ir);
     else
         printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
         printf("Unhandled IRK: %d\n", k);
