@@ -96,6 +96,9 @@ proc cc_out_string self, string in
 end
 
 proc cc_out_src_loc self, src_loc in
+    if not src_loc then
+        return;
+    end
     if compiler_context_nodebug(self) then
         return;
     end
