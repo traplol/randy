@@ -154,6 +154,9 @@ end
 proc set_begin self in
     var cur = _set_at(self, 0);
     var end_ = set_end(self);
+    if set_len(self) == 0 then
+        return end_;
+    end
     while cur != end_ do
         if u64@(cur) then
             return cur;
@@ -173,4 +176,11 @@ proc set_next self, iter in
         iter = iter + sizeof_TSET_ELEM;
     end
     return end_;
+end
+
+proc set_reset self in
+    if u64@(self + TSET_length) != 0 then
+        u64!(self + TSET_length, 0);
+        memset(set_buffer(self), 0, set_cap(self) * sizeof_TSET_ELEM);
+    end
 end
