@@ -24,6 +24,8 @@ const AstK_Break        = 18;
 const AstK_Continue     = 19;
 const AstK_AssignOp     = 20;
 const AstK_Cast         = 21;
+const AstK_Struct       = 22;
+const AstK_MemberAccess = 23;
 
 proc ast_kind_cstr k in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -48,6 +50,8 @@ proc ast_kind_cstr k in
     if k == AstK_Continue then return "AstK_Continue"; end
     if k == AstK_AssignOp then return "AstK_AssignOp"; end
     if k == AstK_Cast then return "AstK_Cast"; end
+    if k == AstK_Struct then return "AstK_Struct"; end
+    if k == AstK_MemberAccess then return "AstK_MemberAccess"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -56,6 +60,7 @@ proc ast_requires_semi k in
     else if k == AstK_IfElse then return false;
     else if k == AstK_While then return false;
     else if k == AstK_InlineAsm then return false;
+    else if k == AstK_Struct then return false;
     else
         return true;
     end
@@ -121,6 +126,13 @@ const TAST_asm         = 24; // cstr
 // Cast
 const TAST_expr        = 16; // ast
 const TAST_type        = 24; // type
+// Struct
+const TAST_struct      = 16; // type
+const TAST_fields      = 24; // field vector
+const TAST_procs       = 32; // ast_proc vector
+// MemberAccess
+const TAST_expr        = 16; // ast
+const TAST_member      = 24; // cstr
 
 const sizeof_TAST      = 40;
 
@@ -282,6 +294,21 @@ proc make_ast_cast token, expr, type in
     return self;
 end
 
+proc make_ast_struct token, struct_, fields, procs in
+    var self = _make_ast(AstK_Struct, false, token);
+    u64!(self + TAST_struct, struct_);
+    u64!(self + TAST_fields, fields);
+    u64!(self + TAST_procs, procs);
+    return self;
+end
+
+proc make_ast_member_access token, expr, member in
+    var self = _make_ast(AstK_MemberAccess, true, token);
+    u64!(self + TAST_expr, expr);
+    u64!(self + TAST_member, member);
+    return self;
+end
+
 proc ast_kind self in return u32@(self + TAST_kind); end
 proc ast_is_expr self in return u8@(self + TAST_is_expr); end
 proc ast_token self in return u64@(self + TAST_token); end
@@ -303,6 +330,10 @@ proc ast_test self in return u64@(self + TAST_test); end
 proc ast_value self in return u64@(self + TAST_value); end
 proc ast_varargs self in return u64@(self + TAST_varargs); end
 proc ast_type self in return u64@(self + TAST_type); end
+proc ast_fields self in return u64@(self + TAST_fields); end
+proc ast_procs self in return u64@(self + TAST_procs); end
+proc ast_member self in return u64@(self + TAST_member); end
+proc ast_struct self in return u64@(self + TAST_struct); end
 
 proc ast_src_loc self in
     var token = ast_token(self);
@@ -338,7 +369,25 @@ proc _print_ast_integer ast, indent in
 end
 
 proc _print_ast_string ast, indent in
-    printf("\"%s\"", string_cstr(ast_value(ast)));
+    printf("\"");
+    var string = ast_value(ast);
+    var i = 0; var len = string_len(string);
+    while i < len do
+        var c = string_get(string, i);
+        if c == '\n' then
+            printf("\\n");
+        else if c == '\t' then
+            printf("\\t");
+        else if c == '\0' then
+            printf("\\0");
+        else if c == '\r' then
+            printf("\\r");
+        else
+            printf("%c", c);
+        end
+        i += 1;
+    end
+    printf("\"");
 end
 
 proc _print_ast_call ast, indent in
@@ -366,10 +415,23 @@ end
 
 proc _print_ast_var_decl ast, indent in
     printf("var %s", ast_ident(ast));
+    var symbol = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    assert(symbol, "symbol is NULL");
+    var type = symbol_type(symbol);
+    if type then
+        printf(": <type id %d>", type_id(type));
+    end
 end
 
 proc _print_ast_var_assign ast, indent in
-    printf("var %s = ", ast_ident(ast));
+    printf("var %s", ast_ident(ast));
+    var symbol = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    assert(symbol, "symbol is NULL");
+    var type = symbol_type(symbol);
+    if type then
+        printf(": <type id %d>", type_id(type));
+    end
+    printf(" = ");
     _print_ast(ast_assign_expr(ast), indent);
 end
 
@@ -421,11 +483,26 @@ proc _print_ast_procedure ast, indent in
     var params = ast_params(ast);
     var len = vector_len(params);
     while i < len do
-        printf(" %s", vector_get(params, i));
+        var param_name = vector_get(params, i);
+        printf(" %s", param_name);
+        var param_sym = st_get_symbol(g_SymbolTable, param_name);
+        assert(param_sym, "psym is NULL");
+        var param_type = symbol_type(param_sym);
+        if param_type then
+            printf(": <type id %d>", type_id(param_type));
+        end
         i += 1;
         if i < len then
             printf(",");
         end
+    end
+    var proc_sym = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    assert(proc_sym);
+    var proc_type = symbol_type(proc_sym);
+    if proc_type then
+        assert(type_is_procedure(proc_type), "proc_type not procedure.\n");
+        var ret_type = type_proc_return_type(proc_type);
+        printf(" -> <type id %d>", type_id(ret_type));
     end
     printf(" in\n");
     _print_ast_body(ast_body(ast), indent + 1);
@@ -468,7 +545,8 @@ end
 
 proc _print_ast_prefix ast, indent in
     var token = ast_token(ast);
-    if token_kind(token) == TK_KW_not then
+    // FIXME: == TK_KW_assert is a hack.
+    if token_kind(token) == TK_KW_not or token_kind(token) == TK_KW_assert then
         printf("not ");
     else
         printf("%s", token_cstr(token));
@@ -527,6 +605,37 @@ proc _print_ast_cast ast, indent in
     printf(", <type id %d>)", type_id(ast_type(ast)));
 end
 
+proc _print_ast_struct ast, indent in
+    printf("struct <type id %d> in\n", type_id(ast_struct(ast)));
+    var fields = ast_fields(ast);
+    var i = 0; var len = vector_len(fields);
+    while i < len do
+        var field = vector_get(fields, i);
+        _print_indent(indent+1);
+        printf("%s: <type id %d>\n", field_name(field), type_id(field_type(field)));
+        i += 1;
+    end
+    var procs = ast_procs(ast);
+    if i != 0 and vector_len(procs) != 0 then
+        printf("\n");
+    end
+    i = 0; len = vector_len(procs);
+    while i < len do
+        _print_indent(indent+1);
+        _print_ast_procedure(vector_get(procs, i), indent+1);
+        printf("\n");
+        i += 1;
+    end
+    _print_indent(indent); printf("end");
+end
+
+proc _print_ast_member_access ast, indent in
+    var expr = ast_expr(ast);
+    var member = ast_member(ast);
+    _print_ast(expr, indent);
+    printf(".%s", member);
+end
+
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -551,8 +660,10 @@ proc _print_ast ast, indent in
     else if k == AstK_Continue then _print_ast_continue(ast, indent);
     else if k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
     else if k == AstK_Cast then _print_ast_cast(ast, indent);
+    else if k == AstK_Struct then _print_ast_struct(ast, indent);
+    else if k == AstK_MemberAccess then _print_ast_member_access(ast, indent);
     else
-        printf("`_print_ast` in ast.randy\n");
+        printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
         exit(1);
     end

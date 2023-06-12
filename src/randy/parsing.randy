@@ -50,18 +50,10 @@ proc parse_type ts, st, tt, is_instance in
         end
         ts_expect(ts, TK_RSquare);
     end
-    var type = NULL;
-    if is_instance then
-        if inst_params and vector_len(inst_params) > 0 then
-            NYI_ERR(__FILE__, __LINE__, "generic instance types");
-        else
-            type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
-        end
-    else if generic_params and vector_len(generic_params) > 0 then
+    if inst_params or generic_params then
         NYI_ERR(__FILE__, __LINE__, "generic types");
     end
-    assert(type, "Compiler bug: type is NULL\n");
-    return type;
+    return tt_get_type_or_make_undefined(tt, token_value(type_ident));
 end
 
 proc parse_var ts, st, tt in
@@ -336,6 +328,11 @@ proc parse_postfix ts, st, tt in
     var expr = parse_primary(ts, st, tt);
     if not expr then
         return NULL;
+    end
+
+    if ts_accept(ts, TK_Dot) then
+        var member = ts_expect(ts, TK_Ident);
+        return make_ast_member_access(peek, expr, token_value(member));
     end
 
     if not ts_accept(ts, TK_LParen) then
@@ -845,10 +842,50 @@ proc parse_global ts, st, tt in
 end
 
 proc parse_struct ts, st, tt in
+    // TODO need to push/pop a "type" scope for generics.
     var struct_ = ts_expect(ts, TK_KW_struct);
-    var type = parse_type(ts, st, tt, false);
-    ts_expect(ts, TK_KW_in);
-    NYI_ERR(__FILE__, __LINE__, "parse_struct");
+    var struct_type = NULL;
+    if not ts_accept(ts, TK_KW_in) then
+        struct_type = parse_type(ts, st, tt, false);
+        ts_expect(ts, TK_KW_in);
+    end
+    var fields = make_vector(0);
+    var procs = make_vector(0);
+    var proc_symbols = make_vector(0);
+    while not ts_peekk(ts, TK_KW_end) do
+        if ts_peekk(ts, TK_KW_proc) then
+            var proc_ = parse_proc(ts, st, tt);
+            vector_push(procs, proc_);
+            vector_push(proc_symbols, st_get_symbol(st, ast_ident(proc_)));
+        else if ts_peekk(ts, TK_Ident) then
+            var field_ident = ts_next(ts);
+            ts_expect(ts, TK_Colon);
+            var field_type = parse_type(ts, st, tt, true);
+            ts_expect(ts, TK_Semicolon);
+            vector_push(fields, make_field(field_type, token_value(field_ident), -1, field_ident));
+        else
+            var tk = ts_peek(ts);
+            printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(token_kind(tk)));
+            print_token(tk);
+            print_token_loc(tk);
+            exit(1);
+        end
+    end
+    ts_expect(ts, TK_KW_end);
+
+    assert(vector_len(proc_symbols) == 0, "Struct procs not implemented yet.\n");
+
+    if not struct_type then
+        struct_type = tt_make_anon_struct(tt, fields, proc_symbols);
+    else if not type_is_undefined(struct_type) then
+        printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
+    else
+        type_set_kind(struct_type, TyK_struct);
+        type_set_struct_fields(struct_type, fields);
+        type_set_struct_procs(struct_type, proc_symbols);
+    end
+
+    return make_ast_struct(struct_, struct_type, fields, procs);
 end
 
 proc parse ts, st, tt in
