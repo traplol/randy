@@ -1,0 +1,99 @@
+
+#include core
+#include memory
+
+const TQUEUE_buffer   = 0;
+const TQUEUE_head     = 8;
+const TQUEUE_tail     = 16;
+const TQUEUE_capacity = 24;
+const sizeof_TQUEUE   = 32;
+const sizeof_TQUEUE_ELEM = sizeof_PTR;
+
+proc make_queue init in
+    if init <= 0 then
+        init = 16;
+    end
+
+    var self = malloc(sizeof_TQUEUE);
+    var buf = malloc(init * sizeof_TQUEUE_ELEM);
+    u64!(self + TQUEUE_buffer, buf);
+    u64!(self + TQUEUE_head, 0);
+    u64!(self + TQUEUE_tail, 0);
+    u64!(self + TQUEUE_capacity, init);
+    return self;
+end
+
+proc free_queue self in
+    if self then
+        free(u64@(self + TQUEUE_buffer));
+        free(self);
+    end
+end
+
+proc queue_len self in
+    return u64@(self + TQUEUE_tail) - u64@(self + TQUEUE_head);
+end
+
+proc queue_cap self in return u64@(self + TQUEUE_capacity); end
+
+proc queue_resize self, new_cap in
+    var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
+    var old_buf = u64@(self + TQUEUE_buffer);
+    var old_cap = u64@(self + TQUEUE_capacity);
+    if new_cap == old_cap then
+        return;
+    else if new_cap < old_cap then
+        printf("queue:resize: shrinking queue unsupported.\n");
+        abort();
+    end
+    memcpy(new_buf, old_buf, old_cap * sizeof_TQUEUE_ELEM);
+    u64!(self + TQUEUE_buffer, new_buf);
+    u64!(self + TQUEUE_capacity, new_cap);
+    free(old_buf);
+end
+
+proc queue_enqueue self, elem in
+    var tail = u64@(self + TQUEUE_tail);
+    var cap = u64@(self + TQUEUE_capacity);
+    if tail == cap then
+        queue_resize(self, cap * 2 + 1);
+    end
+
+    var buf = u64@(self + TQUEUE_buffer);
+    u64!(buf + tail * sizeof_TQUEUE_ELEM, elem);
+    u64!(self + TQUEUE_tail, tail + 1);
+end
+
+proc queue_dequeue self in
+    var head = u64@(self + TQUEUE_head);
+    var tail = u64@(self + TQUEUE_tail);
+    if head == tail then
+        printf("queue_dequeue: queue empty!\n");
+        abort();
+    end
+
+    var val = u64@(u64@(self + TQUEUE_buffer) + head * sizeof_TQUEUE_ELEM);
+    if head + 1 == tail then
+        u64!(self + TQUEUE_head, 0);
+        u64!(self + TQUEUE_tail, 0);
+    else
+        u64!(self + TQUEUE_head, head + 1);
+    end
+    return val;
+end
+
+proc queue_peek self in
+    var head = u64@(self + TQUEUE_head);
+    var tail = u64@(self + TQUEUE_tail);
+    if head == tail then
+        printf("queue_peek: queue empty!\n");
+        abort();
+    end
+
+    return u64@(u64@(self + TQUEUE_buffer) + head * sizeof_TQUEUE_ELEM);
+end
+
+proc queue_reset self in
+    u64!(self + TQUEUE_head, 0);
+    u64!(self + TQUEUE_tail, 0);
+end

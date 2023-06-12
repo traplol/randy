@@ -1,0 +1,79 @@
+pass: queue is empty
+pass: queue len is 1
+pass: queue len is 2
+pass: queue dequeue is 123
+pass: queue len is 1
+pass: queue dequeue is 345
+pass: queue len is 0
+pass: queue len is 0
+pass: queue len is 4
+pass: queue len is 0
+pass: queue len is 64
+pass: queue_peek is 1
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue_dequeue returns i
+pass: queue len is 0
+pass: queue head == tail
+pass: queue properly reset when empty

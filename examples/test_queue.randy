@@ -1,0 +1,53 @@
+#include std/queue
+
+proc test msg, expect, actual in
+    if expect == actual then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+        printf("    expected: %d, actual %d\n", expect, actual);
+    end
+end
+
+proc main in
+    var q = make_queue(0);
+    test("queue is empty", 0, queue_len(q));
+    queue_enqueue(q, 123);
+    test("queue len is 1", 1, queue_len(q));
+    queue_enqueue(q, 345);
+    test("queue len is 2", 2, queue_len(q));
+    test("queue dequeue is 123", 123, queue_dequeue(q));
+    test("queue len is 1", 1, queue_len(q));
+    test("queue dequeue is 345", 345, queue_dequeue(q));
+    test("queue len is 0", 0, queue_len(q));
+
+    queue_reset(q);
+
+    test("queue len is 0", 0, queue_len(q));
+    queue_enqueue(q, 1);
+    queue_enqueue(q, 2);
+    queue_enqueue(q, 3);
+    queue_enqueue(q, 4);
+    test("queue len is 4", 4, queue_len(q));
+    queue_reset(q);
+    test("queue len is 0", 0, queue_len(q));
+
+    var i = 1;
+    while i < 65 do
+        queue_enqueue(q, i);
+        i += 1;
+    end
+    test("queue len is 64", 64, queue_len(q));
+    test("queue_peek is 1", 1, queue_peek(q));
+
+    i = 1;
+    while i < 65 do
+        test("queue_dequeue returns i", i, queue_dequeue(q));
+        i += 1;
+    end
+    test("queue len is 0", 0, queue_len(q));
+
+    test("queue head == tail", u64@(q + TQUEUE_head), u64@(q + TQUEUE_tail));
+    test("queue properly reset when empty", 0, u64@(q + TQUEUE_head));
+    //queue_dequeue(q); // test empty queue aborts.
+end
