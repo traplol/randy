@@ -1571,6 +1571,11 @@ proc ir_emit_continue self, ast in
     ir_append(self, make_ir_goto(dest));
 end
 
+proc ir_emit_struct self, ast in
+    check_ast_kind(AstK_Struct, ast);
+    //NYI_ERR(__FILE__, __LINE__, "ir_emit_struct");
+end
+
 proc ir_compile self, ast in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, false);
@@ -1597,8 +1602,9 @@ proc ir_compile self, ast in
     else if k == AstK_Break then ir_emit_break(self, ast);
     else if k == AstK_Continue then ir_emit_continue(self, ast);
     else if k == AstK_AssignOp then ir_emit_assign_op(self, ast);
+    else if k == AstK_Struct then ir_emit_struct(self, ast);
     else
-        printf("`ir_compile` in ir_context.randy");
+        printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));
