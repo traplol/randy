@@ -4,6 +4,7 @@ extern malloc size;
 extern calloc num, size;
 extern free ptr;
 extern memcpy dest, src, n;
+extern memset s, c, n;
 
 // proc _malloc_logger pointer in
 //     printf("malloc'd %p\n", pointer);
