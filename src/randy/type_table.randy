@@ -1,4 +1,26 @@
 
+const TFIELD_type       = 0;  // type
+const TFIELD_name       = 8;  // cstr
+const TFIELD_bit_offset = 16; // int
+const TFIELD_token      = 24; // token
+const sizeof_TFIELD = 32;
+
+proc make_field type, name, bit_offset, token in
+    var self = malloc(sizeof_TFIELD);
+    u64!(self + TFIELD_type, type);
+    u64!(self + TFIELD_name, name);
+    u64!(self + TFIELD_bit_offset, bit_offset);
+    u64!(self + TFIELD_token, token);
+    return self;
+end
+
+proc field_type self in return u64@(self + TFIELD_type); end
+proc field_name self in return u64@(self + TFIELD_name); end
+proc field_bit_offset self in return u64@(self + TFIELD_bit_offset); end
+proc field_token self in return u64@(self + TFIELD_token); end
+
+proc field_set_bit_offset self, bit_offset in u64!(self + TFIELD_bit_offset, bit_offset); end
+
 const TyK_undefined = 0;
 const TyK_void      = 1;
 const TyK_any       = 2;
@@ -10,8 +32,9 @@ const TyK_enum      = 7; // NYI
 const TyK_union     = 8; // NYI
 const TyK_array     = 9; // NYI
 
-const TTYPE_kind      = 0;  // TyK
-const TTYPE_id        = 8;  // int
+const TTYPE_id        = 0;  // int
+const TTYPE_kind      = 8;  // TyK
+const TTYPE_size      = 12; // uint32
 const TTYPE_params    = 16; // type vector
 const TTYPE_ast       = 24; // ast
 // reference
@@ -20,8 +43,8 @@ const TTYPE_ref_type  = 32; // type
 const TTYPE_proc_return_type = 32; // type
 const TTYPE_proc_parameters  = 40; // symbol vector
 // struct
-const TTYPE_struct_names = 32; // cstr vector
-const TTYPE_struct_types = 40; // type vector
+const TTYPE_struct_fields = 32; // field vector
+const TTYPE_struct_procs  = 40; // proc_symbol vector
 // enum
 const TTYPE_enum_names  = 32; // cstr vector
 const TTYPE_enum_values = 40; // int vector
@@ -33,11 +56,13 @@ const TTYPE_array_count = 32; // number of elems in array
 const TTYPE_array_type  = 40; // type of each elem in array
 
 const sizeof_TTYPE = 48;
+const TYPE_NEEDS_SIZING = (1<<32)-1;
 
 proc make_type kind, id in
     var self = calloc(1, sizeof_TTYPE);
-    u64!(self + TTYPE_kind, kind);
     u64!(self + TTYPE_id, id);
+    u32!(self + TTYPE_kind, kind);
+    u32!(self + TTYPE_size, TYPE_NEEDS_SIZING);
     return self;
 end
 
@@ -58,10 +83,10 @@ proc make_type_procedure id, return_type, parameters in
     return self;
 end
 
-proc make_type_struct id, field_names, field_types in
+proc make_type_struct id, fields, procs in
     var self = make_type(TyK_struct, id);
-    u64!(self + TTYPE_struct_names, field_names);
-    u64!(self + TTYPE_struct_types, field_types);
+    u64!(self + TTYPE_struct_fields, fields);
+    u64!(self + TTYPE_struct_procs, procs);
     return self;
 end
 
@@ -86,15 +111,16 @@ proc make_type_array id, count, type in
     return self;
 end
 
-proc type_kind self in return u64@(self + TTYPE_kind); end
+proc type_kind self in return u32@(self + TTYPE_kind); end
+proc type_size self in return u32@(self + TTYPE_size); end
 proc type_id self in return u64@(self + TTYPE_id); end
 proc type_params self in return u64@(self + TTYPE_params); end
 proc type_ast self in return u64@(self + TTYPE_ast); end
 proc type_ref_type self in return u64@(self + TTYPE_ref_type); end
 proc type_proc_return_type self in return u64@(self + TTYPE_proc_return_type); end
 proc type_proc_parameters self in return u64@(self + TTYPE_proc_parameters); end
-proc type_struct_names self in return u64@(self + TTYPE_struct_names); end
-proc type_struct_types self in return u64@(self + TTYPE_struct_types); end
+proc type_struct_fields self in return u64@(self + TTYPE_struct_fields); end
+proc type_struct_procs self in return u64@(self + TTYPE_struct_procs); end
 proc type_enum_names self in return u64@(self + TTYPE_enum_names); end
 proc type_enum_values self in return u64@(self + TTYPE_enum_values); end
 proc type_union_names self in return u64@(self + TTYPE_union_names); end
@@ -102,14 +128,15 @@ proc type_union_types self in return u64@(self + TTYPE_union_types); end
 proc type_array_count self in return u64@(self + TTYPE_array_count); end
 proc type_array_type self in return u64@(self + TTYPE_array_type); end
 
-proc type_set_kind self, kind in u64!(self + TTYPE_kind, kind); end
+proc type_set_kind self, kind in u32!(self + TTYPE_kind, kind); end
+proc type_set_size self, size in u32!(self + TTYPE_size, size); end
 proc type_set_params self, params in u64!(self + TTYPE_params, params); end
 proc type_set_ast self, ast in u64!(self + TTYPE_ast, ast); end
 proc type_set_ref_type self, type in u64!(self + TTYPE_ref_type, type); end
 proc type_set_proc_return_type self, type in u64!(self + TTYPE_proc_return_type, type); end
 proc type_set_proc_parameters self, params in u64!(self + TTYPE_proc_parameters, params); end
-proc type_set_struct_names self, names in u64!(self + TTYPE_struct_names, names); end
-proc type_set_struct_types self, types in u64!(self + TTYPE_struct_types, types); end
+proc type_set_struct_fields self, fields in u64!(self + TTYPE_struct_fields, fields); end
+proc type_set_struct_procs self, procs in u64!(self + TTYPE_struct_procs, procs); end
 proc type_set_enum_names self, names in u64!(self + TTYPE_enum_names, names); end
 proc type_set_enum_values self, values in u64!(self + TTYPE_enum_values, values); end
 proc type_set_union_names self, names in u64!(self + TTYPE_union_names, names); end
@@ -185,9 +212,10 @@ const TTYPE_TABLE_ast_types = 24; // (ast, type) map : ast -> type
 const TTYPE_TABLE_void_type = 32; // fast ref to `void` type
 const TTYPE_TABLE_any_type  = 40; // fast ref to `any` type
 const TTYPE_TABLE_int_type  = 48; // fast ref to `int` type
-const TTYPE_TABLE_ptr_type  = 56; // fast ref to `ptr` type
-const TTYPE_TABLE_cstr_type = 64; // fast ref to `cstr` type
-const sizeof_TTYPE_TABLE    = 72;
+const TTYPE_TABLE_char_type = 56; // fast ref to `char` type
+const TTYPE_TABLE_ptr_type  = 64; // fast ref to `ptr` type
+const TTYPE_TABLE_cstr_type = 72; // fast ref to `cstr` type
+const sizeof_TTYPE_TABLE    = 80;
 
 proc make_type_table in
     var self = malloc(sizeof_TTYPE_TABLE);
@@ -203,6 +231,8 @@ proc make_type_table in
     
     type_idx = vector_len(types);
     t = make_type(TyK_void, type_idx);
+    var void_t = t;
+    type_set_size(t, 0);
     u64!(self + TTYPE_TABLE_void_type, t);
     map_set(type_ids, "void", type_idx);
     vector_push(types, t);
@@ -210,6 +240,7 @@ proc make_type_table in
 
     type_idx = vector_len(types);
     t = make_type(TyK_any, type_idx);
+    type_set_size(t, 0);
     u64!(self + TTYPE_TABLE_any_type, t);
     map_set(type_ids, "any", type_idx);
     vector_push(types, t);
@@ -217,6 +248,8 @@ proc make_type_table in
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
+    var int_t = t;
+    type_set_size(t, 64);
     u64!(self + TTYPE_TABLE_int_type, t);
     map_set(type_ids, "int", type_idx);
     vector_push(types, t);
@@ -224,17 +257,53 @@ proc make_type_table in
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
+    var char_t = t;
+    type_set_size(t, 8);
+    u64!(self + TTYPE_TABLE_char_type, t);
+    map_set(type_ids, "char", type_idx);
+    vector_push(types, t);
+    vector_push(names, "char");
+
+    type_idx = vector_len(types);
+    t = make_type_reference(type_idx, void_t);
+    type_set_size(t, 64);
     u64!(self + TTYPE_TABLE_ptr_type, t);
     map_set(type_ids, "ptr", type_idx);
     vector_push(types, t);
     vector_push(names, "ptr");
 
     type_idx = vector_len(types);
-    t = make_type(TyK_primitive, type_idx);
+    t = make_type_reference(type_idx, char_t);
+    type_set_size(t, 64);
     u64!(self + TTYPE_TABLE_cstr_type, t);
     map_set(type_ids, "cstr", type_idx);
     vector_push(types, t);
     vector_push(names, "cstr");
+
+    type_idx = vector_len(types);
+    map_set(type_ids, "int8", type_idx);
+    vector_push(types, char_t);
+    vector_push(names, "int8");
+
+    type_idx = vector_len(types);
+    map_set(type_ids, "int64", type_idx);
+    vector_push(types, int_t);
+    vector_push(names, "int64");
+
+    type_idx = vector_len(types);
+    t = make_type(TyK_primitive, type_idx);
+    type_set_size(t, 16);
+    map_set(type_ids, "int16", type_idx);
+    vector_push(types, t);
+    vector_push(names, "int16");
+
+    type_idx = vector_len(types);
+    t = make_type(TyK_primitive, type_idx);
+    type_set_size(t, 32);
+    map_set(type_ids, "int32", type_idx);
+    vector_push(types, t);
+    vector_push(names, "int32");
+
 
     return self;
 end
@@ -298,9 +367,9 @@ proc tt_make_anon_proc self, return_type, params in
     return type;
 end
 
-proc tt_make_anon_struct self, field_names, field_types in
+proc tt_make_anon_struct self, fields, procs in
     var types = type_table_types(self);
-    var type = make_type_struct(vector_len(types), field_names, field_types);
+    var type = make_type_struct(vector_len(types), fields, procs);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
@@ -355,4 +424,121 @@ proc tt_get_proc_type_name self, type in
     _tt_append_proc_type_repr(self, string, ret_ty);
     string_push(string, ')');
     return string;
+end
+
+proc tt_calculate_struct self, stype, again_q in
+    if type_size(stype) != TYPE_NEEDS_SIZING then
+        return;
+    end
+    printf("calculating struct %s, size = %d\n", tt_get_type_name(self, stype), type_size(stype));
+    var fields = type_struct_fields(stype);
+    var bit_offs = 0;
+    var i = 0; var len = vector_len(fields);
+    var ptr_align = false;
+    while i < len do
+        var field = vector_get(fields, i);
+        var fname = field_name(field);
+        var ftype = field_type(field);
+
+        if type_is_reference(ftype) and not ptr_align then
+            ptr_align = true;
+            i = 0;
+            bit_offs = 0;
+            continue;
+            // TODO: align other sizes.
+        end
+
+        var size = type_size(ftype);
+        if size == TYPE_NEEDS_SIZING then
+            queue_enqueue(again_q, stype);
+            printf("early return because need to calc again!\n");
+            return;
+        end
+        if not type_is_struct(ftype) then
+            bit_offs = (bit_offs + (size - 1)) & -size; // align to nearest boundary
+        end
+        field_set_bit_offset(field, bit_offs);
+        bit_offs += size;
+
+        printf("  field: %s @ +%ld -> %s, size = %d\n", fname, field_bit_offset(field) / 8,
+            tt_get_type_name(self, ftype), type_size(ftype) / 8);
+        i += 1;
+    end
+    if ptr_align then
+        bit_offs = (bit_offs + 63) & -64;
+    end
+    printf("total size: %d (%d bits)\n", bit_offs / 8,  bit_offs);
+    type_set_size(stype, bit_offs);
+end
+
+proc tt_detect_cycles self, stype in
+    // Breadth-first search for cycles.
+    var q = make_queue(0);
+    var explored = make_set(0, NULL, NULL);
+
+    set_add(explored, stype);
+    var fields = type_struct_fields(stype);
+    var i = 0; var len = vector_len(fields);
+    while i < len do
+        var field = vector_get(fields, i);
+        var ftype = field_type(field);
+        if ftype == stype then // immediate self-reference
+            return true;
+        end
+        if type_is_struct(ftype) then
+            queue_enqueue(q, ftype);
+        end
+        i += 1;
+    end
+
+    while queue_len(q) != 0 do
+        var v = queue_dequeue(q);
+        if v == stype then
+            return true;
+        end
+        fields = type_struct_fields(v);
+        i = 0; len = vector_len(fields);
+        while i < len do
+            var field = vector_get(fields, i);
+            var ftype = field_type(field);
+            if ftype == stype then
+                return true;
+            end
+            if type_is_struct(ftype) then
+                if not set_contains(explored, ftype) then
+                    set_add(explored, ftype);
+                    queue_enqueue(q, ftype);
+                end
+            end
+            i += 1;
+        end
+    end
+    free_queue(q);
+    free_set(explored);
+    return false;
+end
+
+proc tt_calculate_structs self in
+    var to_calc = make_queue(0);
+    var types = type_table_types(self);
+    var i = 0; var len = vector_len(types);
+    while i < len do
+        var type = vector_get(types, i);
+        if type_is_undefined(type) then
+            printf("WARN: type id %d is still undefined!\n", type_id(type));
+        else if type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
+            queue_enqueue(to_calc, type);
+        end
+        i += 1;
+    end
+
+    while queue_len(to_calc) != 0 do
+        var type = queue_dequeue(to_calc);
+        if tt_detect_cycles(self, type) then
+            printf("ERROR: Detected cycles in struct `%s`\n", tt_get_type_name(self, type));
+            exit(1);
+        end
+        tt_calculate_struct(self, type, to_calc);
+    end
+    free_queue(to_calc);
 end
