@@ -1,10 +1,14 @@
 #include std/core
 #include std/string
 #include std/vector
+#include std/queue
 #include std/set
 #include std/map
 #include std/time
 #include std/process
+
+global g_SymbolTable = NULL;
+global g_TypeTable = NULL;
 
 #include utils
 #include token
@@ -19,7 +23,6 @@
 #include ir_context
 #include compiler_context
 #include x86_64_backend
-
 
 proc print_timespan msg, starttime, endtime in
     var elap_s = timespec_sec(endtime) - timespec_sec(starttime);
@@ -192,12 +195,15 @@ proc main argc, argv in
 
         time(starttime);
         var type_table = make_type_table();
+        g_TypeTable = type_table;
         var symbol_table = make_symbol_table();
+        g_SymbolTable = symbol_table;
         st_push_scope(symbol_table);
         var roots = parse(token_stream, symbol_table, type_table);
         st_pop_scope(symbol_table);
-        time(endtime);
         assert(st_depth(symbol_table) == 0, "Compiler bug: Didn't pop symbol table scope somewhere.\n");
+        tt_calculate_structs(type_table);
+        time(endtime);
         if verbosity > 0 then
             print_timespan("Parsing took: ", starttime, endtime);
         end
@@ -238,6 +244,8 @@ proc main argc, argv in
         var exit_proc = NULL;
         if ir_is_proc(irctx, "main") then
             main_proc = proc_info_label(ir_get_proc(irctx, "main"));
+        else if ir_is_label(irctx, "_proc_main") then
+            main_proc = "_proc_main";
         else
             printf("ERROR: no `main` procedure.\n");
             return 1;
