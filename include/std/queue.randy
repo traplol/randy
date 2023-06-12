@@ -46,7 +46,16 @@ proc queue_resize self, new_cap in
         printf("queue:resize: shrinking queue unsupported.\n");
         abort();
     end
-    memcpy(new_buf, old_buf, old_cap * sizeof_TQUEUE_ELEM);
+    var head = u64@(self + TQUEUE_head);
+    var tail = u64@(self + TQUEUE_tail);
+
+    if tail - head > 0 then
+        memcpy(new_buf, old_buf + head, (tail - head) * sizeof_TQUEUE_ELEM);
+    end
+
+    u64!(self + TQUEUE_head, 0);
+    u64!(self + TQUEUE_tail, tail - head);
+
     u64!(self + TQUEUE_buffer, new_buf);
     u64!(self + TQUEUE_capacity, new_cap);
     free(old_buf);
