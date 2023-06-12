@@ -171,6 +171,9 @@ end
 proc map_begin self in
     var cur = _map_at(self, 0);
     var end_ = map_end(self);
+    if map_len(self) == 0 then
+        return end_;
+    end
     while cur != end_ do
         if u64@(cur) then
             return cur;
