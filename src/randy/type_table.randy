@@ -485,7 +485,8 @@ proc tt_detect_cycles self, stype in
         if ftype == stype then // immediate self-reference
             return true;
         end
-        if type_is_struct(ftype) then
+        if type_is_struct(ftype) and not set_contains(explored, ftype) then
+            set_add(explored, ftype);
             queue_enqueue(q, ftype);
         end
         i += 1;
@@ -504,11 +505,9 @@ proc tt_detect_cycles self, stype in
             if ftype == stype then
                 return true;
             end
-            if type_is_struct(ftype) then
-                if not set_contains(explored, ftype) then
-                    set_add(explored, ftype);
-                    queue_enqueue(q, ftype);
-                end
+            if type_is_struct(ftype) and not set_contains(explored, ftype) then
+                set_add(explored, ftype);
+                queue_enqueue(q, ftype);
             end
             i += 1;
         end
