@@ -37,7 +37,6 @@ end
 proc queue_cap self in return u64@(self + TQUEUE_capacity); end
 
 proc queue_resize self, new_cap in
-    var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
     var old_buf = u64@(self + TQUEUE_buffer);
     var old_cap = u64@(self + TQUEUE_capacity);
     if new_cap == old_cap then
@@ -46,6 +45,7 @@ proc queue_resize self, new_cap in
         printf("queue:resize: shrinking queue unsupported.\n");
         abort();
     end
+    var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
     var head = u64@(self + TQUEUE_head);
     var tail = u64@(self + TQUEUE_tail);
 
