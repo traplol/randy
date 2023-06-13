@@ -138,8 +138,6 @@ proc min a, b in
     return b;
 end
 
-const true = 1;
-const false = 0;
 const SYS_exit = 60;
 const FOO = SYS_exit;
 const BAR = "hello";
