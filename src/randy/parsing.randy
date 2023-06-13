@@ -675,8 +675,6 @@ proc parse_proc ts, st, tt in
         if param_symbol then
             printf("ERROR: param `%s` already defined.\n", token_value(param_id));
             print_token_loc(param_id);
-            printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(param_symbol));
             exit(1);
         end
         param_symbol = st_make_param(st, token_value(param_id), param_id);
@@ -747,16 +745,52 @@ proc parse_extern ts, st, tt in
     var extern_ = ts_expect(ts, TK_KW_extern);
     var ident = ts_expect(ts, TK_Ident);
     var is_varargs = false;
-    // Maybe instead of having a vector of parameter names, it's a vector of parameter types.
+    var proc_symbol = st_get_symbol_here(st, token_value(ident));
+    if proc_symbol then
+        if symbol_is_undef(proc_symbol) then
+            symbol_set_kind(proc_symbol, SK_proc);
+        else
+            printf("ERROR: extern `%s` already defined.\n", token_value(ident));
+            print_token_loc(ident);
+            printf("NOTE: It was previously defined here:\n");
+            print_token_loc(symbol_token(proc_symbol));
+            exit(1);
+        end
+    else
+        proc_symbol = st_make_proc(st, token_value(ident), ident);
+    end
+    st_push_scope(st);
+    var body = make_vector(0);
     var params = make_vector(0);
+    var param_symbols = make_vector(0);
+    var any_type = tt_any_type(tt);
     while ts_peekk(ts, TK_Ident) do
-        var type_ident = NULL;
-        vector_push(params, token_value(ts_next(ts)));
-        if ts_peekk(ts, TK_Semicolon) then
+        var param_id = ts_next(ts);
+        var param_symbol = st_get_symbol_here(st, token_value(param_id));
+        if param_symbol then
+            printf("ERROR: param `%s` already defined.\n", token_value(param_id));
+            print_token_loc(param_id);
+            exit(1);
+        end
+        param_symbol = st_make_param(st, token_value(param_id), param_id);
+        vector_push(params, symbol_name(param_symbol));
+        vector_push(param_symbols, param_symbol);
+        if ts_peekk(ts, TK_Ellipsis) then
+            symbol_set_type(param_symbol, any_type);
+            break;
+        else if ts_peekk(ts, TK_Semicolon) then
+            symbol_set_type(param_symbol, any_type);
             break;
         else if ts_accept(ts, TK_Colon) then
-            // TODO: Do something with type annotations.
-            type_ident = ts_expect(ts, TK_Ident);
+            var peek = ts_peek(ts);
+            var type = parse_type(ts, st, tt, true);
+            var ty_params = type_params(type);
+            if ty_params and vector_len(ty_params) != 0 then
+                printf("ERROR: 'extern' does not support generics.\n");
+                print_token_loc(peek);
+                exit(1);
+            end
+            symbol_set_type(param_symbol, type);
             if ts_peekk(ts, TK_KW_in) then
                 break;
             end
@@ -765,25 +799,25 @@ proc parse_extern ts, st, tt in
             end
             ts_expect(ts, TK_Comma);
         else if ts_peekk(ts, TK_RightArrow) then
+            symbol_set_type(param_symbol, any_type);
             break;
         else
+            symbol_set_type(param_symbol, any_type);
             ts_expect(ts, TK_Comma);
         end
     end
+    st_pop_scope(st);
     if ts_accept(ts, TK_Ellipsis) then
         is_varargs = true;
     end
+
+    var return_type = any_type;
     if ts_accept(ts, TK_RightArrow) then
-        // TODO: Do something with return type annotations.
-        ts_expect(ts, TK_Ident);
+        return_type = parse_type(ts, st, tt, true);
     end
-    var symbol = st_get_symbol_here(st, token_value(ident));
-    // Like with const, No error here because we allow you to have multiple declarations
-    // of `extern` if they share the type signature and that won't be checked until IR generation.
-    if not symbol then
-        symbol = st_make_extern(st, token_value(ident), ident);
-    end
-    return make_ast_extern(extern_, token_value(ident), params, is_varargs);
+    var proc_type = tt_make_anon_proc(tt, return_type, param_symbols);
+    symbol_set_type(proc_symbol, proc_type);
+    return make_ast_extern(extern_, symbol_name(proc_symbol), params, is_varargs);
 end
 
 proc parse_asm ts, st, tt in
