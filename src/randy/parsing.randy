@@ -764,6 +764,7 @@ proc parse_extern ts, st, tt in
     var params = make_vector(0);
     var param_symbols = make_vector(0);
     var any_type = tt_any_type(tt);
+    var return_type = NULL;
     while ts_peekk(ts, TK_Ident) do
         var param_id = ts_next(ts);
         var param_symbol = st_get_symbol_here(st, token_value(param_id));
@@ -775,15 +776,12 @@ proc parse_extern ts, st, tt in
         param_symbol = st_make_param(st, token_value(param_id), param_id);
         vector_push(params, symbol_name(param_symbol));
         vector_push(param_symbols, param_symbol);
-        if ts_peekk(ts, TK_Ellipsis) then
-            symbol_set_type(param_symbol, any_type);
-            break;
-        else if ts_peekk(ts, TK_Semicolon) then
+        if ts_peekk(ts, TK_Semicolon) then
             symbol_set_type(param_symbol, any_type);
             break;
         else if ts_accept(ts, TK_Colon) then
             var peek = ts_peek(ts);
-            var type = parse_type(ts, st, tt, true);
+            var type = parse_type(ts, st, tt, false);
             var ty_params = type_params(type);
             if ty_params and vector_len(ty_params) != 0 then
                 printf("ERROR: 'extern' does not support generics.\n");
@@ -791,7 +789,8 @@ proc parse_extern ts, st, tt in
                 exit(1);
             end
             symbol_set_type(param_symbol, type);
-            if ts_peekk(ts, TK_RightArrow) then
+            if ts_accept(ts, TK_RightArrow) then
+                return_type = parse_type(ts, st, tt, false);
                 break;
             end
             ts_expect(ts, TK_Comma);
@@ -804,14 +803,23 @@ proc parse_extern ts, st, tt in
         end
     end
     st_pop_scope(st);
-    if ts_accept(ts, TK_Ellipsis) then
-        is_varargs = true;
+    if not return_type then
+        if ts_accept(ts, TK_Ellipsis) then
+            is_varargs = true;
+        end
+        if ts_accept(ts, TK_RightArrow) then
+            return_type = parse_type(ts, st, tt, true);
+        else
+            return_type = any_type;
+        end
+    end
+    var rty_params = type_params(return_type);
+    if rty_params and vector_len(rty_params) != 0 then
+        printf("ERROR: 'extern' does not support generics.\n");
+        print_token_loc(extern_);
+        exit(1);
     end
 
-    var return_type = any_type;
-    if ts_accept(ts, TK_RightArrow) then
-        return_type = parse_type(ts, st, tt, true);
-    end
     var proc_type = tt_make_anon_proc(tt, return_type, param_symbols);
     symbol_set_type(proc_symbol, proc_type);
     return make_ast_extern(extern_, symbol_name(proc_symbol), params, is_varargs);
