@@ -705,21 +705,21 @@ proc make_ir_context -> ir_context in
     return cast(self, ir_context);
 end
 
-proc ir_instructions self: ir_context in return u64@(self + TIR_CONTEXT_instructions); end
-proc ir_strings self: ir_context in return u64@(self + TIR_CONTEXT_strings); end
-proc ir_externs self: ir_context in return u64@(self + TIR_CONTEXT_externs); end
-proc ir_labels self: ir_context in return u64@(self + TIR_CONTEXT_labels); end
-proc ir_constants self: ir_context in return u64@(self + TIR_CONTEXT_constants); end
-proc ir_src_locs self: ir_context in return u64@(self + TIR_CONTEXT_src_locs); end
-proc ir_file_set self: ir_context in return u64@(self + TIR_CONTEXT_file_set); end
-proc ir_files self: ir_context in return u64@(self + TIR_CONTEXT_files); end
-proc ir_procs self: ir_context in return u64@(self + TIR_CONTEXT_procs); end
-proc ir_proc_locals self: ir_context in return u64@(self + TIR_CONTEXT_proc_locals); end
-proc ir_globals_map self: ir_context in return u64@(self + TIR_CONTEXT_globals_map); end
-proc ir_globals self: ir_context in return u64@(self + TIR_CONTEXT_globals); end
-proc ir_break_dests self: ir_context in return u64@(self + TIR_CONTEXT_break_dests); end
-proc ir_continue_dests self: ir_context in return u64@(self + TIR_CONTEXT_conti_dests); end
-proc ir_nlocals self: ir_context in return u64@(self + TIR_CONTEXT_nlocals); end
+proc ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), vector); end
+proc ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
+proc ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
+proc ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), set); end
+proc ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), map); end
+proc ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), vector); end
+proc ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), set); end
+proc ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), vector); end
+proc ir_procs self: ir_context in return cast(u64@(self + TIR_CONTEXT_procs), map); end
+proc ir_proc_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_proc_locals), vector); end
+proc ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), map); end
+proc ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), vector); end
+proc ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), vector); end
+proc ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), vector); end
+proc ir_nlocals self: ir_context in return cast(u64@(self + TIR_CONTEXT_nlocals), int); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -974,7 +974,7 @@ proc _comptime_eval_is_n n, ast in
     return ast_kind(ast) == AstK_Integer and ast_value(ast) == n;
 end
 
-proc ir_comptime_eval self, ast, error_on_fail in
+proc ir_comptime_eval self, ast, st, tt, error_on_fail in
     var evaled; var result: int;
     var op; var ident; var ci;
     var lhs; var rhs;
@@ -997,8 +997,8 @@ proc ir_comptime_eval self, ast, error_on_fail in
         end
     else if k == AstK_BinOp then
         op = ast_op(ast);
-        lhs = ir_comptime_eval(self, ast_lhs(ast), error_on_fail);
-        rhs = ir_comptime_eval(self, ast_rhs(ast), error_on_fail);
+        lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail);
+        rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail);
 
         if op == TK_Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
         if op == TK_Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
@@ -1078,7 +1078,7 @@ proc ir_comptime_eval self, ast, error_on_fail in
         end
     else if k == AstK_Prefix then
         op = ast_op(ast);
-        rhs = ir_comptime_eval(self, ast_expr(ast), error_on_fail);
+        rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
         evaled = false;
         if ast_kind(rhs) == AstK_Integer then
             rhs_val = ast_value(rhs);
@@ -1097,7 +1097,7 @@ proc ir_comptime_eval self, ast, error_on_fail in
             end
         end
     else if k == AstK_Cast then
-        return ir_comptime_eval(self, ast_expr(ast), error_on_fail);
+        return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
     end
 
     if error_on_fail then
@@ -1110,12 +1110,12 @@ proc ir_comptime_eval self, ast, error_on_fail in
     return ast;
 end
 
-proc ir_emit_body self, body in
+proc ir_emit_body self, body, st, tt in
     var i = 0;
     var len = vector_len(body);
     while i < len do
         var ast = vector_get(body, i);
-        ir_compile(self, ast);
+        ir_compile(self, ast, st, tt);
         if ast_is_expr(ast) then
             ir_append(self, make_ir_drop_top());
         end
@@ -1123,7 +1123,7 @@ proc ir_emit_body self, body in
     end
 end
         
-proc ir_emit_ident self, ast in
+proc ir_emit_ident self, ast, st, tt in
     check_ast_kind(AstK_Ident, ast);
 
     var ident = ast_ident(ast);
@@ -1155,12 +1155,12 @@ proc ir_emit_ident self, ast in
     end
 end
 
-proc ir_emit_integer self, ast in
+proc ir_emit_integer self, ast, st, tt in
     check_ast_kind(AstK_Integer, ast);
     ir_append(self, make_ir_push_int(ast_value(ast)));
 end
 
-proc ir_emit_string self, ast in
+proc ir_emit_string self, ast, st, tt in
     check_ast_kind(AstK_String, ast);
     var string = ast_value(ast);
     var string_label = ir_string_label(self, string);
@@ -1181,7 +1181,7 @@ proc _ir_check_arg_count self, ident, info, nargs in
     return true;
 end
 
-proc ir_emit_call self, ast in
+proc ir_emit_call self, ast, st, tt in
     check_ast_kind(AstK_Call, ast);
     var args = ast_args(ast);
     var len = vector_len(args);
@@ -1190,7 +1190,7 @@ proc ir_emit_call self, ast in
     end
     var i = 0;
     while i < len do
-        ir_compile(self, vector_get(args, i));
+        ir_compile(self, vector_get(args, i), st, tt);
         ir_append(self, make_ir_store_temp(i));
         i += 1;
     end
@@ -1225,34 +1225,34 @@ proc ir_emit_call self, ast in
         else if ir_is_label(self, ident) then
             ir_append(self, make_ir_call(ident, false));
         else if ir_is_local(self, ident) then
-            ir_compile(self, expr);
+            ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_pop_call());
         else
             ir_append(self, make_ir_call_lazy_ident(ast_token(expr), len));
         end
     else
-        ir_compile(self, expr);
+        ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_pop_call());
     end
 end
 
-proc ir_emit_logic_and self, ast in
+proc ir_emit_logic_and self, ast, st, tt in
     var label = ir_new_label(self, NULL);
-    ir_compile(self, ast_lhs(ast));
+    ir_compile(self, ast_lhs(ast), st, tt);
     ir_append(self, make_ir_goto_top_false(label));
-    ir_compile(self, ast_rhs(ast));
+    ir_compile(self, ast_rhs(ast), st, tt);
     ir_append(self, make_ir_label(label));
 end
 
-proc ir_emit_logic_or self, ast in
+proc ir_emit_logic_or self, ast, st, tt in
     var label = ir_new_label(self, NULL);
-    ir_compile(self, ast_lhs(ast));
+    ir_compile(self, ast_lhs(ast), st, tt);
     ir_append(self, make_ir_goto_top_true(label));
-    ir_compile(self, ast_rhs(ast));
+    ir_compile(self, ast_rhs(ast), st, tt);
     ir_append(self, make_ir_label(label));
 end
 
-proc ir_emit_binop self, ast in
+proc ir_emit_binop self, ast, st, tt in
     check_ast_kind(AstK_BinOp, ast);
     var op = ast_op(ast);
     var simple = -1;
@@ -1272,32 +1272,32 @@ proc ir_emit_binop self, ast in
     else if op == TK_Bar then simple = IRK_OpBitOR;
     else if op == TK_LShift then simple = IRK_OpBitShiftL;
     else if op == TK_RShift then simple = IRK_OpBitShiftR;
-    else if op == TK_KW_and then ir_emit_logic_and(self, ast);
-    else if op == TK_KW_or then ir_emit_logic_or(self, ast);
+    else if op == TK_KW_and then ir_emit_logic_and(self, ast, st, tt);
+    else if op == TK_KW_or then ir_emit_logic_or(self, ast, st, tt);
     else
         printf("Unhandled binop: %d\n", op);
         print_token(ast_token(ast));
         NYI_ERR(__FILE__, __LINE__, "ir_emit_binop");
     end
     if simple >= 0 then
-        ir_compile(self, ast_lhs(ast));
-        ir_compile(self, ast_rhs(ast));
+        ir_compile(self, ast_lhs(ast), st, tt);
+        ir_compile(self, ast_rhs(ast), st, tt);
         ir_append(self, make_ir_simple_op(simple));
     end
 end
 
-proc ir_emit_return self, ast in
+proc ir_emit_return self, ast, st, tt in
     check_ast_kind(AstK_Return, ast);
     var expr = ast_expr(ast);
     if not expr then
         ir_append(self, make_ir_return_void());
         return;
     end
-    ir_compile(self, expr);
+    ir_compile(self, expr, st, tt);
     ir_append(self, make_ir_pop_return());
 end
 
-proc ir_emit_var_decl self, ast in
+proc ir_emit_var_decl self, ast, st, tt in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
     if ir_is_cur_scope_local(self, ident) then
@@ -1305,10 +1305,19 @@ proc ir_emit_var_decl self, ast in
         ir_print_src_loc(self);
         exit(1);
     end
+    var sym = st_get_symbol(st, ident);
+    assert(sym);
+    var sym_type = symbol_type(sym);
+    if sym_type and type_size(sym_type) == 0 then
+        //printf("---------------------\n");
+        printf("type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
+        //print_ast(ast);
+        //ir_print_src_loc(self);
+    end
     ir_new_local(self, ident);
 end
 
-proc ir_emit_var_assign self, ast in
+proc ir_emit_var_assign self, ast, st, tt in
     check_ast_kind(AstK_VarAssign, ast);
     var ident = ast_ident(ast);
     if ir_is_cur_scope_local(self, ident) then
@@ -1316,12 +1325,21 @@ proc ir_emit_var_assign self, ast in
         ir_print_src_loc(self);
         exit(1);
     end
+    var sym = st_get_symbol(st, ident);
+    assert(sym);
+    var sym_type = symbol_type(sym);
+    if sym_type and type_size(sym_type) == 0 then
+        //printf("---------------------\n");
+        printf("type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
+        //print_ast(ast);
+        ir_print_src_loc(self);
+    end
     var n = ir_new_local(self, ident);
-    ir_compile(self, ast_assign_expr(ast));
+    ir_compile(self, ast_assign_expr(ast), st, tt);
     ir_append(self, make_ir_set_local(ident, n));
 end
 
-proc ir_emit_assign_op self, ast in
+proc ir_emit_assign_op self, ast, st, tt in
     check_ast_kind(AstK_AssignOp, ast);
     var ident = ast_ident(ast);
     if ir_is_local(self, ident) then
@@ -1338,7 +1356,7 @@ proc ir_emit_assign_op self, ast in
         ir_print_src_loc(self);
         exit(1);
     end
-    ir_compile(self, ast_assign_expr(ast));
+    ir_compile(self, ast_assign_expr(ast), st, tt);
 
     var op = ast_op(ast);
     var ir_op;
@@ -1374,7 +1392,7 @@ proc ir_emit_assign_op self, ast in
     end
 end
 
-proc ir_emit_procedure self, ast in
+proc ir_emit_procedure self, ast, st, tt in
     check_ast_kind(AstK_Procedure, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
@@ -1393,43 +1411,41 @@ proc ir_emit_procedure self, ast in
         ir_append(self, make_ir_set_local_arg(param, n, i));
         i += 1;
     end
-    ir_emit_body(self, ast_body(ast));
+    ir_emit_body(self, ast_body(ast), st, tt);
     u64!(insn + TIR_INSTR_nlocals, ir_nlocals(self));
     ir_append(self, make_ir_close_proc(ident, label));
     ir_pop_scope(self);
 end
 
-proc ir_emit_if_else self, ast in
+proc ir_emit_if_else self, ast, st, tt in
     check_ast_kind(AstK_IfElse, ast);
-    var i; var len;
     var l_else = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
-    ir_compile(self, ast_test(ast));
+    ir_compile(self, ast_test(ast), st, tt);
     ir_append(self, make_ir_goto_false(l_else));
     ir_push_scope(self);
-    ir_emit_body(self, ast_consequence(ast));
+    ir_emit_body(self, ast_consequence(ast), st, tt);
     ir_pop_scope(self);
     ir_append(self, make_ir_goto(l_out));
 
     ir_append(self, make_ir_label(l_else));
     ir_push_scope(self);
-    ir_emit_body(self, ast_alternative(ast));
+    ir_emit_body(self, ast_alternative(ast), st, tt);
     ir_pop_scope(self);
     ir_append(self, make_ir_label(l_out));
 end
 
-proc ir_emit_while self, ast in
+proc ir_emit_while self, ast, st, tt in
     check_ast_kind(AstK_While, ast);
-    var i; var len;
     var l_test = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
     ir_push_scope(self);
     ir_append(self, make_ir_label(l_test));
-    ir_compile(self, ast_test(ast));
+    ir_compile(self, ast_test(ast), st, tt);
     ir_append(self, make_ir_goto_false(l_out));
     ir_push_break_dest(self, l_out);     // break jumps to out
     ir_push_continue_dest(self, l_test); // continue jumps to test
-    ir_emit_body(self, ast_body(ast));
+    ir_emit_body(self, ast_body(ast), st, tt);
     ir_pop_continue_dest(self);
     ir_pop_break_dest(self);
     ir_append(self, make_ir_goto(l_test));
@@ -1437,39 +1453,39 @@ proc ir_emit_while self, ast in
     ir_pop_scope(self);
 end
 
-proc ir_emit_pointer_op self, ast in
+proc ir_emit_pointer_op self, ast, st, tt in
     //check_ast_kind(AstK_PointerOp, ast);
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
     var op = ast_op(ast);
     if op == PointerOp_Read then
-        ir_compile(self, vector_get(args, 0));
+        ir_compile(self, vector_get(args, 0), st, tt);
         ir_append(self, make_ir_ptr_read(size));
     else if op == PointerOp_Write then
         // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
-        ir_compile(self, vector_get(args, 1));
-        ir_compile(self, vector_get(args, 0));
+        ir_compile(self, vector_get(args, 1), st, tt);
+        ir_compile(self, vector_get(args, 0), st, tt);
         ir_append(self, make_ir_ptr_write(size));
     else
         NYI_ERR(__FILE__, __LINE__, "unhandled ir_emit_pointer_op");
     end
 end
 
-proc ir_emit_prefix_op self, ast in
+proc ir_emit_prefix_op self, ast, st, tt in
     check_ast_kind(AstK_Prefix, ast);
     var expr = ast_expr(ast);
     var op = ast_op(ast);
     if op == TK_Tilde then
-        ir_compile(self, expr);
+        ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_bit_not());
     else if op == TK_KW_not then
-        ir_compile(self, expr);
+        ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_logic_not());
     else if op == TK_Minus then
         if ast_kind(expr) == AstK_Integer then
             ir_append(self, make_ir_push_int(0 - ast_value(expr)));
         else
-            ir_compile(self, expr);
+            ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_negative());
         end
     else
@@ -1477,10 +1493,10 @@ proc ir_emit_prefix_op self, ast in
     end
 end
 
-proc ir_emit_const self, ast in
+proc ir_emit_const self, ast, st, tt in
     check_ast_kind(AstK_Const, ast);
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr, true);
+    var val = ir_comptime_eval(self, expr, st, tt, true);
     var const_info = NULL;
     var k = ast_kind(val);
     if k == AstK_String then
@@ -1506,7 +1522,7 @@ proc ir_emit_const self, ast in
     end
 end
 
-proc ir_emit_extern self, ast in
+proc ir_emit_extern self, ast, st, tt in
     check_ast_kind(AstK_Extern, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
@@ -1525,7 +1541,7 @@ proc ir_emit_extern self, ast in
     ir_add_extern(self, ident, params, is_varargs);
 end
 
-proc ir_emit_inline_asm self, ast in
+proc ir_emit_inline_asm self, ast, st, tt in
     // TODO: Check if asm name already defined.
     check_ast_kind(AstK_InlineAsm, ast);
     var asm_name = ast_ident(ast);
@@ -1534,7 +1550,7 @@ proc ir_emit_inline_asm self, ast in
     set_add(ir_labels(self), asm_name);
 end
 
-proc ir_emit_global self, ast in
+proc ir_emit_global self, ast, st, tt in
     check_ast_kind(AstK_Global, ast);
     var ident = ast_ident(ast);
     if ir_is_global(self, ident) then
@@ -1544,7 +1560,7 @@ proc ir_emit_global self, ast in
     end
 
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr, true);
+    var val = ir_comptime_eval(self, expr, st, tt, true);
     var k = ast_kind(val);
     if k == AstK_String then
         ir_add_global_string(self, ident, ast_value(val));
@@ -1555,7 +1571,7 @@ proc ir_emit_global self, ast in
     end
 end
 
-proc ir_emit_break self, ast in
+proc ir_emit_break self, ast, st, tt in
     check_ast_kind(AstK_Break, ast);
     var dest = ir_get_break_dest(self);
     if not dest then
@@ -1566,7 +1582,7 @@ proc ir_emit_break self, ast in
     ir_append(self, make_ir_goto(dest));
 end
 
-proc ir_emit_continue self, ast in
+proc ir_emit_continue self, ast, st, tt in
     check_ast_kind(AstK_Continue, ast);
     var dest = ir_get_continue_dest(self);
     if not dest then
@@ -1577,38 +1593,38 @@ proc ir_emit_continue self, ast in
     ir_append(self, make_ir_goto(dest));
 end
 
-proc ir_emit_struct self, ast in
+proc ir_emit_struct self, ast, st, tt in
     check_ast_kind(AstK_Struct, ast);
     //NYI_ERR(__FILE__, __LINE__, "ir_emit_struct");
 end
 
-proc ir_compile self, ast in
+proc ir_compile self, ast, st, tt in
     // comptime eval will just return back the ast node if it's not evaluable
-    ast = ir_comptime_eval(self, ast, false);
+    ast = ir_comptime_eval(self, ast, st, tt, false);
     var k = ast_kind(ast);
     ir_push_src_loc(self, token_src_loc(ast_token(ast)));
-    if k == AstK_Ident then ir_emit_ident(self, ast);
-    else if k == AstK_Integer then ir_emit_integer(self, ast);
-    else if k == AstK_String then ir_emit_string(self, ast);
-    else if k == AstK_Call then ir_emit_call(self, ast);
-    else if k == AstK_BinOp then ir_emit_binop(self, ast);
-    else if k == AstK_Return then ir_emit_return(self, ast);
-    else if k == AstK_VarDecl then ir_emit_var_decl(self, ast);
-    else if k == AstK_VarAssign then ir_emit_var_assign(self, ast);
-    else if k == AstK_Procedure then ir_emit_procedure(self, ast);
-    else if k == AstK_IfElse then ir_emit_if_else(self, ast);
-    else if k == AstK_While then ir_emit_while(self, ast);
-    else if k == AstK_PointerRead then ir_emit_pointer_op(self, ast);
-    else if k == AstK_PointerWrite then ir_emit_pointer_op(self, ast);
-    else if k == AstK_Prefix then ir_emit_prefix_op(self, ast);
-    else if k == AstK_Const then ir_emit_const(self, ast);
-    else if k == AstK_Extern then ir_emit_extern(self, ast);
-    else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast);
-    else if k == AstK_Global then ir_emit_global(self, ast);
-    else if k == AstK_Break then ir_emit_break(self, ast);
-    else if k == AstK_Continue then ir_emit_continue(self, ast);
-    else if k == AstK_AssignOp then ir_emit_assign_op(self, ast);
-    else if k == AstK_Struct then ir_emit_struct(self, ast);
+    if k == AstK_Ident then ir_emit_ident(self, ast, st, tt);
+    else if k == AstK_Integer then ir_emit_integer(self, ast, st, tt);
+    else if k == AstK_String then ir_emit_string(self, ast, st, tt);
+    else if k == AstK_Call then ir_emit_call(self, ast, st, tt);
+    else if k == AstK_BinOp then ir_emit_binop(self, ast, st, tt);
+    else if k == AstK_Return then ir_emit_return(self, ast, st, tt);
+    else if k == AstK_VarDecl then ir_emit_var_decl(self, ast, st, tt);
+    else if k == AstK_VarAssign then ir_emit_var_assign(self, ast, st, tt);
+    else if k == AstK_Procedure then ir_emit_procedure(self, ast, st, tt);
+    else if k == AstK_IfElse then ir_emit_if_else(self, ast, st, tt);
+    else if k == AstK_While then ir_emit_while(self, ast, st, tt);
+    else if k == AstK_PointerRead then ir_emit_pointer_op(self, ast, st, tt);
+    else if k == AstK_PointerWrite then ir_emit_pointer_op(self, ast, st, tt);
+    else if k == AstK_Prefix then ir_emit_prefix_op(self, ast, st, tt);
+    else if k == AstK_Const then ir_emit_const(self, ast, st, tt);
+    else if k == AstK_Extern then ir_emit_extern(self, ast, st, tt);
+    else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast, st, tt);
+    else if k == AstK_Global then ir_emit_global(self, ast, st, tt);
+    else if k == AstK_Break then ir_emit_break(self, ast, st, tt);
+    else if k == AstK_Continue then ir_emit_continue(self, ast, st, tt);
+    else if k == AstK_AssignOp then ir_emit_assign_op(self, ast, st, tt);
+    else if k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -1685,10 +1701,10 @@ proc ir_resolve_lazy_idents self in
     end
 end
 
-proc ir_compile_roots self, roots in
+proc ir_compile_roots self: ir_context, roots: vector, symbol_table: symbol_table, type_table: type_table in
     var i = 0; var len = vector_len(roots);
     while i < len do
-        ir_compile(self, vector_get(roots, i));
+        ir_compile(self, vector_get(roots, i), symbol_table, type_table);
         i += 1;
     end
     ir_resolve_lazy_idents(self);

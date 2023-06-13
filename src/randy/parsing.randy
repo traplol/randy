@@ -88,8 +88,8 @@ proc parse_var ts, st, tt in
     return make_ast_var_decl(var_, symbol_name(symbol));
 end
 
-proc parse_if_else ts, st, tt in
-    var if_ = ts_expect(ts, TK_KW_if);
+proc parse_if_else ts, st, tt, expect in
+    var if_ = ts_expect(ts, expect);
     st_push_scope(st);
     var test = parse_expression(ts, st, tt);
     if not test then
@@ -100,14 +100,15 @@ proc parse_if_else ts, st, tt in
     ts_expect(ts, TK_KW_then);
     var conseq = make_vector(0);
     var altern = make_vector(0);
-    parse_statements_until_either(ts, st, tt, conseq, TK_KW_else, TK_KW_end);
+    parse_statements_until_one_of(ts, st, tt, conseq, TK_KW_else, TK_KW_end, TK_KW_elif);
     if ts_accept(ts, TK_KW_end) then
         st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
-    ts_expect(ts, TK_KW_else);
-    if ts_peekk(ts, TK_KW_if) then
-        vector_push(altern, parse_if_else(ts, st, tt));
+    //ts_expect(ts, TK_KW_else);
+    ts_accept(ts, TK_KW_else);
+    if ts_peekk_one_of_2(ts, TK_KW_if, TK_KW_elif) then
+        vector_push(altern, parse_if_else(ts, st, tt, token_kind(ts_peek(ts))));
         st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
@@ -549,7 +550,7 @@ proc parse_statement ts: token_stream, st: symbol_table, tt: type_table -> ast i
         stmt = parse_var(ts, st, tt);
         expect_semi = true;
     else if ts_peekk(ts, TK_KW_if) then
-        stmt = parse_if_else(ts, st, tt);
+        stmt = parse_if_else(ts, st, tt, TK_KW_if);
         expect_semi = false;
     else if ts_peekk(ts, TK_KW_while) then
         stmt = parse_while(ts, st, tt);
@@ -631,14 +632,14 @@ proc parse_statements_until ts, st, tt, into, kind in
     end
 end
 
-proc parse_statements_until_either ts, st, tt, into, k1, k2 in
-    if ts_peekk_one_of_2(ts, k1, k2) then
+proc parse_statements_until_one_of ts, st, tt, into, k1, k2, k3 in
+    if ts_peekk_one_of_3(ts, k1, k2, k3) then
         return;
     end
     var stmt = parse_statement(ts, st, tt);
     while stmt do
         vector_push(into, stmt);
-        if ts_peekk_one_of_2(ts, k1, k2) then
+        if ts_peekk_one_of_3(ts, k1, k2, k3) then
             stmt = NULL;
         else
             stmt = parse_statement(ts, st, tt);

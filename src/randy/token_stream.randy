@@ -90,8 +90,9 @@ proc ts_expect self: token_stream, kind: int -> token in
     end
     var tmp_k = token_kind(tmp);
     if tmp_k != kind then
-        printf("ERROR: Expected token kind %s, got %s\n",
+        printf("ERROR: Expected token kind %s (%d), got %s\n",
             token_kind_cstr(kind),
+            kind,
             token_kind_cstr(tmp_k));
         print_token_loc(tmp);
         exit(1);

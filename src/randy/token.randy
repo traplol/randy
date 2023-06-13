@@ -75,11 +75,10 @@ const TK_KW_enum     = 71;
 const TK_KW_inline   = 72;
 const TK_Dot         = 73;
 const TK_KW_assert   = 74;
-const TK_MAX_VAL     = 75;
+const TK_KW_elif     = 75;
 
 proc token_kind_cstr k: int -> cstr in
-    if k < 0 or k >= TK_MAX_VAL then return "TK_OUT_OF_RANGE";
-    else if k == TK_Integer then return "TK_Integer";
+    if k == TK_Integer then return "TK_Integer";
     else if k == TK_String then return "TK_String";
     else if k == TK_Char then return "TK_Char";
     else if k == TK_Ident then return "TK_Ident";
@@ -154,7 +153,8 @@ proc token_kind_cstr k: int -> cstr in
     else if k == TK_KW_inline then return "TK_KW_inline";
     else if k == TK_Dot then return "TK_Dot";
     else if k == TK_KW_assert then return "TK_KW_assert";
-    end
+    else if k == TK_KW_elif then return "TK_KW_elif";
+    else return "TK_OUT_OF_RANGE"; end
 end
 
 const TTOKEN_kind     = 0;  // TK
@@ -169,11 +169,6 @@ const TSRC_LOC_line     = 8;
 const sizeof_TSRC_LOC   = 16;
 
 proc make_token kind: int, cstr: cstr, value: ptr, line: int, filename: cstr -> token in
-    if kind < 0 or kind >= TK_MAX_VAL then
-        printf("make_token kind out of range: %d\n", kind);
-        exit(1);
-    end
-
     var self = malloc(sizeof_TTOKEN);
     u64!(self + TTOKEN_kind, kind);
     u64!(self + TTOKEN_cstr, cstr);

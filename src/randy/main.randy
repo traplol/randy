@@ -9,6 +9,7 @@
 
 global g_SymbolTable = NULL;
 global g_TypeTable = NULL;
+global g_SpecialFlag = false;
 
 #include utils
 #include token
@@ -144,6 +145,8 @@ proc main argc, argv in
             else if cstr_eq("-ast", u64@(argv + i*sizeof_PTR)) then
                 do_print_ast = true;
                 will_compile = false;
+            else if cstr_eq("-special", u64@(argv + i*sizeof_PTR)) then
+                g_SpecialFlag = true;
             else if cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
                 i += 1;
                 while i < argc do
@@ -152,6 +155,10 @@ proc main argc, argv in
                 end
             end
             i += 1;
+        end
+
+        if g_SpecialFlag then
+            printf("special enabled\n");
         end
 
         if not in_path then
@@ -220,7 +227,7 @@ proc main argc, argv in
 
         time(starttime);
         var irctx = make_ir_context();
-        ir_compile_roots(irctx, roots);
+        ir_compile_roots(irctx, roots, symbol_table, type_table);
         time(endtime);
         if verbosity > 0 then
             print_timespan("IR compile took: ", starttime, endtime);

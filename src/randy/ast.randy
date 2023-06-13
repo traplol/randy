@@ -509,8 +509,10 @@ proc _print_ast_procedure ast, indent in
     printf("end\n");
 end
 
-proc _print_ast_if_else ast, indent in
-    printf("if ");
+proc _print_ast_if_else ast, indent, print_if in
+    if print_if then
+        printf("if ");
+    end
     _print_ast(ast_test(ast), indent);
     printf(" then\n");
     var conseq = ast_consequence(ast);
@@ -518,8 +520,8 @@ proc _print_ast_if_else ast, indent in
     _print_ast_body(conseq, indent+1);
     if vector_len(altern) > 0 then
         if vector_len(altern) == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
-            _print_indent(indent); printf("else ");
-            _print_ast_if_else(vector_get(altern, 0), indent);
+            _print_indent(indent); printf("elif ");
+            _print_ast_if_else(vector_get(altern, 0), indent, false);
             return;
         else
             _print_indent(indent); printf("else\n");
@@ -647,7 +649,7 @@ proc _print_ast ast, indent in
     else if k == AstK_VarDecl then _print_ast_var_decl(ast, indent);
     else if k == AstK_VarAssign then _print_ast_var_assign(ast, indent);
     else if k == AstK_Procedure then _print_ast_procedure(ast, indent);
-    else if k == AstK_IfElse then _print_ast_if_else(ast, indent);
+    else if k == AstK_IfElse then _print_ast_if_else(ast, indent, true);
     else if k == AstK_While then _print_ast_while(ast, indent);
     else if k == AstK_PointerRead then _print_ast_pointer_op(ast, indent);
     else if k == AstK_PointerWrite then _print_ast_pointer_op(ast, indent);

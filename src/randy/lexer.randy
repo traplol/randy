@@ -45,6 +45,7 @@ proc get_ident_kind string in
         if cstr_eq("do", cstr) then return TK_KW_do; end
     else if 'e' == first then
         if cstr_eq("else", cstr) then return TK_KW_else; end
+        if cstr_eq("elif", cstr) then return TK_KW_elif; end
         if cstr_eq("end", cstr) then return TK_KW_end; end
         if cstr_eq("enum", cstr) then return TK_KW_enum; end
         if cstr_eq("extern", cstr) then return TK_KW_extern; end

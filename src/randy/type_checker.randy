@@ -104,6 +104,7 @@ proc tc_check tt, st, ast in
     else if k == AstK_Break then // nothing
     else if k == AstK_Continue then // nothing
     else if k == AstK_AssignOp then tc_check_assign_op(tt, st, ast);
+    else if k == AstK_Struct then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

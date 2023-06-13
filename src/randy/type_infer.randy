@@ -239,23 +239,21 @@ proc ti_infer_var_decl self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc _ti_infer_assignment tt, type, symbol, ast -> type in
+proc _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
     var sym_type = symbol_type(symbol);
     if not sym_type or sym_type == tt_any_type(tt) then
-        symbol_set_type(symbol, type);
-    else if type == tt_any_type(tt) then
-        //printf("WARN: RHS of '=' is `any`\n");
-        //printf("NOTE: The expression is: ");
-        //print_ast(ast);
-        //print_token_loc(ast_token(ast));
-    else if not types_assignable(tt, type, sym_type) then
+        symbol_set_type(symbol, rhs_type);
+    else if rhs_type == tt_any_type(tt) then
+        // @HACK This is most likely incorrect
+        tt_set_ast_type(tt, rhs_expr, sym_type);
+    else if not types_assignable(tt, sym_type, rhs_type) then
         printf("WARN: type of `%s` is `", symbol_name(symbol));
         _ti_print_type_name(tt, sym_type);
         printf("` cannot assign `");
-        _ti_print_type_name(tt, type);
+        _ti_print_type_name(tt, rhs_type);
         printf(".`\nNOTE: The expression is: ");
-        print_ast(ast);
-        print_token_loc(ast_token(ast));
+        print_ast(rhs_expr);
+        print_token_loc(ast_token(rhs_expr));
         //exit(1);
     end
 end
@@ -265,7 +263,7 @@ proc ti_infer_var_assign self, tt, st, ast -> type in
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
-    _ti_infer_assignment(tt, type, symbol, ast);
+    _ti_infer_assignment(tt, symbol, type, ast_assign_expr(ast));
     return tt_void_type(tt);
 end
 
@@ -290,7 +288,7 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
     var sym_type = symbol_type(symbol);
 
     if op == TK_Assign then
-        _ti_infer_assignment(tt, type, symbol, ast);
+        _ti_infer_assignment(tt, symbol, type, ast_assign_expr(ast));
     end
     return tt_void_type(tt);
 end
@@ -363,7 +361,7 @@ proc ti_infer_const self, tt, st, ast -> type in
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
-    _ti_infer_assignment(tt, type, symbol, ast);
+    _ti_infer_assignment(tt, symbol, type, ast_assign_expr(ast));
     return tt_void_type(tt);
 end
 
@@ -386,7 +384,7 @@ proc ti_infer_global self, tt, st, ast -> type in
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
-    _ti_infer_assignment(tt, type, symbol, ast);
+    _ti_infer_assignment(tt, symbol, type, ast_assign_expr(ast));
     return tt_void_type(tt);
 end
 
@@ -421,8 +419,9 @@ proc ti_infer self, tt, st, ast -> type in
     else if k == AstK_Continue then type = tt_void_type(tt);
     else if k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
     else if k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
+    else if k == AstK_Struct then type = tt_void_type(tt);
     else
-        printf("`ti_infer` in typechecking.randy\n");
+        printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));
