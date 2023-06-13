@@ -100,19 +100,22 @@ proc parse_if_else ts, st, tt, expect in
     ts_expect(ts, TK_KW_then);
     var conseq = make_vector(0);
     var altern = make_vector(0);
-    parse_statements_until_one_of(ts, st, tt, conseq, TK_KW_else, TK_KW_end, TK_KW_elif);
+    parse_statements_until_one_of(ts, st, tt, conseq, TK_KW_elif, TK_KW_end, TK_KW_elif);
+    // early end
     if ts_accept(ts, TK_KW_end) then
         st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
-    //ts_expect(ts, TK_KW_else);
-    ts_accept(ts, TK_KW_else);
-    if ts_peekk_one_of_2(ts, TK_KW_if, TK_KW_elif) then
-        vector_push(altern, parse_if_else(ts, st, tt, token_kind(ts_peek(ts))));
+    // elif ... then
+    if ts_peekk(ts, TK_KW_elif) then
         st_pop_scope(st);
+        vector_push(altern, parse_if_else(ts, st, tt, token_kind(ts_peek(ts))));
         return make_ast_if_else(if_, test, conseq, altern);
     end
+    // else
+    ts_expect(ts, TK_KW_else);
     parse_statements_until(ts, st, tt, altern, TK_KW_end);
+    // end
     ts_next(ts);
     st_pop_scope(st);
     return make_ast_if_else(if_, test, conseq, altern);
@@ -168,25 +171,25 @@ proc parse_pointer_op ts, st, tt in
     if ts_accept(ts, TK_KW_u8!) then
         size = 8;
         op = PointerOp_Write;
-    else if ts_accept(ts, TK_KW_u16!) then
+    elif ts_accept(ts, TK_KW_u16!) then
         size = 16;
         op = PointerOp_Write;
-    else if ts_accept(ts, TK_KW_u32!) then
+    elif ts_accept(ts, TK_KW_u32!) then
         size = 32;
         op = PointerOp_Write;
-    else if ts_accept(ts, TK_KW_u64!) then
+    elif ts_accept(ts, TK_KW_u64!) then
         size = 64;
         op = PointerOp_Write;
-    else if ts_accept(ts, TK_KW_u8@) then
+    elif ts_accept(ts, TK_KW_u8@) then
         size = 8;
         op = PointerOp_Read;
-    else if ts_accept(ts, TK_KW_u16@) then
+    elif ts_accept(ts, TK_KW_u16@) then
         size = 16;
         op = PointerOp_Read;
-    else if ts_accept(ts, TK_KW_u32@) then
+    elif ts_accept(ts, TK_KW_u32@) then
         size = 32;
         op = PointerOp_Read;
-    else if ts_accept(ts, TK_KW_u64@) then
+    elif ts_accept(ts, TK_KW_u64@) then
         size = 64;
         op = PointerOp_Read;
     else
@@ -205,7 +208,7 @@ proc parse_pointer_op ts, st, tt in
                 token_cstr(token), vector_len(args));
         print_token_loc(token);
         exit(1);
-    else if op == PointerOp_Write and vector_len(args) != 2 then
+    elif op == PointerOp_Write and vector_len(args) != 2 then
         printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
                 token_cstr(token), vector_len(args));
         print_token_loc(token);
@@ -288,6 +291,9 @@ end
 
 proc parse_primary ts, st, tt in
     var peek = ts_peek(ts);
+    if not peek then
+        return NULL;
+    end
     if ts_accept(ts, TK_LParen) then
         var expr = parse_expression(ts, st, tt);
         if not expr then
@@ -304,7 +310,7 @@ proc parse_primary ts, st, tt in
         var ident_cstr = token_value(ident);
         if cstr_eq("__FILE__", ident_cstr) then
             return make_ast_string(peek, string_from_cstr(token_filename(ident)));
-        else if cstr_eq("__LINE__", ident_cstr) then
+        elif cstr_eq("__LINE__", ident_cstr) then
             return make_ast_integer(peek, token_line(ident));
         end
         var symbol = st_get_symbol(st, token_value(ident));
@@ -312,13 +318,13 @@ proc parse_primary ts, st, tt in
             symbol = st_prepare_undef(st, token_value(ident), ident);
         end
         return make_ast_ident(peek, symbol_name(symbol));
-    else if k == TK_Integer or k == TK_Char then
+    elif k == TK_Integer or k == TK_Char then
         return make_ast_integer(peek, token_value(ts_next(ts)));
-    else if k == TK_String then
+    elif k == TK_String then
         return make_ast_string(peek, token_value(ts_next(ts)));
-    else if k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
+    elif k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
         return parse_pointer_op(ts, st, tt);
-    else if k == TK_KW_cast then
+    elif k == TK_KW_cast then
         return parse_cast(ts, st, tt);
     end
     return NULL;
@@ -549,58 +555,58 @@ proc parse_statement ts: token_stream, st: symbol_table, tt: type_table -> ast i
     if ts_peekk(ts, TK_KW_var) then
         stmt = parse_var(ts, st, tt);
         expect_semi = true;
-    else if ts_peekk(ts, TK_KW_if) then
+    elif ts_peekk(ts, TK_KW_if) then
         stmt = parse_if_else(ts, st, tt, TK_KW_if);
         expect_semi = false;
-    else if ts_peekk(ts, TK_KW_while) then
+    elif ts_peekk(ts, TK_KW_while) then
         stmt = parse_while(ts, st, tt);
         expect_semi = false;
-    else if ts_peekk(ts, TK_KW_return) then
+    elif ts_peekk(ts, TK_KW_return) then
         stmt = parse_return(ts, st, tt);
         expect_semi = true;
-    else if ts_peekk(ts, TK_KW_break) then
+    elif ts_peekk(ts, TK_KW_break) then
         stmt = make_ast_break(ts_next(ts));
         expect_semi = true;
-    else if ts_peekk(ts, TK_KW_continue) then
+    elif ts_peekk(ts, TK_KW_continue) then
         stmt = make_ast_continue(ts_next(ts));
         expect_semi = true;
-    else if ts_peekk(ts, TK_KW_assert) then
+    elif ts_peekk(ts, TK_KW_assert) then
         stmt = parse_assert(ts, st, tt);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_Assign) then
+    elif ts_peekk2(ts, TK_Ident, TK_Assign) then
         stmt = parse_assign_op(ts, st, tt, TK_Assign);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_PlusEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_PlusEq) then
         stmt = parse_assign_op(ts, st, tt, TK_PlusEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_MinusEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_MinusEq) then
         stmt = parse_assign_op(ts, st, tt, TK_MinusEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_StarEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_StarEq) then
         stmt = parse_assign_op(ts, st, tt, TK_StarEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_SlashEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_SlashEq) then
         stmt = parse_assign_op(ts, st, tt, TK_SlashEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_PercentEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_PercentEq) then
         stmt = parse_assign_op(ts, st, tt, TK_PercentEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_LShiftEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_LShiftEq) then
         stmt = parse_assign_op(ts, st, tt, TK_LShiftEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_RShiftEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_RShiftEq) then
         stmt = parse_assign_op(ts, st, tt, TK_RShiftEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_AmperEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_AmperEq) then
         stmt = parse_assign_op(ts, st, tt, TK_AmperEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_CaretEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_CaretEq) then
         stmt = parse_assign_op(ts, st, tt, TK_CaretEq);
         expect_semi = true;
-    else if ts_peekk2(ts, TK_Ident, TK_BarEq) then
+    elif ts_peekk2(ts, TK_Ident, TK_BarEq) then
         stmt = parse_assign_op(ts, st, tt, TK_BarEq);
         expect_semi = true;
-    else if ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
+    elif ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
         expect_semi = true;
     else
@@ -684,7 +690,7 @@ proc parse_proc ts, st, tt in
         if ts_peekk(ts, TK_KW_in) then
             symbol_set_type(param_symbol, any_type);
             break;
-        else if ts_accept(ts, TK_Colon) then
+        elif ts_accept(ts, TK_Colon) then
             symbol_set_type(param_symbol, parse_type(ts, st, tt, true));
             if ts_peekk(ts, TK_KW_in) then
                 break;
@@ -693,7 +699,7 @@ proc parse_proc ts, st, tt in
                 break;
             end
             ts_expect(ts, TK_Comma);
-        else if ts_peekk(ts, TK_RightArrow) then
+        elif ts_peekk(ts, TK_RightArrow) then
             symbol_set_type(param_symbol, any_type);
             break;
         else
@@ -780,7 +786,7 @@ proc parse_extern ts, st, tt in
         if ts_peekk(ts, TK_Semicolon) then
             symbol_set_type(param_symbol, any_type);
             break;
-        else if ts_accept(ts, TK_Colon) then
+        elif ts_accept(ts, TK_Colon) then
             var peek = ts_peek(ts);
             var type = parse_type(ts, st, tt, false);
             var ty_params = type_params(type);
@@ -795,7 +801,7 @@ proc parse_extern ts, st, tt in
                 break;
             end
             ts_expect(ts, TK_Comma);
-        else if ts_peekk(ts, TK_RightArrow) then
+        elif ts_peekk(ts, TK_RightArrow) then
             symbol_set_type(param_symbol, any_type);
             break;
         else
@@ -897,7 +903,7 @@ proc parse_struct ts, st, tt in
             var proc_ = parse_proc(ts, st, tt);
             vector_push(procs, proc_);
             vector_push(proc_symbols, st_get_symbol(st, ast_ident(proc_)));
-        else if ts_peekk(ts, TK_Ident) then
+        elif ts_peekk(ts, TK_Ident) then
             var field_ident = ts_next(ts);
             ts_expect(ts, TK_Colon);
             var field_type = parse_type(ts, st, tt, true);
@@ -917,7 +923,7 @@ proc parse_struct ts, st, tt in
 
     if not struct_type then
         struct_type = tt_make_anon_struct(tt, fields, proc_symbols);
-    else if not type_is_undefined(struct_type) then
+    elif not type_is_undefined(struct_type) then
         printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
     else
         type_set_kind(struct_type, TyK_struct);
@@ -935,18 +941,18 @@ proc parse ts: token_stream, st: symbol_table, tt: type_table in
         tk = ts_peek(ts);
         if ts_peekk(ts, TK_KW_proc) then
             parsed = parse_proc(ts, st, tt);
-        else if ts_peekk(ts, TK_KW_const) then
+        elif ts_peekk(ts, TK_KW_const) then
             parsed = parse_const(ts, st, tt);
             ts_expect(ts, TK_Semicolon);
-        else if ts_peekk(ts, TK_KW_extern) then
+        elif ts_peekk(ts, TK_KW_extern) then
             parsed = parse_extern(ts, st, tt);
             ts_expect(ts, TK_Semicolon);
-        else if ts_peekk(ts, TK_KW_asm) then
+        elif ts_peekk(ts, TK_KW_asm) then
             parsed = parse_asm(ts, st, tt);
-        else if ts_peekk(ts, TK_KW_global) then
+        elif ts_peekk(ts, TK_KW_global) then
             parsed = parse_global(ts, st, tt);
             ts_expect(ts, TK_Semicolon);
-        else if ts_peekk(ts, TK_KW_struct) then
+        elif ts_peekk(ts, TK_KW_struct) then
             parsed = parse_struct(ts, st, tt);
         else
             tk = ts_peek(ts);

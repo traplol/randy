@@ -57,10 +57,10 @@ end
 
 proc ast_requires_semi k in
     if k == AstK_Procedure then return false;
-    else if k == AstK_IfElse then return false;
-    else if k == AstK_While then return false;
-    else if k == AstK_InlineAsm then return false;
-    else if k == AstK_Struct then return false;
+    elif k == AstK_IfElse then return false;
+    elif k == AstK_While then return false;
+    elif k == AstK_InlineAsm then return false;
+    elif k == AstK_Struct then return false;
     else
         return true;
     end
@@ -376,11 +376,11 @@ proc _print_ast_string ast, indent in
         var c = string_get(string, i);
         if c == '\n' then
             printf("\\n");
-        else if c == '\t' then
+        elif c == '\t' then
             printf("\\t");
-        else if c == '\0' then
+        elif c == '\0' then
             printf("\\0");
-        else if c == '\r' then
+        elif c == '\r' then
             printf("\\r");
         else
             printf("%c", c);
@@ -445,16 +445,16 @@ proc _print_ast_assign_op ast, indent in
     var op = ast_op(ast);
     var op_str = "FIXME in ast.randy";
     if op == TK_Assign         then op_str = "=";
-    else if op == TK_PlusEq    then op_str = "+=";
-    else if op == TK_MinusEq   then op_str = "-=";
-    else if op == TK_StarEq    then op_str = "*=";
-    else if op == TK_SlashEq   then op_str = "/=";
-    else if op == TK_PercentEq then op_str = "%=";
-    else if op == TK_LShiftEq  then op_str = "<<=";
-    else if op == TK_RShiftEq  then op_str = ">>=";
-    else if op == TK_AmperEq   then op_str = "&=";
-    else if op == TK_CaretEq   then op_str = "^=";
-    else if op == TK_BarEq     then op_str = "|=";
+    elif op == TK_PlusEq    then op_str = "+=";
+    elif op == TK_MinusEq   then op_str = "-=";
+    elif op == TK_StarEq    then op_str = "*=";
+    elif op == TK_SlashEq   then op_str = "/=";
+    elif op == TK_PercentEq then op_str = "%=";
+    elif op == TK_LShiftEq  then op_str = "<<=";
+    elif op == TK_RShiftEq  then op_str = ">>=";
+    elif op == TK_AmperEq   then op_str = "&=";
+    elif op == TK_CaretEq   then op_str = "^=";
+    elif op == TK_BarEq     then op_str = "|=";
     end
     printf("%s ", op_str);
     _print_ast(ast_assign_expr(ast), indent);
@@ -641,29 +641,29 @@ end
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
-    else if k == AstK_Integer then _print_ast_integer(ast, indent);
-    else if k == AstK_String then _print_ast_string(ast, indent);
-    else if k == AstK_Call then _print_ast_call(ast, indent);
-    else if k == AstK_BinOp then _print_ast_binop(ast, indent);
-    else if k == AstK_Return then _print_ast_return(ast, indent);
-    else if k == AstK_VarDecl then _print_ast_var_decl(ast, indent);
-    else if k == AstK_VarAssign then _print_ast_var_assign(ast, indent);
-    else if k == AstK_Procedure then _print_ast_procedure(ast, indent);
-    else if k == AstK_IfElse then _print_ast_if_else(ast, indent, true);
-    else if k == AstK_While then _print_ast_while(ast, indent);
-    else if k == AstK_PointerRead then _print_ast_pointer_op(ast, indent);
-    else if k == AstK_PointerWrite then _print_ast_pointer_op(ast, indent);
-    else if k == AstK_Prefix then _print_ast_prefix(ast, indent);
-    else if k == AstK_Const then _print_ast_const(ast, indent);
-    else if k == AstK_Extern then _print_ast_extern(ast, indent);
-    else if k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
-    else if k == AstK_Global then _print_ast_global(ast, indent);
-    else if k == AstK_Break then _print_ast_break(ast, indent);
-    else if k == AstK_Continue then _print_ast_continue(ast, indent);
-    else if k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
-    else if k == AstK_Cast then _print_ast_cast(ast, indent);
-    else if k == AstK_Struct then _print_ast_struct(ast, indent);
-    else if k == AstK_MemberAccess then _print_ast_member_access(ast, indent);
+    elif k == AstK_Integer then _print_ast_integer(ast, indent);
+    elif k == AstK_String then _print_ast_string(ast, indent);
+    elif k == AstK_Call then _print_ast_call(ast, indent);
+    elif k == AstK_BinOp then _print_ast_binop(ast, indent);
+    elif k == AstK_Return then _print_ast_return(ast, indent);
+    elif k == AstK_VarDecl then _print_ast_var_decl(ast, indent);
+    elif k == AstK_VarAssign then _print_ast_var_assign(ast, indent);
+    elif k == AstK_Procedure then _print_ast_procedure(ast, indent);
+    elif k == AstK_IfElse then _print_ast_if_else(ast, indent, true);
+    elif k == AstK_While then _print_ast_while(ast, indent);
+    elif k == AstK_PointerRead then _print_ast_pointer_op(ast, indent);
+    elif k == AstK_PointerWrite then _print_ast_pointer_op(ast, indent);
+    elif k == AstK_Prefix then _print_ast_prefix(ast, indent);
+    elif k == AstK_Const then _print_ast_const(ast, indent);
+    elif k == AstK_Extern then _print_ast_extern(ast, indent);
+    elif k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
+    elif k == AstK_Global then _print_ast_global(ast, indent);
+    elif k == AstK_Break then _print_ast_break(ast, indent);
+    elif k == AstK_Continue then _print_ast_continue(ast, indent);
+    elif k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
+    elif k == AstK_Cast then _print_ast_cast(ast, indent);
+    elif k == AstK_Struct then _print_ast_struct(ast, indent);
+    elif k == AstK_MemberAccess then _print_ast_member_access(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

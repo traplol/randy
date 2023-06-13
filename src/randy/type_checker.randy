@@ -84,27 +84,27 @@ end
 proc tc_check tt, st, ast in
     var k = ast_kind(ast);
     if k == AstK_Ident then tc_check_ident(tt, st, ast);
-    else if k == AstK_Integer then // nothing
-    else if k == AstK_String then //nothing
-    else if k == AstK_Call then tc_check_call(tt, st, ast);
-    else if k == AstK_BinOp then tc_check_binop(tt, st, ast);
-    else if k == AstK_Return then tc_check_return(tt, st, ast);
-    else if k == AstK_VarDecl then tc_check_var_decl(tt, st, ast);
-    else if k == AstK_VarAssign then tc_check_var_assign(tt, st, ast);
-    else if k == AstK_Procedure then tc_check_procedure(tt, st, ast);
-    else if k == AstK_IfElse then tc_check_if_else(tt, st, ast);
-    else if k == AstK_While then tc_check_while(tt, st, ast);
-    else if k == AstK_PointerRead then tc_check_pointer_read(tt, st, ast);
-    else if k == AstK_PointerWrite then tc_check_pointer_write(tt, st, ast);
-    else if k == AstK_Prefix then tc_check_prefix_op(tt, st, ast);
-    else if k == AstK_Const then tc_check_const(tt, st, ast);
-    else if k == AstK_Extern then tc_check_extern(tt, st, ast);
-    else if k == AstK_InlineAsm then // nothing
-    else if k == AstK_Global then tc_check_global(tt, st, ast);
-    else if k == AstK_Break then // nothing
-    else if k == AstK_Continue then // nothing
-    else if k == AstK_AssignOp then tc_check_assign_op(tt, st, ast);
-    else if k == AstK_Struct then // nothing
+    elif k == AstK_Integer then // nothing
+    elif k == AstK_String then //nothing
+    elif k == AstK_Call then tc_check_call(tt, st, ast);
+    elif k == AstK_BinOp then tc_check_binop(tt, st, ast);
+    elif k == AstK_Return then tc_check_return(tt, st, ast);
+    elif k == AstK_VarDecl then tc_check_var_decl(tt, st, ast);
+    elif k == AstK_VarAssign then tc_check_var_assign(tt, st, ast);
+    elif k == AstK_Procedure then tc_check_procedure(tt, st, ast);
+    elif k == AstK_IfElse then tc_check_if_else(tt, st, ast);
+    elif k == AstK_While then tc_check_while(tt, st, ast);
+    elif k == AstK_PointerRead then tc_check_pointer_read(tt, st, ast);
+    elif k == AstK_PointerWrite then tc_check_pointer_write(tt, st, ast);
+    elif k == AstK_Prefix then tc_check_prefix_op(tt, st, ast);
+    elif k == AstK_Const then tc_check_const(tt, st, ast);
+    elif k == AstK_Extern then tc_check_extern(tt, st, ast);
+    elif k == AstK_InlineAsm then // nothing
+    elif k == AstK_Global then tc_check_global(tt, st, ast);
+    elif k == AstK_Break then // nothing
+    elif k == AstK_Continue then // nothing
+    elif k == AstK_AssignOp then tc_check_assign_op(tt, st, ast);
+    elif k == AstK_Struct then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

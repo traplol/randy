@@ -24,14 +24,14 @@ proc next_state state in
             right = string_get(state, i+1);
         end
 
-             if left == '*' and center == '*' and right == '*' then string_push(next, ' ');
-        else if left == '*' and center == '*' and right == ' ' then string_push(next, '*');
-        else if left == '*' and center == ' ' and right == '*' then string_push(next, '*');
-        else if left == '*' and center == ' ' and right == ' ' then string_push(next, ' ');
-        else if left == ' ' and center == '*' and right == '*' then string_push(next, '*');
-        else if left == ' ' and center == '*' and right == ' ' then string_push(next, '*');
-        else if left == ' ' and center == ' ' and right == '*' then string_push(next, '*');
-        else if left == ' ' and center == ' ' and right == ' ' then string_push(next, ' ');
+          if left == '*' and center == '*' and right == '*' then string_push(next, ' ');
+        elif left == '*' and center == '*' and right == ' ' then string_push(next, '*');
+        elif left == '*' and center == ' ' and right == '*' then string_push(next, '*');
+        elif left == '*' and center == ' ' and right == ' ' then string_push(next, ' ');
+        elif left == ' ' and center == '*' and right == '*' then string_push(next, '*');
+        elif left == ' ' and center == '*' and right == ' ' then string_push(next, '*');
+        elif left == ' ' and center == ' ' and right == '*' then string_push(next, '*');
+        elif left == ' ' and center == ' ' and right == ' ' then string_push(next, ' ');
         end
         i += 1;
     end

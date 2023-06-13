@@ -58,7 +58,7 @@ proc main in
         if result < 0 then
             running = 0;
             printf("error reading file: %d\n", result);
-        else if result == 0 then
+        elif result == 0 then
             running = 0;
         else
             x = 0;

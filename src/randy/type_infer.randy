@@ -215,7 +215,7 @@ proc ti_infer_return self, tt, st, ast -> type in
     var any = tt_any_type(tt);
     if not ret_type or ret_type == any then
         type_set_proc_return_type(proc_type, type);
-    else if not types_assignable(tt, type, ret_type) then
+    elif not types_assignable(tt, type, ret_type) then
         printf("WARN: Return type for `%s` is `", symbol_name(cur_proc));
         _ti_print_type_name(tt, ret_type);
         printf("` cannot return `");
@@ -243,10 +243,10 @@ proc _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
     var sym_type = symbol_type(symbol);
     if not sym_type or sym_type == tt_any_type(tt) then
         symbol_set_type(symbol, rhs_type);
-    else if rhs_type == tt_any_type(tt) then
+    elif rhs_type == tt_any_type(tt) then
         // @HACK This is most likely incorrect
         tt_set_ast_type(tt, rhs_expr, sym_type);
-    else if not types_assignable(tt, sym_type, rhs_type) then
+    elif not types_assignable(tt, sym_type, rhs_type) then
         printf("WARN: type of `%s` is `", symbol_name(symbol));
         _ti_print_type_name(tt, sym_type);
         printf("` cannot assign `");
@@ -398,28 +398,28 @@ proc ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
     var type: type;
     if k == AstK_Ident then type = ti_infer_ident(self, tt, st, ast);
-    else if k == AstK_Integer then type = ti_infer_integer(self, tt, st, ast);
-    else if k == AstK_String then type = ti_infer_string(self, tt, st, ast);
-    else if k == AstK_Call then type = ti_infer_call(self, tt, st, ast);
-    else if k == AstK_BinOp then type = ti_infer_binop(self, tt, st, ast);
-    else if k == AstK_Return then type = ti_infer_return(self, tt, st, ast);
-    else if k == AstK_VarDecl then type = ti_infer_var_decl(self, tt, st, ast);
-    else if k == AstK_VarAssign then type = ti_infer_var_assign(self, tt, st, ast);
-    else if k == AstK_Procedure then type = ti_infer_procedure(self, tt, st, ast);
-    else if k == AstK_IfElse then type = ti_infer_if_else(self, tt, st, ast);
-    else if k == AstK_While then type = ti_infer_while(self, tt, st, ast);
-    else if k == AstK_PointerRead then type = ti_infer_pointer_read(self, tt, st, ast);
-    else if k == AstK_PointerWrite then type = ti_infer_pointer_write(self, tt, st, ast);
-    else if k == AstK_Prefix then type = ti_infer_prefix_op(self, tt, st, ast);
-    else if k == AstK_Const then type = ti_infer_const(self, tt, st, ast);
-    else if k == AstK_Extern then type = ti_infer_extern(self, tt, st, ast);
-    else if k == AstK_InlineAsm then type = ti_infer_inline_asm(self, tt, st, ast);
-    else if k == AstK_Global then type = ti_infer_global(self, tt, st, ast);
-    else if k == AstK_Break then type = tt_void_type(tt);
-    else if k == AstK_Continue then type = tt_void_type(tt);
-    else if k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
-    else if k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
-    else if k == AstK_Struct then type = tt_void_type(tt);
+    elif k == AstK_Integer then type = ti_infer_integer(self, tt, st, ast);
+    elif k == AstK_String then type = ti_infer_string(self, tt, st, ast);
+    elif k == AstK_Call then type = ti_infer_call(self, tt, st, ast);
+    elif k == AstK_BinOp then type = ti_infer_binop(self, tt, st, ast);
+    elif k == AstK_Return then type = ti_infer_return(self, tt, st, ast);
+    elif k == AstK_VarDecl then type = ti_infer_var_decl(self, tt, st, ast);
+    elif k == AstK_VarAssign then type = ti_infer_var_assign(self, tt, st, ast);
+    elif k == AstK_Procedure then type = ti_infer_procedure(self, tt, st, ast);
+    elif k == AstK_IfElse then type = ti_infer_if_else(self, tt, st, ast);
+    elif k == AstK_While then type = ti_infer_while(self, tt, st, ast);
+    elif k == AstK_PointerRead then type = ti_infer_pointer_read(self, tt, st, ast);
+    elif k == AstK_PointerWrite then type = ti_infer_pointer_write(self, tt, st, ast);
+    elif k == AstK_Prefix then type = ti_infer_prefix_op(self, tt, st, ast);
+    elif k == AstK_Const then type = ti_infer_const(self, tt, st, ast);
+    elif k == AstK_Extern then type = ti_infer_extern(self, tt, st, ast);
+    elif k == AstK_InlineAsm then type = ti_infer_inline_asm(self, tt, st, ast);
+    elif k == AstK_Global then type = ti_infer_global(self, tt, st, ast);
+    elif k == AstK_Break then type = tt_void_type(tt);
+    elif k == AstK_Continue then type = tt_void_type(tt);
+    elif k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
+    elif k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
+    elif k == AstK_Struct then type = tt_void_type(tt);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

@@ -205,27 +205,27 @@ proc types_assignable tt: type_table, a: type, b: type in
     var bool = tt_bool_type(tt);
     if a == ptr and b == cstr then
         return true;
-    else if a == cstr and b == ptr then
+    elif a == cstr and b == ptr then
         return true;
-    else if a == ptr and type_is_reference(b) then
+    elif a == ptr and type_is_reference(b) then
         return true;
-    else if type_is_reference(a) and b == ptr then
+    elif type_is_reference(a) and b == ptr then
         return true;
-    else if a == ptr and type_is_procedure(b) then
+    elif a == ptr and type_is_procedure(b) then
         return true;
-    else if type_is_procedure(a) and b == ptr then
+    elif type_is_procedure(a) and b == ptr then
         return true;
-    else if a == char and b == int then
+    elif a == char and b == int then
         return true;
-    else if a == int and b == char then
+    elif a == int and b == char then
         return true;
-    else if a == int and b == ptr then
+    elif a == int and b == ptr then
         return true;
-    else if a == ptr and b == int then
+    elif a == ptr and b == int then
         return true;
-    else if a == int and b == bool then
+    elif a == int and b == bool then
         return true;
-    else if a == bool and b == int then
+    elif a == bool and b == int then
         return true;
     end
     return false;
@@ -428,7 +428,7 @@ end
 proc _tt_append_proc_type_repr self, string, type in
     if not type then
         string_append_cstr(string, "{null}");
-    else if type_is_procedure(type) then
+    elif type_is_procedure(type) then
         var ptn = tt_get_proc_type_name(self, type);
         string_append_string(string, ptn);
         free_string(ptn);
@@ -567,7 +567,7 @@ proc tt_calculate_structs self in
             type_set_size(type, 64);
             type_set_kind(type, TyK_reference);
             type_set_ref_type(type, void);
-        else if type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
+        elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
             queue_enqueue(to_calc, type);
         end
         i += 1;

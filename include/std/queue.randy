@@ -41,7 +41,7 @@ proc queue_resize self, new_cap in
     var old_cap = u64@(self + TQUEUE_capacity);
     if new_cap == old_cap then
         return;
-    else if new_cap < old_cap then
+    elif new_cap < old_cap then
         printf("queue:resize: shrinking queue unsupported.\n");
         abort();
     end

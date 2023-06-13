@@ -545,50 +545,50 @@ end
 proc print_ir ir in
     var k = ir_instr_kind(ir);
     if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
-    else if k == IRK_Call then print_ir_call(ir);
-    else if k == IRK_CallLazyIdent then print_ir_call_lazy_ident(ir);
-    else if k == IRK_CloseProc then print_ir_close_proc(ir);
-    else if k == IRK_FreeTemps then print_ir_free_temps(ir);
-    else if k == IRK_GetLocal then print_ir_get_local(ir);
-    else if k == IRK_Goto then print_ir_goto(ir);
-    else if k == IRK_GotoFalse then print_ir_goto_false(ir);
-    else if k == IRK_GotoTopFalse then print_ir_goto_top_false(ir);
-    else if k == IRK_GotoTopTrue then print_ir_goto_top_true(ir);
-    else if k == IRK_InlineAsm then print_ir_inline_asm(ir);
-    else if k == IRK_Label then print_ir_label(ir);
-    else if k == IRK_BitNot then print_ir_bit_not(ir);
-    else if k == IRK_LogicNot then print_ir_logic_not(ir);
-    else if k == IRK_NewProc then print_ir_new_proc(ir);
-    else if k == IRK_OpAdd then print_ir_op_add(ir);
-    else if k == IRK_OpDiv then print_ir_op_div(ir);
-    else if k == IRK_OpEq then print_ir_op_eq(ir);
-    else if k == IRK_OpGreater then print_ir_op_greater(ir);
-    else if k == IRK_OpGreaterEq then print_ir_op_greater_eq(ir);
-    else if k == IRK_OpLess then print_ir_op_less(ir);
-    else if k == IRK_OpLessEq then print_ir_op_less_eq(ir);
-    else if k == IRK_OpMod then print_ir_op_mod(ir);
-    else if k == IRK_OpMul then print_ir_op_mul(ir);
-    else if k == IRK_OpNotEq then print_ir_op_not_eq(ir);
-    else if k == IRK_OpSub then print_ir_op_sub(ir);
-    else if k == IRK_PopCall then print_ir_pop_call(ir);
-    else if k == IRK_PopReturn then print_ir_pop_return(ir);
-    else if k == IRK_PtrRead then print_ir_ptr_read(ir);
-    else if k == IRK_PtrWrite then print_ir_ptr_write(ir);
-    else if k == IRK_PushInt then print_ir_push_int(ir);
-    else if k == IRK_PushLabel then print_ir_push_label(ir);
-    else if k == IRK_ReturnVoid then print_ir_return_void(ir);
-    else if k == IRK_SetArgTemp then print_ir_set_arg_temp(ir);
-    else if k == IRK_SetLocal then print_ir_set_local(ir);
-    else if k == IRK_SetLocalArg then print_ir_set_local_arg(ir);
-    else if k == IRK_StoreTemp then print_ir_store_temp(ir);
-    else if k == IRK_LazyIdent then print_ir_lazy_ident(ir);
-    else if k == IRK_DropTop then print_ir_drop_top(ir);
-    else if k == IRK_SetGlobal then print_ir_set_global(ir);
-    else if k == IRK_GetGlobal then print_ir_get_global(ir);
-    else if k == IRK_Negative then print_ir_negative(ir);
-    else if k == IRK_ScopeOpen then print_ir_scope_open(ir);
-    else if k == IRK_ScopeClose then print_ir_scope_close(ir);
-    else if k == IRK_PtrCopy then print_ir_ptr_copy(ir);
+    elif k == IRK_Call then print_ir_call(ir);
+    elif k == IRK_CallLazyIdent then print_ir_call_lazy_ident(ir);
+    elif k == IRK_CloseProc then print_ir_close_proc(ir);
+    elif k == IRK_FreeTemps then print_ir_free_temps(ir);
+    elif k == IRK_GetLocal then print_ir_get_local(ir);
+    elif k == IRK_Goto then print_ir_goto(ir);
+    elif k == IRK_GotoFalse then print_ir_goto_false(ir);
+    elif k == IRK_GotoTopFalse then print_ir_goto_top_false(ir);
+    elif k == IRK_GotoTopTrue then print_ir_goto_top_true(ir);
+    elif k == IRK_InlineAsm then print_ir_inline_asm(ir);
+    elif k == IRK_Label then print_ir_label(ir);
+    elif k == IRK_BitNot then print_ir_bit_not(ir);
+    elif k == IRK_LogicNot then print_ir_logic_not(ir);
+    elif k == IRK_NewProc then print_ir_new_proc(ir);
+    elif k == IRK_OpAdd then print_ir_op_add(ir);
+    elif k == IRK_OpDiv then print_ir_op_div(ir);
+    elif k == IRK_OpEq then print_ir_op_eq(ir);
+    elif k == IRK_OpGreater then print_ir_op_greater(ir);
+    elif k == IRK_OpGreaterEq then print_ir_op_greater_eq(ir);
+    elif k == IRK_OpLess then print_ir_op_less(ir);
+    elif k == IRK_OpLessEq then print_ir_op_less_eq(ir);
+    elif k == IRK_OpMod then print_ir_op_mod(ir);
+    elif k == IRK_OpMul then print_ir_op_mul(ir);
+    elif k == IRK_OpNotEq then print_ir_op_not_eq(ir);
+    elif k == IRK_OpSub then print_ir_op_sub(ir);
+    elif k == IRK_PopCall then print_ir_pop_call(ir);
+    elif k == IRK_PopReturn then print_ir_pop_return(ir);
+    elif k == IRK_PtrRead then print_ir_ptr_read(ir);
+    elif k == IRK_PtrWrite then print_ir_ptr_write(ir);
+    elif k == IRK_PushInt then print_ir_push_int(ir);
+    elif k == IRK_PushLabel then print_ir_push_label(ir);
+    elif k == IRK_ReturnVoid then print_ir_return_void(ir);
+    elif k == IRK_SetArgTemp then print_ir_set_arg_temp(ir);
+    elif k == IRK_SetLocal then print_ir_set_local(ir);
+    elif k == IRK_SetLocalArg then print_ir_set_local_arg(ir);
+    elif k == IRK_StoreTemp then print_ir_store_temp(ir);
+    elif k == IRK_LazyIdent then print_ir_lazy_ident(ir);
+    elif k == IRK_DropTop then print_ir_drop_top(ir);
+    elif k == IRK_SetGlobal then print_ir_set_global(ir);
+    elif k == IRK_GetGlobal then print_ir_get_global(ir);
+    elif k == IRK_Negative then print_ir_negative(ir);
+    elif k == IRK_ScopeOpen then print_ir_scope_open(ir);
+    elif k == IRK_ScopeClose then print_ir_scope_close(ir);
+    elif k == IRK_PtrCopy then print_ir_ptr_copy(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -983,19 +983,19 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
     var k = ast_kind(ast);
     if k == AstK_Integer then
         return ast;
-    else if k == AstK_String then
+    elif k == AstK_String then
         return ast;
-    else if k == AstK_Ident then
+    elif k == AstK_Ident then
         ident = ast_ident(ast);
         if ir_is_const(self, ident) then
             ci = ir_get_const(self, ident);
             if const_info_kind(ci) == CIK_String then
                 return ast;
-            else if const_info_kind(ci) == CIK_Integer then
+            elif const_info_kind(ci) == CIK_Integer then
                 return make_ast_integer(ast_token(ast), const_info_value(ci)); // @LEAK
             end
         end
-    else if k == AstK_BinOp then
+    elif k == AstK_BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail);
         rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail);
@@ -1015,59 +1015,59 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
                 if op == TK_Plus then
                     evaled = true;
                     result = lhs_val + rhs_val;
-                else if op == TK_Minus then
+                elif op == TK_Minus then
                     evaled = true;
                     result = lhs_val - rhs_val;
-                else if op == TK_Star then
+                elif op == TK_Star then
                     evaled = true;
                     result = lhs_val * rhs_val;
-                else if op == TK_KW_and then
+                elif op == TK_KW_and then
                     evaled = true;
                     result = lhs_val and rhs_val;
-                else if op == TK_KW_or then
+                elif op == TK_KW_or then
                     evaled = true;
                     result = lhs_val or rhs_val;
-                else if op == TK_Slash then
+                elif op == TK_Slash then
                     if rhs_val != 0 then
                         evaled = true;
                         result = lhs_val / rhs_val;
                     end
-                else if op == TK_Percent then
+                elif op == TK_Percent then
                     if rhs_val != 0 then
                         evaled = true;
                         result = lhs_val % rhs_val;
                     end
-                else if op == TK_Caret then
+                elif op == TK_Caret then
                     evaled = true;
                     result = lhs_val ^ rhs_val;
-                else if op == TK_Amper then
+                elif op == TK_Amper then
                     evaled = true;
                     result = lhs_val & rhs_val;
-                else if op == TK_Bar then
+                elif op == TK_Bar then
                     evaled = true;
                     result = lhs_val | rhs_val;
-                else if op == TK_LShift then
+                elif op == TK_LShift then
                     evaled = true;
                     result = lhs_val << rhs_val;
-                else if op == TK_RShift then
+                elif op == TK_RShift then
                     evaled = true;
                     result = lhs_val >> rhs_val;
-                else if op == TK_EqEq then
+                elif op == TK_EqEq then
                     evaled = true;
                     result = lhs_val == rhs_val;
-                else if op == TK_NotEq then
+                elif op == TK_NotEq then
                     evaled = true;
                     result = lhs_val != rhs_val;
-                else if op == TK_Less then
+                elif op == TK_Less then
                     evaled = true;
                     result = lhs_val < rhs_val;
-                else if op == TK_LessEq then
+                elif op == TK_LessEq then
                     evaled = true;
                     result = lhs_val <= rhs_val;
-                else if op == TK_Greater then
+                elif op == TK_Greater then
                     evaled = true;
                     result = lhs_val > rhs_val;
-                else if op == TK_GreaterEq then
+                elif op == TK_GreaterEq then
                     evaled = true;
                     result = lhs_val >= rhs_val;
                 end
@@ -1076,7 +1076,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
                 end
             end
         end
-    else if k == AstK_Prefix then
+    elif k == AstK_Prefix then
         op = ast_op(ast);
         rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
         evaled = false;
@@ -1085,10 +1085,10 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
             if op == TK_Minus then
                 evaled = true;
                 result = 0 - rhs_val;
-            else if op == TK_KW_not then
+            elif op == TK_KW_not then
                 evaled = true;
                 result = not rhs_val;
-            else if op == TK_Tilde then
+            elif op == TK_Tilde then
                 evaled = true;
                 result = ~rhs_val;
             end
@@ -1096,7 +1096,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
                 return make_ast_integer(ast_token(ast), result); // @LEAK
             end
         end
-    else if k == AstK_Cast then
+    elif k == AstK_Cast then
         return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
     end
 
@@ -1130,24 +1130,24 @@ proc ir_emit_ident self, ast, st, tt in
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
         ir_append(self, make_ir_get_local(ident, n));
-    else if ir_is_const(self, ident) then
+    elif ir_is_const(self, ident) then
         var const_info = ir_get_const(self, ident);
         var cik = const_info_kind(const_info);
         if cik == CIK_Integer then
             ir_append(self, make_ir_push_int(const_info_value(const_info)));
-        else if cik == CIK_String then
+        elif cik == CIK_String then
             ir_append(self, make_ir_push_label(const_info_value(const_info)));
         else
             printf("Unhandled const_info kind: %d\n", cik);
             NYI_ERR(__FILE__, __LINE__, "ir_emit_ident:const");
         end
-    else if ir_is_proc(self, ident) then
+    elif ir_is_proc(self, ident) then
         var proc_info = ir_get_proc(self, ident);
         ir_append(self, make_ir_push_label(proc_info_label(proc_info)));
-    else if ir_is_extern(self, ident) then
+    elif ir_is_extern(self, ident) then
         var extern_info = ir_get_extern(self, ident);
         ir_append(self, make_ir_push_label(proc_info_label(extern_info)));
-    else if ir_is_global(self, ident) then
+    elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
         ir_append(self, make_ir_get_global(ident, global_info_label(gi)));
     else
@@ -1174,7 +1174,7 @@ proc _ir_check_arg_count self, ident, info, nargs in
     if not varargs and nargs != nparams then
         printf("ERROR: Call to `%s` expects %d arguments but got %d.\n", ident, nparams, nargs);
         return false;
-    else if varargs and nargs < nparams then
+    elif varargs and nargs < nparams then
         printf("ERROR: Call to `%s` expects at least %d arguments but got %d.\n", ident, nparams, nargs);
         return false;
     end
@@ -1215,16 +1215,16 @@ proc ir_emit_call self, ast, st, tt in
                 exit(1);
             end
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
-        else if ir_is_extern(self, ident) then
+        elif ir_is_extern(self, ident) then
             info = ir_get_extern(self, ident);
             if not _ir_check_arg_count(self, ident, info, vector_len(args)) then
                 ir_print_src_loc(self);
                 exit(1);
             end
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
-        else if ir_is_label(self, ident) then
+        elif ir_is_label(self, ident) then
             ir_append(self, make_ir_call(ident, false));
-        else if ir_is_local(self, ident) then
+        elif ir_is_local(self, ident) then
             ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_pop_call());
         else
@@ -1257,23 +1257,23 @@ proc ir_emit_binop self, ast, st, tt in
     var op = ast_op(ast);
     var simple = -1;
     if op == TK_Plus then simple = IRK_OpAdd;
-    else if op == TK_Minus then simple = IRK_OpSub;
-    else if op == TK_Star then simple = IRK_OpMul;
-    else if op == TK_Slash then simple = IRK_OpDiv;
-    else if op == TK_Percent then simple = IRK_OpMod;
-    else if op == TK_EqEq then simple = IRK_OpEq;
-    else if op == TK_NotEq then simple = IRK_OpNotEq;
-    else if op == TK_Less then simple = IRK_OpLess;
-    else if op == TK_Greater then simple = IRK_OpGreater;
-    else if op == TK_LessEq then simple = IRK_OpLessEq;
-    else if op == TK_GreaterEq then simple = IRK_OpGreaterEq;
-    else if op == TK_Caret then simple = IRK_OpBitXOR;
-    else if op == TK_Amper then simple = IRK_OpBitAND;
-    else if op == TK_Bar then simple = IRK_OpBitOR;
-    else if op == TK_LShift then simple = IRK_OpBitShiftL;
-    else if op == TK_RShift then simple = IRK_OpBitShiftR;
-    else if op == TK_KW_and then ir_emit_logic_and(self, ast, st, tt);
-    else if op == TK_KW_or then ir_emit_logic_or(self, ast, st, tt);
+    elif op == TK_Minus then simple = IRK_OpSub;
+    elif op == TK_Star then simple = IRK_OpMul;
+    elif op == TK_Slash then simple = IRK_OpDiv;
+    elif op == TK_Percent then simple = IRK_OpMod;
+    elif op == TK_EqEq then simple = IRK_OpEq;
+    elif op == TK_NotEq then simple = IRK_OpNotEq;
+    elif op == TK_Less then simple = IRK_OpLess;
+    elif op == TK_Greater then simple = IRK_OpGreater;
+    elif op == TK_LessEq then simple = IRK_OpLessEq;
+    elif op == TK_GreaterEq then simple = IRK_OpGreaterEq;
+    elif op == TK_Caret then simple = IRK_OpBitXOR;
+    elif op == TK_Amper then simple = IRK_OpBitAND;
+    elif op == TK_Bar then simple = IRK_OpBitOR;
+    elif op == TK_LShift then simple = IRK_OpBitShiftL;
+    elif op == TK_RShift then simple = IRK_OpBitShiftR;
+    elif op == TK_KW_and then ir_emit_logic_and(self, ast, st, tt);
+    elif op == TK_KW_or then ir_emit_logic_or(self, ast, st, tt);
     else
         printf("Unhandled binop: %d\n", op);
         print_token(ast_token(ast));
@@ -1345,7 +1345,7 @@ proc ir_emit_assign_op self, ast, st, tt in
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
         ir_append(self, make_ir_get_local(ident, n));
-    else if ir_is_global(self, ident) then
+    elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
         var label = global_info_label(gi);
         ir_append(self, make_ir_get_global(ident, label));
@@ -1361,16 +1361,16 @@ proc ir_emit_assign_op self, ast, st, tt in
     var op = ast_op(ast);
     var ir_op;
     if op == TK_PlusEq then ir_op = IRK_OpAdd;
-    else if op == TK_MinusEq then ir_op = IRK_OpSub;
-    else if op == TK_StarEq then ir_op = IRK_OpMul;
-    else if op == TK_SlashEq then ir_op = IRK_OpDiv;
-    else if op == TK_PercentEq then ir_op = IRK_OpMod;
-    else if op == TK_LShiftEq then ir_op = IRK_OpBitShiftL;
-    else if op == TK_RShiftEq then ir_op = IRK_OpBitShiftR;
-    else if op == TK_AmperEq then ir_op = IRK_OpBitAND;
-    else if op == TK_CaretEq then ir_op = IRK_OpBitXOR;
-    else if op == TK_BarEq then ir_op = IRK_OpBitOR;
-    else if op == TK_Assign then // nothing
+    elif op == TK_MinusEq then ir_op = IRK_OpSub;
+    elif op == TK_StarEq then ir_op = IRK_OpMul;
+    elif op == TK_SlashEq then ir_op = IRK_OpDiv;
+    elif op == TK_PercentEq then ir_op = IRK_OpMod;
+    elif op == TK_LShiftEq then ir_op = IRK_OpBitShiftL;
+    elif op == TK_RShiftEq then ir_op = IRK_OpBitShiftR;
+    elif op == TK_AmperEq then ir_op = IRK_OpBitAND;
+    elif op == TK_CaretEq then ir_op = IRK_OpBitXOR;
+    elif op == TK_BarEq then ir_op = IRK_OpBitOR;
+    elif op == TK_Assign then // nothing
     else
         ir_print_src_loc(self);
         assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
@@ -1382,7 +1382,7 @@ proc ir_emit_assign_op self, ast, st, tt in
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
         ir_append(self, make_ir_set_local(ident, n));
-    else if ir_is_global(self, ident) then
+    elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
         var label = global_info_label(gi);
         ir_append(self, make_ir_set_global(ident, label));
@@ -1461,7 +1461,7 @@ proc ir_emit_pointer_op self, ast, st, tt in
     if op == PointerOp_Read then
         ir_compile(self, vector_get(args, 0), st, tt);
         ir_append(self, make_ir_ptr_read(size));
-    else if op == PointerOp_Write then
+    elif op == PointerOp_Write then
         // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
         ir_compile(self, vector_get(args, 1), st, tt);
         ir_compile(self, vector_get(args, 0), st, tt);
@@ -1478,10 +1478,10 @@ proc ir_emit_prefix_op self, ast, st, tt in
     if op == TK_Tilde then
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_bit_not());
-    else if op == TK_KW_not then
+    elif op == TK_KW_not then
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_logic_not());
-    else if op == TK_Minus then
+    elif op == TK_Minus then
         if ast_kind(expr) == AstK_Integer then
             ir_append(self, make_ir_push_int(0 - ast_value(expr)));
         else
@@ -1502,7 +1502,7 @@ proc ir_emit_const self, ast, st, tt in
     if k == AstK_String then
         var string_label = ir_string_label(self, ast_value(val));
         const_info = make_const_info(CIK_String, string_label);
-    else if k == AstK_Integer then
+    elif k == AstK_Integer then
         const_info = make_const_info(CIK_Integer, ast_value(val));
     end
     if const_info then
@@ -1564,7 +1564,7 @@ proc ir_emit_global self, ast, st, tt in
     var k = ast_kind(val);
     if k == AstK_String then
         ir_add_global_string(self, ident, ast_value(val));
-    else if k == AstK_Integer then
+    elif k == AstK_Integer then
         ir_add_global_int(self, ident, ast_value(val));
     else
         NYI_ERR(__FILE__, __LINE__, "ir_emit_global:comptime failed");
@@ -1604,27 +1604,27 @@ proc ir_compile self, ast, st, tt in
     var k = ast_kind(ast);
     ir_push_src_loc(self, token_src_loc(ast_token(ast)));
     if k == AstK_Ident then ir_emit_ident(self, ast, st, tt);
-    else if k == AstK_Integer then ir_emit_integer(self, ast, st, tt);
-    else if k == AstK_String then ir_emit_string(self, ast, st, tt);
-    else if k == AstK_Call then ir_emit_call(self, ast, st, tt);
-    else if k == AstK_BinOp then ir_emit_binop(self, ast, st, tt);
-    else if k == AstK_Return then ir_emit_return(self, ast, st, tt);
-    else if k == AstK_VarDecl then ir_emit_var_decl(self, ast, st, tt);
-    else if k == AstK_VarAssign then ir_emit_var_assign(self, ast, st, tt);
-    else if k == AstK_Procedure then ir_emit_procedure(self, ast, st, tt);
-    else if k == AstK_IfElse then ir_emit_if_else(self, ast, st, tt);
-    else if k == AstK_While then ir_emit_while(self, ast, st, tt);
-    else if k == AstK_PointerRead then ir_emit_pointer_op(self, ast, st, tt);
-    else if k == AstK_PointerWrite then ir_emit_pointer_op(self, ast, st, tt);
-    else if k == AstK_Prefix then ir_emit_prefix_op(self, ast, st, tt);
-    else if k == AstK_Const then ir_emit_const(self, ast, st, tt);
-    else if k == AstK_Extern then ir_emit_extern(self, ast, st, tt);
-    else if k == AstK_InlineAsm then ir_emit_inline_asm(self, ast, st, tt);
-    else if k == AstK_Global then ir_emit_global(self, ast, st, tt);
-    else if k == AstK_Break then ir_emit_break(self, ast, st, tt);
-    else if k == AstK_Continue then ir_emit_continue(self, ast, st, tt);
-    else if k == AstK_AssignOp then ir_emit_assign_op(self, ast, st, tt);
-    else if k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
+    elif k == AstK_Integer then ir_emit_integer(self, ast, st, tt);
+    elif k == AstK_String then ir_emit_string(self, ast, st, tt);
+    elif k == AstK_Call then ir_emit_call(self, ast, st, tt);
+    elif k == AstK_BinOp then ir_emit_binop(self, ast, st, tt);
+    elif k == AstK_Return then ir_emit_return(self, ast, st, tt);
+    elif k == AstK_VarDecl then ir_emit_var_decl(self, ast, st, tt);
+    elif k == AstK_VarAssign then ir_emit_var_assign(self, ast, st, tt);
+    elif k == AstK_Procedure then ir_emit_procedure(self, ast, st, tt);
+    elif k == AstK_IfElse then ir_emit_if_else(self, ast, st, tt);
+    elif k == AstK_While then ir_emit_while(self, ast, st, tt);
+    elif k == AstK_PointerRead then ir_emit_pointer_op(self, ast, st, tt);
+    elif k == AstK_PointerWrite then ir_emit_pointer_op(self, ast, st, tt);
+    elif k == AstK_Prefix then ir_emit_prefix_op(self, ast, st, tt);
+    elif k == AstK_Const then ir_emit_const(self, ast, st, tt);
+    elif k == AstK_Extern then ir_emit_extern(self, ast, st, tt);
+    elif k == AstK_InlineAsm then ir_emit_inline_asm(self, ast, st, tt);
+    elif k == AstK_Global then ir_emit_global(self, ast, st, tt);
+    elif k == AstK_Break then ir_emit_break(self, ast, st, tt);
+    elif k == AstK_Continue then ir_emit_continue(self, ast, st, tt);
+    elif k == AstK_AssignOp then ir_emit_assign_op(self, ast, st, tt);
+    elif k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -1652,16 +1652,16 @@ proc ir_resolve_lazy_idents self in
                 var cik = const_info_kind(info);
                 if cik == CIK_String then
                     new_ir = make_ir_push_label(const_info_value(info));
-                else if cik == CIK_Integer then
+                elif cik == CIK_Integer then
                     new_ir = make_ir_push_int(const_info_value(info));
                 end
-            else if ir_is_proc(self, ident) then
+            elif ir_is_proc(self, ident) then
                 info = ir_get_proc(self, ident);
                 new_ir = make_ir_push_label(proc_info_label(info));
-            else if ir_is_extern(self, ident) then
+            elif ir_is_extern(self, ident) then
                 info = ir_get_extern(self, ident);
                 new_ir = make_ir_push_label(proc_info_label(info));
-            else if ir_is_label(self, ident) then
+            elif ir_is_label(self, ident) then
                 new_ir = make_ir_push_label(ident);
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", ident);
@@ -1671,7 +1671,7 @@ proc ir_resolve_lazy_idents self in
             end
             u64!(new_ir + TIR_INSTR_src_loc, token_src_loc(token));
             vector_set(instrs, i, new_ir);
-        else if k == IRK_CallLazyIdent then
+        elif k == IRK_CallLazyIdent then
             token = ir_instr_ident(ir);
             ident = token_value(token);
             var nargs = ir_instr_nargs(ir);
@@ -1679,10 +1679,10 @@ proc ir_resolve_lazy_idents self in
             if ir_is_proc(self, ident) then
                 info = ir_get_proc(self, ident);
                 call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
-            else if ir_is_extern(self, ident) then
+            elif ir_is_extern(self, ident) then
                 info = ir_get_extern(self, ident);
                 call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
-            else if ir_is_label(self, ident) then
+            elif ir_is_label(self, ident) then
                 call = make_ir_call(ident, false);
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", ident);

@@ -3,12 +3,12 @@ const SYSV_REGISTERS = 6;
 
 proc systemv_arg n in
     if n >= SYSV_REGISTERS then return NULL;
-    else if n == 0 then return "%rdi";
-    else if n == 1 then return "%rsi";
-    else if n == 2 then return "%rdx";
-    else if n == 3 then return "%rcx";
-    else if n == 4 then return "%r8";
-    else if n == 5 then return "%r9";
+    elif n == 0 then return "%rdi";
+    elif n == 1 then return "%rsi";
+    elif n == 2 then return "%rdx";
+    elif n == 3 then return "%rcx";
+    elif n == 4 then return "%r8";
+    elif n == 5 then return "%r9";
     end
 end
 
@@ -470,13 +470,13 @@ proc x86_64_emit_ptr_read cc, ir in
     if size == 8 then
         string_push(str, 'b');
         reg = "%dl";
-    else if size == 16 then
+    elif size == 16 then
         string_push(str, 'w');
         reg = "%dx";
-    else if size == 32 then
+    elif size == 32 then
         string_push(str, 'l');
         reg = "%edx";
-    else if size == 64 then
+    elif size == 64 then
         string_push(str, 'q');
         reg = "%rdx";
     end
@@ -501,13 +501,13 @@ proc x86_64_emit_ptr_write cc, ir in
     if size == 8 then
         string_push(str, 'b');
         reg = "%dl";
-    else if size == 16 then
+    elif size == 16 then
         string_push(str, 'w');
         reg = "%dx";
-    else if size == 32 then
+    elif size == 32 then
         string_push(str, 'l');
         reg = "%edx";
-    else if size == 64 then
+    elif size == 64 then
         string_push(str, 'q');
         reg = "%rdx";
     end
@@ -723,55 +723,55 @@ end
 proc x86_64_emit_instruction cc, ir in
     var k = ir_instr_kind(ir);
     if k == IRK_GetLocal then x86_64_emit_get_local(cc, ir);
-    else if k == IRK_PushLabel then x86_64_emit_push_label(cc, ir);
-    else if k == IRK_PushInt then x86_64_emit_push_int(cc, ir);
-    else if k == IRK_AllocTemps then x86_64_emit_alloc_temps(cc, ir);
-    else if k == IRK_FreeTemps then x86_64_emit_free_temps(cc, ir);
-    else if k == IRK_StoreTemp then x86_64_emit_store_temp(cc, ir);
-    else if k == IRK_SetArgTemp then x86_64_emit_set_arg_temp(cc, ir);
-    else if k == IRK_Call then x86_64_emit_call(cc, ir);
-    else if k == IRK_PopCall then x86_64_emit_pop_call(cc, ir);
-    else if k == IRK_OpAdd then x86_64_emit_op_add(cc, ir);
-    else if k == IRK_OpSub then x86_64_emit_op_sub(cc, ir);
-    else if k == IRK_OpMul then x86_64_emit_op_mul(cc, ir);
-    else if k == IRK_OpDiv then x86_64_emit_op_div(cc, ir);
-    else if k == IRK_OpMod then x86_64_emit_op_mod(cc, ir);
-    else if k == IRK_OpEq then x86_64_emit_op_eq(cc, ir);
-    else if k == IRK_OpNotEq then x86_64_emit_op_not_eq(cc, ir);
-    else if k == IRK_OpLess then x86_64_emit_op_less(cc, ir);
-    else if k == IRK_OpLessEq then x86_64_emit_op_less_eq(cc, ir);
-    else if k == IRK_OpGreater then x86_64_emit_op_greater(cc, ir);
-    else if k == IRK_OpGreaterEq then x86_64_emit_op_greater_eq(cc, ir);
-    else if k == IRK_PopReturn then x86_64_emit_pop_return(cc, ir);
-    else if k == IRK_ReturnVoid then x86_64_emit_return_void(cc, ir);
-    else if k == IRK_SetLocal then x86_64_emit_set_local(cc, ir);
-    else if k == IRK_NewProc then x86_64_emit_new_proc(cc, ir);
-    else if k == IRK_SetLocalArg then x86_64_emit_set_local_arg(cc, ir);
-    else if k == IRK_CloseProc then x86_64_emit_close_proc(cc, ir);
-    else if k == IRK_GotoTopFalse then x86_64_emit_goto_top_false(cc, ir);
-    else if k == IRK_GotoTopTrue then x86_64_emit_goto_top_true(cc, ir);
-    else if k == IRK_GotoFalse then x86_64_emit_goto_false(cc, ir);
-    else if k == IRK_Goto then x86_64_emit_goto(cc, ir);
-    else if k == IRK_Label then x86_64_emit_label(cc, ir);
-    else if k == IRK_PtrRead then x86_64_emit_ptr_read(cc, ir);
-    else if k == IRK_PtrWrite then x86_64_emit_ptr_write(cc, ir);
-    else if k == IRK_BitNot then x86_64_emit_bit_not(cc, ir);
-    else if k == IRK_LogicNot then x86_64_emit_logic_not(cc, ir);
-    else if k == IRK_InlineAsm then x86_64_emit_inline_asm(cc, ir);
-    else if k == IRK_LazyIdent then x86_64_emit_lazy_ident(cc, ir);
-    else if k == IRK_CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
-    else if k == IRK_DropTop then x86_64_emit_drop_top(cc, ir);
-    else if k == IRK_SetGlobal then x86_64_emit_set_global(cc, ir);
-    else if k == IRK_GetGlobal then x86_64_emit_get_global(cc, ir);
-    else if k == IRK_Negative then x86_64_emit_negative(cc, ir);
-    else if k == IRK_OpBitXOR then x86_64_emit_op_bit_xor(cc, ir);
-    else if k == IRK_OpBitAND then x86_64_emit_op_bit_and(cc, ir);
-    else if k == IRK_OpBitOR then x86_64_emit_op_bit_or(cc, ir);
-    else if k == IRK_OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
-    else if k == IRK_OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
-    else if k == IRK_ScopeOpen then // nothing to do
-    else if k == IRK_ScopeClose then // nothing to do
-    else if k == IRK_PtrCopy then x86_64_emit_ptr_copy(cc, ir);
+    elif k == IRK_PushLabel then x86_64_emit_push_label(cc, ir);
+    elif k == IRK_PushInt then x86_64_emit_push_int(cc, ir);
+    elif k == IRK_AllocTemps then x86_64_emit_alloc_temps(cc, ir);
+    elif k == IRK_FreeTemps then x86_64_emit_free_temps(cc, ir);
+    elif k == IRK_StoreTemp then x86_64_emit_store_temp(cc, ir);
+    elif k == IRK_SetArgTemp then x86_64_emit_set_arg_temp(cc, ir);
+    elif k == IRK_Call then x86_64_emit_call(cc, ir);
+    elif k == IRK_PopCall then x86_64_emit_pop_call(cc, ir);
+    elif k == IRK_OpAdd then x86_64_emit_op_add(cc, ir);
+    elif k == IRK_OpSub then x86_64_emit_op_sub(cc, ir);
+    elif k == IRK_OpMul then x86_64_emit_op_mul(cc, ir);
+    elif k == IRK_OpDiv then x86_64_emit_op_div(cc, ir);
+    elif k == IRK_OpMod then x86_64_emit_op_mod(cc, ir);
+    elif k == IRK_OpEq then x86_64_emit_op_eq(cc, ir);
+    elif k == IRK_OpNotEq then x86_64_emit_op_not_eq(cc, ir);
+    elif k == IRK_OpLess then x86_64_emit_op_less(cc, ir);
+    elif k == IRK_OpLessEq then x86_64_emit_op_less_eq(cc, ir);
+    elif k == IRK_OpGreater then x86_64_emit_op_greater(cc, ir);
+    elif k == IRK_OpGreaterEq then x86_64_emit_op_greater_eq(cc, ir);
+    elif k == IRK_PopReturn then x86_64_emit_pop_return(cc, ir);
+    elif k == IRK_ReturnVoid then x86_64_emit_return_void(cc, ir);
+    elif k == IRK_SetLocal then x86_64_emit_set_local(cc, ir);
+    elif k == IRK_NewProc then x86_64_emit_new_proc(cc, ir);
+    elif k == IRK_SetLocalArg then x86_64_emit_set_local_arg(cc, ir);
+    elif k == IRK_CloseProc then x86_64_emit_close_proc(cc, ir);
+    elif k == IRK_GotoTopFalse then x86_64_emit_goto_top_false(cc, ir);
+    elif k == IRK_GotoTopTrue then x86_64_emit_goto_top_true(cc, ir);
+    elif k == IRK_GotoFalse then x86_64_emit_goto_false(cc, ir);
+    elif k == IRK_Goto then x86_64_emit_goto(cc, ir);
+    elif k == IRK_Label then x86_64_emit_label(cc, ir);
+    elif k == IRK_PtrRead then x86_64_emit_ptr_read(cc, ir);
+    elif k == IRK_PtrWrite then x86_64_emit_ptr_write(cc, ir);
+    elif k == IRK_BitNot then x86_64_emit_bit_not(cc, ir);
+    elif k == IRK_LogicNot then x86_64_emit_logic_not(cc, ir);
+    elif k == IRK_InlineAsm then x86_64_emit_inline_asm(cc, ir);
+    elif k == IRK_LazyIdent then x86_64_emit_lazy_ident(cc, ir);
+    elif k == IRK_CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
+    elif k == IRK_DropTop then x86_64_emit_drop_top(cc, ir);
+    elif k == IRK_SetGlobal then x86_64_emit_set_global(cc, ir);
+    elif k == IRK_GetGlobal then x86_64_emit_get_global(cc, ir);
+    elif k == IRK_Negative then x86_64_emit_negative(cc, ir);
+    elif k == IRK_OpBitXOR then x86_64_emit_op_bit_xor(cc, ir);
+    elif k == IRK_OpBitAND then x86_64_emit_op_bit_and(cc, ir);
+    elif k == IRK_OpBitOR then x86_64_emit_op_bit_or(cc, ir);
+    elif k == IRK_OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
+    elif k == IRK_OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
+    elif k == IRK_ScopeOpen then // nothing to do
+    elif k == IRK_ScopeClose then // nothing to do
+    elif k == IRK_PtrCopy then x86_64_emit_ptr_copy(cc, ir);
     else
         printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
         printf("Unhandled IRK: %d\n", k);

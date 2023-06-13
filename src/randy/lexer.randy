@@ -18,11 +18,11 @@ end
 proc get_escaped_char c: char -> char in
     if c == 't' then
         return 9; // \t tab
-    else if c == 'n' then
+    elif c == 'n' then
         return 10; // \n newline
-    else if c == 'r' then
+    elif c == 'r' then
         return 13; // \r carriage return
-    else if c == '0' then
+    elif c == '0' then
         return 0; // \0 null character
     end
     return c;
@@ -35,39 +35,39 @@ proc get_ident_kind string in
         if cstr_eq("and", cstr) then return TK_KW_and; end
         if cstr_eq("asm", cstr) then return TK_KW_asm; end
         if cstr_eq("assert", cstr) then return TK_KW_assert; end
-    else if 'b' == first then
+    elif 'b' == first then
         if cstr_eq("break", cstr) then return TK_KW_break; end
-    else if 'c' == first then
+    elif 'c' == first then
         if cstr_eq("cast", cstr) then return TK_KW_cast; end
         if cstr_eq("const", cstr) then return TK_KW_const; end
         if cstr_eq("continue", cstr) then return TK_KW_continue; end
-    else if 'd' == first then
+    elif 'd' == first then
         if cstr_eq("do", cstr) then return TK_KW_do; end
-    else if 'e' == first then
+    elif 'e' == first then
         if cstr_eq("else", cstr) then return TK_KW_else; end
         if cstr_eq("elif", cstr) then return TK_KW_elif; end
         if cstr_eq("end", cstr) then return TK_KW_end; end
         if cstr_eq("enum", cstr) then return TK_KW_enum; end
         if cstr_eq("extern", cstr) then return TK_KW_extern; end
-    else if 'g' == first then
+    elif 'g' == first then
         if cstr_eq("global", cstr) then return TK_KW_global; end
-    else if 'i' == first then
+    elif 'i' == first then
         if cstr_eq("if", cstr) then return TK_KW_if; end
         if cstr_eq("in", cstr) then return TK_KW_in; end
         if cstr_eq("inline", cstr) then return TK_KW_inline; end
-    else if 'n' == first then
+    elif 'n' == first then
         if cstr_eq("not", cstr) then return TK_KW_not; end
-    else if 'o' == first then
+    elif 'o' == first then
         if cstr_eq("or", cstr) then return TK_KW_or; end
-    else if 'p' == first then
+    elif 'p' == first then
         if cstr_eq("proc", cstr) then return TK_KW_proc; end
-    else if 'r' == first then
+    elif 'r' == first then
         if cstr_eq("return", cstr) then return TK_KW_return; end
-    else if 's' == first then
+    elif 's' == first then
         if cstr_eq("struct", cstr) then return TK_KW_struct; end
-    else if 't' == first then
+    elif 't' == first then
         if cstr_eq("then", cstr) then return TK_KW_then; end
-    else if 'u' == first then
+    elif 'u' == first then
         if cstr_eq("u8@", cstr) then return TK_KW_u8@; end
         if cstr_eq("u16@", cstr) then return TK_KW_u16@; end
         if cstr_eq("u32@", cstr) then return TK_KW_u32@; end
@@ -78,9 +78,9 @@ proc get_ident_kind string in
         if cstr_eq("u32!", cstr) then return TK_KW_u32!; end
         if cstr_eq("u64!", cstr) then return TK_KW_u64!; end
         if cstr_eq("union", cstr) then return TK_KW_union; end
-    else if 'v' == first then
+    elif 'v' == first then
         if cstr_eq("var", cstr) then return TK_KW_var; end
-    else if 'w' == first then
+    elif 'w' == first then
         if cstr_eq("while", cstr) then return TK_KW_while; end
     end
     return TK_Ident;
@@ -113,7 +113,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                 while i < length and string_get(code, i) != '\n' do
                     i += 1;
                 end
-            else if is_ident_start(c) then
+            elif is_ident_start(c) then
                 temp = make_string(2);
                 string_push(temp, c);
                 while i < length and is_ident_char(c) do
@@ -124,7 +124,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                    end
                 end
                 vector_push(tokens, make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no, filename));
-            else if is_digit(c) then
+            elif is_digit(c) then
                 temp = make_string(2);
                 string_push(temp, c);
                 while i < length and is_digit(c) do
@@ -136,7 +136,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                 end
                 val = int_from_string(temp);
                 vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
-            else if c == '"' then
+            elif c == '"' then
                 temp = make_string(2);
                 i += 1; // skip open quote
                 while i < length and string_get(code, i) != '"' do
@@ -145,7 +145,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                         i += 1; // skip \
                         c = string_get(code, i);
                         c = get_escaped_char(c);
-                    else if c == '\n' then
+                    elif c == '\n' then
                         line_no = line_no + 1;
                     end
                     string_push(temp, c);
@@ -153,7 +153,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                 end
                 i += 1; // skip close quote
                 vector_push(tokens, make_token(TK_String, string_cstr(temp), temp, line_no, filename));
-            else if c == '\'' then
+            elif c == '\'' then
                 temp = make_string(2);
                 i += 1; // skip open quote
                 c = string_get(code, i);
@@ -161,13 +161,13 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     i += 1; // skip \
                     c = string_get(code, i);
                     c = get_escaped_char(c);
-                else if cc == '\n' then
+                elif cc == '\n' then
                     line_no = line_no + 1;
                 end
                 string_push(temp, c);
                 i += 2; // skip char and close quote
                 vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
-            else if c == '#' then
+            elif c == '#' then
                 var directive = make_string(2);
                 var arg = make_string(2);
                 // gather #directive chars up to next space
@@ -185,7 +185,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     c = string_get(code, i);
                     if c == '\n' then
                         break;
-                    else if is_whitespace(c) then
+                    elif is_whitespace(c) then
                         i += 1;
                     else
                         break;
@@ -206,28 +206,28 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                 handle_directive(filename, line_no, tokens, include_paths, included_already, directive, arg);
                 free_string(directive);
                 free_string(arg);
-            else if c == ';' then
+            elif c == ';' then
                 vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
                 i += 1;
-            else if c == ':' then
+            elif c == ':' then
                 vector_push(tokens, make_token(TK_Colon, ":", ":", line_no, filename));
                 i += 1;
-            else if c == ',' then
+            elif c == ',' then
                 vector_push(tokens, make_token(TK_Comma, ",", ",", line_no, filename));
                 i += 1;
-            else if c == '(' then
+            elif c == '(' then
                 vector_push(tokens, make_token(TK_LParen, "(", "(", line_no, filename));
                 i += 1;
-            else if c == ')' then
+            elif c == ')' then
                 vector_push(tokens, make_token(TK_RParen, ")", ")", line_no, filename));
                 i += 1;
-            else if c == '[' then
+            elif c == '[' then
                 vector_push(tokens, make_token(TK_LSquare, "[", "[", line_no, filename));
                 i += 1;
-            else if c == ']' then
+            elif c == ']' then
                 vector_push(tokens, make_token(TK_RSquare, "]", "]", line_no, filename));
                 i += 1;
-            else if c == '+' then
+            elif c == '+' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_PlusEq, "+=", "+=", line_no, filename));
                     i += 2;
@@ -235,18 +235,18 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Plus, "+", "+", line_no, filename));
                     i += 1;
                 end
-            else if c == '-' then
+            elif c == '-' then
                 if i+1 < length and string_get(code, i+1) == '>' then
                     vector_push(tokens, make_token(TK_RightArrow, "->", "->", line_no, filename));
                     i += 2;
-                else if i+1 < length and string_get(code, i+1) == '=' then
+                elif i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_MinusEq, "-=", "-=", line_no, filename));
                     i += 2;
                 else
                     vector_push(tokens, make_token(TK_Minus, "-", "-", line_no, filename));
                     i += 1;
                 end
-            else if c == '*' then
+            elif c == '*' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_StarEq, "*=", "*=", line_no, filename));
                     i += 2;
@@ -254,7 +254,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Star, "*", "*", line_no, filename));
                     i += 1;
                 end
-            else if c == '/' then
+            elif c == '/' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_SlashEq, "/=", "/=", line_no, filename));
                     i += 2;
@@ -262,7 +262,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Slash, "/", "/", line_no, filename));
                     i += 1;
                 end
-            else if c == '%' then
+            elif c == '%' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_PercentEq, "%=", "%=", line_no, filename));
                     i += 2;
@@ -270,7 +270,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Percent, "%", "%", line_no, filename));
                     i += 1;
                 end
-            else if c == '|' then
+            elif c == '|' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_BarEq, "|=", "|=", line_no, filename));
                     i += 2;
@@ -278,7 +278,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Bar, "|", "|", line_no, filename));
                     i += 1;
                 end
-            else if c == '&' then
+            elif c == '&' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_AmperEq, "&=", "&=", line_no, filename));
                     i += 2;
@@ -286,7 +286,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Amper, "&", "&", line_no, filename));
                     i += 1;
                 end
-            else if c == '^' then
+            elif c == '^' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_CaretEq, "^=", "^=", line_no, filename));
                     i += 2;
@@ -294,10 +294,10 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Caret, "^", "^", line_no, filename));
                     i += 1;
                 end
-            else if c == '~' then
+            elif c == '~' then
                 vector_push(tokens, make_token(TK_Tilde, "~", "~", line_no, filename));
                 i += 1;
-            else if c == '.' then
+            elif c == '.' then
                 if i+2 < length and string_get(code, i+1) == '.' and string_get(code, i+2) == '.' then
                     vector_push(tokens, make_token(TK_Ellipsis, "...", "...", line_no, filename));
                     i += 3;
@@ -305,18 +305,18 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Dot, ".", ".", line_no, filename));
                     i += 1;
                 end
-            else if c == '!' then
+            elif c == '!' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_NotEq, "!=", "!=", line_no, filename));
                     i += 2;
                 else
                     _unrecognized_char(filename, line_no, c);
                 end
-            else if c == '<' then
+            elif c == '<' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_LessEq, "<=", "<=", line_no, filename));
                     i += 2;
-                else if i+1 < length and string_get(code, i+1) == '<' then
+                elif i+1 < length and string_get(code, i+1) == '<' then
                     if i+2 < length and string_get(code, i+2) == '=' then
                         vector_push(tokens, make_token(TK_LShiftEq, "<<=", "<<=", line_no, filename));
                         i += 3;
@@ -328,11 +328,11 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Less, "<", "<", line_no, filename));
                     i += 1;
                 end
-            else if c == '>' then
+            elif c == '>' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_GreaterEq, ">=", ">=", line_no, filename));
                     i += 2;
-                else if i+1 < length and string_get(code, i+1) == '>' then
+                elif i+1 < length and string_get(code, i+1) == '>' then
                     if i+2 < length and string_get(code, i+2) == '=' then
                         vector_push(tokens, make_token(TK_RShiftEq, ">>=", ">>=", line_no, filename));
                         i += 3;
@@ -344,7 +344,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     vector_push(tokens, make_token(TK_Greater, ">", ">", line_no, filename));
                     i += 1;
                 end
-            else if c == '=' then
+            elif c == '=' then
                 if i+1 < length and string_get(code, i+1) == '=' then
                     vector_push(tokens, make_token(TK_EqEq, "==", "==", line_no, filename));
                     i += 2;

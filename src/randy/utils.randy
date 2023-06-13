@@ -19,7 +19,7 @@ proc read_file_to_string path: cstr -> string in
             free(buf);
             free_string(string);
             return cast(NULL, string);
-        else if result == 0 then
+        elif result == 0 then
             running = 0;
         else
             x = 0;

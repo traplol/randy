@@ -83,9 +83,9 @@ proc fizz_buzz n in
     while i <= n do
         if (i % 3 == 0) and (i % 5 == 0) then
             puts("fizzbuzz");
-        else if i % 3 == 0 then
+        elif i % 3 == 0 then
             puts("fizz");
-        else if i % 5 == 0 then
+        elif i % 5 == 0 then
             puts("buzz");
         else
             printf("%d\n", i);
