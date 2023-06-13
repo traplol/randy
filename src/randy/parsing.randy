@@ -764,7 +764,7 @@ proc parse_extern ts, st, tt in
             exit(1);
         end
     else
-        proc_symbol = st_make_proc(st, token_value(ident), ident);
+        proc_symbol = st_make_extern(st, token_value(ident), ident);
     end
     st_push_scope(st);
     var body = make_vector(0);
