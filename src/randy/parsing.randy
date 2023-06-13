@@ -791,9 +791,6 @@ proc parse_extern ts, st, tt in
                 exit(1);
             end
             symbol_set_type(param_symbol, type);
-            if ts_peekk(ts, TK_KW_in) then
-                break;
-            end
             if ts_peekk(ts, TK_RightArrow) then
                 break;
             end
