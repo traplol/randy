@@ -86,7 +86,7 @@ end
 
 proc map_find self: map, key: ptr in
     var comparer = map_comparer(self);
-    var cache = u64@(self + TMAP_cache);
+    var cache = cast(u64@(self + TMAP_cache), ptr);
     if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
         return cache;
     end
@@ -108,7 +108,7 @@ end
 
 proc map_set self: map, key: ptr, value: ptr in
     var comparer = map_comparer(self);
-    var cache = u64@(self + TMAP_cache);
+    var cache = cast(u64@(self + TMAP_cache), ptr);
     if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
         u64!(cache + TMAP_PAIR_val, value);
         return;

@@ -17,7 +17,7 @@ proc open_for_read path: cstr -> fd in
 end
 
 proc open_for_write path: cstr -> fd in
-    var mask = syscall(SYS_umask, 0);
+    var mask = cast(syscall(SYS_umask, 0), int);
     syscall(SYS_umask, mask);
     // 438 is 0666 or -rw-rw-rw-
     return cast(syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask), fd);
