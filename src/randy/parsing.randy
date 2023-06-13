@@ -755,7 +755,7 @@ proc parse_extern ts, st, tt in
     var proc_symbol = st_get_symbol_here(st, token_value(ident));
     if proc_symbol then
         if symbol_is_undef(proc_symbol) then
-            symbol_set_kind(proc_symbol, SK_proc);
+            symbol_set_kind(proc_symbol, SK_extern);
         else
             printf("ERROR: extern `%s` already defined.\n", token_value(ident));
             print_token_loc(ident);
@@ -931,7 +931,9 @@ proc parse_struct ts, st, tt in
         type_set_struct_procs(struct_type, proc_symbols);
     end
 
-    return make_ast_struct(struct_, struct_type, fields, procs);
+    var ast = make_ast_struct(struct_, struct_type, fields, procs);
+    type_set_ast(struct_type, ast);
+    return ast;
 end
 
 proc parse ts: token_stream, st: symbol_table, tt: type_table in
