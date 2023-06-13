@@ -8,42 +8,42 @@ const TVECTOR_capacity = TSTRING_capacity;
 const sizeof_TVECTOR = sizeof_TSTRING;
 const sizeof_TVECTOR_ELEMENT = sizeof_PTR;
 
-proc make_vector init in
+proc make_vector init: int -> vector in
     var self = make_string(init * sizeof_TVECTOR_ELEMENT);
-    return self;
+    return cast(self, vector);
 end
 
-proc free_vector self in
-    free_string(self);
+proc free_vector self: vector in
+    free_string(cast(self, string));
 end
 
-proc vector_buf self in
-    return u64@(self);
+proc vector_buf self: vector -> ptr in
+    return cast(u64@(self), ptr);
 end
 
-proc vector_len self in
+proc vector_len self: vector -> int in
     return u64@(self + TVECTOR_length) / sizeof_TVECTOR_ELEMENT;
 end
 
-proc vector_cap self in
+proc vector_cap self: vector -> int in
     return u64@(self + TVECTOR_capacity) / sizeof_TVECTOR_ELEMENT;
 end
 
-proc vector_get self, idx in
+proc vector_get self: vector, idx: int -> ptr in
     // TODO: Bounds check & abort
-    return u64@(u64@(self) + (idx * sizeof_TVECTOR_ELEMENT));
+    return cast(u64@(u64@(self) + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
 end
 
-proc vector_set self, idx, val in
+proc vector_set self: vector, idx: int, val: ptr in
     // TODO: Bounds check & abort
     u64!(u64@(self) + (idx * sizeof_TVECTOR_ELEMENT), val);
 end
 
-proc vector_resize self, new_cap in
+proc vector_resize self: vector, new_cap: int in
     string_resize(self, new_cap * sizeof_TVECTOR_ELEMENT);
 end
 
-proc vector_push self, val in
+proc vector_push self: vector, val: ptr in
     var len = string_len(self);
     var cap = string_cap(self);
     if len >= cap then
@@ -53,7 +53,7 @@ proc vector_push self, val in
     u64!(self + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);
 end
 
-proc vector_pop self in
+proc vector_pop self: vector in
     var len = string_len(self);
     if len > 0 then
         u64!(self + TVECTOR_length, len - sizeof_TVECTOR_ELEMENT);
@@ -63,15 +63,15 @@ proc vector_pop self in
     end
 end
 
-proc vector_back self in
+proc vector_back self: vector -> ptr in
     var len = vector_len(self);
     if len > 0 then
-        return u64@(u64@(self) + ((len - 1) * sizeof_TVECTOR_ELEMENT));
+        return cast(u64@(u64@(self) + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
     end
     printf("ERROR: vector_back out of bounds.\n");
     abort();
 end
 
-proc vector_set_len self, len in
+proc vector_set_len self: vector, len: int in
     string_set_len(self, len * sizeof_TVECTOR_ELEMENT);
 end

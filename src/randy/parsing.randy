@@ -538,12 +538,12 @@ proc parse_binary_lor ts, st, tt in
     return lhs;
 end
 
-proc parse_expression ts, st, tt in
+proc parse_expression ts: token_stream, st: symbol_table, tt: type_table -> ast in
     return parse_binary_lor(ts, st, tt);
 end
 
-proc parse_statement ts, st, tt in
-    var stmt;
+proc parse_statement ts: token_stream, st: symbol_table, tt: type_table -> ast in
+    var stmt: ast;
     var expect_semi = true;
     if ts_peekk(ts, TK_KW_var) then
         stmt = parse_var(ts, st, tt);
@@ -888,9 +888,9 @@ proc parse_struct ts, st, tt in
     return make_ast_struct(struct_, struct_type, fields, procs);
 end
 
-proc parse ts, st, tt in
+proc parse ts: token_stream, st: symbol_table, tt: type_table in
     var roots = make_vector(0);
-    var parsed = NULL; var tk;
+    var parsed: ast = NULL; var tk: token;
     while ts_peek(ts) do
         tk = ts_peek(ts);
         if ts_peekk(ts, TK_KW_proc) then

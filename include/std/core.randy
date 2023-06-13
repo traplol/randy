@@ -13,9 +13,9 @@ extern stdout;
 extern stderr;
 extern strerror errnum;
 
-const true = 1;
-const false = 0;
-const NULL = cast(0, ptr);
+const true: bool = cast(1, bool);
+const false: bool = cast(0, bool);
+const NULL: ptr = cast(0, ptr);
 const sizeof_PTR = 8;
 
 proc _flush_output in
@@ -37,7 +37,7 @@ proc _error msg in
     fprintf(u64@(stderr), "ERRNO: %s -> %s\n", strerror(errno()), msg);
 end
 
-proc exit code in
+proc exit code: int in
     _flush_output();
     syscall(SYS_exit, code);
 end

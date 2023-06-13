@@ -1,9 +1,9 @@
 
-proc read_file_to_string path in
+proc read_file_to_string path: cstr -> string in
     var fd = open_for_read(path);
     if fd < 0 then
         printf("error reading file: (%d) %s\n", fd, path);
-        return NULL;
+        return cast(NULL, string);
     end
     
     var buf = malloc(1024);
@@ -18,7 +18,7 @@ proc read_file_to_string path in
             printf("error reading file: %d\n", result);
             free(buf);
             free_string(string);
-            return NULL;
+            return cast(NULL, string);
         else if result == 0 then
             running = 0;
         else

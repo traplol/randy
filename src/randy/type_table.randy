@@ -5,21 +5,23 @@ const TFIELD_bit_offset = 16; // int
 const TFIELD_token      = 24; // token
 const sizeof_TFIELD = 32;
 
-proc make_field type, name, bit_offset, token in
+proc make_field type, name, bit_offset, token -> field in
     var self = malloc(sizeof_TFIELD);
     u64!(self + TFIELD_type, type);
     u64!(self + TFIELD_name, name);
     u64!(self + TFIELD_bit_offset, bit_offset);
     u64!(self + TFIELD_token, token);
-    return self;
+    return cast(self, field);
 end
 
-proc field_type self in return u64@(self + TFIELD_type); end
-proc field_name self in return u64@(self + TFIELD_name); end
-proc field_bit_offset self in return u64@(self + TFIELD_bit_offset); end
-proc field_token self in return u64@(self + TFIELD_token); end
+proc field_type self: field -> type in return cast(u64@(self + TFIELD_type), type); end
+proc field_name self: field -> cstr in return cast(u64@(self + TFIELD_name), cstr); end
+proc field_bit_offset self: field -> int in return cast(u64@(self + TFIELD_bit_offset), int); end
+proc field_token self: field -> token in return cast(u64@(self + TFIELD_token), token); end
 
-proc field_set_bit_offset self, bit_offset in u64!(self + TFIELD_bit_offset, bit_offset); end
+proc field_set_bit_offset self: field, bit_offset: int in
+    u64!(self + TFIELD_bit_offset, bit_offset);
+end
 
 const TyK_undefined = 0;
 const TyK_void      = 1;
@@ -58,104 +60,112 @@ const TTYPE_array_type  = 40; // type of each elem in array
 const sizeof_TTYPE = 48;
 const TYPE_NEEDS_SIZING = (1<<32)-1;
 
-proc make_type kind, id in
+proc make_type kind: int, id: int -> type in
     var self = calloc(1, sizeof_TTYPE);
     u64!(self + TTYPE_id, id);
     u32!(self + TTYPE_kind, kind);
     u32!(self + TTYPE_size, TYPE_NEEDS_SIZING);
-    return self;
+    return cast(self, type);
 end
 
-proc make_type_undefined id in
+proc make_type_undefined id: int in
     return make_type(TyK_undefined, id);
 end
 
-proc make_type_reference id, type in
+proc make_type_reference id: int, type: type in
     var self = make_type(TyK_reference, id);
     u64!(self + TTYPE_ref_type, type);
     return self;
 end
 
-proc make_type_procedure id, return_type, parameters in
+proc make_type_procedure id: int, return_type: type, parameters: vector in
     var self = make_type(TyK_procedure, id);
     u64!(self + TTYPE_proc_return_type, return_type);
     u64!(self + TTYPE_proc_parameters, parameters);
     return self;
 end
 
-proc make_type_struct id, fields, procs in
+proc make_type_struct id: int, fields: vector, procs: vector in
     var self = make_type(TyK_struct, id);
     u64!(self + TTYPE_struct_fields, fields);
     u64!(self + TTYPE_struct_procs, procs);
     return self;
 end
 
-proc make_type_enum id, enum_names, enum_values in
+proc make_type_enum id: int, enum_names: vector, enum_values: vector in
     var self = make_type(TyK_enum, id);
     u64!(self + TTYPE_enum_names, enum_names);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
 
-proc make_type_union id, union_names, union_types in
+proc make_type_union id: int, union_names: vector, union_types: vector in
     var self = make_type(TyK_union, id);
     u64!(self + TTYPE_union_names, union_names);
     u64!(self + TTYPE_union_types, union_types);
     return self;
 end
 
-proc make_type_array id, count, type in
+proc make_type_array id: int, count: int, type: type in
     var self = make_type(TyK_array, id);
     u64!(self + TTYPE_array_count, count);
     u64!(self + TTYPE_array_type, type);
     return self;
 end
 
-proc type_kind self in return u32@(self + TTYPE_kind); end
-proc type_size self in return u32@(self + TTYPE_size); end
-proc type_id self in return u64@(self + TTYPE_id); end
-proc type_params self in return u64@(self + TTYPE_params); end
-proc type_ast self in return u64@(self + TTYPE_ast); end
-proc type_ref_type self in return u64@(self + TTYPE_ref_type); end
-proc type_proc_return_type self in return u64@(self + TTYPE_proc_return_type); end
-proc type_proc_parameters self in return u64@(self + TTYPE_proc_parameters); end
-proc type_struct_fields self in return u64@(self + TTYPE_struct_fields); end
-proc type_struct_procs self in return u64@(self + TTYPE_struct_procs); end
-proc type_enum_names self in return u64@(self + TTYPE_enum_names); end
-proc type_enum_values self in return u64@(self + TTYPE_enum_values); end
-proc type_union_names self in return u64@(self + TTYPE_union_names); end
-proc type_union_types self in return u64@(self + TTYPE_union_types); end
-proc type_array_count self in return u64@(self + TTYPE_array_count); end
-proc type_array_type self in return u64@(self + TTYPE_array_type); end
+proc type_kind self: type in return cast(u32@(self + TTYPE_kind), int); end
+proc type_size self: type in return cast(u32@(self + TTYPE_size), int); end
+proc type_id self: type in return cast(u64@(self + TTYPE_id), int); end
+proc type_params self: type in return cast(u64@(self + TTYPE_params), vector); end
+proc type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
+proc type_ref_type self: type in return cast(u64@(self + TTYPE_ref_type), type); end
+proc type_proc_return_type self: type in
+    return cast(u64@(self + TTYPE_proc_return_type), type);
+end
+proc type_proc_parameters self: type in
+    return cast(u64@(self + TTYPE_proc_parameters), vector);
+end
+proc type_struct_fields self: type in
+    return cast(u64@(self + TTYPE_struct_fields), vector);
+end
+proc type_struct_procs self: type in
+    return cast(u64@(self + TTYPE_struct_procs), vector);
+end
+proc type_enum_names self: type in return cast(u64@(self + TTYPE_enum_names), vector); end
+proc type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), vector); end
+proc type_union_names self: type in return cast(u64@(self + TTYPE_union_names), vector); end
+proc type_union_types self: type in return cast(u64@(self + TTYPE_union_types), vector); end
+proc type_array_count self: type in return cast(u64@(self + TTYPE_array_count), int); end
+proc type_array_type self: type in return cast(u64@(self + TTYPE_array_type), type); end
 
-proc type_set_kind self, kind in u32!(self + TTYPE_kind, kind); end
-proc type_set_size self, size in u32!(self + TTYPE_size, size); end
-proc type_set_params self, params in u64!(self + TTYPE_params, params); end
-proc type_set_ast self, ast in u64!(self + TTYPE_ast, ast); end
-proc type_set_ref_type self, type in u64!(self + TTYPE_ref_type, type); end
-proc type_set_proc_return_type self, type in u64!(self + TTYPE_proc_return_type, type); end
-proc type_set_proc_parameters self, params in u64!(self + TTYPE_proc_parameters, params); end
-proc type_set_struct_fields self, fields in u64!(self + TTYPE_struct_fields, fields); end
-proc type_set_struct_procs self, procs in u64!(self + TTYPE_struct_procs, procs); end
-proc type_set_enum_names self, names in u64!(self + TTYPE_enum_names, names); end
-proc type_set_enum_values self, values in u64!(self + TTYPE_enum_values, values); end
-proc type_set_union_names self, names in u64!(self + TTYPE_union_names, names); end
-proc type_set_union_types self, types in u64!(self + TTYPE_union_types, types); end
-proc type_set_array_count self, count in u64!(self + TTYPE_array_count, count); end
-proc type_set_array_type self, type in u64!(self + TTYPE_array_type, type); end
+proc type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
+proc type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
+proc type_set_params self: type, params: vector in u64!(self + TTYPE_params, params); end
+proc type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
+proc type_set_ref_type self: type, type: type in u64!(self + TTYPE_ref_type, type); end
+proc type_set_proc_return_type self: type, type: type in u64!(self + TTYPE_proc_return_type, type); end
+proc type_set_proc_parameters self: type, params: vector in u64!(self + TTYPE_proc_parameters, params); end
+proc type_set_struct_fields self: type, fields: vector in u64!(self + TTYPE_struct_fields, fields); end
+proc type_set_struct_procs self: type, procs: vector in u64!(self + TTYPE_struct_procs, procs); end
+proc type_set_enum_names self: type, names: vector in u64!(self + TTYPE_enum_names, names); end
+proc type_set_enum_values self: type, values: vector in u64!(self + TTYPE_enum_values, values); end
+proc type_set_union_names self: type, names: vector in u64!(self + TTYPE_union_names, names); end
+proc type_set_union_types self: type, types: vector in u64!(self + TTYPE_union_types, types); end
+proc type_set_array_count self: type, count: int in u64!(self + TTYPE_array_count, count); end
+proc type_set_array_type self: type, type: type in u64!(self + TTYPE_array_type, type); end
 
-proc type_is_undefined self in return type_kind(self) == TyK_undefined; end
-proc type_is_void self in return type_kind(self) == TyK_void; end
-proc type_is_any self in return type_kind(self) == TyK_any; end
-proc type_is_primitive self in return type_kind(self) == TyK_primitive; end
-proc type_is_reference self in return type_kind(self) == TyK_reference; end
-proc type_is_struct self in return type_kind(self) == TyK_struct; end
-proc type_is_procedure self in return type_kind(self) == TyK_procedure; end
-proc type_is_enum self in return type_kind(self) == TyK_enum; end
-proc type_is_union self in return type_kind(self) == TyK_union; end
-proc type_is_array self in return type_kind(self) == TyK_array; end
+proc type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
+proc type_is_void self: type in return type_kind(self) == TyK_void; end
+proc type_is_any self: type in return type_kind(self) == TyK_any; end
+proc type_is_primitive self: type in return type_kind(self) == TyK_primitive; end
+proc type_is_reference self: type in return type_kind(self) == TyK_reference; end
+proc type_is_struct self: type in return type_kind(self) == TyK_struct; end
+proc type_is_procedure self: type in return type_kind(self) == TyK_procedure; end
+proc type_is_enum self: type in return type_kind(self) == TyK_enum; end
+proc type_is_union self: type in return type_kind(self) == TyK_union; end
+proc type_is_array self: type in return type_kind(self) == TyK_array; end
 
-proc types_eq a, b in
+proc types_eq a: type, b: type in
     if a == b then
         return true;
     end
@@ -184,22 +194,44 @@ proc types_eq a, b in
     return a == b;
 end
 
-proc types_assignable tt, a, b in
+proc types_assignable tt: type_table, a: type, b: type in
     if types_eq(a, b) then
         return true;
     end
     var ptr = tt_ptr_type(tt);
     var cstr = tt_cstr_type(tt);
+    var char = tt_char_type(tt);
+    var int = tt_int_type(tt);
+    var bool = tt_bool_type(tt);
     if a == ptr and b == cstr then
         return true;
-    end
-    if a == cstr and b == ptr then
+    else if a == cstr and b == ptr then
+        return true;
+    else if a == ptr and type_is_reference(b) then
+        return true;
+    else if type_is_reference(a) and b == ptr then
+        return true;
+    else if a == ptr and type_is_procedure(b) then
+        return true;
+    else if type_is_procedure(a) and b == ptr then
+        return true;
+    else if a == char and b == int then
+        return true;
+    else if a == int and b == char then
+        return true;
+    else if a == int and b == ptr then
+        return true;
+    else if a == ptr and b == int then
+        return true;
+    else if a == int and b == bool then
+        return true;
+    else if a == bool and b == int then
         return true;
     end
     return false;
 end
 
-proc print_type self in
+proc print_type self: type in
     var kind = type_kind(self);
     var id = type_id(self);
     printf("kind=%d, id=%d\n", kind, id);
@@ -215,9 +247,10 @@ const TTYPE_TABLE_int_type  = 48; // fast ref to `int` type
 const TTYPE_TABLE_char_type = 56; // fast ref to `char` type
 const TTYPE_TABLE_ptr_type  = 64; // fast ref to `ptr` type
 const TTYPE_TABLE_cstr_type = 72; // fast ref to `cstr` type
-const sizeof_TTYPE_TABLE    = 80;
+const TTYPE_TABLE_bool_type = 80; // fast ref to `bool` type
+const sizeof_TTYPE_TABLE    = 88;
 
-proc make_type_table in
+proc make_type_table -> type_table in
     var self = malloc(sizeof_TTYPE_TABLE);
     var type_ids = make_map(0, cstr_eq, cstr_hash);
     var types = make_vector(0);
@@ -245,6 +278,14 @@ proc make_type_table in
     map_set(type_ids, "any", type_idx);
     vector_push(types, t);
     vector_push(names, "any");
+
+    type_idx = vector_len(types);
+    t = make_type(TyK_primitive, type_idx);
+    type_set_size(t, 1);
+    u64!(self + TTYPE_TABLE_bool_type, t);
+    map_set(type_ids, "bool", type_idx);
+    vector_push(types, t);
+    vector_push(names, "bool");
 
     type_idx = vector_len(types);
     t = make_type(TyK_primitive, type_idx);
@@ -304,19 +345,20 @@ proc make_type_table in
     vector_push(types, t);
     vector_push(names, "int32");
 
-
-    return self;
+    return cast(self, type_table);
 end
 
-proc type_table_type_ids self in return u64@(self + TTYPE_TABLE_type_ids); end
-proc type_table_types self in return u64@(self + TTYPE_TABLE_types); end
-proc type_table_names self in return u64@(self + TTYPE_TABLE_names); end
-proc type_table_ast_types self in return u64@(self + TTYPE_TABLE_ast_types); end
-proc tt_any_type self in return u64@(self + TTYPE_TABLE_any_type); end
-proc tt_void_type self in return u64@(self + TTYPE_TABLE_void_type); end
-proc tt_int_type self in return u64@(self + TTYPE_TABLE_int_type); end
-proc tt_ptr_type self in return u64@(self + TTYPE_TABLE_ptr_type); end
-proc tt_cstr_type self in return u64@(self + TTYPE_TABLE_cstr_type); end
+proc type_table_type_ids self: type_table in return cast(u64@(self + TTYPE_TABLE_type_ids), map); end
+proc type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), vector); end
+proc type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), vector); end
+proc type_table_ast_types self: type_table in return cast(u64@(self + TTYPE_TABLE_ast_types), map); end
+proc tt_any_type self: type_table in return cast(u64@(self + TTYPE_TABLE_any_type), type); end
+proc tt_void_type self: type_table in return cast(u64@(self + TTYPE_TABLE_void_type), type); end
+proc tt_int_type self: type_table in return cast(u64@(self + TTYPE_TABLE_int_type), type); end
+proc tt_ptr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_ptr_type), type); end
+proc tt_cstr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_cstr_type), type); end
+proc tt_bool_type self: type_table in return cast(u64@(self + TTYPE_TABLE_bool_type), type); end
+proc tt_char_type self: type_table in return cast(u64@(self + TTYPE_TABLE_char_type), type); end
 
 proc tt_get_ast_type self, ast in
     var found = map_find(type_table_ast_types(self), ast);
@@ -521,10 +563,14 @@ proc tt_calculate_structs self in
     var to_calc = make_queue(0);
     var types = type_table_types(self);
     var i = 0; var len = vector_len(types);
+    var void = tt_void_type(self);
     while i < len do
         var type = vector_get(types, i);
         if type_is_undefined(type) then
-            printf("WARN: type id %d is still undefined!\n", type_id(type));
+            printf("WARN: type `%s` is still undefined!\n", tt_get_type_name(self, type));
+            type_set_size(type, 64);
+            type_set_kind(type, TyK_reference);
+            type_set_ref_type(type, void);
         else if type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
             queue_enqueue(to_calc, type);
         end

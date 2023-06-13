@@ -7,7 +7,7 @@ const TSTRING_length = 8;
 const TSTRING_capacity = 16;
 const sizeof_TSTRING = 24;
 
-proc make_string init in
+proc make_string init: int -> string in
     var self = malloc(sizeof_TSTRING);
     var buf = malloc(init);
 
@@ -15,48 +15,45 @@ proc make_string init in
     u64!(self + TSTRING_length, 0);
     u64!(self + TSTRING_capacity, init);
     
-    return self;
+    return cast(self, string);
 end
 
-proc free_string self in
+proc free_string self: string in
     free(u64@(self));
     free(self);
 end
 
-proc string_buf self in
-    return u64@(self);
+proc string_buf self: string -> ptr in
+    return cast(u64@(self), ptr);
 end
 
-proc string_len self in
-    return u64@(self + TSTRING_length);
+proc string_len self: string -> int in
+    return cast(u64@(self + TSTRING_length), int);
 end
 
-proc string_set_len self, n in
+proc string_set_len self: string, n: int in
     if n >= 0 and n <= string_cap(self) then
         u64!(self + TSTRING_length, n);
-        return true;
-    else
-        return false;
     end
 end
 
-proc string_reset self in
+proc string_reset self: string in
     string_set_len(self, 0);
 end
 
-proc string_cap self in
-    return u64@(self + TSTRING_capacity);
+proc string_cap self: string -> int in
+    return cast(u64@(self + TSTRING_capacity), int);
 end
 
-proc string_get self, idx in
-    return u8@(u64@(self) + idx);
+proc string_get self: string, idx: int -> char in
+    return cast(u8@(u64@(self) + idx), char);
 end
 
-proc string_set self, idx, val in
+proc string_set self: string, idx: int, val: char in
     u8!(u64@(self) + idx, val);
 end
 
-proc string_resize self, new_cap in
+proc string_resize self: string, new_cap: int in
     var new = malloc(new_cap);
     var old = u64@(self);
     var len = string_len(self);
@@ -70,7 +67,7 @@ proc string_resize self, new_cap in
     u64!(self + TSTRING_capacity, new_cap);
 end
 
-proc string_push self, val in
+proc string_push self: string, val: char in
     var len = string_len(self);
     var cap = string_cap(self);
     if len == cap then
@@ -80,7 +77,7 @@ proc string_push self, val in
     u64!(self + TSTRING_length, len+1);
 end
 
-proc string_pop self in
+proc string_pop self: string in
     var len = string_len(self);
     if len > 0 then
         u64!(self + TSTRING_length, len - 1);
@@ -90,7 +87,7 @@ proc string_pop self in
     end
 end
 
-proc string_back self in
+proc string_back self: string -> char in
     var len = string_len(self);
     if len > 0 then
         return string_get(self, len-1);
@@ -99,7 +96,7 @@ proc string_back self in
     abort();
 end
 
-proc string_append_string self, string in
+proc string_append_string self: string, string: string in
     var len = string_len(string);
     var i = 0;
     while i < len do
@@ -108,7 +105,7 @@ proc string_append_string self, string in
     end
 end
 
-proc string_append_cstr self, cstr in
+proc string_append_cstr self: string, cstr: cstr in
     var i = 0;
     while u8@(cstr) do
         string_push(self, u8@(cstr));
@@ -117,7 +114,7 @@ proc string_append_cstr self, cstr in
     end
 end
 
-proc string_from_cstr cstr in
+proc string_from_cstr cstr: cstr -> string in
     var string = make_string(2);
     while u8@(cstr) do
         string_push(string, u8@(cstr));
@@ -126,7 +123,7 @@ proc string_from_cstr cstr in
     return string;
 end
 
-proc string_eq string_a, string_b in
+proc string_eq string_a: string, string_b: string -> bool in
     if string_a == string_b then
         return true;
     end
@@ -150,7 +147,7 @@ proc string_eq string_a, string_b in
     return true;
 end
 
-proc string_cstr string in
+proc string_cstr string: string -> cstr in
     var len = string_len(string);
     if len == string_cap(string) then
         string_resize(string, len+1);
@@ -159,7 +156,7 @@ proc string_cstr string in
     return string_buf(string);
 end
 
-proc cstr_eq cstr_a, cstr_b in
+proc cstr_eq cstr_a: cstr, cstr_b: cstr -> bool in
     if cstr_a == cstr_b then
         return true;
     end
@@ -178,7 +175,7 @@ proc cstr_eq cstr_a, cstr_b in
     return a == b;
 end
 
-proc cstr_len cstr in
+proc cstr_len cstr: cstr -> int in
     var i = 0;
     while u8@(cstr) do
         i += 1;
@@ -187,7 +184,7 @@ proc cstr_len cstr in
     return i;
 end
 
-proc string_duplicate self in
+proc string_duplicate self: string -> string in
     var copy = make_string(string_cap(self));
     memcpy(string_buf(copy), string_buf(self), string_len(self));
     string_set_len(copy, string_len(self));

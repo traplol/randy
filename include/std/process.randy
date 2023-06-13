@@ -2,17 +2,17 @@
 #include memory
 #include syscall
 
-proc execve path, argv, envp in
-    return syscall(SYS_execve, path, argv, envp);
+proc execve path: cstr, argv: ptr, envp: ptr -> int in
+    return cast(syscall(SYS_execve, path, argv, envp), int);
 end
 
 proc fork in
-    return syscall(SYS_fork);
+    return cast(syscall(SYS_fork), int);
 end
 
 const P_PID = 1;
 proc waitpid pid, siginfo, options in
-    return syscall(SYS_waitid, P_PID, pid, siginfo, options);
+    return cast(syscall(SYS_waitid, P_PID, pid, siginfo, options), int);
 end
 
 const TSIGINFO_si_signo  = 0;

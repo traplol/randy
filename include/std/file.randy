@@ -8,29 +8,30 @@ const O_RDWR = 2;
 const O_CREAT = 64;
 const O_TRUNC = 512;
 
-proc close fd in
-    return syscall(SYS_close, fd);
+proc close fd: fd -> int in
+    return cast(syscall(SYS_close, fd), int);
 end
 
-proc open_for_read path in
-    return syscall(SYS_open, path, O_RDONLY);
+proc open_for_read path: cstr -> fd in
+    return cast(syscall(SYS_open, path, O_RDONLY), fd);
 end
 
-proc open_for_write path in
+proc open_for_write path: cstr -> fd in
     var mask = syscall(SYS_umask, 0);
     syscall(SYS_umask, mask);
-    return syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask); // 438 is 0666 or -rw-rw-rw-
+    // 438 is 0666 or -rw-rw-rw-
+    return cast(syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask), fd);
 end
 
-proc read_file fd, buf, count in
-    return syscall(SYS_read, fd, buf, count);
+proc read_file fd: fd, buf: ptr, count: int -> int in
+    return cast(syscall(SYS_read, fd, buf, count), int);
 end
 
-proc write_file fd, buf, count in
-    return syscall(SYS_write, fd, buf, count);
+proc write_file fd: fd, buf: ptr, count: int -> int in
+    return cast(syscall(SYS_write, fd, buf, count), int);
 end
 
-proc getcwd in
+proc getcwd -> string in
     var str = make_string(1024);
     while not syscall(SYS_getcwd, string_buf(str), string_cap(str)) do
         var temp = make_string(string_cap(str) + 1024);
@@ -46,18 +47,18 @@ const W_OK = 2; // Test for write permission.
 const X_OK = 1; // Test for execute permission.
 const F_OK = 0; // Test for existence.
 
-proc file_is_readable path in
-    return not syscall(SYS_access, path, R_OK);
+proc file_is_readable path: cstr -> bool in
+    return not cast(syscall(SYS_access, path, R_OK), bool);
 end
 
-proc file_is_writable path in
-    return not syscall(SYS_access, path, W_OK);
+proc file_is_writable path: cstr -> bool in
+    return not cast(syscall(SYS_access, path, W_OK), bool);
 end
 
-proc file_is_executable path in
-    return not syscall(SYS_access, path, X_OK);
+proc file_is_executable path: cstr -> bool in
+    return not cast(syscall(SYS_access, path, X_OK), bool);
 end
     
-proc file_exists path in
-    return not syscall(SYS_access, path, F_OK);
+proc file_exists path: cstr -> bool in
+    return not cast(syscall(SYS_access, path, F_OK), bool);
 end

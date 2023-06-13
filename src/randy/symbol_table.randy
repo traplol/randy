@@ -14,31 +14,31 @@ const TSYMBOL_token  = 16; // token
 const TSYMBOL_type   = 24; // type
 const sizeof_TSYMBOL = 32;
 
-proc make_symbol kind, name, token in
+proc make_symbol kind: int, name: cstr, token: token -> symbol in
     var self = malloc(sizeof_TSYMBOL);
     u64!(self + TSYMBOL_kind, kind);
     u64!(self + TSYMBOL_name, name);
     u64!(self + TSYMBOL_token, token);
     u64!(self + TSYMBOL_type, NULL);
-    return self;
+    return cast(self, symbol);
 end
 
-proc symbol_kind self in return u64@(self + TSYMBOL_kind); end
-proc symbol_name self in return u64@(self + TSYMBOL_name); end
-proc symbol_token self in return u64@(self + TSYMBOL_token); end
-proc symbol_type self in return u64@(self + TSYMBOL_type); end
+proc symbol_kind self: symbol -> int in return cast(u64@(self + TSYMBOL_kind), int); end
+proc symbol_name self: symbol -> cstr in return cast(u64@(self + TSYMBOL_name), cstr); end
+proc symbol_token self: symbol -> token in return cast(u64@(self + TSYMBOL_token), token); end
+proc symbol_type self: symbol -> type in return cast(u64@(self + TSYMBOL_type), type); end
 
-proc symbol_set_kind self, kind in u64!(self + TSYMBOL_kind, kind); end
-proc symbol_set_type self, type in u64!(self + TSYMBOL_type, type); end
+proc symbol_set_kind self: symbol, kind: int in u64!(self + TSYMBOL_kind, kind); end
+proc symbol_set_type self: symbol, type: type in u64!(self + TSYMBOL_type, type); end
 
-proc symbol_is_undef self in return symbol_kind(self) == SK_undef; end
-proc symbol_is_const self in return symbol_kind(self) == SK_const; end
-proc symbol_is_global self in return symbol_kind(self) == SK_global; end
-proc symbol_is_proc self in return symbol_kind(self) == SK_proc; end
-proc symbol_is_extern self in return symbol_kind(self) == SK_extern; end
-proc symbol_is_asm self in return symbol_kind(self) == SK_asm; end
-proc symbol_is_param self in return symbol_kind(self) == SK_param; end
-proc symbol_is_local self in return symbol_kind(self) == SK_local; end
+proc symbol_is_undef self: symbol in return symbol_kind(self) == SK_undef; end
+proc symbol_is_const self: symbol in return symbol_kind(self) == SK_const; end
+proc symbol_is_global self: symbol in return symbol_kind(self) == SK_global; end
+proc symbol_is_proc self: symbol in return symbol_kind(self) == SK_proc; end
+proc symbol_is_extern self: symbol in return symbol_kind(self) == SK_extern; end
+proc symbol_is_asm self: symbol in return symbol_kind(self) == SK_asm; end
+proc symbol_is_param self: symbol in return symbol_kind(self) == SK_param; end
+proc symbol_is_local self: symbol in return symbol_kind(self) == SK_local; end
 
 // This symbol table keeps track of identifiers relative to scope and internalizes
 // those idents to a specific id. In this case the id happens to be the same cstr
@@ -47,17 +47,17 @@ const TSYMBOL_TABLE_table = 0; // (id, symbol) map : all symbols
 const TSYMBOL_TABLE_scope = 8; // (cstr, ptr) map vector : scope resolution for identifiers to symbols
 const sizeof_TSYMBOL_TABLE = 16;
 
-proc make_symbol_table in
+proc make_symbol_table -> symbol_table in
     var self = malloc(sizeof_TSYMBOL_TABLE);
     u64!(self + TSYMBOL_TABLE_table, make_map(0, NULL, NULL));
     u64!(self + TSYMBOL_TABLE_scope, make_vector(0));
-    return self;
+    return cast(self, symbol_table);
 end
 
-proc symbol_table_table self in return u64@(self + TSYMBOL_TABLE_table); end
-proc symbol_table_scope self in return u64@(self + TSYMBOL_TABLE_scope); end
+proc symbol_table_table self: symbol_table in return cast(u64@(self + TSYMBOL_TABLE_table), map); end
+proc symbol_table_scope self: symbol_table in return cast(u64@(self + TSYMBOL_TABLE_scope), vector); end
 
-proc st_make_symbol self, kind, ident, token in
+proc st_make_symbol self: symbol_table, kind: int, ident: cstr, token: token -> symbol in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then

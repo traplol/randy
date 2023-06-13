@@ -148,218 +148,218 @@ proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
 proc ir_instr_nlocals self in return u64@(self + TIR_INSTR_nlocals); end
 proc ir_instr_type self in return u64@(self + TIR_INSTR_type); end
 
-proc make_ir_alloc_temps n in
+proc make_ir_alloc_temps n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_AllocTemps);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_call label, varargs in
+proc make_ir_call label, varargs -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Call);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_varargs, varargs);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_lazy_ident ident in
+proc make_ir_lazy_ident ident -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_call_lazy_ident ident, nargs in
+proc make_ir_call_lazy_ident ident, nargs -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
     u64!(self + TIR_INSTR_nargs, nargs);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_close_proc src_name, name in
+proc make_ir_close_proc src_name, name -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CloseProc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_free_temps n in
+proc make_ir_free_temps n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_FreeTemps);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_get_local local, n in
+proc make_ir_get_local local, n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_goto label in
+proc make_ir_goto label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Goto);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_goto_false label in
+proc make_ir_goto_false label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoFalse);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_goto_top_false label in
+proc make_ir_goto_top_false label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopFalse);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_goto_top_true label in
+proc make_ir_goto_top_true label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GotoTopTrue);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_inline_asm name, asmcode in
+proc make_ir_inline_asm name, asmcode -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_InlineAsm);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_asm, asmcode);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_label label in
+proc make_ir_label label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Label);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_bit_not in
+proc make_ir_bit_not -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_BitNot);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_logic_not in
+proc make_ir_logic_not -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LogicNot);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_negative in
+proc make_ir_negative -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_Negative);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_scope_open in
+proc make_ir_scope_open -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ScopeOpen);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_scope_close in
+proc make_ir_scope_close -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ScopeClose);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_new_proc src_name, name, params, locals in
+proc make_ir_new_proc src_name, name, params, locals -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_NewProc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_params, params);
     u64!(self + TIR_INSTR_nlocals, locals);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_simple_op op in
+proc make_ir_simple_op op -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, op);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_pop_call in
+proc make_ir_pop_call -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopCall);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_pop_return in
+proc make_ir_pop_return -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PopReturn);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_ptr_read size in
+proc make_ir_ptr_read size -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrRead);
     u64!(self + TIR_INSTR_size, size);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_ptr_write size in
+proc make_ir_ptr_write size -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrWrite);
     u64!(self + TIR_INSTR_size, size);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_ptr_copy size in
+proc make_ir_ptr_copy size -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PtrCopy);
     u64!(self + TIR_INSTR_size, size);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_push_int value in
+proc make_ir_push_int value -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushInt);
     u64!(self + TIR_INSTR_value, value);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_push_label label in
+proc make_ir_push_label label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushLabel);
     u64!(self + TIR_INSTR_label, label);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_return_void in
+proc make_ir_return_void -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_ReturnVoid);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_set_arg_temp n in
+proc make_ir_set_arg_temp n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetArgTemp);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_set_local local, n in
+proc make_ir_set_local local, n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_set_local_arg local, local_n, arg in
+proc make_ir_set_local_arg local, local_n, arg -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, local_n);
     u64!(self + TIR_INSTR_arg, arg);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_store_temp n in
+proc make_ir_store_temp n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_StoreTemp);
     u64!(self + TIR_INSTR_n, n);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_drop_top in
+proc make_ir_drop_top -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_DropTop);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_set_global name, label in
+proc make_ir_set_global name, label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetGlobal);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_src_name, name);
-    return self;
+    return cast(self, ir_instr);
 end
-proc make_ir_get_global name, label  in
+proc make_ir_get_global name, label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetGlobal);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_src_name, name);
-    return self;
+    return cast(self, ir_instr);
 end
 proc print_ir_alloc_temps self in
     printf("(IR.AllocTemps ");
@@ -599,17 +599,23 @@ const TPROC_INFO_params = 8;   // cstr vector
 const TPROC_INFO_varargs = 16; // bool
 const sizeof_TPROC_INFO = 24;
 
-proc make_proc_info label, params, varargs in
+proc make_proc_info label: cstr, params: vector, varargs: bool -> proc_info in
     var self = malloc(sizeof_TPROC_INFO);
     u64!(self + TPROC_INFO_label, label);
     u64!(self + TPROC_INFO_params, params);
     u64!(self + TPROC_INFO_varargs, varargs);
-    return self;
+    return cast(self, proc_info);
 end
 
-proc proc_info_label self in return u64@(self + TPROC_INFO_label); end
-proc proc_info_params self in return u64@(self + TPROC_INFO_params); end
-proc proc_info_varargs self in return u64@(self + TPROC_INFO_varargs); end
+proc proc_info_label self: proc_info -> cstr in
+    return cast(u64@(self + TPROC_INFO_label), cstr);
+end
+proc proc_info_params self: proc_info -> vector in
+    return cast(u64@(self + TPROC_INFO_params), vector);
+end
+proc proc_info_varargs self: proc_info -> bool in
+    return cast(u8@(self + TPROC_INFO_varargs), bool);
+end
 proc print_proc_info self in
     printf("(ProcInfo label='%s', params=[", proc_info_label(self));
     var i = 0;
@@ -631,15 +637,15 @@ const sizeof_TCONST_INFO = 16;
 const CIK_String = 0;
 const CIK_Integer = 1;
 
-proc make_const_info kind, value in
+proc make_const_info kind: int, value: ptr -> const_info in
     var self = malloc(sizeof_TCONST_INFO);
     u64!(self + TCONST_INFO_kind, kind);
     u64!(self + TCONST_INFO_value, value);
-    return self;
+    return cast(self, const_info);
 end
 
-proc const_info_kind self in return u64@(self + TCONST_INFO_kind); end
-proc const_info_value self in return u64@(self + TCONST_INFO_value); end
+proc const_info_kind self: const_info in return cast(u64@(self + TCONST_INFO_kind), int); end
+proc const_info_value self: const_info in return cast(u64@(self + TCONST_INFO_value), ptr); end
 
 const TGLOBAL_INFO_kind = 0;
 const TGLOBAL_INFO_label = 8;
@@ -648,17 +654,17 @@ const sizeof_TGLOBAL_INFO = 24;
 const GIK_String = 0;
 const GIK_Integer = 1;
 
-proc make_global_info kind, label, value in
+proc make_global_info kind: int, label: cstr, value: ptr -> global_info in
     var self = malloc(sizeof_TGLOBAL_INFO);
     u64!(self + TGLOBAL_INFO_kind, kind);
     u64!(self + TGLOBAL_INFO_label, label);
     u64!(self + TGLOBAL_INFO_value, value);
-    return self;
+    return cast(self, global_info);
 end
 
-proc global_info_kind self in return u64@(self + TGLOBAL_INFO_kind); end
-proc global_info_label self in return u64@(self + TGLOBAL_INFO_label); end
-proc global_info_value self in return u64@(self + TGLOBAL_INFO_value); end
+proc global_info_kind self: global_info in return cast(u64@(self + TGLOBAL_INFO_kind), int); end
+proc global_info_label self: global_info in return cast(u64@(self + TGLOBAL_INFO_label), cstr); end
+proc global_info_value self: global_info in return cast(u64@(self + TGLOBAL_INFO_value), ptr); end
 
 const TIR_CONTEXT_instructions =  0;  // ir_instruction vector
 const TIR_CONTEXT_label_id     =  8;  // int
@@ -679,7 +685,7 @@ const TIR_CONTEXT_conti_dests  = 112; // cstr vector -> label to goto
 const TIR_CONTEXT_nlocals      = 120; // int : max number of locals allocated
 const sizeof_TIR_CONTEXT       = 128;
 
-proc make_ir_context in
+proc make_ir_context -> ir_context in
     var self = malloc(sizeof_TIR_CONTEXT);
     u64!(self + TIR_CONTEXT_instructions, make_vector(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
@@ -696,24 +702,24 @@ proc make_ir_context in
     u64!(self + TIR_CONTEXT_globals, make_vector(0));
     u64!(self + TIR_CONTEXT_break_dests, make_vector(0));
     u64!(self + TIR_CONTEXT_conti_dests, make_vector(0));
-    return self;
+    return cast(self, ir_context);
 end
 
-proc ir_instructions self in return u64@(self + TIR_CONTEXT_instructions); end
-proc ir_strings self in return u64@(self + TIR_CONTEXT_strings); end
-proc ir_externs self in return u64@(self + TIR_CONTEXT_externs); end
-proc ir_labels self in return u64@(self + TIR_CONTEXT_labels); end
-proc ir_constants self in return u64@(self + TIR_CONTEXT_constants); end
-proc ir_src_locs self in return u64@(self + TIR_CONTEXT_src_locs); end
-proc ir_file_set self in return u64@(self + TIR_CONTEXT_file_set); end
-proc ir_files self in return u64@(self + TIR_CONTEXT_files); end
-proc ir_procs self in return u64@(self + TIR_CONTEXT_procs); end
-proc ir_proc_locals self in return u64@(self + TIR_CONTEXT_proc_locals); end
-proc ir_globals_map self in return u64@(self + TIR_CONTEXT_globals_map); end
-proc ir_globals self in return u64@(self + TIR_CONTEXT_globals); end
-proc ir_break_dests self in return u64@(self + TIR_CONTEXT_break_dests); end
-proc ir_continue_dests self in return u64@(self + TIR_CONTEXT_conti_dests); end
-proc ir_nlocals self in return u64@(self + TIR_CONTEXT_nlocals); end
+proc ir_instructions self: ir_context in return u64@(self + TIR_CONTEXT_instructions); end
+proc ir_strings self: ir_context in return u64@(self + TIR_CONTEXT_strings); end
+proc ir_externs self: ir_context in return u64@(self + TIR_CONTEXT_externs); end
+proc ir_labels self: ir_context in return u64@(self + TIR_CONTEXT_labels); end
+proc ir_constants self: ir_context in return u64@(self + TIR_CONTEXT_constants); end
+proc ir_src_locs self: ir_context in return u64@(self + TIR_CONTEXT_src_locs); end
+proc ir_file_set self: ir_context in return u64@(self + TIR_CONTEXT_file_set); end
+proc ir_files self: ir_context in return u64@(self + TIR_CONTEXT_files); end
+proc ir_procs self: ir_context in return u64@(self + TIR_CONTEXT_procs); end
+proc ir_proc_locals self: ir_context in return u64@(self + TIR_CONTEXT_proc_locals); end
+proc ir_globals_map self: ir_context in return u64@(self + TIR_CONTEXT_globals_map); end
+proc ir_globals self: ir_context in return u64@(self + TIR_CONTEXT_globals); end
+proc ir_break_dests self: ir_context in return u64@(self + TIR_CONTEXT_break_dests); end
+proc ir_continue_dests self: ir_context in return u64@(self + TIR_CONTEXT_conti_dests); end
+proc ir_nlocals self: ir_context in return u64@(self + TIR_CONTEXT_nlocals); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -806,7 +812,7 @@ proc ir_new_local self, ident in
 end
 
 proc ir_new_label self, hint in
-    var label_id = u64@(self + TIR_CONTEXT_label_id);
+    var label_id = cast(u64@(self + TIR_CONTEXT_label_id), int);
     u64!(self + TIR_CONTEXT_label_id, label_id + 1);
 
     var label = make_string(13); // @LEAK
@@ -969,7 +975,7 @@ proc _comptime_eval_is_n n, ast in
 end
 
 proc ir_comptime_eval self, ast, error_on_fail in
-    var evaled; var result;
+    var evaled; var result: int;
     var op; var ident; var ci;
     var lhs; var rhs;
     var lhs_val; var rhs_val;

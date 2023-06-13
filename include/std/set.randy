@@ -19,7 +19,7 @@ const sizeof_TSET_ELEM = sizeof_PTR;
 const SET_Load_Factor = 2; // resize & rehash when size >= capacity/2
 const SET_Default_Cap = 16;
 
-proc make_set capacity, comparer, hasher in
+proc make_set capacity: int, comparer: ptr, hasher: ptr -> set in
     var self = malloc(sizeof_TSET);
     if capacity <= 0 then
         capacity = SET_Default_Cap;
@@ -35,27 +35,27 @@ proc make_set capacity, comparer, hasher in
     end
     u64!(self + TSET_comparer, comparer);
     u64!(self + TSET_hasher, hasher);
-    return self;
+    return cast(self, set);
 end
 
 proc make_set_default in
     return make_set(0, NULL, NULL);
 end
 
-proc set_len self in return u64@(self + TSET_length); end
-proc set_cap self in return u64@(self + TSET_capacity); end
-proc set_buffer self in return u64@(self + TSET_buffer); end
-proc set_comparer self in return u64@(self + TSET_comparer); end
-proc set_hasher self in return u64@(self + TSET_hasher); end
+proc set_len self: set -> int in return cast(u64@(self + TSET_length), int); end
+proc set_cap self: set -> int in return cast(u64@(self + TSET_capacity), int); end
+proc set_buffer self: set -> ptr in return cast(u64@(self + TSET_buffer), ptr); end
+proc set_comparer self: set -> ptr in return cast(u64@(self + TSET_comparer), ptr); end
+proc set_hasher self: set -> ptr in return cast(u64@(self + TSET_hasher), ptr); end
 
-proc free_set self in
+proc free_set self: set in
     if self then
         free(set_buffer(self));
         free(self);
     end
 end
 
-proc _set_expand self in
+proc _set_expand self: set in
     var old_cap = set_cap(self);
     var old_buf = set_buffer(self);
     var new_cap = old_cap * 2;
@@ -74,12 +74,12 @@ proc _set_expand self in
     free(old_buf);
 end
 
-proc _set_at self, idx in
+proc _set_at self: set, idx: int -> ptr in
     var buf = set_buffer(self);
     return buf + idx * sizeof_TSET_ELEM;
 end
 
-proc set_contains self, elem in
+proc set_contains self: set, elem: any -> bool in
     var cap = set_cap(self);
     var hasher = set_hasher(self); 
     var idx = hasher(elem) % cap;
@@ -96,7 +96,7 @@ proc set_contains self, elem in
     return false;
 end
 
-proc set_add self, elem in
+proc set_add self: set, elem: any in
     var cap = set_cap(self);
     if set_len(self) >= cap / SET_Load_Factor then
         _set_expand(self);
@@ -124,7 +124,7 @@ proc set_add self, elem in
     u64!(cur, elem);
 end
 
-proc set_remove self, elem in
+proc set_remove self: set, elem: any in
     var cap = set_cap(self);
     var hasher = set_hasher(self);
     var idx = hasher(elem) % cap;
@@ -147,11 +147,11 @@ proc set_remove self, elem in
     u64!(cur, NULL);
 end
 
-proc set_end self in
-    return _set_at(self, set_cap(self));
+proc set_end self: set -> set_iterator in
+    return cast(_set_at(self, set_cap(self)), set_iterator);
 end
 
-proc set_begin self in
+proc set_begin self: set -> set_iterator in
     var cur = _set_at(self, 0);
     var end_ = set_end(self);
     if set_len(self) == 0 then
@@ -159,26 +159,26 @@ proc set_begin self in
     end
     while cur != end_ do
         if u64@(cur) then
-            return cur;
+            return cast(cur, set_iterator);
         end
         cur = cur + sizeof_TSET_ELEM;
     end
     return end_;
 end
 
-proc set_next self, iter in
-    iter = iter + sizeof_TSET_ELEM;
+proc set_next self: set, iter: set_iterator -> set_iterator in
+    iter = cast(cast(iter, ptr) + sizeof_TSET_ELEM, set_iterator);
     var end_ = set_end(self);
     while iter != end_ do
         if u64@(iter) then
-            return iter;
+            return cast(iter, set_iterator);
         end
-        iter = iter + sizeof_TSET_ELEM;
+        iter = cast(cast(iter, ptr) + sizeof_TSET_ELEM, set_iterator);
     end
     return end_;
 end
 
-proc set_reset self in
+proc set_reset self: set in
     if u64@(self + TSET_length) != 0 then
         u64!(self + TSET_length, 0);
         memset(set_buffer(self), 0, set_cap(self) * sizeof_TSET_ELEM);

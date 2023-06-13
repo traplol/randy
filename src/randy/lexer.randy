@@ -1,21 +1,21 @@
 
-proc is_digit c in
+proc is_digit c: char -> bool in
     return '0' <= c and c <= '9';
 end
 
-proc is_whitespace c in
+proc is_whitespace c: char -> bool in
     return c == ' ' or c == '\t' or c == '\n' or c == 0;
 end
 
-proc is_ident_start c in
+proc is_ident_start c: char -> bool in
     return c == '_' or ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z');
 end
 
-proc is_ident_char c in
+proc is_ident_char c: char -> bool in
     return is_ident_start(c) or is_digit(c) or c == '@' or c == '!';
 end
 
-proc get_escaped_char c in
+proc get_escaped_char c: char -> char in
     if c == 't' then
         return 9; // \t tab
     else if c == 'n' then
@@ -91,7 +91,7 @@ proc _unrecognized_char filename, line_no, c in
     exit(1);
 end
 
-proc _lex_code filename, code, include_paths, included_already in
+proc _lex_code filename: cstr, code: string, include_paths: vector, included_already: map -> vector in
     var i = 0;
     var tokens = make_vector(0);
     var length = string_len(code);
@@ -359,20 +359,20 @@ proc _lex_code filename, code, include_paths, included_already in
     return tokens;
 end
 
-proc _lex_file_aux path, include_paths, included_already in
+proc _lex_file_aux path: cstr, include_paths: vector, included_already: set in
     var code = read_file_to_string(path);
     if not code then
-        return NULL;
+        return cast(NULL, vector);
     end
     return _lex_code(path, code, include_paths, included_already);
 end
 
-proc lex_file path, include_paths in
+proc lex_file path: cstr, include_paths: vector in
     var included_already = make_set(0, string_eq, string_hash);
     return _lex_file_aux(path, include_paths, included_already);
 end
 
-proc handle_include src_file, line_no, tokens, include_paths, included_already, arg in
+proc handle_include src_file: cstr, line_no: int, tokens: vector, include_paths: vector, included_already: set, arg: string in
     string_append_cstr(arg, ".randy");
 
     var i = 0;

@@ -23,7 +23,7 @@ proc _default_map_hash e in
     return e;
 end
 
-proc make_map capacity, comparer, hasher in
+proc make_map capacity: int, comparer: ptr, hasher: ptr -> map in
     var self = malloc(sizeof_TMAP);
     if capacity <= 0 then
         capacity = MAP_Default_Cap;
@@ -40,26 +40,26 @@ proc make_map capacity, comparer, hasher in
     u64!(self + TMAP_comparer, comparer);
     u64!(self + TMAP_hasher, hasher);
     u64!(self + TMAP_cache, NULL);
-    return self;
+    return cast(self, map);
 end
 
-proc map_len self in return u64@(self + TMAP_length); end
-proc map_cap self in return u64@(self + TMAP_capacity); end
-proc map_buffer self in return u64@(self + TMAP_buffer); end
-proc map_comparer self in return u64@(self + TMAP_comparer); end
-proc map_hasher self in return u64@(self + TMAP_hasher); end
+proc map_len self: map in return cast(u64@(self + TMAP_length), int); end
+proc map_cap self: map in return cast(u64@(self + TMAP_capacity), int); end
+proc map_buffer self: map in return cast(u64@(self + TMAP_buffer), ptr); end
+proc map_comparer self: map in return cast(u64@(self + TMAP_comparer), ptr); end
+proc map_hasher self: map in return cast(u64@(self + TMAP_hasher), ptr); end
 
-proc free_map self in
+proc free_map self: map in
     if self then
         free(map_buffer(self));
         free(self);
     end
 end
 
-proc map_pair_key self in return u64@(self + TMAP_PAIR_key); end
-proc map_pair_val self in return u64@(self + TMAP_PAIR_val); end
+proc map_pair_key self: map_pair in return cast(u64@(self + TMAP_PAIR_key), ptr); end
+proc map_pair_val self: map_pair in return cast(u64@(self + TMAP_PAIR_val), ptr); end
 
-proc _map_expand self in
+proc _map_expand self: map_pair in
     u64!(self + TMAP_cache, NULL);
     var old_cap = map_cap(self);
     var old_buf = map_buffer(self);
@@ -79,12 +79,12 @@ proc _map_expand self in
     free(old_buf);
 end
 
-proc _map_at self, idx in
+proc _map_at self: map, idx: int -> ptr in
     var buf = map_buffer(self);
     return buf + idx * sizeof_TMAP_PAIR;
 end
 
-proc map_find self, key in
+proc map_find self: map, key: ptr in
     var comparer = map_comparer(self);
     var cache = u64@(self + TMAP_cache);
     if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
@@ -106,7 +106,7 @@ proc map_find self, key in
     return NULL;
 end
 
-proc map_set self, key, value in
+proc map_set self: map, key: ptr, value: ptr in
     var comparer = map_comparer(self);
     var cache = u64@(self + TMAP_cache);
     if cache and comparer(u64@(cache + TMAP_PAIR_key), key) then
@@ -141,7 +141,7 @@ proc map_set self, key, value in
     u64!(self + TMAP_cache, cur);
 end
 
-proc map_remove self, elem in
+proc map_remove self: map, elem: ptr in
     var cap = map_cap(self);
     var hasher = map_hasher(self);
     var idx = hasher(elem) % cap;
@@ -164,11 +164,11 @@ proc map_remove self, elem in
     u64!(cur, NULL);
 end
 
-proc map_end self in
-    return _map_at(self, map_cap(self));
+proc map_end self: map -> map_iterator in
+    return cast(_map_at(self, map_cap(self)), map_iterator);
 end
 
-proc map_begin self in
+proc map_begin self: map -> map_iterator in
     var cur = _map_at(self, 0);
     var end_ = map_end(self);
     if map_len(self) == 0 then
@@ -176,21 +176,21 @@ proc map_begin self in
     end
     while cur != end_ do
         if u64@(cur) then
-            return cur;
+            return cast(cur, map_iterator);
         end
         cur = cur + sizeof_TMAP_PAIR;
     end
     return end_;
 end
 
-proc map_next self, iter in
-    iter = iter + sizeof_TMAP_PAIR;
+proc map_next self: map, iter: map_iterator -> map_iterator in
+    iter = cast(cast(iter, ptr) + sizeof_TMAP_PAIR, map_iterator);
     var end_ = map_end(self);
     while iter != end_ do
         if u64@(iter) then
             return iter;
         end
-        iter = iter + sizeof_TMAP_PAIR;
+        iter = cast(cast(iter, ptr) + sizeof_TMAP_PAIR, map_iterator);
     end
     return end_;
 end

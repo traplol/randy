@@ -60,7 +60,7 @@ proc ti_infer_body self, tt, st, body in
     end
 end
 
-proc ti_infer_ident self, tt, st, ast in
+proc ti_infer_ident self, tt, st, ast -> type in
     check_ast_kind(AstK_Ident, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -73,22 +73,23 @@ proc ti_infer_ident self, tt, st, ast in
     return tt_any_type(tt);
 end
 
-proc ti_infer_integer self, tt, st, ast in
+proc ti_infer_integer self, tt, st, ast -> type in
     check_ast_kind(AstK_Integer, ast);
     return tt_int_type(tt);
 end
 
-proc ti_infer_string self, tt, st, ast in
+proc ti_infer_string self, tt, st, ast -> type in
     check_ast_kind(AstK_String, ast);
     return tt_cstr_type(tt);
 end
 
-proc ti_infer_call self, tt, st, ast in
+proc ti_infer_call self, tt, st, ast -> type in
     check_ast_kind(AstK_Call, ast);
     var call_type = ti_infer(self, tt, st, ast_expr(ast));
     var any = tt_any_type(tt);
     if not type_is_procedure(call_type) then
-        if call_type != any then
+         // @FIXME: call_type should not accept ptr when type system is more fleshed out.
+        if call_type != any and call_type != tt_ptr_type(tt) then
             printf("WARN: type `");
             _ti_print_type_name(tt, call_type);
             printf("` is not a procedure.\n");
@@ -123,14 +124,22 @@ proc ti_infer_call self, tt, st, ast in
     return ret_type;
 end
 
-proc ti_infer_binop self, tt, st, ast in
+proc ti_infer_binop self, tt, st, ast -> type in
     check_ast_kind(AstK_BinOp, ast);
-    var lhs = ti_infer(self, tt, st, ast_lhs(ast));
-    var rhs = ti_infer(self, tt, st, ast_rhs(ast));
+    var lhs: type = ti_infer(self, tt, st, ast_lhs(ast));
+    var rhs: type = ti_infer(self, tt, st, ast_rhs(ast));
     var any = tt_any_type(tt);
     var int = tt_int_type(tt);
     var cstr = tt_cstr_type(tt);
     var ptr = tt_ptr_type(tt);
+    var char = tt_char_type(tt);
+
+    var op = ast_op(ast);
+    if op == TK_Less or op == TK_LessEq or op == TK_Greater or op == TK_GreaterEq or
+        op == TK_EqEq or op == TK_NotEq then
+        return tt_bool_type(tt);
+    end
+
     if lhs == any and rhs == any then
         tt_set_ast_type(tt, ast_lhs(ast), int);
         tt_set_ast_type(tt, ast_rhs(ast), int);
@@ -166,6 +175,14 @@ proc ti_infer_binop self, tt, st, ast in
     if lhs == int and rhs == ptr then
         return ptr;
     end
+
+    if lhs == char and rhs == int then
+        return int;
+    end
+
+    if lhs == int and rhs == char then
+        return int;
+    end
         
     return tt_any_type(tt);
 end
@@ -184,7 +201,7 @@ proc _ti_print_type_name tt, type in
     end
 end
 
-proc ti_infer_return self, tt, st, ast in
+proc ti_infer_return self, tt, st, ast -> type in
     check_ast_kind(AstK_Return, ast);
     var type;
     if ast_expr(ast) then
@@ -212,7 +229,7 @@ proc ti_infer_return self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_var_decl self, tt, st, ast in
+proc ti_infer_var_decl self, tt, st, ast -> type in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -222,10 +239,15 @@ proc ti_infer_var_decl self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc _ti_infer_assignment tt, type, symbol, ast in
+proc _ti_infer_assignment tt, type, symbol, ast -> type in
     var sym_type = symbol_type(symbol);
     if not sym_type or sym_type == tt_any_type(tt) then
         symbol_set_type(symbol, type);
+    else if type == tt_any_type(tt) then
+        //printf("WARN: RHS of '=' is `any`\n");
+        //printf("NOTE: The expression is: ");
+        //print_ast(ast);
+        //print_token_loc(ast_token(ast));
     else if not types_assignable(tt, type, sym_type) then
         printf("WARN: type of `%s` is `", symbol_name(symbol));
         _ti_print_type_name(tt, sym_type);
@@ -238,7 +260,7 @@ proc _ti_infer_assignment tt, type, symbol, ast in
     end
 end
 
-proc ti_infer_var_assign self, tt, st, ast in
+proc ti_infer_var_assign self, tt, st, ast -> type in
     check_ast_kind(AstK_VarAssign, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -247,7 +269,7 @@ proc ti_infer_var_assign self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_assign_op self, tt, st, ast in
+proc ti_infer_assign_op self, tt, st, ast -> type in
     check_ast_kind(AstK_AssignOp, ast);
     var op = ast_op(ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
@@ -273,7 +295,7 @@ proc ti_infer_assign_op self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_procedure self, tt, st, ast in
+proc ti_infer_procedure self, tt, st, ast -> type in
     check_ast_kind(AstK_Procedure, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -292,7 +314,7 @@ proc ti_infer_procedure self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_if_else self, tt, st, ast in
+proc ti_infer_if_else self, tt, st, ast -> type in
     check_ast_kind(AstK_IfElse, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
@@ -301,7 +323,7 @@ proc ti_infer_if_else self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_while self, tt, st, ast in
+proc ti_infer_while self, tt, st, ast -> type in
     check_ast_kind(AstK_While, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
@@ -309,13 +331,13 @@ proc ti_infer_while self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_pointer_read self, tt, st, ast in
+proc ti_infer_pointer_read self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerRead, ast);
     var args = ast_pop_args(ast);
     return ti_infer(self, tt, st, vector_get(args, 0));
 end
 
-proc ti_infer_pointer_write self, tt, st, ast in
+proc ti_infer_pointer_write self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerWrite, ast);
     var args = ast_pop_args(ast);
     var i = 0; var len = vector_len(args);
@@ -326,12 +348,17 @@ proc ti_infer_pointer_write self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_prefix_op self, tt, st, ast in
+proc ti_infer_prefix_op self, tt, st, ast -> type in
     check_ast_kind(AstK_Prefix, ast);
-    return ti_infer(self, tt, st, ast_expr(ast));
+    var t = ti_infer(self, tt, st, ast_expr(ast));
+    if ast_op == TK_KW_not then
+        // TODO: check t is "bool"-able: int variants, ptr, cstr, etc
+        return tt_bool_type(tt);
+    end
+    return t;
 end
 
-proc ti_infer_const self, tt, st, ast in
+proc ti_infer_const self, tt, st, ast -> type in
     check_ast_kind(AstK_Const, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -340,21 +367,21 @@ proc ti_infer_const self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_extern self, tt, st, ast in
+proc ti_infer_extern self, tt, st, ast -> type in
     check_ast_kind(AstK_Extern, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
-proc ti_infer_inline_asm self, tt, st, ast in
+proc ti_infer_inline_asm self, tt, st, ast -> type in
     check_ast_kind(AstK_InlineAsm, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
-proc ti_infer_global self, tt, st, ast in
+proc ti_infer_global self, tt, st, ast -> type in
     check_ast_kind(AstK_Global, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -363,15 +390,15 @@ proc ti_infer_global self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_cast self, tt, st, ast in
+proc ti_infer_cast self, tt, st, ast -> type in
     check_ast_kind(AstK_Cast, ast);
     ti_infer(self, tt, st, ast_expr(ast));
     return ast_type(ast);
 end
 
-proc ti_infer self, tt, st, ast in
+proc ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
-    var type;
+    var type: type;
     if k == AstK_Ident then type = ti_infer_ident(self, tt, st, ast);
     else if k == AstK_Integer then type = ti_infer_integer(self, tt, st, ast);
     else if k == AstK_String then type = ti_infer_string(self, tt, st, ast);
