@@ -484,10 +484,6 @@ proc tt_calculate_struct self, stype, again_q in
 
         if type_is_reference(ftype) and not ptr_align then
             ptr_align = true;
-            i = 0;
-            bit_offs = 0;
-            continue;
-            // TODO: align other sizes.
         end
 
         var size = type_size(ftype);

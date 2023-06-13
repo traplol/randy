@@ -353,7 +353,7 @@ proc x86_64_emit_new_proc cc, ir in
     if n > 0 then
         var str = make_string(20);
         string_append_cstr(str, "    subq $");
-        string_append_int(str, n*REG_SIZE);
+        string_append_int(str, n * REG_SIZE);
         string_append_cstr(str, ", %rsp");
         cc_out(cc, string_cstr(str));
         free_string(str);
