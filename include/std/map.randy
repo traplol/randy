@@ -15,11 +15,11 @@ const sizeof_TMAP_PAIR = 16;
 const MAP_Load_Factor = 2; // resize & rehash when size >= capacity/2
 const MAP_Default_Cap = 16;
 
-proc _default_map_compare a, b in
+proc _default_map_compare a: ptr, b: ptr -> bool in
     return a == b;
 end
 
-proc _default_map_hash e in
+proc _default_map_hash e: ptr -> ptr in
     return e;
 end
 
