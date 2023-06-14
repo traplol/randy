@@ -1703,12 +1703,33 @@ proc ir_resolve_lazy_idents self in
     end
 end
 
-proc ir_compile_roots self: ir_context, roots: vector, symbol_table: symbol_table, type_table: type_table in
-    var i = 0; var len = vector_len(roots);
-    while i < len do
-        ir_compile(self, vector_get(roots, i), symbol_table, type_table);
-        i += 1;
+proc ir_compile_roots self: ir_context, roots: vector, symbol_table: symbol_table, type_table: type_table, compile_order: vector in
+
+    if false then
+        // compile everything in order
+        var i = 0; var len = vector_len(roots);
+        while i < len do
+            ir_compile(self, vector_get(roots, i), symbol_table, type_table);
+            i += 1;
+        end
+    else
+        // or only compile the call/reference graph
+        var i = 0; var len = vector_len(roots);
+        while i < len do
+            var ast = vector_get(roots, i);
+            if ast_kind(ast) != AstK_Procedure then
+                ir_compile(self, vector_get(roots, i), symbol_table, type_table);
+            end
+            i += 1;
+        end
+
+        i = 0; len = vector_len(compile_order);
+        while i < len do
+            ir_compile(self, vector_get(compile_order, i), symbol_table, type_table);
+            i += 1;
+        end
     end
+
     ir_resolve_lazy_idents(self);
 end
 

@@ -1,0 +1,95 @@
+
+proc _compile_order_visit tt, st, stmt, seen, order in
+    if not stmt then
+        return;
+    end
+    var k = ast_kind(stmt);
+    if k == AstK_Call then
+        _compile_order_visit_vector(tt, st, ast_args(stmt), seen, order);
+        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    elif k == AstK_Ident then
+        var sym = st_get_symbol(st, ast_ident(stmt));
+        if symbol_is_proc(sym) then
+            if set_contains(seen, sym) then
+                return;
+            end
+            set_add(seen, sym);
+            var type = symbol_type(sym);
+            assert(type, "Type for %s was null.\n", symbol_name(sym));
+            var proc_ = type_ast(type);
+            assert(proc_, "AST for symbol %s was null\n", symbol_name(sym));
+            _compile_order_proc(tt, st, proc_, seen, order);
+        end
+    elif k == AstK_BinOp then
+        _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
+        _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
+    elif k == AstK_Return then
+        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    elif k == AstK_VarAssign then
+        _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
+    elif k == AstK_IfElse then
+        _compile_order_visit(tt, st, ast_test(stmt), seen, order);
+        _compile_order_visit_vector(tt, st, ast_consequence(stmt), seen, order);
+        _compile_order_visit_vector(tt, st, ast_alternative(stmt), seen, order);
+    elif k == AstK_While then
+        _compile_order_visit(tt, st, ast_test(stmt), seen, order);
+        _compile_order_visit_vector(tt, st, ast_body(stmt), seen, order);
+    elif k == AstK_PointerRead then
+        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 0), seen, order);
+    elif k == AstK_PointerWrite then
+        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 0), seen, order);
+        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 1), seen, order);
+    elif k == AstK_Prefix then
+        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    elif k == AstK_AssignOp then
+        _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
+    elif k == AstK_Cast then
+        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    elif k == AstK_MemberAccess then
+        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    end
+end
+
+proc _compile_order_visit_vector tt, st, vector, seen, order in
+    var i = 0; var len = vector_len(vector);
+    while i < len do
+        var stmt = vector_get(vector, i);
+        _compile_order_visit(tt, st, stmt, seen, order);
+        i += 1;
+    end
+end
+
+proc _compile_order_proc tt, st, proc_, seen, order in
+    _compile_order_visit_vector(tt, st, ast_body(proc_), seen, order);
+    vector_push(order, proc_);
+end
+
+proc compile_order_main roots, type_table, symbol_table in
+    var main_proc = NULL;
+    var exit_proc = NULL;
+    var compile_order = make_vector(128);
+    var i = 0; var len = vector_len(roots);
+    while i < len do
+        var ast = vector_get(roots, i);
+        if ast_kind(ast) == AstK_Procedure then
+            if cstr_eq("main", ast_ident(ast)) then
+                main_proc = ast;
+            elif cstr_eq("exit", ast_ident(ast)) then
+                exit_proc = ast;
+            end
+        end
+        if main_proc and exit_proc then break; end
+        i += 1;
+    end
+    if not main_proc then
+        free_vector(compile_order);
+        return NULL;
+    end
+    var seen = make_set(0, NULL, NULL);
+    _compile_order_proc(type_table, symbol_table, main_proc, seen, compile_order);
+    if exit_proc and not set_contains(seen, st_get_symbol(symbol_table, ast_ident(exit_proc))) then
+        _compile_order_proc(type_table, symbol_table, exit_proc, seen, compile_order);
+    end
+    free_set(seen);
+    return compile_order;
+end

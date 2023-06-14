@@ -73,10 +73,6 @@ proc tc_check_const tt, st, ast in
     check_ast_kind(AstK_Const, ast);
 end
 
-proc tc_check_extern tt, st, ast in
-    check_ast_kind(AstK_Extern, ast);
-end
-
 proc tc_check_global tt, st, ast in
     check_ast_kind(AstK_Global, ast);
 end
@@ -98,7 +94,7 @@ proc tc_check tt, st, ast in
     elif k == AstK_PointerWrite then tc_check_pointer_write(tt, st, ast);
     elif k == AstK_Prefix then tc_check_prefix_op(tt, st, ast);
     elif k == AstK_Const then tc_check_const(tt, st, ast);
-    elif k == AstK_Extern then tc_check_extern(tt, st, ast);
+    elif k == AstK_Extern then //
     elif k == AstK_InlineAsm then // nothing
     elif k == AstK_Global then tc_check_global(tt, st, ast);
     elif k == AstK_Break then // nothing
@@ -114,7 +110,7 @@ proc tc_check tt, st, ast in
     end
 end
 
-proc type_check type_table, sym_table, roots in
+proc type_check type_table, sym_table, roots, compile_order in
     var i = 0; var len = vector_len(roots);
     while i < len do
         tc_check(type_table, sym_table, vector_get(roots, i));

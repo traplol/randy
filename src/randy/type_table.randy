@@ -194,8 +194,8 @@ proc types_eq a: type, b: type in
     return a == b;
 end
 
-proc types_assignable tt: type_table, a: type, b: type in
-    if types_eq(a, b) then
+proc types_assignable tt: type_table, lhs: type, rhs: type in
+    if types_eq(lhs, rhs) then
         return true;
     end
     var ptr = tt_ptr_type(tt);
@@ -203,25 +203,25 @@ proc types_assignable tt: type_table, a: type, b: type in
     var char = tt_char_type(tt);
     var int = tt_int_type(tt);
     var bool = tt_bool_type(tt);
-    if a == ptr and b == cstr then
+    if lhs == ptr and rhs == cstr then
         return true;
-    elif a == cstr and b == ptr then
+    elif lhs == cstr and rhs == ptr then
         return true;
-    elif a == ptr and type_is_reference(b) then
+    elif lhs == ptr and type_is_reference(rhs) then
         return true;
-    elif type_is_reference(a) and b == ptr then
+    elif type_is_reference(lhs) and rhs == ptr then
         return true;
-    elif a == ptr and type_is_procedure(b) then
+    elif lhs == ptr and type_is_procedure(rhs) then
         return true;
-    elif type_is_procedure(a) and b == ptr then
+    elif type_is_procedure(lhs) and rhs == ptr then
         return true;
-    elif a == char and b == int then
+    elif lhs == char and rhs == int then
         return true;
-    elif a == int and b == char then
+    elif lhs == int and rhs == char then
         return true;
-    elif a == int and b == bool then
+    elif lhs == int and rhs == bool then
         return true;
-    elif a == bool and b == int then
+    elif lhs == bool and rhs == int then
         return true;
     end
     return false;
