@@ -720,7 +720,7 @@ proc x86_64_emit_negative cc, ir in
     cc_out(cc, "    pushq %rax");
 end
 
-proc x86_64_emit_instruction cc, ir in
+proc x86_64_emit_instruction cc: compiler_context, ir: ir_instr in
     var k = ir_instr_kind(ir);
     if k == IRK_GetLocal then x86_64_emit_get_local(cc, ir);
     elif k == IRK_PushLabel then x86_64_emit_push_label(cc, ir);
@@ -780,27 +780,27 @@ proc x86_64_emit_instruction cc, ir in
     end
 end
 
-proc x86_64_emit_start cctx, main_proc, exit_proc in
-    cc_out(cctx, "    .global _start");
-    cc_out(cctx, "    .align 16");
-    cc_out(cctx, "_start:");
-    cc_out(cctx, "    movq (%rsp), %rdi");
-    cc_out(cctx, "    movq %rsp, %rsi");
-    cc_out(cctx, "    addq $8, %rsi");
-    cc_out(cctx, "    movq %rdi, (__argc__)");
-    cc_out(cctx, "    movq %rsi, (__argv__)");
+proc x86_64_emit_start cc: compiler_context, main_proc: cstr, exit_proc: cstr in
+    cc_out(cc, "    .global _start");
+    cc_out(cc, "    .align 16");
+    cc_out(cc, "_start:");
+    cc_out(cc, "    movq (%rsp), %rdi");
+    cc_out(cc, "    movq %rsp, %rsi");
+    cc_out(cc, "    addq $8, %rsi");
+    cc_out(cc, "    movq %rdi, (__argc__)");
+    cc_out(cc, "    movq %rsi, (__argv__)");
     var str = make_string(0);
     string_append_cstr(str, "    call ");
     string_append_cstr(str, main_proc);
-    cc_out(cctx, string_cstr(str));
-    cc_out(cctx, "    movq %rax, %rdi");
+    cc_out(cc, string_cstr(str));
+    cc_out(cc, "    movq %rax, %rdi");
     if exit_proc then
         string_reset(str);
         string_append_cstr(str, "    call ");
         string_append_cstr(str, exit_proc);
-        cc_out(cctx, string_cstr(str));
+        cc_out(cc, string_cstr(str));
     end
-    cc_out(cctx, "    movq $60, %rax");
-    cc_out(cctx, "    syscall");
-    cc_out(cctx, "    int3");
+    cc_out(cc, "    movq $60, %rax");
+    cc_out(cc, "    syscall");
+    cc_out(cc, "    int3");
 end
