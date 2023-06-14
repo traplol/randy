@@ -11,7 +11,7 @@ proc fork in
 end
 
 const P_PID = 1;
-proc waitpid pid, siginfo, options in
+proc waitpid pid: int, siginfo: siginfo, options: int in
     return cast(syscall(SYS_waitid, P_PID, pid, siginfo, options), int);
 end
 
@@ -26,25 +26,25 @@ const TSIGINFO_si_status = 24;
 const TSIGINFO_si_band   = 16;
 const sizeof_TSIGINFO    = 128;
 
-proc make_siginfo in
-    return malloc(sizeof_TSIGINFO);
+proc make_siginfo -> siginfo in
+    return cast(malloc(sizeof_TSIGINFO), siginfo);
 end
 
-proc free_siginfo self in
+proc free_siginfo self: siginfo in
     free(self);
 end
 
-proc siginfo_si_signo self in return u32@(self + TSIGINFO_si_signo); end
-proc siginfo_si_code self in return u32@(self + TSIGINFO_si_code); end
-proc siginfo_si_value self in return u64@(self + TSIGINFO_si_value); end
-proc siginfo_si_errno self in return u32@(self + TSIGINFO_si_errno); end
-proc siginfo_si_pid self in return u32@(self + TSIGINFO_si_pid); end
-proc siginfo_si_uid self in return u32@(self + TSIGINFO_si_uid); end
-proc siginfo_si_addr self in return u64@(self + TSIGINFO_si_addr); end
-proc siginfo_si_status self in return u32@(self + TSIGINFO_si_status); end
-proc siginfo_si_band self in return u64@(self + TSIGINFO_si_band); end
+proc siginfo_si_signo self: siginfo in return cast(u32@(self + TSIGINFO_si_signo), int); end
+proc siginfo_si_code self: siginfo in return cast(u32@(self + TSIGINFO_si_code), int); end
+proc siginfo_si_value self: siginfo in return cast(u64@(self + TSIGINFO_si_value), int); end
+proc siginfo_si_errno self: siginfo in return cast(u32@(self + TSIGINFO_si_errno), int); end
+proc siginfo_si_pid self: siginfo in return cast(u32@(self + TSIGINFO_si_pid), int); end
+proc siginfo_si_uid self: siginfo in return cast(u32@(self + TSIGINFO_si_uid), int); end
+proc siginfo_si_addr self: siginfo in return cast(u64@(self + TSIGINFO_si_addr), int); end
+proc siginfo_si_status self: siginfo in return cast(u32@(self + TSIGINFO_si_status), int); end
+proc siginfo_si_band self: siginfo in return cast(u64@(self + TSIGINFO_si_band), int); end
 
-proc subprocess_blocking path, argv, envp in
+proc subprocess_blocking path: cstr, argv: ptr, envp: ptr in
     var pid = fork();
     if pid == 0 then // child proc
         return execve(path, argv, envp);
