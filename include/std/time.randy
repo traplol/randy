@@ -22,7 +22,7 @@ proc free_timespec self in
 end
 
 proc timespec_sec self in
-    return u64@(self + TTIMESPEC_tv_sec);
+    return cast(u64@(self + TTIMESPEC_tv_sec), int);
 end
 
 proc timespec_set_sec self, val in
@@ -30,7 +30,7 @@ proc timespec_set_sec self, val in
 end
 
 proc timespec_nsec self in
-    return u64@(self + TTIMESPEC_tv_nsec);
+    return cast(u64@(self + TTIMESPEC_tv_nsec), int);
 end
 
 proc timespec_set_nsec self, val in
