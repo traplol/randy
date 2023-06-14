@@ -35,7 +35,7 @@ proc read_file_to_string path: cstr -> string in
     return string;
 end
 
-proc cstr_hash cstr in
+proc cstr_hash cstr: cstr -> int in
     var hash = 5381;
     var c = u8@(cstr);
     while c do
@@ -46,7 +46,7 @@ proc cstr_hash cstr in
     return hash;
 end
 
-proc string_hash string in
+proc string_hash string: string -> int in
     var hash = 5381;
     var len = string_len(string);
     var i = 0;
@@ -57,7 +57,7 @@ proc string_hash string in
     return hash;
 end
 
-proc _string_append_int_slow string, n in
+proc _string_append_int_slow string: string, n: int in
     // no zero check because this isn't called unless very positive or very negative number.
     var temp = n;
     var len = 0;
@@ -88,7 +88,7 @@ proc _string_append_int_slow string, n in
     free(buf);
 end
 
-proc string_append_int string, n in
+proc string_append_int string: string, n: int in
     // This will iteratively generate the characters for n -> str in left-to-right
     // order but it will fail when we start to approach numbers that will overflow.
     // We consider the alternative method "slow" because it does the same length
@@ -124,7 +124,7 @@ proc string_append_int string, n in
     end
 end
 
-proc int_from_string string in
+proc int_from_string string: string -> int in
     var result = 0;
     var i = string_len(string) - 1;
     var k = 1;
@@ -142,11 +142,11 @@ proc int_from_string string in
     return result;
 end
 
-proc NYI_ERR file, line, what in
+proc NYI_ERR file: cstr, line: int, what: cstr in
     printf("'%s' not implemented\n", what);
     printf("  File \"%s\", line %d\n", file, line);
     exit(1);
 end
 
-proc min a, b in if a < b then return a; else return b; end end
-proc max a, b in if a > b then return a; else return b; end end
+proc min a: int, b: int -> int in if a < b then return a; else return b; end end
+proc max a: int, b: int -> int in if a > b then return a; else return b; end end
