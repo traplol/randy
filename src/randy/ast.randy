@@ -27,7 +27,7 @@ const AstK_Cast         = 21;
 const AstK_Struct       = 22;
 const AstK_MemberAccess = 23;
 
-proc ast_kind_cstr k in
+proc ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
     if k == AstK_Integer then return "AstK_Integer"; end
     if k == AstK_String then return "AstK_String"; end
@@ -356,7 +356,7 @@ proc _print_args args: vector, indent: int in
     var i = 0;
     var len = vector_len(args);
     while i < len do
-        _print_ast(vector_get(args, i), indent);
+        _print_ast(cast(vector_get(args, i), ast), indent);
         i += 1;
         if i < len then
             printf(", ");
@@ -469,7 +469,7 @@ proc _print_ast_body body, indent in
     var len = vector_len(body);
     var stmt;
     while i < len do
-        stmt = vector_get(body, i);
+        stmt = cast(vector_get(body, i), ast);
         _print_indent(indent);
         _print_ast(stmt, indent);
         if ast_requires_semi(ast_kind(stmt)) then
@@ -525,7 +525,7 @@ proc _print_ast_if_else ast, indent, print_if in
     if vector_len(altern) > 0 then
         if vector_len(altern) == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
             _print_indent(indent); printf("elif ");
-            _print_ast_if_else(vector_get(altern, 0), indent, false);
+            _print_ast_if_else(cast(vector_get(altern, 0), ast), indent, false);
             return;
         else
             _print_indent(indent); printf("else\n");
@@ -628,7 +628,7 @@ proc _print_ast_struct ast, indent in
     i = 0; len = vector_len(procs);
     while i < len do
         _print_indent(indent+1);
-        _print_ast_procedure(vector_get(procs, i), indent+1);
+        _print_ast_procedure(cast(vector_get(procs, i), ast), indent+1);
         printf("\n");
         i += 1;
     end
