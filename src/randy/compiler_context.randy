@@ -40,7 +40,7 @@ proc compiler_context_add_file self:compiler_context, path: cstr, id: int in
     map_set(compiler_context_file_map(self), path, id);
 end
 
-proc cc_print_lines self in
+proc cc_print_lines self: compiler_context in
     var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
     var len = vector_len(lines);
     var i = 0;
@@ -50,13 +50,13 @@ proc cc_print_lines self in
     end
 end
 
-proc cc_out self, cstr in
-    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+proc cc_out self: compiler_context, cstr: cstr in
+    var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), vector);
     vector_push(lines, string_from_cstr(cstr));
     //printf("%s\n", cstr);
 end
 
-proc cc_out_global self, cstr in
+proc cc_out_global self: compiler_context, cstr: cstr in
     var str = make_string(20);
     string_append_cstr(str, "    .global ");
     string_append_cstr(str, cstr);
@@ -64,7 +64,7 @@ proc cc_out_global self, cstr in
     free_string(str);
 end
 
-proc cc_out_extern self, cstr in
+proc cc_out_extern self: compiler_context, cstr: cstr in
     var str = make_string(20);
     string_append_cstr(str, ".extern ");
     string_append_cstr(str, cstr);
@@ -72,7 +72,7 @@ proc cc_out_extern self, cstr in
     free_string(str);
 end
 
-proc cc_out_label self, cstr in
+proc cc_out_label self: compiler_context, cstr: cstr in
     var str = make_string(20);
     string_append_cstr(str, cstr);
     string_push(str, ':');
@@ -80,7 +80,7 @@ proc cc_out_label self, cstr in
     free_string(str);
 end
 
-proc cc_out_string self, string in
+proc cc_out_string self: compiler_context, string: string in
     var str = make_string(20);
     string_append_cstr(str, ".byte ");
     var i = 0;
@@ -101,7 +101,7 @@ proc cc_out_string self, string in
     free_string(str);
 end
 
-proc cc_out_src_loc self, src_loc in
+proc cc_out_src_loc self: compiler_context, src_loc: src_loc in
     if not src_loc then
         return;
     end
@@ -118,7 +118,7 @@ proc cc_out_src_loc self, src_loc in
     free_string(str);
 end
 
-proc cc_out_file self, idx, filename in
+proc cc_out_file self: compiler_context, idx: int, filename: cstr in
     var str = make_string(20);
     string_append_cstr(str, "    .file ");
     string_append_int(str, idx);
@@ -129,7 +129,7 @@ proc cc_out_file self, idx, filename in
     free_string(str);
 end
 
-proc cc_out_files irctx, cctx in
+proc cc_out_files irctx: ir_context, cctx: compiler_context in
     var files = ir_files(irctx);
     var i = 0;
     while i < vector_len(files) do
@@ -139,7 +139,7 @@ proc cc_out_files irctx, cctx in
     end
 end
 
-proc cc_out_instructions irctx, cctx in
+proc cc_out_instructions irctx: ir_context, cctx: compiler_context in
     var instructions = ir_instructions(irctx);
     var i = 0;
     while i < vector_len(instructions) do
@@ -148,7 +148,7 @@ proc cc_out_instructions irctx, cctx in
     end
 end
 
-proc cc_out_externs irctx, cctx in
+proc cc_out_externs irctx: ir_context, cctx: compiler_context in
     var externs = ir_externs(irctx);
     var cur_extern = map_begin(externs);
     var end_extern = map_end(externs);
@@ -158,7 +158,7 @@ proc cc_out_externs irctx, cctx in
     end
 end
 
-proc cc_out_data_section irctx, cctx in
+proc cc_out_data_section irctx: ir_context, cctx: compiler_context in
     cc_out(cctx, ".data");
     cc_out(cctx, ".align 8");
     cc_out(cctx, "__argc__: .quad 0");
@@ -201,7 +201,7 @@ proc cc_out_data_section irctx, cctx in
     end
 end
 
-proc cc_lines_to_file cctx, path in
+proc cc_lines_to_file cctx: compiler_context, path: cstr in
     var fd = open_for_write(path);
     if fd < 0 then
         printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
@@ -244,6 +244,6 @@ proc cc_lines_to_file cctx, path in
     return true;
 end
 
-proc cc_out_start self, main_proc, exit_proc in
+proc cc_out_start self: compiler_context, main_proc: cstr, exit_proc: cstr in
     x86_64_emit_start(self, main_proc, exit_proc);
 end
