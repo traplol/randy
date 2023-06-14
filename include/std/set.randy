@@ -1,10 +1,10 @@
 #include memory
 
-proc _default_set_compare a, b in
+proc _default_set_compare a: ptr, b: ptr -> bool in
     return a == b;
 end
 
-proc _default_set_hash e in
+proc _default_set_hash e: ptr -> ptr in
     return e;
 end
 

@@ -37,10 +37,10 @@ end
 
 proc cstr_hash cstr: cstr -> int in
     var hash = 5381;
-    var c = u8@(cstr);
+    var c = cast(u8@(cstr), char);
     while c do
         hash = hash * 33 + c;
-        c = u8@(cstr);
+        c = cast(u8@(cstr), char);
         cstr = cstr + 1;
     end
     return hash;
