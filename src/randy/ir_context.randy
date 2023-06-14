@@ -53,7 +53,7 @@ const IRK_ScopeOpen     = 50;
 const IRK_ScopeClose    = 51;
 const IRK_PtrCopy       = 52;
 
-proc ir_instr_kind_cstr k in
+proc ir_instr_kind_cstr k: int -> cstr in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
     if k == IRK_PushLabel then return "IRK_PushLabel"; end
     if k == IRK_PushInt then return "IRK_PushInt"; end
