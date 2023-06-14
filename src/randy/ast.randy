@@ -335,12 +335,16 @@ proc ast_procs self: ast in return cast(u64@(self + TAST_procs), vector); end
 proc ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 proc ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
 
-proc ast_src_loc self in
+proc ast_src_loc self: ast in
     var token = ast_token(self);
     return token_src_loc(token);
 end
 
-proc _print_indent indent in
+proc print_ast_src_loc self: ast in
+    print_token_loc(ast_token(self));
+end
+
+proc _print_indent indent: int in
     var i = 0;
     while i < indent do
         printf("    ");
@@ -348,7 +352,7 @@ proc _print_indent indent in
     end
 end
 
-proc _print_args args, indent in
+proc _print_args args: vector, indent: int in
     var i = 0;
     var len = vector_len(args);
     while i < len do
@@ -671,7 +675,7 @@ proc _print_ast ast, indent in
     end
 end
 
-proc print_ast ast in
+proc print_ast ast: ast in
     _print_ast(ast, 0);
     if ast_requires_semi(ast_kind(ast)) then
         printf(";\n");
@@ -680,7 +684,7 @@ proc print_ast ast in
     end
 end
 
-proc check_ast_kind expect, ast in
+proc check_ast_kind expect: int, ast: ast in
     var actual = ast_kind(ast);
     if expect != actual then
         printf("check_ast_kind failed: expected %s, actual was %s\n",
