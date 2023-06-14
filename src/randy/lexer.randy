@@ -97,7 +97,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
     var tokens = make_vector(0);
     var length = string_len(code);
     var line_no = 1;
-    var temp; var c; var cc; var val;
+    var temp; var c; var val;
     while i < length do
         // Consume whitespace
         while i < length and is_whitespace(string_get(code, i)) do
@@ -161,7 +161,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                     i += 1; // skip \
                     c = string_get(code, i);
                     c = get_escaped_char(c);
-                elif cc == '\n' then
+                elif c == '\n' then
                     line_no = line_no + 1;
                 end
                 string_push(temp, c);
@@ -370,7 +370,9 @@ end
 
 proc lex_file path: cstr, include_paths: vector in
     var included_already = make_set(0, string_eq, string_hash);
-    return _lex_file_aux(path, include_paths, included_already);
+    var res = _lex_file_aux(path, include_paths, included_already);
+    free_set(included_already);
+    return res;
 end
 
 proc handle_include src_file: cstr, line_no: int, tokens: vector, include_paths: vector, included_already: set, arg: string in
