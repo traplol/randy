@@ -542,7 +542,7 @@ proc print_ir_get_global self in
     printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("label='%s')\n", u64@(self + TIR_INSTR_label));
 end
-proc print_ir ir in
+proc print_ir ir: ir_instr in
     var k = ir_instr_kind(ir);
     if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
     elif k == IRK_Call then print_ir_call(ir);
@@ -1600,7 +1600,7 @@ proc ir_emit_struct self, ast, st, tt in
     //NYI_ERR(__FILE__, __LINE__, "ir_emit_struct");
 end
 
-proc ir_compile self, ast, st, tt in
+proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false);
     var k = ast_kind(ast);
@@ -1722,7 +1722,7 @@ proc check_ir_kind expect, ir in
     end
 end
 
-proc ir_print_whole_ir self in
+proc ir_print_whole_ir self: ir_context in
     var instrs = ir_instructions(self);
     var i = 0; var len = vector_len(instrs);
     while i < len do
