@@ -150,3 +150,18 @@ end
 
 proc min a: int, b: int -> int in if a < b then return a; else return b; end end
 proc max a: int, b: int -> int in if a > b then return a; else return b; end end
+
+proc cstr_starts_with cstr: cstr, substr: cstr -> bool in
+    if cstr == substr then
+        return true;
+    end
+
+    while u8@(cstr) and u8@(substr) do
+        if u8@(cstr) != u8@(substr) then
+            return false;
+        end
+        cstr += 1;
+        substr += 1;
+    end
+    return true;
+end
