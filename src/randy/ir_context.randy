@@ -1310,9 +1310,10 @@ proc ir_emit_var_decl self, ast, st, tt in
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
         //printf("---------------------\n");
-        printf("type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
+        printf("ERROR: type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
         //print_ast(ast);
-        //ir_print_src_loc(self);
+        ir_print_src_loc(self);
+        exit(1);
     end
     ir_new_local(self, ident);
 end
@@ -1330,9 +1331,10 @@ proc ir_emit_var_assign self, ast, st, tt in
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
         //printf("---------------------\n");
-        printf("type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
+        printf("ERROR: type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
         //print_ast(ast);
         ir_print_src_loc(self);
+        exit(1);
     end
     var n = ir_new_local(self, ident);
     ir_compile(self, ast_assign_expr(ast), st, tt);
