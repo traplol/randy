@@ -163,5 +163,5 @@ proc cstr_starts_with cstr: cstr, substr: cstr -> bool in
         cstr += 1;
         substr += 1;
     end
-    return true;
+    return not u8@(substr);
 end
