@@ -130,23 +130,23 @@ const TIR_INSTR_type     = 32;
 const TIR_INSTR_nlocals  = 40;
 const sizeof_TIR_INSTR   = 48;
 
-proc ir_instr_kind self in return u64@(self + TIR_INSTR_kind); end
-proc ir_instr_src_loc self in return u64@(self + TIR_INSTR_src_loc); end
-proc ir_instr_name self in return u64@(self + TIR_INSTR_name); end
-proc ir_instr_ident self in return u64@(self + TIR_INSTR_ident); end
-proc ir_instr_local self in return u64@(self + TIR_INSTR_local); end
-proc ir_instr_label self in return u64@(self + TIR_INSTR_label); end
-proc ir_instr_n self in return u64@(self + TIR_INSTR_n); end
-proc ir_instr_nargs self in return u64@(self + TIR_INSTR_nargs); end
-proc ir_instr_params self in return u64@(self + TIR_INSTR_params); end
-proc ir_instr_size self in return u64@(self + TIR_INSTR_size); end
-proc ir_instr_value self in return u64@(self + TIR_INSTR_value); end
-proc ir_instr_varargs self in return u64@(self + TIR_INSTR_varargs); end
-proc ir_instr_asm self in return u64@(self + TIR_INSTR_asm); end
-proc ir_instr_arg self in return u64@(self + TIR_INSTR_arg); end
-proc ir_instr_src_name self in return u64@(self + TIR_INSTR_src_name); end
-proc ir_instr_nlocals self in return u64@(self + TIR_INSTR_nlocals); end
-proc ir_instr_type self in return u64@(self + TIR_INSTR_type); end
+proc ir_instr_kind self: ir_instr in return cast(u64@(self + TIR_INSTR_kind), int); end
+proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), cstr); end
+proc ir_instr_name self: ir_instr in return cast(u64@(self + TIR_INSTR_name), cstr); end
+proc ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), cstr); end
+proc ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), int); end
+proc ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
+proc ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
+proc ir_instr_nargs self: ir_instr in return cast(u64@(self + TIR_INSTR_nargs), int); end
+proc ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), vector); end
+proc ir_instr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_size), int); end
+proc ir_instr_value self: ir_instr in return cast(u64@(self + TIR_INSTR_value), int); end
+proc ir_instr_varargs self: ir_instr in return cast(u64@(self + TIR_INSTR_varargs), bool); end
+proc ir_instr_asm self: ir_instr in return cast(u64@(self + TIR_INSTR_asm), cstr); end
+proc ir_instr_arg self: ir_instr in return cast(u64@(self + TIR_INSTR_arg), int); end
+proc ir_instr_src_name self: ir_instr in return cast(u64@(self + TIR_INSTR_src_name), cstr); end
+proc ir_instr_nlocals self: ir_instr in return cast(u64@(self + TIR_INSTR_nlocals), int); end
+proc ir_instr_type self: ir_instr in return cast(u64@(self + TIR_INSTR_type), type); end
 
 proc make_ir_alloc_temps n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
@@ -437,7 +437,7 @@ proc print_ir_new_proc self in
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
     printf("params=[");
-    var params = u64@(self + TIR_INSTR_params);
+    var params = cast(u64@(self + TIR_INSTR_params), vector);
     var i = 0; var len = vector_len(params);
     while i < len do
         printf("'%s'", vector_get(params, i));
@@ -1009,8 +1009,8 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
 
         if ast_kind(lhs) == ast_kind(rhs) then
             if ast_kind(lhs) == AstK_Integer then
-                lhs_val = ast_value(lhs);
-                rhs_val = ast_value(rhs);
+                lhs_val = cast(ast_value(lhs), int);
+                rhs_val = cast(ast_value(rhs), int);
                 evaled = false;
                 if op == TK_Plus then
                     evaled = true;
@@ -1081,7 +1081,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
         rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
         evaled = false;
         if ast_kind(rhs) == AstK_Integer then
-            rhs_val = ast_value(rhs);
+            rhs_val = cast(ast_value(rhs), int);
             if op == TK_Minus then
                 evaled = true;
                 result = 0 - rhs_val;

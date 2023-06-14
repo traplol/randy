@@ -85,8 +85,8 @@ proc main argc, argv in
         var include_paths = make_vector(8);
         vector_push(include_paths, getcwd());
 
-        var in_path = NULL;
-        var out_path = NULL;
+        var in_path: cstr = NULL;
+        var out_path: cstr = NULL;
         var verbosity = 0;
         var debug = 0;
         var do_print_ir = false;
@@ -94,7 +94,7 @@ proc main argc, argv in
         var will_compile = true;
         var ld_flags = make_vector(0);
         
-        i = 1; var p;
+        i = 1; var p: cstr;
         while i < argc do
             if cstr_eq("-h", u64@(argv + i*sizeof_PTR)) then
                 print_usage();
@@ -105,27 +105,27 @@ proc main argc, argv in
                     printf("More than one input file not supported.\n");
                     return 1;
                 end
-                p = u64@(argv + i*sizeof_PTR);
+                p = cast(u64@(argv + i*sizeof_PTR), cstr);
                 if not p then
                     printf("No input file supplied with -c flag.\n");
                     return 1;
                 end
                 in_path = p;
             elif cstr_eq("-o", u64@(argv + i*sizeof_PTR)) then
-                    i += 1;
+                i += 1;
                 if out_path then
                     printf("More than one output file not supported.\n");
                     return 1;
                 end
-                p = u64@(argv + i*sizeof_PTR);
+                p = cast(u64@(argv + i*sizeof_PTR), cstr);
                 if not p then
                     printf("No output file supplied with -o flag.\n");
                     return 1;
                 end
                 out_path = p;
             elif cstr_eq("-I", u64@(argv + i*sizeof_PTR)) then
-                    i += 1;
-                p = u64@(argv + i*sizeof_PTR);
+                i += 1;
+                p = cast(u64@(argv + i*sizeof_PTR), cstr);
                 if not p then
                     printf("No path supplied with -I flag.\n");
                     return 1;

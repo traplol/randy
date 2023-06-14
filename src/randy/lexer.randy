@@ -360,7 +360,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
     return tokens;
 end
 
-proc _lex_file_aux path: cstr, include_paths: vector, included_already: set in
+proc _lex_file_aux path: cstr, include_paths: vector, included_already: set -> vector in
     var code = read_file_to_string(path);
     if not code then
         return cast(NULL, vector);

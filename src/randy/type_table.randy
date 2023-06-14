@@ -219,10 +219,6 @@ proc types_assignable tt: type_table, a: type, b: type in
         return true;
     elif a == int and b == char then
         return true;
-    elif a == int and b == ptr then
-        return true;
-    elif a == ptr and b == int then
-        return true;
     elif a == int and b == bool then
         return true;
     elif a == bool and b == int then
@@ -460,6 +456,9 @@ proc tt_get_proc_type_name self, type in
         if i < len then
             string_append_cstr(string, ", ");
         end
+    end
+    if i == 0 then
+        string_append_cstr(string, "void");
     end
 
     string_append_cstr(string, " -> ");

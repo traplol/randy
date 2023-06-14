@@ -8,7 +8,7 @@ const TCOMPILER_CONTEXT_file_map      = 40; // (cstr, int) : path -> id
 const TCOMPILER_CONTEXT_nodebug       = 48; // bool
 const sizeof_TCOMPILER_CONTEXT        = 56;
 
-proc make_compiler_context debug in
+proc make_compiler_context debug: bool -> compiler_context in
     var self = malloc(sizeof_TCOMPILER_CONTEXT);
     var lines = make_vector(0);
     u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
@@ -18,19 +18,25 @@ proc make_compiler_context debug in
     u64!(self + TCOMPILER_CONTEXT_proc_locals, NULL);
     u64!(self + TCOMPILER_CONTEXT_file_map, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TCOMPILER_CONTEXT_nodebug, not debug);
-    return self;
+    return cast(self, compiler_context);
 end
 
-proc compiler_context_file_map self in return u64@(self + TCOMPILER_CONTEXT_file_map); end
-proc compiler_context_lines self in return u64@(self + TCOMPILER_CONTEXT_out_lines); end
-proc compiler_context_nodebug self in return u64@(self + TCOMPILER_CONTEXT_nodebug); end
+proc compiler_context_file_map self: compiler_context in
+    return cast(u64@(self + TCOMPILER_CONTEXT_file_map), map);
+end
+proc compiler_context_lines self: compiler_context in
+    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), vector);
+end
+proc compiler_context_nodebug self: compiler_context in
+    return cast(u64@(self + TCOMPILER_CONTEXT_nodebug), bool);
+end
 
-proc compiler_context_get_file_id self, path in
+proc compiler_context_get_file_id self: compiler_context, path: cstr in
     var found = map_find(compiler_context_file_map(self), path);
-    return map_pair_val(found);
+    return cast(map_pair_val(found), int);
 end
 
-proc compiler_context_add_file self, path, id in
+proc compiler_context_add_file self:compiler_context, path: cstr, id: int in
     map_set(compiler_context_file_map(self), path, id);
 end
 
