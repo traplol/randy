@@ -444,7 +444,7 @@ proc _print_ast_assign_op ast, indent in
     printf("%s ", ast_ident(ast));
     var op = ast_op(ast);
     var op_str = "FIXME in ast.randy";
-    if op == TK_Assign         then op_str = "=";
+    if op == TK_Assign      then op_str = "=";
     elif op == TK_PlusEq    then op_str = "+=";
     elif op == TK_MinusEq   then op_str = "-=";
     elif op == TK_StarEq    then op_str = "*=";
