@@ -59,11 +59,11 @@ end
 
 proc cstr_hash cstr in
     var hash = 5381;
-    var c = u8@(cstr);
+    var c = cast(u8@(cstr), char);
     while c do
         hash = hash * 33 + c;
-        c = u8@(cstr);
-        cstr = cstr + 1;
+        c = cast(u8@(cstr), char);
+        cstr += 1;
     end
     return hash;
 end
