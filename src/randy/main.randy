@@ -72,7 +72,7 @@ proc assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     free_vector(ld_args);
 end
 
-proc main argc, argv in
+proc main argc: int, argv: ptr in
     var i = 0;
     if argc < 2 then
         printf("No input file.\n");
