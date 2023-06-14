@@ -109,11 +109,13 @@ proc parse_if_else ts, st, tt, expect in
     // elif ... then
     if ts_peekk(ts, TK_KW_elif) then
         st_pop_scope(st);
-        vector_push(altern, parse_if_else(ts, st, tt, token_kind(ts_peek(ts))));
+        vector_push(altern, parse_if_else(ts, st, tt, TK_KW_elif));
         return make_ast_if_else(if_, test, conseq, altern);
     end
     // else
     ts_expect(ts, TK_KW_else);
+    st_pop_scope(st); // discard the scope of the previous if/elif
+    st_push_scope(st);
     parse_statements_until(ts, st, tt, altern, TK_KW_end);
     // end
     ts_next(ts);
