@@ -309,12 +309,6 @@ proc parse_primary ts, st, tt in
     var k = token_kind(peek);
     if k == TK_Ident then
         var ident = ts_next(ts);
-        var ident_cstr = token_value(ident);
-        if cstr_eq("__FILE__", ident_cstr) then
-            return make_ast_string(peek, string_from_cstr(token_filename(ident)));
-        elif cstr_eq("__LINE__", ident_cstr) then
-            return make_ast_integer(peek, token_line(ident));
-        end
         var symbol = st_get_symbol(st, token_value(ident));
         if not symbol then
             symbol = st_prepare_undef(st, token_value(ident), ident);
@@ -324,6 +318,10 @@ proc parse_primary ts, st, tt in
         return make_ast_integer(peek, token_value(ts_next(ts)));
     elif k == TK_String then
         return make_ast_string(peek, token_value(ts_next(ts)));
+    elif k == TK_KW__FILE__ then
+        return make_ast_string(peek, string_from_cstr(token_filename(ts_next(ts))));
+    elif k == TK_KW__LINE__ then
+        return make_ast_integer(peek, token_line(ts_next(ts)));
     elif k == TK_KW_u8@ or k == TK_KW_u16@ or k == TK_KW_u32@ or k == TK_KW_u64@ then
         return parse_pointer_op(ts, st, tt);
     elif k == TK_KW_cast then

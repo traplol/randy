@@ -76,6 +76,8 @@ const TK_KW_inline   = 72;
 const TK_Dot         = 73;
 const TK_KW_assert   = 74;
 const TK_KW_elif     = 75;
+const TK_KW__FILE__  = 76;
+const TK_KW__LINE__  = 77;
 
 proc token_kind_cstr k: int -> cstr in
     if k == TK_Integer then return "TK_Integer";
@@ -154,6 +156,8 @@ proc token_kind_cstr k: int -> cstr in
     elif k == TK_Dot then return "TK_Dot";
     elif k == TK_KW_assert then return "TK_KW_assert";
     elif k == TK_KW_elif then return "TK_KW_elif";
+    elif k == TK_KW__FILE__ then return "TK_KW__FILE__";
+    elif k == TK_KW__LINE__ then return "TK_KW__LINE__";
     else return "TK_OUT_OF_RANGE"; end
 end
 

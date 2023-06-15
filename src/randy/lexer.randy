@@ -82,6 +82,9 @@ proc get_ident_kind string in
         if cstr_eq("var", cstr) then return TK_KW_var; end
     elif 'w' == first then
         if cstr_eq("while", cstr) then return TK_KW_while; end
+    elif '_' == first then
+        if cstr_eq("__FILE__", cstr) then return TK_KW__FILE__; end
+        if cstr_eq("__LINE__", cstr) then return TK_KW__LINE__; end
     end
     return TK_Ident;
 end
