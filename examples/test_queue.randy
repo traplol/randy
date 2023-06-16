@@ -1,6 +1,6 @@
 #include std/queue
 
-proc test msg, expect, actual in
+proc test msg, expect, actual: ptr in
     if expect == actual then
         printf("pass: %s\n", msg);
     else
@@ -42,7 +42,7 @@ proc main in
 
     i = 1;
     while i < 65 do
-        test("queue_dequeue returns i", i, queue_dequeue(q));
+        test("queue_dequeue returns i", i, cast(queue_dequeue(q), int));
         i += 1;
     end
     test("queue len is 0", 0, queue_len(q));

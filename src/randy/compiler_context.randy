@@ -181,7 +181,7 @@ proc cc_out_data_section irctx: ir_context, cctx: compiler_context in
         elif kind == GIK_Integer then
             string_append_cstr(str, label);
             string_append_cstr(str, ": .quad ");
-            string_append_int(str, value);
+            string_append_int(str, cast(value, int));
             cc_out(cctx, string_cstr(str));
         else
             NYI_ERR(__FILE__, __LINE__, "cc_out_data_section: unknown global kind");

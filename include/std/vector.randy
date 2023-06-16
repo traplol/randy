@@ -47,7 +47,7 @@ proc vector_push self: vector, val: ptr in
     var len = string_len(self);
     var cap = string_cap(self);
     if len >= cap then
-        string_resize(self, (2 * cap) + sizeof_TVECTOR_ELEMENT);
+        string_resize(cast(self, string), (2 * cap) + sizeof_TVECTOR_ELEMENT);
     end
     u64!(u64@(self) + len, val);
     u64!(self + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);

@@ -11,7 +11,7 @@ proc test msg, cond in
     end
 end
 
-proc cstr_hash cstr in
+proc cstr_hash cstr: cstr -> int in
     var hash = 5381;
     var c = cast(u8@(cstr), char);
     while c do

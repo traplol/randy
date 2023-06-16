@@ -2,7 +2,7 @@
 
 #include std/core
 
-proc main argc, argv in
+proc main argc: int, argv: ptr in
     var i = 0;
     while i < argc do
         printf("arg%d = %s\n", i, u64@(argv + i*8));

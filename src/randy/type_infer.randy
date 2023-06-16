@@ -47,7 +47,7 @@ proc ti_set_did_return self, val in
     var str = type_infer_did_returns(self);
     var len = string_len(str);
     if len > 0 then
-        string_set(str, len-1, val);
+        string_set(str, len - 1, val);
     end
 end
 
@@ -118,46 +118,65 @@ proc ti_infer_call self, tt, st, ast -> type in
         return type_proc_return_type(call_type);
     end
     var call_symbol = st_get_symbol(st, ast_ident(expr));
-    if not symbol_is_proc(call_symbol) then
-        return type_proc_return_type(call_type);
-    end
+    // if not symbol_is_proc(call_symbol) and
+    //     not symbol_is_asm(call_symbol) and
+    //     not symbol_is_extern(call_symbol) then
+    //     return type_proc_return_type(call_type);
+    // end
     call_type = symbol_type(call_symbol);
     assert(type_is_procedure(call_type), "call_type not procedure");
+    var proc_ast = type_ast(call_type);
+    var proc_params = NULL;
+    if proc_ast then
+        proc_params = ast_params(proc_ast);
+    end
 
     // TODO: need to handle varargs at some point
-    var ret_type = type_proc_return_type(call_type);
-    var param_syms = type_proc_parameters(call_type);
+    var param_types = type_proc_parameters(call_type);
     var args = ast_args(ast);
-    var i = 0; var len = min(vector_len(param_syms), vector_len(args));
+    var i = 0; var len = min(vector_len(param_types), vector_len(args));
     var changed = false;
     while i < len do
         var arg_type = ti_infer(self, tt, st, vector_get(args, i));
-        var par_sym = vector_get(param_syms, i);
-        if arg_type != any and symbol_type(par_sym) == any then
-            symbol_set_type(par_sym, arg_type);
+        assert(arg_type);
+        var par_type = vector_get(param_types, i);
+        assert(par_type);
+        if arg_type != any and par_type == any then
+            vector_set(param_types, i, arg_type);
+            if proc_params then
+                var par_sym = st_get_symbol(st, vector_get(proc_params, i));
+                symbol_set_type(par_sym, arg_type);
+            end
             changed = true;
         end
         i += 1;
     end
+    len = vector_len(args);
+    while i < len do
+        ti_infer(self, tt, st, vector_get(args, i));
+        i += 1;
+    end
     if changed then
         var proc_ast = type_ast(call_type);
-        if proc_ast then
+        if proc_ast and not set_contains(type_infer_again(self), call_symbol) then
             set_add(type_infer_again(self), call_symbol);
+            // FIXME: is there a better way to do this without recursion?
+            ti_infer_procedure(self, tt, st, proc_ast);
         end
     end
-    return ret_type;
+    return type_proc_return_type(call_type);
 end
 
 proc ti_infer_binop self, tt, st, ast -> type in
     check_ast_kind(AstK_BinOp, ast);
+    var lhs = ti_infer(self, tt, st, ast_lhs(ast));
+    var rhs = ti_infer(self, tt, st, ast_rhs(ast));
     var op = ast_op(ast);
     if op == TK_Less or op == TK_LessEq or op == TK_Greater or op == TK_GreaterEq or
-        op == TK_EqEq or op == TK_NotEq then
+        op == TK_EqEq or op == TK_NotEq or op == TK_KW_and or op == TK_KW_or then
         return tt_bool_type(tt);
     end
 
-    var lhs = ti_infer(self, tt, st, ast_lhs(ast));
-    var rhs = ti_infer(self, tt, st, ast_rhs(ast));
     var any = tt_any_type(tt);
     var int = tt_int_type(tt);
     var cstr = tt_cstr_type(tt);
@@ -165,6 +184,10 @@ proc ti_infer_binop self, tt, st, ast -> type in
     var char = tt_char_type(tt);
 
     if lhs == rhs then
+        // pointer - pointer => int.
+        if lhs == ptr and op == TK_Minus then
+            return int;
+        end
         return lhs;
     end
 
@@ -200,12 +223,12 @@ proc ti_infer_binop self, tt, st, ast -> type in
         return ptr;
     end
 
-    if lhs == char and rhs == int then
-        return int;
-    end
-
-    if lhs == int and rhs == char then
-        return int;
+    if type_is_int_like(lhs) and type_is_int_like(rhs) then
+        if type_size(lhs) > type_size(rhs) then
+            return lhs;
+        else
+            return rhs;
+        end
     end
         
     return tt_any_type(tt);
@@ -273,18 +296,9 @@ proc _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
         symbol_set_type(symbol, rhs_type);
     elif type_is_reference(sym_type) and rhs_type == any then
         // nothing
-    elif sym_type and rhs_type != any then
+    elif sym_type == tt_ptr_type(tt) and rhs_type != any then
         // this handles the case of `var x = NULL; x = make_vector(0);`
         symbol_set_type(symbol, rhs_type);
-    elif not types_assignable(tt, sym_type, rhs_type) then
-        printf("WARN: type of `%s` is `", symbol_name(symbol));
-        _ti_print_type_name(tt, sym_type);
-        printf("` cannot assign `");
-        _ti_print_type_name(tt, rhs_type);
-        printf(".`\nNOTE: The expression is: ");
-        print_ast(rhs_expr);
-        print_token_loc(ast_token(rhs_expr));
-        //exit(1);
     end
 end
 
@@ -302,7 +316,7 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
     var op = ast_op(ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
 
-    if op != TK_Assign and not type_is_primitive(type) then
+    if op != TK_Assign and not type_is_int_like(type) then
         printf("WARN: `");
         _ti_print_type_name(tt, type);
         printf("` is not a primitive type and cannot be used with TODO: get operator string\n");
@@ -363,7 +377,22 @@ end
 proc ti_infer_pointer_read self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerRead, ast);
     var args = ast_pop_args(ast);
-    return ti_infer(self, tt, st, vector_get(args, 0));
+    ti_infer(self, tt, st, vector_get(args, 0));
+    var size = ast_size(ast);
+    var type;
+    if size == 64 then
+        type = tt_get_type_or_null(tt, "int64");
+    elif size == 32 then
+        type = tt_get_type_or_null(tt, "int32");
+    elif size == 16 then
+        type = tt_get_type_or_null(tt, "int16");
+    elif size == 8 then
+        type = tt_get_type_or_null(tt, "int8");
+    else
+        assert(false, "Compiler bug: pointer read where size outside valid range; size was %d\n", size);
+    end
+    assert(type, "Compiler bug: didn't find correct type for u%d@\n", size);
+    return type;
 end
 
 proc ti_infer_pointer_write self, tt, st, ast -> type in
@@ -381,7 +410,6 @@ proc ti_infer_prefix_op self, tt, st, ast -> type in
     check_ast_kind(AstK_Prefix, ast);
     var t = ti_infer(self, tt, st, ast_expr(ast));
     if ast_op == TK_KW_not then
-        // TODO: check t is "bool"-able: int variants, ptr, cstr, etc
         return tt_bool_type(tt);
     end
     return t;
@@ -462,20 +490,9 @@ proc ti_infer self, tt, st, ast -> type in
     return type;
 end
 
-proc type_infer type_table, symbol_table, roots, compile_order in
+proc type_infer type_table, symbol_table, compile_order in
     var self = make_type_infer();
-    var i = 0; var len = vector_len(roots);
-
-    i = 0; len = vector_len(roots);
-    while i < len do
-        var ast = vector_get(roots, i);
-        if ast_kind(ast) != AstK_Procedure then
-            ti_infer(self, type_table, symbol_table, vector_get(roots, i));
-        end
-        i += 1;
-    end
-
-    i = 0; len = vector_len(compile_order);
+    var i = 0; var len = vector_len(compile_order);
     while i < len do
         ti_infer(self, type_table, symbol_table, vector_get(compile_order, i));
         i += 1;
@@ -491,8 +508,8 @@ proc type_infer type_table, symbol_table, roots, compile_order in
         var cur = set_begin(again);
         while cur != set_end(again) do
             var sym = u64@(cur);
-            var typ = symbol_type(sym);
-            var ast = type_ast(typ);
+            var type = symbol_type(sym);
+            var ast = type_ast(type);
             assert(ast, "ast from type_infer_again should not be null");
             ti_infer(self, type_table, symbol_table, ast);
             cur = set_next(again, cur);

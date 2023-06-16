@@ -23,7 +23,50 @@ proc parse_args_until ts, st, tt, into, until in
     end
 end
 
+proc parse_proc_type ts, st, tt, is_instance in
+    ts_expect(ts, TK_LParen);
+    var param_types = make_vector(0);
+    var ret_type = tt_void_type(tt);
+    var varargs = false;
+    while true do
+        if ts_peekk(ts, TK_RParen) then
+            break;
+        end
+        if ts_peekk(ts, TK_Ellipsis) then
+            break;
+        end
+        var type = parse_type(ts, st, tt, is_instance);
+        assert(type);
+        vector_push(param_types, type);
+        if ts_peekk(ts, TK_RightArrow) then
+            break;
+        end
+        if ts_accept(ts, TK_Comma) then
+            if ts_peekk(ts, TK_RParen) then
+                printf("ERROR: Unexpected token after ','\n");
+                print_token_loc(ts_peek(ts));
+                exit(1);
+            elif ts_peekk(ts, TK_RightArrow) then
+                printf("ERROR: Unexpected token after ','\n");
+                print_token_loc(ts_peek(ts));
+                exit(1);
+            end
+        end
+    end
+    if ts_accept(ts, TK_Ellipsis) then
+        varargs = true;
+    end
+    if ts_accept(ts, TK_RightArrow) then
+        ret_type = parse_type(ts, st, tt, is_instance);
+    end
+    ts_expect(ts, TK_RParen);
+    return tt_make_anon_proc(tt, ret_type, param_types, varargs);
+end
+
 proc parse_type ts, st, tt, is_instance in
+    if ts_peekk(ts, TK_LParen) then
+        return parse_proc_type(ts, st, tt, is_instance);
+    end
     var type_ident = ts_expect(ts, TK_Ident);
     var inst_params = NULL;
     var generic_params = NULL;
@@ -315,7 +358,7 @@ proc parse_primary ts, st, tt in
         end
         return make_ast_ident(peek, symbol_name(symbol));
     elif k == TK_Integer or k == TK_Char then
-        return make_ast_integer(peek, token_value(ts_next(ts)));
+        return make_ast_integer(peek, cast(token_value(ts_next(ts)), int));
     elif k == TK_String then
         return make_ast_string(peek, token_value(ts_next(ts)));
     elif k == TK_KW__FILE__ then
@@ -713,7 +756,14 @@ proc parse_proc ts, st, tt in
     end
     ts_expect(ts, TK_KW_in);
 
-    var proc_type = tt_make_anon_proc(tt, return_type, param_symbols);
+    var param_types = make_vector(vector_len(param_symbols));
+    var i = 0; var len = vector_len(param_symbols);
+    while i < len do
+        vector_push(param_types, symbol_type(vector_get(param_symbols, i)));
+        i += 1;
+    end
+    free_vector(param_symbols);
+    var proc_type = tt_make_anon_proc(tt, return_type, param_types, false);
     symbol_set_type(proc_symbol, proc_type);
 
     parse_statements_until(ts, st, tt, body, TK_KW_end);
@@ -827,7 +877,14 @@ proc parse_extern ts, st, tt in
         exit(1);
     end
 
-    var proc_type = tt_make_anon_proc(tt, return_type, param_symbols);
+    var param_types = make_vector(vector_len(param_symbols));
+    var i = 0; var len = vector_len(param_symbols);
+    while i < len do
+        vector_push(param_types, symbol_type(vector_get(param_symbols, i)));
+        i += 1;
+    end
+    free_vector(param_symbols);
+    var proc_type = tt_make_anon_proc(tt, return_type, param_types, is_varargs);
     symbol_set_type(proc_symbol, proc_type);
     return make_ast_extern(extern_, symbol_name(proc_symbol), params, is_varargs);
 end
@@ -852,6 +909,9 @@ proc parse_asm ts, st, tt in
     else
         symbol = st_make_asm(st, token_value(ident), ident);
     end
+
+    var proc_type = tt_make_anon_proc(tt, tt_ptr_type(tt), make_vector(0), true);
+    symbol_set_type(symbol, proc_type);
     return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(token_value(asmcode)));
 end
 

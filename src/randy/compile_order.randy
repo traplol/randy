@@ -77,8 +77,9 @@ proc compile_order_main roots, type_table, symbol_table in
             elif cstr_eq("exit", ast_ident(ast)) then
                 exit_proc = ast;
             end
+        else
+            vector_push(compile_order, ast);
         end
-        if main_proc and exit_proc then break; end
         i += 1;
     end
     if not main_proc then

@@ -15,7 +15,7 @@ extern strerror errnum;
 
 const true: bool = cast(1, bool);
 const false: bool = cast(0, bool);
-const NULL: any = cast(0, any);
+const NULL: ptr = cast(0, ptr);
 const sizeof_PTR = 8;
 
 proc _flush_output in

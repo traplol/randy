@@ -131,9 +131,9 @@ const TIR_INSTR_nlocals  = 40;
 const sizeof_TIR_INSTR   = 48;
 
 proc ir_instr_kind self: ir_instr in return cast(u64@(self + TIR_INSTR_kind), int); end
-proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), cstr); end
+proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), src_loc); end
 proc ir_instr_name self: ir_instr in return cast(u64@(self + TIR_INSTR_name), cstr); end
-proc ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), cstr); end
+proc ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), token); end
 proc ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), int); end
 proc ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
 proc ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
@@ -992,7 +992,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
             if const_info_kind(ci) == CIK_String then
                 return ast;
             elif const_info_kind(ci) == CIK_Integer then
-                return make_ast_integer(ast_token(ast), const_info_value(ci)); // @LEAK
+                return make_ast_integer(ast_token(ast), cast(const_info_value(ci), int)); // @LEAK
             end
         end
     elif k == AstK_BinOp then
@@ -1382,7 +1382,7 @@ proc ir_emit_assign_op self, ast, st, tt in
     end
 
     if ir_is_local(self, ident) then
-        var n = ir_get_local(self, ident);
+        var n = cast(ir_get_local(self, ident), int);
         ir_append(self, make_ir_set_local(ident, n));
     elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
@@ -1714,16 +1714,7 @@ proc ir_compile_roots self: ir_context, roots: vector, symbol_table: symbol_tabl
         end
     else
         // or only compile the call/reference graph
-        var i = 0; var len = vector_len(roots);
-        while i < len do
-            var ast = vector_get(roots, i);
-            if ast_kind(ast) != AstK_Procedure then
-                ir_compile(self, vector_get(roots, i), symbol_table, type_table);
-            end
-            i += 1;
-        end
-
-        i = 0; len = vector_len(compile_order);
+        var i = 0; var len = vector_len(compile_order);
         while i < len do
             ir_compile(self, vector_get(compile_order, i), symbol_table, type_table);
             i += 1;

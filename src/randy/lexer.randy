@@ -95,7 +95,7 @@ proc _unrecognized_char filename, line_no, c in
     exit(1);
 end
 
-proc _lex_code filename: cstr, code: string, include_paths: vector, included_already: map -> vector in
+proc _lex_code filename, code, include_paths, included_already -> vector in
     var i = 0;
     var tokens = make_vector(0);
     var length = string_len(code);
@@ -143,7 +143,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                    end
                 end
                 val = int_from_string(temp);
-                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), val, line_no, filename));
+                vector_push(tokens, make_token(TK_Integer, string_cstr(temp), cast(val, ptr), line_no, filename));
             elif c == '"' then
                 temp = make_string(2);
                 i += 1; // skip open quote
@@ -174,7 +174,7 @@ proc _lex_code filename: cstr, code: string, include_paths: vector, included_alr
                 end
                 string_push(temp, c);
                 i += 2; // skip char and close quote
-                vector_push(tokens, make_token(TK_Char, string_cstr(temp), c, line_no, filename));
+                vector_push(tokens, make_token(TK_Char, string_cstr(temp), cast(c, ptr), line_no, filename));
             elif c == '#' then
                 var directive = make_string(2);
                 var arg = make_string(2);

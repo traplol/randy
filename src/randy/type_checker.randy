@@ -1,4 +1,64 @@
 
+proc _tc_print_type_name tt, type in
+    if type then
+        if type_is_procedure(type) then
+            var string = tt_get_proc_type_name(tt, type);
+            printf("%s", string_cstr(string));
+            free_string(string);
+        else
+            printf("%s", tt_get_type_name(tt, type));
+        end
+    else
+        printf("{no type}");
+    end
+end
+
+proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
+    var sym_type = symbol_type(lhs_sym);
+    if not sym_type or sym_type == tt_any_type(tt) then
+        printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+
+    var rhs_type = tt_get_ast_type(tt, rhs_expr);
+    if not rhs_type or rhs_type == tt_any_type(tt) then
+        printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+        
+    if not types_assignable(tt, sym_type, rhs_type) then
+        printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
+        _tc_print_type_name(tt, sym_type);
+        printf("` which is not assignable by `");
+        _tc_print_type_name(tt, rhs_type);
+        printf(".`\n");
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+end
+
+proc _tc_check_is_scalar_type tt, ast, type in
+    if type_is_scalar(type) then
+        return;
+    end
+    printf("ERROR: used type `");
+    _tc_print_type_name(tt, type);
+    printf("` where scalar is required.\n");
+    print_ast_src_loc(ast);
+end
+
+proc _tc_check_is_int_like tt, ast, type in
+    if type_is_int_like(type) then
+        return;
+    end
+    printf("ERROR: used type `");
+    _tc_print_type_name(tt, type);
+    printf("` where `int`-like is required.\n");
+    print_ast_src_loc(ast);
+end
+
 proc tc_check_body tt, st, body in
     var i = 0; var len = vector_len(body);
     while i < len do
@@ -11,20 +71,68 @@ proc tc_check_body tt, st, body in
     end
 end
 
-proc tc_check_ident tt, st, ast in
-    check_ast_kind(AstK_Ident, ast);
-end
-
 proc tc_check_call tt, st, ast in
     check_ast_kind(AstK_Call, ast);
+    tc_check(tt, st, ast_expr(ast));
+    var call_type = tt_get_ast_type(tt, ast_expr(ast));
+    assert(call_type);
+    if not type_is_procedure(call_type) and call_type != tt_ptr_type(tt) then
+        printf("ERROR: This is not a callable object.\n");
+        printf("The expression is: ");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+
+    // TODO: remove this when function types have a first class representation.
+    if call_type == tt_ptr_type(tt) then
+        return;
+    end
+
+    var param_types = type_proc_parameters(call_type);
+    var args = ast_args(ast);
+    var i = 0; var len = min(vector_len(param_types), vector_len(args));
+    while i < len do
+        var arg = vector_get(args, i);
+        tc_check(tt, st, arg);
+        var param_type = vector_get(param_types, i);
+        assert(param_type);
+        var arg_type = tt_get_ast_type(tt, arg);
+        if not arg_type then
+            print_ast(ast);
+            print_ast_src_loc(ast);
+        end
+        assert(arg_type);
+        if not types_assignable(tt, param_type, arg_type) then
+            printf("\nERROR: Type mismatch for argument %d: ", i);
+            print_ast(ast);
+            printf("NOTE: The expected type is `");
+            _tc_print_type_name(tt, param_type);
+            printf("` but got `");
+            _tc_print_type_name(tt, arg_type);
+            printf(".`\n");
+            print_ast_src_loc(ast);
+            //exit(1);
+        end
+        i += 1;
+    end
+    if i < len and not type_proc_varargs(call_type) then
+
+    end
 end
 
 proc tc_check_binop tt, st, ast in
     check_ast_kind(AstK_BinOp, ast);
+    tc_check(tt, st, ast_lhs(ast));
+    tc_check(tt, st, ast_rhs(ast));
 end
 
 proc tc_check_return tt, st, ast in
     check_ast_kind(AstK_Return, ast);
+    var expr = ast_expr(ast);
+    if expr then
+        tc_check(tt, st, expr);
+    end
 end
 
 proc tc_check_var_decl tt, st, ast in
@@ -33,53 +141,159 @@ end
 
 proc tc_check_var_assign tt, st, ast in
     check_ast_kind(AstK_VarAssign, ast);
+    var sym = st_get_symbol(st, ast_ident(ast));
+    assert(sym);
+    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
 end
 
 proc tc_check_assign_op tt, st, ast in
     check_ast_kind(AstK_AssignOp, ast);
+    var lhs_sym = st_get_symbol(st, ast_ident(ast));
+    assert(lhs_sym);
+
+    var op = ast_op(ast);
+    if op == TK_Assign then
+        _tc_check_ident_type(tt, lhs_sym, ast_assign_expr(ast), ast);
+    else
+        var lhs_type = symbol_type(lhs_sym);
+        if not lhs_type or lhs_type == tt_any_type(tt) then
+            printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
+            print_ast_src_loc(ast);
+            exit(1);
+        end
+
+        var rhs_type = tt_get_ast_type(tt, ast_assign_expr(ast));
+        if not rhs_type or rhs_type == tt_any_type(tt) then
+            printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
+            print_ast_src_loc(ast);
+            exit(1);
+        end
+
+        if op == TK_PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+            return; // reference += int_like
+        elif op == TK_MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+            return; // reference -= int_like
+        elif types_assignable(tt, lhs_type, rhs_type) then
+            return; // TODO: Verify this is correct behaviour.
+        end
+
+        printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
+        _tc_print_type_name(tt, lhs_type);
+        printf("` which is not assignable by `");
+        _tc_print_type_name(tt, rhs_type);
+        printf(".`\n");
+        print_ast_src_loc(ast);
+        exit(1);
+    end
 end
 
 proc tc_check_procedure tt, st, ast in
     check_ast_kind(AstK_Procedure, ast);
+    var params = ast_params(ast);
+    var i = 0; var len = vector_len(params);
+    var any = tt_any_type(tt);
+    var errors = make_vector(0);
+    while i < len do
+        var param = vector_get(params, i);
+        var param_sym = st_get_symbol(st, param);
+        assert(param_sym);
+        var param_type = symbol_type(param_sym);
+        if not param_type or param_type == any then
+            vector_push(errors, param_sym);
+        end
+        i += 1;
+    end
+    if vector_len(errors) > 0 then
+        printf("ERROR: in proc `%s`: \n", ast_ident(ast));
+        i = 0; len = vector_len(errors);
+        while i < len do
+            var sym = vector_get(errors, i);
+            var type = symbol_type(sym);
+            printf("ERROR: `%s`", symbol_name(sym));
+            if not type then
+                printf(" has no type.\n");
+            elif type == any then
+                printf(" has type `any.`\n");
+            end
+            i += 1;
+        end
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+
+    tc_check_body(tt, st, ast_body(ast));
 end
 
 proc tc_check_if_else tt, st, ast in
     check_ast_kind(AstK_IfElse, ast);
-    // tc_check(tt, st, ast_test(ast));
-    // tc_check_body(tt, st, ast_consequence(ast));
-    // tc_check_body(tt, st, ast_alternative(ast));
+    tc_check(tt, st, ast_test(ast));
+    tc_check_body(tt, st, ast_consequence(ast));
+    tc_check_body(tt, st, ast_alternative(ast));
+
+    var test_type = tt_get_ast_type(tt, ast_test(ast));
+    assert(test_type);
+    _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
 end
 
 proc tc_check_while tt, st, ast in
     check_ast_kind(AstK_While, ast);
-    // tc_check(tt, st, ast_test(ast));
-    // tc_check_body(tt, st, ast_body(ast));
+    tc_check(tt, st, ast_test(ast));
+    tc_check_body(tt, st, ast_body(ast));
+
+    var test_type = tt_get_ast_type(tt, ast_test(ast));
+    assert(test_type);
+    _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
 end
 
 proc tc_check_pointer_read tt, st, ast in
     check_ast_kind(AstK_PointerRead, ast);
+    tc_check(tt, st, vector_get(ast_pop_args(ast), 0));
 end
 
 proc tc_check_pointer_write tt, st, ast in
     check_ast_kind(AstK_PointerWrite, ast);
+    var pop_args = ast_pop_args(ast);
+    tc_check(tt, st, vector_get(pop_args, 0));
+    tc_check(tt, st, vector_get(pop_args, 1));
 end
 
 proc tc_check_prefix_op tt, st, ast in
     check_ast_kind(AstK_Prefix, ast);
     tc_check(tt, st, ast_expr(ast));
+
+    var expr_type = tt_get_ast_type(tt, ast_expr(ast));
+    assert(expr_type);
+
+    var op = ast_op(ast);
+    if op == TK_KW_not then
+        _tc_check_is_scalar_type(tt, ast, expr_type);
+    else
+        _tc_check_is_int_like(tt, ast, expr_type);
+    end
 end
 
 proc tc_check_const tt, st, ast in
     check_ast_kind(AstK_Const, ast);
+    var sym = st_get_symbol(st, ast_ident(ast));
+    assert(sym);
+    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
 end
 
 proc tc_check_global tt, st, ast in
     check_ast_kind(AstK_Global, ast);
+    var sym = st_get_symbol(st, ast_ident(ast));
+    assert(sym);
+    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
+end
+
+proc tc_check_cast tt, st, ast in
+    check_ast_kind(AstK_Cast, ast);
+    tc_check(tt, st, ast_expr(ast));
 end
 
 proc tc_check tt, st, ast in
     var k = ast_kind(ast);
-    if k == AstK_Ident then tc_check_ident(tt, st, ast);
+    if k == AstK_Ident then // nothing
     elif k == AstK_Integer then // nothing
     elif k == AstK_String then //nothing
     elif k == AstK_Call then tc_check_call(tt, st, ast);
@@ -101,6 +315,7 @@ proc tc_check tt, st, ast in
     elif k == AstK_Continue then // nothing
     elif k == AstK_AssignOp then tc_check_assign_op(tt, st, ast);
     elif k == AstK_Struct then // nothing
+    elif k == AstK_Cast then tc_check_cast(tt, st, ast);
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -110,49 +325,10 @@ proc tc_check tt, st, ast in
     end
 end
 
-proc type_check type_table, sym_table, roots, compile_order in
-    var i = 0; var len = vector_len(roots);
+proc type_check type_table, symbol_table, compile_order in
+    var i = 0; var len = vector_len(compile_order);
     while i < len do
-        tc_check(type_table, sym_table, vector_get(roots, i));
+        tc_check(type_table, symbol_table, vector_get(compile_order, i));
         i += 1;
-    end
-end
-
-proc tc_print_types type_table in
-    var ast_types = type_table_ast_types(type_table);
-    var cur = map_begin(ast_types);
-    while cur != map_end(ast_types) do
-        var ast = map_pair_key(cur);
-        var type = map_pair_val(cur);
-        var type_name = tt_get_type_name(type_table, type);
-        printf("===============\n");
-        print_ast(ast);
-        print_type(type);
-        printf("type name: %s\n", type_name);
-        cur = map_next(ast_types, cur);
-    end
-end
-
-proc tc_print_symbols type_table, symbol_table in
-    printf("~~~~~~\n");
-    var symbols = symbol_table_table(symbol_table);
-    var cur = map_begin(symbols);
-    while cur != map_end(symbols) do
-        var symbol = map_pair_val(cur);
-        var sym_name = symbol_name(symbol);
-        var sym_type = symbol_type(symbol);
-        printf("[%p]%s: ", sym_name, sym_name);
-        if sym_type then
-            if type_is_procedure(sym_type) then
-                var string = tt_get_proc_type_name(type_table, sym_type);
-                printf("%s\n", string_cstr(string));
-                free_string(string);
-            else
-                printf("%s\n", tt_get_type_name(type_table, sym_type));
-            end
-        else
-            printf("{no type}\n");
-        end
-        cur = map_next(symbols, cur);
     end
 end

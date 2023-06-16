@@ -19,7 +19,7 @@ proc make_string init: int -> string in
 end
 
 proc free_string self: string in
-    free(u64@(self));
+    free(cast(u64@(self), ptr));
     free(self);
 end
 
@@ -55,7 +55,7 @@ end
 
 proc string_resize self: string, new_cap: int in
     var new = malloc(new_cap);
-    var old = u64@(self);
+    var old = cast(u64@(self), ptr);
     var len = string_len(self);
     if new_cap < len then
         len = new_cap;

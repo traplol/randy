@@ -97,10 +97,11 @@ proc main argc: int, argv: ptr in
         
         i = 1; var p: cstr;
         while i < argc do
-            if cstr_eq("-h", u64@(argv + i*sizeof_PTR)) then
+            var arg = cast(u64@(argv + i*sizeof_PTR), cstr);
+            if cstr_eq("-h", arg) then
                 print_usage();
                 return 1;
-            elif cstr_eq("-c", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-c", arg) then
                 i += 1;
                 if in_path then
                     printf("More than one input file not supported.\n");
@@ -112,7 +113,7 @@ proc main argc: int, argv: ptr in
                     return 1;
                 end
                 in_path = p;
-            elif cstr_eq("-o", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-o", arg) then
                 i += 1;
                 if out_path then
                     printf("More than one output file not supported.\n");
@@ -124,7 +125,7 @@ proc main argc: int, argv: ptr in
                     return 1;
                 end
                 out_path = p;
-            elif cstr_eq("-I", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-I", arg) then
                 i += 1;
                 p = cast(u64@(argv + i*sizeof_PTR), cstr);
                 if not p then
@@ -132,23 +133,23 @@ proc main argc: int, argv: ptr in
                     return 1;
                 end
                 vector_push(include_paths, string_from_cstr(p));
-            elif cstr_eq("-v", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-v", arg) then
                 verbosity = 1;
-            elif cstr_eq("-vv", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-vv", arg) then
                 verbosity = 2;
-            elif cstr_eq("-vvv", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-vvv", arg) then
                 verbosity = 3;
-            elif cstr_eq("-g", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-g", arg) then
                 debug = 1;
-            elif cstr_eq("-ir", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-ir", arg) then
                 do_print_ir = true;
                 will_compile = false;
-            elif cstr_eq("-ast", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-ast", arg) then
                 do_print_ast = true;
                 will_compile = false;
-            elif cstr_eq("-special", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-special", arg) then
                 g_SpecialFlag = true;
-            elif cstr_eq("-ld", u64@(argv + i*sizeof_PTR)) then
+            elif cstr_eq("-ld", arg) then
                 i += 1;
                 while i < argc do
                     vector_push(ld_flags, u64@(argv + i*sizeof_PTR));
@@ -211,10 +212,6 @@ proc main argc: int, argv: ptr in
             print_timespan("Parsing took: ", starttime, endtime);
         end
 
-        if do_print_ast then
-            print_whole_ast(roots);
-        end
-
         var compile_order = compile_order_main(roots, type_table, symbol_table);
         if not compile_order then
             printf("ERROR: no `main` procedure.\n");
@@ -223,14 +220,18 @@ proc main argc: int, argv: ptr in
 
         time(starttime);
         tt_calculate_structs(type_table);
-        type_infer(type_table, symbol_table, roots, compile_order);
+        type_infer(type_table, symbol_table, compile_order);
         time(endtime);
         if verbosity > 0 then
             print_timespan("Type inference took: ", starttime, endtime);
         end
 
+        if do_print_ast then
+            print_compile_ast(roots, compile_order);
+        end
+
         time(starttime);
-        type_check(type_table, symbol_table, roots, compile_order);
+        type_check(type_table, symbol_table, compile_order);
         time(endtime);
         if verbosity > 0 then
             print_timespan("Type checking took: ", starttime, endtime);
