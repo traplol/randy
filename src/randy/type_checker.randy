@@ -141,9 +141,11 @@ end
 
 proc tc_check_var_assign tt, st, ast in
     check_ast_kind(AstK_VarAssign, ast);
+    var expr = ast_assign_expr(ast);
+    tc_check(tt, st, expr);
     var sym = st_get_symbol(st, ast_ident(ast));
     assert(sym);
-    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
+    _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 proc tc_check_assign_op tt, st, ast in
@@ -153,7 +155,9 @@ proc tc_check_assign_op tt, st, ast in
 
     var op = ast_op(ast);
     if op == TK_Assign then
-        _tc_check_ident_type(tt, lhs_sym, ast_assign_expr(ast), ast);
+        var expr = ast_assign_expr(ast);
+        tc_check(tt, st, expr);
+        _tc_check_ident_type(tt, lhs_sym, expr, ast);
     else
         var lhs_type = symbol_type(lhs_sym);
         if not lhs_type or lhs_type == tt_any_type(tt) then
@@ -274,16 +278,20 @@ end
 
 proc tc_check_const tt, st, ast in
     check_ast_kind(AstK_Const, ast);
+    var expr = ast_assign_expr(ast);
+    tc_check(tt, st, expr);
     var sym = st_get_symbol(st, ast_ident(ast));
     assert(sym);
-    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
+    _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 proc tc_check_global tt, st, ast in
     check_ast_kind(AstK_Global, ast);
+    var expr = ast_assign_expr(ast);
+    tc_check(tt, st, expr);
     var sym = st_get_symbol(st, ast_ident(ast));
     assert(sym);
-    _tc_check_ident_type(tt, sym, ast_assign_expr(ast), ast);
+    _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 proc tc_check_cast tt, st, ast in
