@@ -401,7 +401,7 @@ proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths
     end
 
     if not found then
-        i = vector_len(include_paths) - 1;
+        i = include_paths.length - 1;
         while i >= 0 do
             cur_dir = vector_get(include_paths, i);
             found = string_duplicate(cur_dir);
@@ -422,7 +422,7 @@ proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths
             set_add(included_already, found);
             var included = _lex_file_aux(string_cstr(found), include_paths, included_already);
             i = 0;
-            var len = vector_len(included);
+            var len = included.length;
             while i < len do
                 vector_push(tokens, vector_get(included, i));
                 i += 1;

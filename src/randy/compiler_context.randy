@@ -42,7 +42,7 @@ end
 
 proc cc_print_lines self: compiler_context in
     var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
-    var len = vector_len(lines);
+    var len = lines.length;
     var i = 0;
     while i < len do
         printf("%s\n", string_cstr(vector_get(lines, i)));
@@ -132,7 +132,7 @@ end
 proc cc_out_files irctx: ir_context, cctx: compiler_context in
     var files = ir_files(irctx);
     var i = 0;
-    while i < vector_len(files) do
+    while i < files.length do
         cc_out_file(cctx, i, vector_get(files, i));
         compiler_context_add_file(cctx, vector_get(files, i), i);
         i += 1;
@@ -142,7 +142,7 @@ end
 proc cc_out_instructions irctx: ir_context, cctx: compiler_context in
     var instructions = ir_instructions(irctx);
     var i = 0;
-    while i < vector_len(instructions) do
+    while i < instructions.length do
         x86_64_emit_instruction(cctx, vector_get(instructions, i));
         i += 1;
     end
@@ -165,7 +165,7 @@ proc cc_out_data_section irctx: ir_context, cctx: compiler_context in
     cc_out(cctx, "__argv__: .quad 0");
 
     var globals = ir_globals(irctx);
-    var i = 0; var len = vector_len(globals);
+    var i = 0; var len = globals.length;
     var str = make_string(0);
     while i < len do
         string_reset(str);
@@ -214,7 +214,7 @@ proc cc_lines_to_file cctx: compiler_context, path: cstr in
     var p = buffer;
 
     var lines = compiler_context_lines(cctx);
-    var num_lines = vector_len(lines);
+    var num_lines = lines.length;
     var line; var line_len;
     while i < num_lines do
         line = cast(vector_get(lines, i), String&);

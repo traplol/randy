@@ -56,7 +56,7 @@ proc _compile_order_visit tt, st, stmt, seen, order in
 end
 
 proc _compile_order_visit_vector tt, st, vector, seen, order in
-    var i = 0; var len = vector_len(vector);
+    var i = 0; var len = vector.length;
     while i < len do
         var stmt = vector_get(vector, i);
         _compile_order_visit(tt, st, stmt, seen, order);
@@ -73,7 +73,7 @@ proc compile_order_main roots, type_table, symbol_table in
     var main_proc = NULL;
     var exit_proc = NULL;
     var compile_order = make_vector(128);
-    var i = 0; var len = vector_len(roots);
+    var i = 0; var len = roots.length;
     while i < len do
         var ast = vector_get(roots, i);
         if ast_kind(ast) == AstK_Procedure then

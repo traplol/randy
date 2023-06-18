@@ -203,10 +203,10 @@ proc types_eq a: type, b: type in
         end
         var a_params = type_proc_parameters(a);
         var b_params = type_proc_parameters(b);
-        if vector_len(a_params) != vector_len(b_params) then
+        if a_params.length != b_params.length then
             return false;
         end
-        var i = 0; var len = vector_len(a_params);
+        var i = 0; var len = a_params.length;
         while i < len do
             var ap = vector_get(a_params, i);
             var bp = vector_get(b_params, i);
@@ -228,11 +228,11 @@ proc _basic_proc_type_match tt, lhs, rhs in
     end
     var lhs_params = type_proc_parameters(lhs);
     var rhs_params = type_proc_parameters(rhs);
-    if vector_len(lhs_params) != vector_len(rhs_params) then
+    if lhs_params.length != rhs_params.length then
         return false;
     end
 
-    var i = 0; var len = vector_len(lhs_params);
+    var i = 0; var len = lhs_params.length;
     while i < len do
         var a = vector_get(lhs_params, i);
         var b = vector_get(rhs_params, i);
@@ -310,7 +310,7 @@ const TTYPE_TABLE_bool_type = 80; // fast ref to `bool` type
 const sizeof_TTYPE_TABLE    = 88;
 
 proc _tt_make_type tyk, name, size, type_ids, types, names in
-    var type_idx = vector_len(types);
+    var type_idx = types.length;
     var t = make_type(tyk, type_idx);
     type_set_size(t, size);
     map_set(type_ids, name, type_idx);
@@ -321,7 +321,7 @@ end
 
 proc _tt_make_ref_type type, name, type_ids, types, names in
     assert(not type_ref_to_this(type));
-    var type_idx = vector_len(types);
+    var type_idx = types.length;
     var t = make_type_reference(type_idx, type);
     type_set_size(t, PTR_BITS);
     type_set_ref_to_this(type, t);
@@ -334,7 +334,7 @@ proc _tt_make_ref_type type, name, type_ids, types, names in
 end
 
 proc _tt_make_type_alias type, name, type_ids, types, names in
-    map_set(type_ids, name, vector_len(types));
+    map_set(type_ids, name, types.length);
     vector_push(types, type);
     vector_push(names, name);
 end
@@ -424,7 +424,7 @@ proc tt_get_type_or_make_undefined self, name in
     if found then
         return vector_get(types, cast(map_pair_val(found), int));
     end
-    var type_idx = vector_len(types);
+    var type_idx = types.length;
     var type = make_type_undefined(type_idx);
     map_set(type_ids, name, type_idx);
     vector_push(types, type);
@@ -445,7 +445,7 @@ end
 
 proc tt_make_anon_proc self, return_type, param_types, varargs in
     var types = type_table_types(self);
-    var type = make_type_procedure(vector_len(types), return_type, param_types, varargs);
+    var type = make_type_procedure(types.length, return_type, param_types, varargs);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
@@ -453,7 +453,7 @@ end
 
 proc tt_make_anon_struct self, fields, procs in
     var types = type_table_types(self);
-    var type = make_type_struct(vector_len(types), fields, procs);
+    var type = make_type_struct(types.length, fields, procs);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
@@ -461,7 +461,7 @@ end
 
 proc tt_make_anon_union self, field_names, field_types in
     var types = type_table_types(self);
-    var type = make_type_union(vector_len(types), field_names, field_types);
+    var type = make_type_union(types.length, field_names, field_types);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
@@ -494,7 +494,7 @@ proc tt_get_proc_type_name self, type in
     var params = type_proc_parameters(type);
     var ret_ty = type_proc_return_type(type);
 
-    var i = 0; var len = vector_len(params);
+    var i = 0; var len = params.length;
     while i < len do
         var param_type = vector_get(params, i);
         _tt_append_proc_type_repr(self, string, param_type);
@@ -519,7 +519,7 @@ proc tt_calculate_struct self, stype, again_q in
     end
     var fields = type_struct_fields(stype);
     var bit_offs = 0;
-    var i = 0; var len = vector_len(fields);
+    var i = 0; var len = fields.length;
     var ptr_align = false;
     while i < len do
         var field = vector_get(fields, i);
@@ -555,7 +555,7 @@ proc tt_detect_cycles self, stype in
 
     set_add(explored, stype);
     var fields = type_struct_fields(stype);
-    var i = 0; var len = vector_len(fields);
+    var i = 0; var len = fields.length;
     while i < len do
         var field = vector_get(fields, i);
         var ftype = field_type(field);
@@ -575,7 +575,7 @@ proc tt_detect_cycles self, stype in
             return true;
         end
         fields = type_struct_fields(v);
-        i = 0; len = vector_len(fields);
+        i = 0; len = fields.length;
         while i < len do
             var field = vector_get(fields, i);
             var ftype = field_type(field);
@@ -597,7 +597,7 @@ end
 proc tt_calculate_structs self in
     var to_calc = make_queue(0);
     var types = type_table_types(self);
-    var i = 0; var len = vector_len(types);
+    var i = 0; var len = types.length;
     var void = tt_void_type(self);
     while i < len do
         var type = vector_get(types, i);

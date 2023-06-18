@@ -121,7 +121,7 @@ end
 
 proc st_get_symbol self, ident in
     var scope = symbol_table_scope(self);
-    var i = vector_len(scope) - 1;
+    var i = scope.length - 1;
     while i >= 0 do
         var found = map_find(vector_get(scope, i), ident);
         if found then
@@ -157,5 +157,5 @@ proc st_pop_scope self in
 end
 
 proc st_depth self in
-    return vector_len(symbol_table_scope(self));
+    return symbol_table_scope(self).length;
 end

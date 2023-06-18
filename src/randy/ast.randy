@@ -394,7 +394,7 @@ end
 
 proc _print_args args: Vector&, indent: int in
     var i = 0;
-    var len = vector_len(args);
+    var len = args.length;
     while i < len do
         _print_ast(cast(vector_get(args, i), ast), indent);
         i += 1;
@@ -517,7 +517,7 @@ end
 
 proc _print_ast_body body, indent in
     var i = 0;
-    var len = vector_len(body);
+    var len = body.length;
     var stmt;
     while i < len do
         stmt = cast(vector_get(body, i), ast);
@@ -536,7 +536,7 @@ proc _print_ast_procedure ast, indent in
     printf("proc %s", ast_ident(ast));
     var i = 0;
     var params = ast_params(ast);
-    var len = vector_len(params);
+    var len = params.length;
     while i < len do
         var param_name = vector_get(params, i);
         printf(" %s", param_name);
@@ -575,8 +575,8 @@ proc _print_ast_if_else ast, indent, print_if in
     var conseq = ast_consequence(ast);
     var altern = ast_alternative(ast);
     _print_ast_body(conseq, indent+1);
-    if vector_len(altern) > 0 then
-        if vector_len(altern) == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
+    if altern.length > 0 then
+        if altern.length == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
             _print_indent(indent); printf("elif ");
             _print_ast_if_else(cast(vector_get(altern, 0), ast), indent, false);
             return;
@@ -634,7 +634,7 @@ proc _print_ast_extern ast, indent in
     printf("extern %s", ast_ident(ast));
     var i = 0;
     var params = ast_params(ast);
-    var len = vector_len(params);
+    var len = params.length;
     while i < len do
         printf(" %s", vector_get(params, i));
         i += 1;
@@ -678,7 +678,7 @@ proc _print_ast_struct ast, indent in
     _print_type(ast_struct(ast));
     printf(" in\n");
     var fields = ast_fields(ast);
-    var i = 0; var len = vector_len(fields);
+    var i = 0; var len = fields.length;
     while i < len do
         var field = vector_get(fields, i);
         _print_indent(indent+1);
@@ -688,10 +688,10 @@ proc _print_ast_struct ast, indent in
         i += 1;
     end
     var procs = ast_procs(ast);
-    if i != 0 and vector_len(procs) != 0 then
+    if i != 0 and procs.length != 0 then
         printf("\n");
     end
-    i = 0; len = vector_len(procs);
+    i = 0; len = procs.length;
     while i < len do
         _print_indent(indent+1);
         _print_ast_procedure(cast(vector_get(procs, i), ast), indent+1);
@@ -797,15 +797,15 @@ proc check_ast_kind expect: int, ast: ast in
 end
 
 proc print_whole_ast roots in
-    var i = 0; var len = vector_len(roots);
+    var i = 0; var len = roots.length;
     while i < len do
         print_ast(vector_get(roots, i));
         i += 1;
     end
 end
 
-proc print_compile_ast roots, compile_order in
-    var i = 0; var len = vector_len(roots);
+proc print_compile_ast roots, compile_order: Vector& in
+    var i = 0; var len = roots.length;
     while i < len do
         var ast = vector_get(roots, i);
         if ast_kind(ast) != AstK_Procedure then
@@ -814,7 +814,7 @@ proc print_compile_ast roots, compile_order in
         i += 1;
     end
 
-    i = 0; len = vector_len(compile_order);
+    i = 0; len = compile_order.length;
     while i < len do
         print_ast(vector_get(compile_order, i));
         i += 1;

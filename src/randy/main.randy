@@ -63,7 +63,7 @@ proc assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     vector_push(ld_args, "-o");
     vector_push(ld_args, exe_path);
     vector_push(ld_args, obj_path);
-    var i = 0; var len = vector_len(ld_flags);
+    var i = 0; var len = ld_flags.length;
     while i < len do
         vector_push(ld_args, vector_get(ld_flags, i));
         i += 1;

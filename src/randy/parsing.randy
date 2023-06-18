@@ -260,14 +260,14 @@ proc parse_pointer_op ts, st, tt in
     parse_args_until(ts, st, tt, args, TK_RParen);
     ts_expect(ts, TK_RParen);
 
-    if op == PointerOp_Read and vector_len(args) != 1 then
+    if op == PointerOp_Read and args.length != 1 then
         printf("ERROR: Expected pointer read (%s) to have exactly one argument but got %d\n",
-                token_cstr(token), vector_len(args));
+                token_cstr(token), args.length);
         print_token_loc(token);
         exit(1);
-    elif op == PointerOp_Write and vector_len(args) != 2 then
+    elif op == PointerOp_Write and args.length != 2 then
         printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
-                token_cstr(token), vector_len(args));
+                token_cstr(token), args.length);
         print_token_loc(token);
         exit(1);
     end
@@ -316,7 +316,7 @@ proc parse_assert ts, st, tt in
     var assert_args = make_vector(0);
     parse_args_until(ts, st, tt, assert_args, TK_RParen);
     ts_expect(ts, TK_RParen);
-    if vector_len(assert_args) == 0 then
+    if assert_args.length == 0 then
         printf("ERROR: Expected expression to test in 'assert'\n");
         print_token_loc(assert_);
         exit(1);
@@ -334,7 +334,7 @@ proc parse_assert ts, st, tt in
                         make_ast_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
 
-    var len = vector_len(assert_args);
+    var len = assert_args.length;
     if len > 1 then
         printf_args = make_vector(0);
         var i = 1;
@@ -787,8 +787,8 @@ proc parse_proc ts, st, tt in
     end
     ts_expect(ts, TK_KW_in);
 
-    var param_types = make_vector(vector_len(param_symbols));
-    var i = 0; var len = vector_len(param_symbols);
+    var param_types = make_vector(param_symbols.length);
+    var i = 0; var len = param_symbols.length;
     while i < len do
         vector_push(param_types, symbol_type(vector_get(param_symbols, i)));
         i += 1;
@@ -871,7 +871,7 @@ proc parse_extern ts, st, tt in
             var peek = ts_peek(ts);
             var type = parse_type(ts, st, tt, false);
             var ty_params = type_params(type);
-            if ty_params and vector_len(ty_params) != 0 then
+            if ty_params and ty_params.length != 0 then
                 printf("ERROR: 'extern' does not support generics.\n");
                 print_token_loc(peek);
                 exit(1);
@@ -902,14 +902,14 @@ proc parse_extern ts, st, tt in
         end
     end
     var rty_params = type_params(return_type);
-    if rty_params and vector_len(rty_params) != 0 then
+    if rty_params and rty_params.length != 0 then
         printf("ERROR: 'extern' does not support generics.\n");
         print_token_loc(extern_);
         exit(1);
     end
 
-    var param_types = make_vector(vector_len(param_symbols));
-    var i = 0; var len = vector_len(param_symbols);
+    var param_types = make_vector(param_symbols.length);
+    var i = 0; var len = param_symbols.length;
     while i < len do
         vector_push(param_types, symbol_type(vector_get(param_symbols, i)));
         i += 1;
@@ -1027,7 +1027,7 @@ proc parse_struct ts, st, tt in
     end
     ts_expect(ts, TK_KW_end);
 
-    assert(vector_len(proc_symbols) == 0, "Struct procs not implemented yet.\n");
+    assert(proc_symbols.length == 0, "Struct procs not implemented yet.\n");
 
     if not struct_type then
         struct_type = tt_make_anon_struct(tt, fields, proc_symbols);

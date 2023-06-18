@@ -62,7 +62,7 @@ proc ti_pop_proc self in
 end
 
 proc ti_infer_body self, tt, st, body in
-    var i = 0; var len = vector_len(body);
+    var i = 0; var len = body.length;
     while i < len do
         var ast = vector_get(body, i);
         ti_infer(self, tt, st, ast);
@@ -147,7 +147,7 @@ proc ti_infer_call self, tt, st, ast -> type in
     // TODO: need to handle varargs at some point
     var param_types = type_proc_parameters(call_type);
     var args = ast_args(ast);
-    var i = 0; var len = min(vector_len(param_types), vector_len(args));
+    var i = 0; var len = min(param_types.length, args.length);
     var changed = false;
     while i < len do
         var arg_type = ti_infer(self, tt, st, vector_get(args, i));
@@ -164,7 +164,7 @@ proc ti_infer_call self, tt, st, ast -> type in
         end
         i += 1;
     end
-    len = vector_len(args);
+    len = args.length;
     while i < len do
         ti_infer(self, tt, st, vector_get(args, i));
         i += 1;
@@ -397,7 +397,7 @@ end
 proc ti_infer_pointer_write self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerWrite, ast);
     var args = ast_pop_args(ast);
-    var i = 0; var len = vector_len(args);
+    var i = 0; var len = args.length;
     while i < len do
         ti_infer(self, tt, st, vector_get(args, i));
         i += 1;
@@ -454,7 +454,7 @@ end
 
 proc _ti_get_field_type type, member in
     var fields = type_struct_fields(type);
-    var i = 0; var len = vector_len(fields);
+    var i = 0; var len = fields.length;
     while i < len do
         var field = vector_get(fields, i);
         if cstr_eq(field_name(field), member) then
@@ -463,7 +463,7 @@ proc _ti_get_field_type type, member in
         i += 1;
     end
     var procs = type_struct_procs(type);
-    i = 0; len = vector_len(procs);
+    i = 0; len = procs.length;
     while i < len do
         var proc_ = vector_get(procs, i);
         if cstr_eq(symbol_name(proc_), member) then
@@ -571,9 +571,9 @@ proc ti_infer self, tt, st, ast -> type in
     return type;
 end
 
-proc type_infer type_table, symbol_table, compile_order in
+proc type_infer type_table, symbol_table, compile_order: Vector& in
     var self = make_type_infer();
-    var i = 0; var len = vector_len(compile_order);
+    var i = 0; var len = compile_order.length;
     while i < len do
         ti_infer(self, type_table, symbol_table, vector_get(compile_order, i));
         i += 1;

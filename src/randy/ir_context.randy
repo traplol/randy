@@ -477,7 +477,7 @@ proc print_ir_new_proc self in
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
     printf("params=[");
     var params = cast(u64@(self + TIR_INSTR_params), Vector&);
-    var i = 0; var len = vector_len(params);
+    var i = 0; var len = params.length;
     while i < len do
         printf("'%s'", vector_get(params, i));
         i += 1;
@@ -672,7 +672,7 @@ proc print_proc_info self in
     printf("(ProcInfo label='%s', params=[", proc_info_label(self));
     var i = 0;
     var params = proc_info_params(self);
-    var len = vector_len(params);
+    var len = params.length;
     while i < len do
         printf("'%s'", vector_get(params, i));
         i += 1;
@@ -860,7 +860,7 @@ proc ir_new_proc self, ident, params in
     set_add(ir_labels(self), label_cstr);
     map_set(procs, ident, make_proc_info(label_cstr, params, false));
 
-    assert(vector_len(ir_proc_locals(self)) == 0,
+    assert(ir_proc_locals(self).length == 0,
         "Compiler bug: proc locals not empty when creating new proc\n");
     u64!(self + TIR_CONTEXT_num_locals, 0);
     u64!(self + TIR_CONTEXT_locals_size, 0);
@@ -871,7 +871,7 @@ proc ir_new_local self, ident, st in
     var proc_locals = ir_proc_locals(self);
     var local_idx = 0;
     var offset = 0;
-    var i = 0; var len = vector_len(proc_locals);
+    var i = 0; var len = proc_locals.length;
     while i < len do
         var map = vector_get(proc_locals, i);
         local_idx += map_len(map);
@@ -961,7 +961,7 @@ end
 
 proc ir_is_local self, ident in
     var proc_locals = ir_proc_locals(self);
-    var i = 0; var len = vector_len(proc_locals);
+    var i = 0; var len = proc_locals.length;
     while i < len do
         if map_find(vector_get(proc_locals, i), ident) then
             return true;
@@ -980,7 +980,7 @@ end
 
 proc ir_get_local self, ident in
     var proc_locals = ir_proc_locals(self);
-    var i = vector_len(proc_locals) - 1;
+    var i = proc_locals.length - 1;
     var found;
     while i >= 0 do
         found = map_find(vector_get(proc_locals, i), ident);
@@ -994,7 +994,7 @@ end
 
 proc ir_get_local_offset self, ident in
     var proc_locals = ir_proc_locals(self);
-    var i = vector_len(proc_locals) - 1;
+    var i = proc_locals.length - 1;
     var found;
     while i >= 0 do
         found = map_find(vector_get(proc_locals, i), ident);
@@ -1053,7 +1053,7 @@ end
 
 proc ir_get_break_dest self in
     var dests = ir_break_dests(self);
-    if vector_len(dests) == 0 then
+    if dests.length == 0 then
         return NULL;
     end
     return vector_back(dests);
@@ -1069,7 +1069,7 @@ end
 
 proc ir_get_continue_dest self in
     var dests = ir_continue_dests(self);
-    if vector_len(dests) == 0 then
+    if dests.length == 0 then
         return NULL;
     end
     return vector_back(dests);
@@ -1225,7 +1225,7 @@ end
 
 proc ir_emit_body self, body, st, tt in
     var i = 0;
-    var len = vector_len(body);
+    var len = body.length;
     while i < len do
         var ast = vector_get(body, i);
         ir_compile(self, ast, st, tt);
@@ -1282,7 +1282,7 @@ proc ir_emit_string self, ast, st, tt in
 end
 
 proc _ir_check_arg_count self, ident, info, nargs in
-    var nparams = vector_len(proc_info_params(info));
+    var nparams = proc_info_params(info).length;
     var varargs = proc_info_varargs(info);
 
     if not varargs and nargs != nparams then
@@ -1298,7 +1298,7 @@ end
 proc ir_emit_call self, ast, st, tt in
     check_ast_kind(AstK_Call, ast);
     var args = ast_args(ast);
-    var len = vector_len(args);
+    var len = args.length;
     if len > 0 then
         ir_append(self, make_ir_alloc_temps(len));
     end
@@ -1324,14 +1324,14 @@ proc ir_emit_call self, ast, st, tt in
         var info;
         if ir_is_proc(self, ident) then
             info = ir_get_proc(self, ident);
-            if not _ir_check_arg_count(self, ident, info, vector_len(args)) then
+            if not _ir_check_arg_count(self, ident, info, args.length) then
                 ir_print_src_loc(self);
                 exit(1);
             end
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
         elif ir_is_extern(self, ident) then
             info = ir_get_extern(self, ident);
-            if not _ir_check_arg_count(self, ident, info, vector_len(args)) then
+            if not _ir_check_arg_count(self, ident, info, args.length) then
                 ir_print_src_loc(self);
                 exit(1);
             end
@@ -1540,7 +1540,7 @@ proc ir_emit_procedure self, ast, st, tt in
     ir_push_scope(self);
     ir_append(self, insn);
 
-    var i = 0; var len = vector_len(params);
+    var i = 0; var len = params.length;
     while i < len do
         var param = vector_get(params, i);
         var n = ir_new_local(self, param, st);
@@ -1668,7 +1668,7 @@ proc ir_emit_extern self, ast, st, tt in
     
     if ir_is_extern(self, ident) then
         var info = ir_get_extern(self, ident);
-        if vector_len(params) != vector_len(proc_info_params(info))
+        if params.length != proc_info_params(info).length
             or is_varargs != proc_info_varargs(info) then
             printf("ERROR: Redefintion of extern `%s` with different number of arguments.", ident);
             ir_print_src_loc(self);
@@ -1758,7 +1758,7 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
         assert(type_is_struct(struct_type), "TODO: catch this bug in type checker.\n");
         var fields = type_struct_fields(struct_type);
         var field = NULL;
-        var i = 0; var len = vector_len(fields);
+        var i = 0; var len = fields.length;
         while i < len do
             field = vector_get(fields, i);
             if cstr_eq(field_name(field), member) then
@@ -1805,7 +1805,7 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
     if offset != 0 then
         vector_push(deref_stack, offset);
     end
-    var i = vector_len(deref_stack) - 1;
+    var i = deref_stack.length - 1;
     while i >= 0 do
         ir_append(self, make_ir_ptr_offs(vector_get(deref_stack, i)));
         if i > 0 then
@@ -1823,7 +1823,7 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
         end
         assert(type_is_struct(type), "TODO: catch this bug in type checker.\n");
         var fields = type_struct_fields(type);
-        var i = 0; var len = vector_len(fields);
+        var i = 0; var len = fields.length;
         var member = ast_member(ast);
         var field;
         while i < len do
@@ -1881,7 +1881,7 @@ end
 
 proc ir_resolve_lazy_idents self in
     var instrs = ir_instructions(self);
-    var i = 0; var len = vector_len(instrs);
+    var i = 0; var len = instrs.length;
     var k; var ir; var token; var ident;
     var info = NULL;
     while i < len do
@@ -1909,7 +1909,6 @@ proc ir_resolve_lazy_idents self in
                 new_ir = make_ir_push_label(ident);
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", ident);
-                printf("NOTE: Did you forget to declare 'extern %s ...;'?\n", ident);
                 print_src_loc(token_src_loc(token));
                 exit(1);
             end
@@ -1930,7 +1929,6 @@ proc ir_resolve_lazy_idents self in
                 call = make_ir_call(ident, false);
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", ident);
-                printf("NOTE: Did you forget to declare 'extern %s ...;'?\n", ident);
                 print_src_loc(token_src_loc(token));
                 exit(1);
             end
@@ -1949,14 +1947,14 @@ proc ir_compile_roots self: ir_context, roots: Vector&, symbol_table: symbol_tab
 
     if false then
         // compile everything in order
-        var i = 0; var len = vector_len(roots);
+        var i = 0; var len = roots.length;
         while i < len do
             ir_compile(self, vector_get(roots, i), symbol_table, type_table);
             i += 1;
         end
     else
         // or only compile the call/reference graph
-        var i = 0; var len = vector_len(compile_order);
+        var i = 0; var len = compile_order.length;
         while i < len do
             ir_compile(self, vector_get(compile_order, i), symbol_table, type_table);
             i += 1;
@@ -1978,7 +1976,7 @@ end
 
 proc ir_print_whole_ir self: ir_context in
     var instrs = ir_instructions(self);
-    var i = 0; var len = vector_len(instrs);
+    var i = 0; var len = instrs.length;
     while i < len do
         print_ir(vector_get(instrs, i));
         i += 1;

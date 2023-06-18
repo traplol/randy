@@ -48,7 +48,7 @@ proc _tc_check_is_int_like tt, ast, type in
 end
 
 proc tc_check_body tt, st, body in
-    var i = 0; var len = vector_len(body);
+    var i = 0; var len = body.length;
     while i < len do
         var ast = vector_get(body, i);
         tc_check(tt, st, ast);
@@ -79,7 +79,7 @@ proc tc_check_call tt, st, ast in
 
     var param_types = type_proc_parameters(call_type);
     var args = ast_args(ast);
-    var i = 0; var len = min(vector_len(param_types), vector_len(args));
+    var i = 0; var len = min(param_types.length, args.length);
     while i < len do
         var arg = vector_get(args, i);
         tc_check(tt, st, arg);
@@ -182,7 +182,7 @@ end
 proc tc_check_procedure tt, st, ast in
     check_ast_kind(AstK_Procedure, ast);
     var params = ast_params(ast);
-    var i = 0; var len = vector_len(params);
+    var i = 0; var len = params.length;
     var any = tt_any_type(tt);
     var errors = make_vector(0);
     while i < len do
@@ -195,9 +195,9 @@ proc tc_check_procedure tt, st, ast in
         end
         i += 1;
     end
-    if vector_len(errors) > 0 then
+    if errors.length > 0 then
         printf("ERROR: in proc `%s`: \n", ast_ident(ast));
-        i = 0; len = vector_len(errors);
+        i = 0; len = errors.length;
         while i < len do
             var sym = vector_get(errors, i);
             var type = symbol_type(sym);
@@ -364,8 +364,8 @@ proc tc_check tt, st, ast in
     end
 end
 
-proc type_check type_table, symbol_table, compile_order in
-    var i = 0; var len = vector_len(compile_order);
+proc type_check type_table, symbol_table, compile_order: Vector& in
+    var i = 0; var len = compile_order.length;
     while i < len do
         tc_check(type_table, symbol_table, vector_get(compile_order, i));
         i += 1;

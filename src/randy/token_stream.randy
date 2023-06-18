@@ -17,7 +17,7 @@ proc ts_revert self: token_stream, idx: int in u64!(self + TTOKEN_STREAM_idx, id
 proc ts_peek self: token_stream -> token in
     var tks = ts_tokens(self);
     var idx = ts_idx(self);
-    if idx >= vector_len(tks) then
+    if idx >= tks.length then
         return cast(NULL, token);
     end
     return cast(vector_get(tks, idx), token);
