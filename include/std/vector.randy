@@ -11,8 +11,6 @@ struct Vector in
 end
 
 proc make_vector init: int -> Vector& in
-    // var self = make_string(init * sizeof_TVECTOR_ELEMENT);
-    // return cast(self, Vector&);
     var self = cast(malloc(__sizeof(Vector)), Vector&);
     self.buffer = malloc(sizeof_TVECTOR_ELEMENT * init);
     self.length = 0;
@@ -81,7 +79,7 @@ proc vector_pop self: Vector& in
 end
 
 proc vector_back self: Vector& -> ptr in
-    var len = vector_len(self);
+    var len = self.length;
     if len > 0 then
         return cast(u64@(self.buffer + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
     end

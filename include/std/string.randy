@@ -57,7 +57,7 @@ end
 proc string_resize self: String&, new_cap: int in
     var new = malloc(new_cap);
     var old = self.buffer;
-    var len = string_len(self);
+    var len = self.length;
     if new_cap < len then
         len = new_cap;
     end
@@ -69,8 +69,8 @@ proc string_resize self: String&, new_cap: int in
 end
 
 proc string_push self: String&, val: char in
-    var len = string_len(self);
-    var cap = string_cap(self);
+    var len = self.length;
+    var cap = self.capacity;
     if len == cap then
         string_resize(self, 2 * cap + 1);
     end
@@ -79,7 +79,7 @@ proc string_push self: String&, val: char in
 end
 
 proc string_pop self: String& in
-    var len = string_len(self);
+    var len = self.length;
     if len > 0 then
         self.length = len - 1;
     else
@@ -89,7 +89,7 @@ proc string_pop self: String& in
 end
 
 proc string_back self: String& -> char in
-    var len = string_len(self);
+    var len = self.length;
     if len > 0 then
         return string_get(self, len-1);
     end
@@ -98,8 +98,7 @@ proc string_back self: String& -> char in
 end
 
 proc string_append_string self: String&, string: String& in
-    var len = string_len(string);
-    var i = 0;
+    var i = 0; var len = string.length;
     while i < len do
         string_push(self, string_get(string, i));
         i += 1;
@@ -132,8 +131,8 @@ proc string_eq string_a: String&, string_b: String& -> bool in
         return false;
     end
 
-    var a_len = string_len(string_a);
-    var b_len = string_len(string_b);
+    var a_len = string_a.length;
+    var b_len = string_b.length;
     if a_len != b_len then
         return false;
     end
@@ -148,13 +147,13 @@ proc string_eq string_a: String&, string_b: String& -> bool in
     return true;
 end
 
-proc string_cstr string: String& -> cstr in
-    var len = string_len(string);
-    if len == string_cap(string) then
-        string_resize(string, len+1);
+proc string_cstr self: String& -> cstr in
+    var len = self.length;
+    if len == self.capacity then
+        string_resize(self, len + 1);
     end
-    string_set(string, len, 0);
-    return string_buf(string);
+    string_set(self, len, 0);
+    return self.buffer;
 end
 
 proc cstr_eq cstr_a: cstr, cstr_b: cstr -> bool in
@@ -186,8 +185,8 @@ proc cstr_len cstr: cstr -> int in
 end
 
 proc string_duplicate self: String& -> String& in
-    var copy = make_string(string_cap(self));
-    memcpy(string_buf(copy), string_buf(self), string_len(self));
-    string_set_len(copy, string_len(self));
+    var copy = make_string(self.capacity);
+    memcpy(copy.buffer, self.buffer, self.length);
+    copy.length = self.length;
     return copy;
 end
