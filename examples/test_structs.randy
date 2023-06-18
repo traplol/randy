@@ -1,44 +1,45 @@
 #include std/core
 #include std/vector
 
-struct point in
+struct Point in
     x: int;
     y: int;
 end
 
-proc make_point x, y -> point& in
-    var self = cast(malloc(__sizeof(point)), point&);
+proc make_point x, y -> Point& in
+    var self = cast(malloc(__sizeof(Point)), Point&);
     self.x = x;
     self.y = y;
     return self;
 end
 
-proc free_point self: point& in
+proc free_point self: Point& in
     free(self);
 end
 
-struct player in
+struct Player in
     name: cstr;
     health: int;
-    pos: point&;
+    // Point is a struct by reference
+    pos: Point&;
 end
 
-proc make_player name, health, x, y -> player& in
-    var player = cast(malloc(__sizeof(player)), player&);
+proc make_player name, health, x, y -> Player& in
+    var player = cast(malloc(__sizeof(Player)), Player&);
     player.name = name;
     player.health = health;
     player.pos = make_point(x, y);
     return player;
 end
 
-proc free_player self: player& in
+proc free_player self: Player& in
     if self then
         free_point(self.pos);
         free(self);
     end
 end
 
-proc print_player player: player& in
+proc print_player player: Player& in
     printf("player: %s health: %d\n", player.name, player.health);
     printf("  at x=%d, y=%d\n", player.pos.x, player.pos.y);
 end
@@ -57,12 +58,12 @@ proc make_players n: int in
 end
 
 proc test_many_players in
-    printf("test_many_players: creating many `player` objects.\n");
+    printf("test_many_players: creating many `Player` objects.\n");
     var players = make_players(100000);
     printf("test_many_players: checking the player fields are correct.\n");
     var i = 0; var len = vector_len(players);
     while i < len do
-        var player = cast(vector_get(players, i), player&);
+        var player = cast(vector_get(players, i), Player&);
         if player.name != PLAYER_NAME then
             printf("test_many_players:fail on player.name\n");
             return false;
@@ -82,10 +83,10 @@ proc test_many_players in
         i += 1;
     end
 
-    printf("test_many_players: freeing the `player` objects.\n");
+    printf("test_many_players: freeing the `Player` objects.\n");
     i = 0;
     while i < len do
-        free_player(cast(vector_get(players, i), player&));
+        free_player(cast(vector_get(players, i), Player&));
         i += 1;
     end
     free_vector(players);
@@ -93,9 +94,79 @@ proc test_many_players in
     return true;
 end
 
+// Bar and Baz are structs by value
+struct Foo in
+    a: int;
+    bar: Bar;
+end
+
+struct Bar in
+    b: int;
+    baz: Baz;
+end
+
+struct Baz in
+    c: int;
+end
+
+proc make_foo a, b, c -> Foo& in
+    var self = cast(malloc(__sizeof(Foo)), Foo&);
+    self.a = a;
+    self.bar.b = b;
+    self.bar.baz.c = c;
+    return self;
+end
+
+proc free_foo self: Foo& in
+    free(self);
+end
+
+proc test_many_foos in
+    printf("test_many_foos: making many `Foo` objects.\n");
+    var foos = make_vector(100000);
+    var i = 0; var len = vector_cap(foos);
+    while i < len do
+        vector_push(foos, make_foo(i, i * i, i * i * i));
+        i += 1;
+    end
+    printf("test_many_foos: checking `Foo` objects fields are correct.\n");
+    i = 0;
+    while i < len do
+        var foo = cast(vector_get(foos, i), Foo&);
+        if foo.a != i then
+            printf("test_many_foos: fail on foo.a\n");
+            return 0;
+        end
+        if foo.bar.b != i * i then
+            printf("test_many_foos: fail on foo.bar.b\n");
+            return 0;
+        end
+        if foo.bar.baz.c != i * i * i then
+            printf("test_many_foos: fail on foo.bar.baz.c\n");
+            return 0;
+        end
+        i += 1;
+    end
+
+    printf("test_many_foos: freeing the `Foo` objects.\n");
+    i = 0;
+    while i < len do
+        free_foo(cast(vector_get(foos, i), Foo&));
+        i += 1;
+    end
+    free_vector(foos);
+    printf("test_many_foos: pass\n");
+    return 1;
+end
+
 proc main in
     if not test_many_players() then
         printf("test_many_players: fail.\n");
+        return 1;
+    end
+
+    if not test_many_foos() then
+        printf("test_many_foos: fail.\n");
         return 1;
     end
     printf("pass all\n");
