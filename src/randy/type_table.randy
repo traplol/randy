@@ -37,24 +37,24 @@ const TyK_array     = 9; // NYI
 const TTYPE_id        = 0;  // int
 const TTYPE_kind      = 8;  // TyK
 const TTYPE_size      = 12; // uint32
-const TTYPE_params    = 16; // type vector
+const TTYPE_params    = 16; // type Vector&
 const TTYPE_ast       = 24; // ast
 const TTYPE_ref_to_this = 32; // type
 // reference
 const TTYPE_deref_type  = 40; // type
 // procedure
 const TTYPE_proc_return_type = 40; // type
-const TTYPE_proc_parameters  = 48; // symbol vector
+const TTYPE_proc_parameters  = 48; // symbol Vector&
 const TTYPE_proc_varargs     = 56; // bool
 // struct
-const TTYPE_struct_fields = 40; // field vector
-const TTYPE_struct_procs  = 48; // proc_symbol vector
+const TTYPE_struct_fields = 40; // field Vector&
+const TTYPE_struct_procs  = 48; // proc_symbol Vector&
 // enum
-const TTYPE_enum_names  = 40; // cstr vector
-const TTYPE_enum_values = 48; // int vector
+const TTYPE_enum_names  = 40; // cstr Vector&
+const TTYPE_enum_values = 48; // int Vector&
 // union
-const TTYPE_union_names = 40; // cstr vector
-const TTYPE_union_types = 48; // type vector
+const TTYPE_union_names = 40; // cstr Vector&
+const TTYPE_union_types = 48; // type Vector&
 // array
 const TTYPE_array_count = 40; // number of elems in array
 const TTYPE_array_type  = 48; // type of each elem in array
@@ -80,7 +80,7 @@ proc make_type_reference id: int, type: type in
     return self;
 end
 
-proc make_type_procedure id: int, return_type: type, param_types: vector, varargs: bool in
+proc make_type_procedure id: int, return_type: type, param_types: Vector&, varargs: bool in
     var self = make_type(TyK_procedure, id);
     u64!(self + TTYPE_proc_return_type, return_type);
     u64!(self + TTYPE_proc_parameters, param_types);
@@ -88,21 +88,21 @@ proc make_type_procedure id: int, return_type: type, param_types: vector, vararg
     return self;
 end
 
-proc make_type_struct id: int, fields: vector, procs: vector in
+proc make_type_struct id: int, fields: Vector&, procs: Vector& in
     var self = make_type(TyK_struct, id);
     u64!(self + TTYPE_struct_fields, fields);
     u64!(self + TTYPE_struct_procs, procs);
     return self;
 end
 
-proc make_type_enum id: int, enum_names: vector, enum_values: vector in
+proc make_type_enum id: int, enum_names: Vector&, enum_values: Vector& in
     var self = make_type(TyK_enum, id);
     u64!(self + TTYPE_enum_names, enum_names);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
 
-proc make_type_union id: int, union_names: vector, union_types: vector in
+proc make_type_union id: int, union_names: Vector&, union_types: Vector& in
     var self = make_type(TyK_union, id);
     u64!(self + TTYPE_union_names, union_names);
     u64!(self + TTYPE_union_types, union_types);
@@ -119,7 +119,7 @@ end
 proc type_kind self: type in return cast(u32@(self + TTYPE_kind), int); end
 proc type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 proc type_id self: type in return cast(u64@(self + TTYPE_id), int); end
-proc type_params self: type in return cast(u64@(self + TTYPE_params), vector); end
+proc type_params self: type in return cast(u64@(self + TTYPE_params), Vector&); end
 proc type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
 proc type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
 proc type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
@@ -127,45 +127,45 @@ proc type_proc_return_type self: type in
     return cast(u64@(self + TTYPE_proc_return_type), type);
 end
 proc type_proc_parameters self: type in
-    return cast(u64@(self + TTYPE_proc_parameters), vector);
+    return cast(u64@(self + TTYPE_proc_parameters), Vector&);
 end
 proc type_proc_varargs self: type in
     return cast(u8@(self + TTYPE_proc_varargs), bool);
 end
 proc type_struct_fields self: type in
-    return cast(u64@(self + TTYPE_struct_fields), vector);
+    return cast(u64@(self + TTYPE_struct_fields), Vector&);
 end
 proc type_struct_procs self: type in
-    return cast(u64@(self + TTYPE_struct_procs), vector);
+    return cast(u64@(self + TTYPE_struct_procs), Vector&);
 end
-proc type_enum_names self: type in return cast(u64@(self + TTYPE_enum_names), vector); end
-proc type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), vector); end
-proc type_union_names self: type in return cast(u64@(self + TTYPE_union_names), vector); end
-proc type_union_types self: type in return cast(u64@(self + TTYPE_union_types), vector); end
+proc type_enum_names self: type in return cast(u64@(self + TTYPE_enum_names), Vector&); end
+proc type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
+proc type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
+proc type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
 proc type_array_count self: type in return cast(u64@(self + TTYPE_array_count), int); end
 proc type_array_type self: type in return cast(u64@(self + TTYPE_array_type), type); end
 
 proc type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
 proc type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
-proc type_set_params self: type, params: vector in u64!(self + TTYPE_params, params); end
+proc type_set_params self: type, params: Vector& in u64!(self + TTYPE_params, params); end
 proc type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
 proc type_set_deref_type self: type, type: type in u64!(self + TTYPE_deref_type, type); end
 proc type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this, type); end
 proc type_set_proc_return_type self: type, type: type in
     u64!(self + TTYPE_proc_return_type, type);
 end
-proc type_set_proc_parameters self: type, params: vector in
+proc type_set_proc_parameters self: type, params: Vector& in
     u64!(self + TTYPE_proc_parameters, params);
 end
 proc type_set_proc_varargs self: type, varargs: bool in
     u8!(self + TTYPE_proc_varargs, varargs);
 end
-proc type_set_struct_fields self: type, fields: vector in u64!(self + TTYPE_struct_fields, fields); end
-proc type_set_struct_procs self: type, procs: vector in u64!(self + TTYPE_struct_procs, procs); end
-proc type_set_enum_names self: type, names: vector in u64!(self + TTYPE_enum_names, names); end
-proc type_set_enum_values self: type, values: vector in u64!(self + TTYPE_enum_values, values); end
-proc type_set_union_names self: type, names: vector in u64!(self + TTYPE_union_names, names); end
-proc type_set_union_types self: type, types: vector in u64!(self + TTYPE_union_types, types); end
+proc type_set_struct_fields self: type, fields: Vector& in u64!(self + TTYPE_struct_fields, fields); end
+proc type_set_struct_procs self: type, procs: Vector& in u64!(self + TTYPE_struct_procs, procs); end
+proc type_set_enum_names self: type, names: Vector& in u64!(self + TTYPE_enum_names, names); end
+proc type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
+proc type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
+proc type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
 proc type_set_array_count self: type, count: int in u64!(self + TTYPE_array_count, count); end
 proc type_set_array_type self: type, type: type in u64!(self + TTYPE_array_type, type); end
 
@@ -297,8 +297,8 @@ proc print_type self: type in
 end
 
 const TTYPE_TABLE_type_ids  = 0;  // (cstr, int) map : name -> type_id
-const TTYPE_TABLE_types     = 8;  // type vector : type_id is index into this vector
-const TTYPE_TABLE_names     = 16; // cstr vector : type_id is index into this vector, may have NULLs
+const TTYPE_TABLE_types     = 8;  // type Vector& : type_id is index into this Vector&
+const TTYPE_TABLE_names     = 16; // cstr Vector& : type_id is index into this Vector&, may have NULLs
 const TTYPE_TABLE_ast_types = 24; // (ast, type) map : ast -> type
 const TTYPE_TABLE_void_type = 32; // fast ref to `void` type
 const TTYPE_TABLE_any_type  = 40; // fast ref to `any` type
@@ -380,8 +380,8 @@ proc make_type_table -> type_table in
 end
 
 proc type_table_type_ids self: type_table in return cast(u64@(self + TTYPE_TABLE_type_ids), map); end
-proc type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), vector); end
-proc type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), vector); end
+proc type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), Vector&); end
+proc type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), Vector&); end
 proc type_table_ast_types self: type_table in return cast(u64@(self + TTYPE_TABLE_ast_types), map); end
 proc tt_any_type self: type_table in return cast(u64@(self + TTYPE_TABLE_any_type), type); end
 proc tt_void_type self: type_table in return cast(u64@(self + TTYPE_TABLE_void_type), type); end

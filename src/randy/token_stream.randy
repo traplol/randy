@@ -1,16 +1,16 @@
 
-const TTOKEN_STREAM_tokens = 0;  // token vector
+const TTOKEN_STREAM_tokens = 0;  // token Vector&
 const TTOKEN_STREAM_idx = 8;     // int
 const sizeof_TTOKEN_STREAM = 16;
 
-proc make_token_stream tokens: vector -> token_stream in
+proc make_token_stream tokens: Vector& -> token_stream in
     var self = malloc(sizeof_TTOKEN_STREAM);
     u64!(self + TTOKEN_STREAM_tokens, tokens);
     u64!(self + TTOKEN_STREAM_idx, 0);
     return cast(self, token_stream);
 end
 
-proc ts_tokens self: token_stream in return cast(u64@(self + TTOKEN_STREAM_tokens), vector); end
+proc ts_tokens self: token_stream in return cast(u64@(self + TTOKEN_STREAM_tokens), Vector&); end
 proc ts_idx self: token_stream in return cast(u64@(self + TTOKEN_STREAM_idx), int); end
 proc ts_revert self: token_stream, idx: int in u64!(self + TTOKEN_STREAM_idx, idx); end
 

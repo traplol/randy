@@ -1,5 +1,5 @@
 
-const TCOMPILER_CONTEXT_out_lines     = 0;  // string vector
+const TCOMPILER_CONTEXT_out_lines     = 0;  // string Vector&
 const TCOMPILER_CONTEXT_proc_src_name = 8;
 const TCOMPILER_CONTEXT_proc_name     = 16;
 const TCOMPILER_CONTEXT_proc_params   = 24;
@@ -25,7 +25,7 @@ proc compiler_context_file_map self: compiler_context in
     return cast(u64@(self + TCOMPILER_CONTEXT_file_map), map);
 end
 proc compiler_context_lines self: compiler_context in
-    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), vector);
+    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
 end
 proc compiler_context_nodebug self: compiler_context in
     return cast(u64@(self + TCOMPILER_CONTEXT_nodebug), bool);
@@ -51,7 +51,7 @@ proc cc_print_lines self: compiler_context in
 end
 
 proc cc_out self: compiler_context, cstr: cstr in
-    var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), vector);
+    var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
     vector_push(lines, string_from_cstr(cstr));
     //printf("%s\n", cstr);
 end

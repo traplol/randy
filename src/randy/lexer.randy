@@ -97,7 +97,7 @@ proc _unrecognized_char filename, line_no, c in
     exit(1);
 end
 
-proc _lex_code filename, code, include_paths, included_already -> vector in
+proc _lex_code filename, code, include_paths, included_already -> Vector& in
     var i = 0;
     var tokens = make_vector(0);
     var length = string_len(code);
@@ -370,22 +370,22 @@ proc _lex_code filename, code, include_paths, included_already -> vector in
     return tokens;
 end
 
-proc _lex_file_aux path: cstr, include_paths: vector, included_already: set -> vector in
+proc _lex_file_aux path: cstr, include_paths: Vector&, included_already: set -> Vector& in
     var code = read_file_to_string(path);
     if not code then
-        return cast(NULL, vector);
+        return cast(NULL, Vector&);
     end
     return _lex_code(path, code, include_paths, included_already);
 end
 
-proc lex_file path: cstr, include_paths: vector in
+proc lex_file path: cstr, include_paths: Vector& in
     var included_already = make_set(0, string_eq, string_hash);
     var res = _lex_file_aux(path, include_paths, included_already);
     free_set(included_already);
     return res;
 end
 
-proc handle_include src_file: cstr, line_no: int, tokens: vector, include_paths: vector, included_already: set, arg: String& in
+proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths: Vector&, included_already: set, arg: String& in
     string_append_cstr(arg, ".randy");
 
     var i = 0;

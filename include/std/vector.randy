@@ -2,76 +2,93 @@
 #include string
 #include core
 
-const TVECTOR_buffer = 0;
-const TVECTOR_length = 8;
-const TVECTOR_capacity = 16;
-const sizeof_TVECTOR = 24;
 const sizeof_TVECTOR_ELEMENT = sizeof_PTR;
 
-proc make_vector init: int -> vector in
-    var self = make_string(init * sizeof_TVECTOR_ELEMENT);
-    return cast(self, vector);
+struct Vector in
+    buffer: ptr;
+    length: int;
+    capacity: int;
 end
 
-proc free_vector self: vector in
+proc make_vector init: int -> Vector& in
+    // var self = make_string(init * sizeof_TVECTOR_ELEMENT);
+    // return cast(self, Vector&);
+    var self = cast(malloc(__sizeof(Vector)), Vector&);
+    self.buffer = malloc(sizeof_TVECTOR_ELEMENT * init);
+    self.length = 0;
+    self.capacity = init;
+    return self;
+end
+
+proc free_vector self: Vector& in
     free_string(cast(self, String&));
 end
 
-proc vector_buf self: vector -> ptr in
-    return cast(u64@(self), ptr);
+proc vector_buf self: Vector& -> ptr in
+    return self.buffer;
 end
 
-proc vector_len self: vector -> int in
-    return u64@(self + TVECTOR_length) / sizeof_TVECTOR_ELEMENT;
+proc vector_len self: Vector& -> int in
+    return self.length;
 end
 
-proc vector_cap self: vector -> int in
-    return u64@(self + TVECTOR_capacity) / sizeof_TVECTOR_ELEMENT;
+proc vector_cap self: Vector& -> int in
+    return self.capacity;
 end
 
-proc vector_get self: vector, idx: int -> ptr in
+proc vector_get self: Vector&, idx: int -> ptr in
     // TODO: Bounds check & abort
-    return cast(u64@(u64@(self) + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
+    return cast(u64@(self.buffer + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
 end
 
-proc vector_set self: vector, idx: int, val: ptr in
+proc vector_set self: Vector&, idx: int, val: ptr in
     // TODO: Bounds check & abort
-    u64!(u64@(self) + (idx * sizeof_TVECTOR_ELEMENT), val);
+    u64!(self.buffer + (idx * sizeof_TVECTOR_ELEMENT), val);
 end
 
-proc vector_resize self: vector, new_cap: int in
-    string_resize(cast(self, String&), new_cap * sizeof_TVECTOR_ELEMENT);
-end
-
-proc vector_push self: vector, val: ptr in
-    var len = string_len(cast(self, String&));
-    var cap = string_cap(cast(self, String&));
-    if len >= cap then
-        string_resize(cast(self, String&), (2 * cap) + sizeof_TVECTOR_ELEMENT);
+proc vector_resize self: Vector&, new_cap: int in
+    var new = malloc(new_cap * sizeof_TVECTOR_ELEMENT);
+    var old = self.buffer;
+    var len = self.length;
+    if new_cap < len then
+        len = new_cap;
     end
-    u64!(u64@(self) + len, val);
-    u64!(self + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);
+    memcpy(new, old, len * sizeof_TVECTOR_ELEMENT);
+    free(old);
+    self.buffer = new;
+    self.length = len;
+    self.capacity = new_cap;
 end
 
-proc vector_pop self: vector in
-    var len = string_len(cast(self, String&));
+proc vector_push self: Vector&, val: ptr in
+    var len = self.length;
+    var cap = self.capacity;
+    if len >= cap then
+        vector_resize(self, 2 * cap + 1);
+    end
+    u64!(self.buffer + len * sizeof_TVECTOR_ELEMENT, val);
+    self.length = len + 1;
+end
+
+proc vector_pop self: Vector& in
+    var len = self.length;
     if len > 0 then
-        u64!(self + TVECTOR_length, len - sizeof_TVECTOR_ELEMENT);
+        self.length = len - 1;
     else
         printf("ERROR: vector_pop out of bounds.\n");
         abort();
     end
 end
 
-proc vector_back self: vector -> ptr in
+proc vector_back self: Vector& -> ptr in
     var len = vector_len(self);
     if len > 0 then
-        return cast(u64@(u64@(self) + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
+        return cast(u64@(self.buffer + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
     end
     printf("ERROR: vector_back out of bounds.\n");
     abort();
 end
 
-proc vector_set_len self: vector, len: int in
-    string_set_len(cast(self, String&), len * sizeof_TVECTOR_ELEMENT);
+proc vector_set_len self: Vector&, len: int in
+    self.length = len;
 end

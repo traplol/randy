@@ -147,7 +147,7 @@ proc ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), 
 proc ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
 proc ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
 proc ir_instr_nargs self: ir_instr in return cast(u64@(self + TIR_INSTR_nargs), int); end
-proc ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), vector); end
+proc ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), Vector&); end
 proc ir_instr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_size), int); end
 proc ir_instr_value self: ir_instr in return cast(u64@(self + TIR_INSTR_value), int); end
 proc ir_instr_varargs self: ir_instr in return cast(u64@(self + TIR_INSTR_varargs), bool); end
@@ -476,7 +476,7 @@ proc print_ir_new_proc self in
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
     printf("params=[");
-    var params = cast(u64@(self + TIR_INSTR_params), vector);
+    var params = cast(u64@(self + TIR_INSTR_params), Vector&);
     var i = 0; var len = vector_len(params);
     while i < len do
         printf("'%s'", vector_get(params, i));
@@ -647,11 +647,11 @@ proc print_ir ir: ir_instr in
 end
 
 const TPROC_INFO_label = 0;    // cstr
-const TPROC_INFO_params = 8;   // cstr vector
+const TPROC_INFO_params = 8;   // cstr Vector&
 const TPROC_INFO_varargs = 16; // bool
 const sizeof_TPROC_INFO = 24;
 
-proc make_proc_info label: cstr, params: vector, varargs: bool -> proc_info in
+proc make_proc_info label: cstr, params: Vector&, varargs: bool -> proc_info in
     var self = malloc(sizeof_TPROC_INFO);
     u64!(self + TPROC_INFO_label, label);
     u64!(self + TPROC_INFO_params, params);
@@ -662,8 +662,8 @@ end
 proc proc_info_label self: proc_info -> cstr in
     return cast(u64@(self + TPROC_INFO_label), cstr);
 end
-proc proc_info_params self: proc_info -> vector in
-    return cast(u64@(self + TPROC_INFO_params), vector);
+proc proc_info_params self: proc_info -> Vector& in
+    return cast(u64@(self + TPROC_INFO_params), Vector&);
 end
 proc proc_info_varargs self: proc_info -> bool in
     return cast(u8@(self + TPROC_INFO_varargs), bool);
@@ -735,22 +735,22 @@ proc local_info_n self: local_info in return cast(u64@(self + TLOCAL_INFO_n), in
 proc local_info_offs self: local_info in return cast(u64@(self + TLOCAL_INFO_offs), int); end
 proc local_info_size self: local_info in return cast(u64@(self + TLOCAL_INFO_size), int); end
 
-const TIR_CONTEXT_instructions =  0;  // ir_instruction vector
+const TIR_CONTEXT_instructions =  0;  // ir_instruction Vector&
 const TIR_CONTEXT_label_id     =  8;  // int
 const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : String& -> label
 const TIR_CONTEXT_externs      = 24;  // (cstr, proc_info) map   : name -> proc_info
 const TIR_CONTEXT_labels       = 32;  // string set : all labels
 const TIR_CONTEXT_constants    = 40;  // (cstr, const_info) map  : name -> const_info
-const TIR_CONTEXT_src_locs     = 48;  // src_loc vector
+const TIR_CONTEXT_src_locs     = 48;  // src_loc Vector&
 const TIR_CONTEXT_file_set     = 56;  // cstr set : paths
-const TIR_CONTEXT_files        = 64;  // cstr vector
+const TIR_CONTEXT_files        = 64;  // cstr Vector&
 const TIR_CONTEXT_procs        = 72;  // (cstr, proc_info) map   : name -> proc_info
-const TIR_CONTEXT_proc_locals  = 80;  // (cstr, local_info) map vector  : stack of scope: name -> location
+const TIR_CONTEXT_proc_locals  = 80;  // (cstr, local_info) map Vector&  : stack of scope: name -> location
 const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> global_info
-// Order of definition is preserved in the `globals' vector.
-const TIR_CONTEXT_globals      = 96;  // global_info vector
-const TIR_CONTEXT_break_dests  = 104; // cstr vector -> label to goto
-const TIR_CONTEXT_conti_dests  = 112; // cstr vector -> label to goto
+// Order of definition is preserved in the `globals' Vector&.
+const TIR_CONTEXT_globals      = 96;  // global_info Vector&
+const TIR_CONTEXT_break_dests  = 104; // cstr Vector& -> label to goto
+const TIR_CONTEXT_conti_dests  = 112; // cstr Vector& -> label to goto
 const TIR_CONTEXT_num_locals   = 120; // int : max number of locals allocated
 const TIR_CONTEXT_locals_size  = 128; // int : max size needed for all locals
 const sizeof_TIR_CONTEXT       = 136;
@@ -775,20 +775,20 @@ proc make_ir_context -> ir_context in
     return cast(self, ir_context);
 end
 
-proc ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), vector); end
+proc ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector&); end
 proc ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
 proc ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
 proc ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), set); end
 proc ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), map); end
-proc ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), vector); end
+proc ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector&); end
 proc ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), set); end
-proc ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), vector); end
+proc ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector&); end
 proc ir_procs self: ir_context in return cast(u64@(self + TIR_CONTEXT_procs), map); end
-proc ir_proc_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_proc_locals), vector); end
+proc ir_proc_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_proc_locals), Vector&); end
 proc ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), map); end
-proc ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), vector); end
-proc ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), vector); end
-proc ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), vector); end
+proc ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), Vector&); end
+proc ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), Vector&); end
+proc ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), Vector&); end
 proc ir_num_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_num_locals), int); end
 proc ir_locals_size self: ir_context in return cast(u64@(self + TIR_CONTEXT_locals_size), int); end
 
@@ -1945,7 +1945,7 @@ proc ir_resolve_lazy_idents self in
     end
 end
 
-proc ir_compile_roots self: ir_context, roots: vector, symbol_table: symbol_table, type_table: type_table, compile_order: vector in
+proc ir_compile_roots self: ir_context, roots: Vector&, symbol_table: symbol_table, type_table: type_table, compile_order: Vector& in
 
     if false then
         // compile everything in order

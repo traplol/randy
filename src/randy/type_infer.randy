@@ -14,7 +14,7 @@ proc make_type_infer -> type_infer in
 end
 
 proc type_infer_cur_procs self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_cur_procs), vector);
+    return cast(u64@(self + TTYPE_INFER_cur_procs), Vector&);
 end
 proc type_infer_did_returns self: type_infer in
     return cast(u64@(self + TTYPE_INFER_did_returns), String&);
