@@ -3,8 +3,10 @@
 /out/
 /bootstrap/
 /tmp/
+/utils/
 .gdb_history
 randy.bak
 randy.bak2
 a.out
 ignored.randy
+perf.data
