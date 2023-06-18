@@ -379,6 +379,24 @@ proc tc_check_member_access self, tt, st, ast in
         type = type_deref_type(type);
     end
 
+    if type_is_enum(type) then
+        var enum_vals = type_enum_values(type);
+        var i = 0; var len = enum_vals.length;
+        while i < len do
+            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            if cstr_eq(ev.name, member) then
+                return; // OK.
+            end
+            i += 1;
+        end
+        printf("ERROR: enum `");
+        tt_print_type_name(tt, type);
+        printf("` has no value `%s.`\n", member);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+        return;
+    end
+
     if not type_is_struct(type) then
         printf("ERROR: attempting to access member `%s` on non-struct type.\n", member);
         printf("NOTE: the expression is:");
@@ -433,6 +451,11 @@ proc tc_check_assign_member self, tt, st, ast in
 
     var op = ast_op(ast);
     var lhs_type = tt_get_ast_type(tt, lhs);
+    if type_is_enum(lhs_type) then
+        printf("ERROR: enums are not lvalues.\n");
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
     var rhs_type = tt_get_ast_type(tt, rhs);
 
     if op == TK_Assign then
@@ -447,7 +470,7 @@ proc tc_check_assign_member self, tt, st, ast in
         return; // TODO: Verify this is correct behaviour.
     end
 
-    printf("ERROR: The type of `%s` is `", ast_member(lhs));
+    printf("ERROR: the type of `%s` is `", ast_member(lhs));
     tt_print_type_name(tt, lhs_type);
     printf("` which is not assignable by `");
     tt_print_type_name(tt, rhs_type);
@@ -485,6 +508,7 @@ proc tc_check self, tt, st, ast in
     elif k == AstK_AssignMember then tc_check_assign_member(self, tt, st, ast);
     elif k == AstK_SizeofExpr then // nothing
     elif k == AstK_SizeofType then // nothing
+    elif k == AstK_Enum then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

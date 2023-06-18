@@ -23,6 +23,20 @@ proc field_set_bit_offset self: field, bit_offset: int in
     u64!(self + TFIELD_bit_offset, bit_offset);
 end
 
+struct EnumValue in
+    token: token;
+    name: cstr;
+    value: int;
+end
+
+proc make_enum_value token: token, name: cstr, value: int -> EnumValue& in
+    var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
+    self.token = token;
+    self.name = name;
+    self.value = value;
+    return self;
+end
+
 const TyK_undefined = 0;
 const TyK_void      = 1;
 const TyK_any       = 2;
@@ -50,8 +64,7 @@ const TTYPE_proc_varargs     = 56; // bool
 const TTYPE_struct_fields = 40; // field Vector&
 const TTYPE_struct_procs  = 48; // proc_symbol Vector&
 // enum
-const TTYPE_enum_names  = 40; // cstr Vector&
-const TTYPE_enum_values = 48; // int Vector&
+const TTYPE_enum_values = 40; // EnumValue& Vector&
 // union
 const TTYPE_union_names = 40; // cstr Vector&
 const TTYPE_union_types = 48; // type Vector&
@@ -95,9 +108,8 @@ proc make_type_struct id: int, fields: Vector&, procs: Vector& in
     return self;
 end
 
-proc make_type_enum id: int, enum_names: Vector&, enum_values: Vector& in
+proc make_type_enum id: int, enum_values: Vector& in
     var self = make_type(TyK_enum, id);
-    u64!(self + TTYPE_enum_names, enum_names);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
@@ -138,7 +150,6 @@ end
 proc type_struct_procs self: type in
     return cast(u64@(self + TTYPE_struct_procs), Vector&);
 end
-proc type_enum_names self: type in return cast(u64@(self + TTYPE_enum_names), Vector&); end
 proc type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
 proc type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
 proc type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
@@ -162,7 +173,6 @@ proc type_set_proc_varargs self: type, varargs: bool in
 end
 proc type_set_struct_fields self: type, fields: Vector& in u64!(self + TTYPE_struct_fields, fields); end
 proc type_set_struct_procs self: type, procs: Vector& in u64!(self + TTYPE_struct_procs, procs); end
-proc type_set_enum_names self: type, names: Vector& in u64!(self + TTYPE_enum_names, names); end
 proc type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
 proc type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
 proc type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
@@ -595,6 +605,8 @@ proc tt_detect_cycles self, stype in
 end
 
 proc tt_calculate_structs self in
+    printf("TODO: Check structs for field/proc name collisions.\n  File \"%s\", line %d\n",
+        __FILE__, __LINE__);
     var to_calc = make_queue(0);
     var types = type_table_types(self);
     var i = 0; var len = types.length;

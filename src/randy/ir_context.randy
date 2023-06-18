@@ -1712,11 +1712,30 @@ end
 
 proc ir_emit_struct self, ast, st, tt in
     check_ast_kind(AstK_Struct, ast);
-    //NYI_ERR(__FILE__, __LINE__, "ir_emit_struct");
+end
+
+proc ir_emit_enum self, ast, st, tt in
+    check_ast_kind(AstK_Enum, ast);
 end
 
 proc ir_emit_member_access self, ast, st, tt, deref: bool in
     check_ast_kind(AstK_MemberAccess, ast);
+
+    var t = tt_get_ast_type(tt, ast);
+    if type_is_enum(t) then
+        var enum_vals = type_enum_values(t);
+        var i = 0; var len = enum_vals.length;
+        var member = ast_member(ast);
+        while i < len do
+            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            if cstr_eq(ev.name, member) then
+                ir_append(self, make_ir_push_int(ev.value));
+                return;
+            end
+            i += 1;
+        end
+        assert(false, "Error should have been reported in type checker\n");
+    end
 
     // Member access is essentially a left-associative binary operator and when
     // they are chained together in the form of `a.b.c.d`, they act as a linked
@@ -1734,10 +1753,7 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
         while type_is_reference(struct_type) do
             struct_type = type_deref_type(struct_type);
         end
-        if not type_is_struct(struct_type) then
-            // error is reported from type checker.
-            return;
-        end
+        assert(type_is_struct(struct_type), "Error should have been reported in type checker\n");
         var fields = type_struct_fields(struct_type);
         var field = NULL;
         var i = 0; var len = fields.length;
@@ -1851,6 +1867,7 @@ proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     elif k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
     elif k == AstK_MemberAccess then ir_emit_member_access(self, ast, st, tt, true);
     elif k == AstK_AssignMember then ir_emit_assign_member(self, ast, st, tt);
+    elif k == AstK_Enum then ir_emit_enum(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

@@ -1,5 +1,6 @@
 ====================================================================================================
-TODO:
+TODO: figure out a way to scope types and then allow nested types such as structs within structs
+      or enums within structs. this will be needed to make unions nice to use.
 
 every procedure has its own type because a procedure without type declarations won't have a concrete
 type until after type inference. this means we need a special equality comparison for procedure
@@ -64,21 +65,40 @@ features:
   - [x] global/static variables
   - [x] variable scoping
   - [x] outline enitre type checking and type inference model
-  - [ ] basic type checking
+  - [~] full type checking
+    - [x] basic type checking
+    - [ ] remove `ptr`'s ability to auto-cast to reference types
   - [ ] variadic functions
   - [ ] native array support
   - [x] bitwise ops: ^ | & << >>
   - [x] assignment ops: += -= *= etc
-  - [ ] structs
+  - [~] structs
+    - [x] basic structs
+    - [x] nested structs
+    - [x] structs with references
+    - [x] auto-deref with . operator
+    - [ ] procs
+    - [ ] meta/reflection generation
+    - [x] c default align/layout
+    - [ ] #packed    - no alignment or padding
+    - [ ] #optimized - re-order struct for best memory layout
   - [ ] enums
+    - [x] basic sequential enum
+    - [x] specific enum values
+    - [ ] meta/reflection generation
+    - [ ] constant expressions for values
+    - [ ] more than just integer enums
   - [ ] tagged unions
   - [ ] tail call elimination
   - [ ] inlinable functions
        - probably implement an `inline` keyword and leave inlining at the discretion of the
          programmer. there should also be some metric to determine if a function is even inlinable
          and when it's not, just give a warning and emit a regular call.
-  - [ ] closures
+       - [ ] allow inline at call site
+       - [ ] allow inline at proc definition
+  - [x] closures
        - do I really care about this or is it just more uneeded complexity?
+       -> no closures are not something to care about this early
   - [x] decide on memory model, manual? GC? mixed? opt-in GC?
      -> full manual with analysis for and warnings about dangling references.
   - [ ] basic `match` syntax, similar to switch in other languages with extra features.

@@ -7,6 +7,7 @@ const SK_extern = 4;
 const SK_asm    = 5;
 const SK_param  = 6;
 const SK_local  = 7;
+const SK_enum   = 8;
 
 const TSYMBOL_kind   = 0;  // SK
 const TSYMBOL_name   = 8;  // cstr
@@ -39,6 +40,7 @@ proc symbol_is_extern self: symbol in return symbol_kind(self) == SK_extern; end
 proc symbol_is_asm self: symbol in return symbol_kind(self) == SK_asm; end
 proc symbol_is_param self: symbol in return symbol_kind(self) == SK_param; end
 proc symbol_is_local self: symbol in return symbol_kind(self) == SK_local; end
+proc symbol_is_enum self: symbol in return symbol_kind(self) == SK_enum; end
 
 // This symbol table keeps track of identifiers relative to scope and internalizes
 // those idents to a specific id. In this case the id happens to be the same cstr
@@ -97,6 +99,9 @@ proc st_make_param self, ident, token in
 end
 proc st_make_local self, ident, token in
     return st_make_symbol(self, SK_local, ident, token);
+end
+proc st_make_enum self, ident, token in
+    return st_make_symbol(self, SK_enum, ident, token);
 end
 
 proc st_prepare_undef self, ident, token in

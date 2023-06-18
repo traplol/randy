@@ -29,6 +29,7 @@ const AstK_MemberAccess = 23;
 const AstK_AssignMember = 24;
 const AstK_SizeofExpr   = 25;
 const AstK_SizeofType   = 26;
+const AstK_Enum         = 27;
 
 proc ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -58,6 +59,7 @@ proc ast_kind_cstr k: int in
     if k == AstK_AssignMember then return "AstK_AssignMember"; end
     if k == AstK_SizeofExpr then return "AstK_SizeofExpr"; end
     if k == AstK_SizeofType then return "AstK_SizeofType"; end
+    if k == AstK_Enum then return "AstK_Enum"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -67,6 +69,7 @@ proc ast_requires_semi k in
     elif k == AstK_While then return false;
     elif k == AstK_InlineAsm then return false;
     elif k == AstK_Struct then return false;
+    elif k == AstK_Enum then return false;
     else
         return true;
     end
@@ -143,6 +146,10 @@ const TAST_assign_expr = 32; // ast
 // SizeofExpr/Type
 const TAST_expr        = 16; // ast
 const TAST_type        = 24; // type
+// Enum
+const TAST_ident       = 16; // cstr
+const TAST_enum        = 24; // type
+const TAST_values      = 32; // EnumValue& Vector&
 
 const sizeof_TAST      = 40;
 
@@ -349,6 +356,15 @@ proc ast_change_sizeof_expr_to_type self: ast, type: type in
     u64!(self + TAST_type, type);
 end
 
+proc make_ast_enum token: token, ident: cstr, enum_: type, values: Vector& -> ast in
+    var self = _make_ast(AstK_Enum, false, token);
+    u64!(self + TAST_ident, ident);
+    u64!(self + TAST_enum, enum_);
+    u64!(self + TAST_values, values);
+    return self;
+end
+
+
 proc ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
 proc ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end
 proc ast_token self: ast in return cast(u64@(self + TAST_token), token); end
@@ -374,6 +390,7 @@ proc ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector&); end
 proc ast_procs self: ast in return cast(u64@(self + TAST_procs), Vector&); end
 proc ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 proc ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
+proc ast_values self: ast in return cast(u64@(self + TAST_values), Vector&); end
 
 proc ast_src_loc self: ast in
     var token = ast_token(self);
@@ -741,6 +758,23 @@ proc _print_ast_sizeof_type ast, indent in
     printf(")");
 end
 
+proc _print_ast_enum ast, indent in
+    var enum_name = ast_ident(ast);
+    var enum_vals = ast_values(ast);
+
+    printf("enum %s in\n", enum_name);
+    var i = 0; var len = enum_vals.length;
+    while i < len do
+        _print_indent(indent + 1);
+        var ev = cast(vector_get(enum_vals, i), EnumValue&);
+        printf("%s = %d;\n", ev.name, ev.value);
+        i += 1;
+    end
+    _print_indent(indent);
+    printf("end\n");
+    
+end
+
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -770,6 +804,7 @@ proc _print_ast ast, indent in
     elif k == AstK_AssignMember then _print_ast_assign_member(ast, indent);
     elif k == AstK_SizeofExpr then _print_ast_sizeof_expr(ast, indent);
     elif k == AstK_SizeofType then _print_ast_sizeof_type(ast, indent);
+    elif k == AstK_Enum then _print_ast_enum(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
