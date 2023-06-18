@@ -50,6 +50,16 @@ proc _tc_check_is_scalar_type tt, ast, type in
     g_Errors += 1;
 end
 
+proc _tc_check_ident_has_type st, ident, ast in
+    var sym = st_get_symbol(st, ident);
+    var type = symbol_type(sym);
+    if not type or type_size(type) == 0 then
+        printf("ERROR: type of `%s` is undefined.\n", ident);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+end
+
 proc _tc_check_is_int_like tt, ast, type in
     if type_is_int_like(type) then
         return;
@@ -73,6 +83,11 @@ proc tc_check_body self, tt, st, body in
     end
 end
 
+proc tc_check_ident self, tt, st, ast in
+    check_ast_kind(AstK_Ident, ast);
+    _tc_check_ident_has_type(st, ast_ident(ast), ast);
+end
+
 proc tc_check_call self, tt, st, ast in
     check_ast_kind(AstK_Call, ast);
     tc_check(self, tt, st, ast_expr(ast));
@@ -84,11 +99,6 @@ proc tc_check_call self, tt, st, ast in
         print_ast(ast);
         print_ast_src_loc(ast);
         g_Errors += 1;
-    end
-
-    // TODO: remove this when function types have a first class representation.
-    if call_type == tt_ptr_type(tt) then
-        return;
     end
 
     var param_types = type_proc_parameters(call_type);
@@ -106,7 +116,7 @@ proc tc_check_call self, tt, st, ast in
         end
         assert(arg_type);
         if not types_assignable(tt, param_type, arg_type) then
-            printf("\nERROR: Type mismatch for argument %d: ", i);
+            printf("ERROR: Type mismatch for argument %d: ", i);
             print_ast(ast);
             printf("NOTE: The expected type is `");
             tt_print_type_name(tt, param_type);
@@ -118,8 +128,28 @@ proc tc_check_call self, tt, st, ast in
         end
         i += 1;
     end
-    if i < len and not type_proc_varargs(call_type) then
 
+    len = args.length;
+    while i < len do
+        tc_check(self, tt, st, vector_get(args, i));
+        i += 1;
+    end
+
+    if (i < param_types.length) or (i > param_types.length and not type_proc_varargs(call_type)) then
+        var expr = ast_expr(ast);
+        if ast_kind(expr) == AstK_Ident then
+            printf("ERROR: call to `%s` expects %d arguments but got %d.\n",
+                ast_ident(expr),
+                param_types.length,
+                args.length);
+        else
+            printf("ERROR: call expects %d arguments but got %d.\n",
+                self.current_proc_name,
+                param_types.length,
+                args.length);
+        end
+        print_ast_src_loc(ast);
+        g_Errors += 1;
     end
 end
 
@@ -161,6 +191,7 @@ end
 
 proc tc_check_var_decl self, tt, st, ast in
     check_ast_kind(AstK_VarDecl, ast);
+    _tc_check_ident_has_type(st, ast_ident(ast), ast);
 end
 
 proc tc_check_var_assign self, tt, st, ast in
@@ -226,7 +257,7 @@ proc tc_check_procedure self, tt, st, ast in
         var param_sym = st_get_symbol(st, param);
         assert(param_sym);
         var param_type = symbol_type(param_sym);
-        if not param_type or param_type == any then
+        if not param_type or type_size(param_type) == 0 then
             vector_push(errors, param_sym);
         end
         i += 1;
@@ -237,12 +268,9 @@ proc tc_check_procedure self, tt, st, ast in
         while i < len do
             var sym = vector_get(errors, i);
             var type = symbol_type(sym);
-            printf("ERROR: `%s`", symbol_name(sym));
-            if not type then
-                printf(" has no type.\n");
-            elif type == any then
-                printf(" has type `any.`\n");
-            end
+            printf("ERROR: `%s` has type `", symbol_name(sym));
+            tt_print_type_name(tt, type);
+            printf(".`\n");
             i += 1;
         end
         print_ast_src_loc(ast);
@@ -334,7 +362,65 @@ end
 proc tc_check_member_access self, tt, st, ast in
     // field resolution happened in type inference so not much needed to check here
     check_ast_kind(AstK_MemberAccess, ast);
-    tc_check(self, tt, st, ast_expr(ast));
+    var expr = ast_expr(ast);
+    var member = ast_member(ast);
+    tc_check(self, tt, st, expr);
+    var type = tt_get_ast_type(tt, expr);
+    if not type or type_size(type) == 0 then
+        printf("ERROR: attempting to access member `%s` on undefined type.\n", member);
+        printf("NOTE: the expression is:");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+        return;
+    end
+
+    while type_is_reference(type) do
+        type = type_deref_type(type);
+    end
+
+    if not type_is_struct(type) then
+        printf("ERROR: attempting to access member `%s` on non-struct type.\n", member);
+        printf("NOTE: the expression is:");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+        return;
+    end
+
+    var found = false;
+    var fields = type_struct_fields(type);
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field = vector_get(fields, i);
+        if cstr_eq(field_name(field), member) then
+            found = true;
+            break;
+        end
+        i += 1;
+    end
+    if not found then
+        var procs = type_struct_procs(type);
+        i = 0; len = procs.length;
+        while i < len do
+            var proc_ = vector_get(procs, i);
+            if cstr_eq(symbol_name(proc_), member) then
+                found = true;
+                break;
+            end
+            i += 1;
+        end
+    end
+
+    if not found then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` has no type named `%s`.\n", member);
+        printf("NOTE: the expression is:");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
 end
 
 proc tc_check_assign_member self, tt, st, ast in
@@ -372,7 +458,7 @@ end
 
 proc tc_check self, tt, st, ast in
     var k = ast_kind(ast);
-    if k == AstK_Ident then // nothing
+    if k == AstK_Ident then tc_check_ident(self, tt, st, ast);
     elif k == AstK_Integer then // nothing
     elif k == AstK_String then //nothing
     elif k == AstK_Call then tc_check_call(self, tt, st, ast);

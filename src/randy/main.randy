@@ -235,6 +235,11 @@ proc main argc: int, argv: ptr in
             print_timespan("Type checking took: ", starttime, endtime);
         end
 
+        if g_Errors != 0 then
+            printf("Too many errors to continue.\n");
+            return 1;
+        end
+
         time(starttime);
         var irctx = make_ir_context();
         ir_compile_roots(irctx, roots, symbol_table, type_table, compile_order);
@@ -247,7 +252,7 @@ proc main argc: int, argv: ptr in
             ir_print_whole_ir(irctx);
         end
 
-        if not will_compile or g_Errors != 0 then
+        if not will_compile then
             return 0;
         end
 

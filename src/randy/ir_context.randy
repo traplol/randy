@@ -406,12 +406,12 @@ proc print_ir_call self in
 end
 proc print_ir_call_lazy_ident self in
     printf("(IR.CallLazyIdent ");
-    printf("ident=<Token:%s>, ", token_value(u64@(self + TIR_INSTR_ident)));
+    printf("ident=<Token:%s>, ", token_value(cast(u64@(self + TIR_INSTR_ident), token)));
     printf("nargs=%d)\n", u64@(self + TIR_INSTR_nargs));
 end
 proc print_ir_lazy_ident self in
     printf("(IR.LazyIdent ");
-    printf("ident=<Token:%s>)\n", token_value(u64@(self + TIR_INSTR_ident)));
+    printf("ident=<Token:%s>)\n", token_value(cast(u64@(self + TIR_INSTR_ident), token)));
 end
 proc print_ir_close_proc self in
     printf("(IR.CloseProc ");
@@ -1414,38 +1414,26 @@ end
 proc ir_emit_var_decl self, ast, st, tt in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
-    if ir_is_cur_scope_local(self, ident) then
-        printf("ERROR: local `%s` already declared.\n", ident);
-        ir_print_src_loc(self);
-        exit(1);
-    end
+    assert(not ir_is_cur_scope_local(self, ident),
+        "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
     assert(sym);
     var sym_type = symbol_type(sym);
-    if sym_type and type_size(sym_type) == 0 then
-        printf("ERROR: type of `%s` is undefined.\n", ident);
-        ir_print_src_loc(self);
-        exit(1);
-    end
+    assert(sym_type and type_size(sym_type) != 0,
+        "Compiler bug: Error should have been handled in type checker.\n");
     ir_new_local(self, ident, st);
 end
 
 proc ir_emit_var_assign self, ast, st, tt in
     check_ast_kind(AstK_VarAssign, ast);
     var ident = ast_ident(ast);
-    if ir_is_cur_scope_local(self, ident) then
-        printf("ERROR: local `%s` already declared.\n", ident);
-        ir_print_src_loc(self);
-        exit(1);
-    end
+    assert(not ir_is_cur_scope_local(self, ident),
+        "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
     assert(sym);
     var sym_type = symbol_type(sym);
-    if sym_type and type_size(sym_type) == 0 then
-        printf("ERROR: type of `%s` is undefined.\n", ident);
-        ir_print_src_loc(self);
-        exit(1);
-    end
+    assert(sym_type and type_size(sym_type) != 0,
+        "Compiler bug: Error should have been handled in type checker.\n");
     ir_compile(self, ast_assign_expr(ast), st, tt);
     var n = ir_new_local(self, ident, st);
     var offs = ir_get_local_offset(self, ident);
@@ -1752,10 +1740,13 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
         var member = ast_member(head);
         var type = tt_get_ast_type(tt, ast_expr(head));
         var struct_type = type;
-        if type_is_reference(type) then
-            struct_type = type_deref_type(type);
+        while type_is_reference(struct_type) do
+            struct_type = type_deref_type(struct_type);
         end
-        assert(type_is_struct(struct_type), "TODO: catch this bug in type checker.\n");
+        if not type_is_struct(struct_type) then
+            // error is reported from type checker.
+            return;
+        end
         var fields = type_struct_fields(struct_type);
         var field = NULL;
         var i = 0; var len = fields.length;
