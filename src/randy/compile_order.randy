@@ -47,6 +47,11 @@ proc _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     elif k == AstK_MemberAccess then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    elif k == AstK_AssignMember then
+        _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
+        _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
+    // elif k == AstK_SizeofExpr then
+    //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end
 end
 

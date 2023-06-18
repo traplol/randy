@@ -96,7 +96,12 @@ proc parse_type ts, st, tt, is_instance in
     if inst_params or generic_params then
         NYI_ERR(__FILE__, __LINE__, "generic types");
     end
-    return tt_get_type_or_make_undefined(tt, token_value(type_ident));
+
+    var type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
+    if ts_accept(ts, TK_Amper) then
+        type = tt_get_reference_to_type(tt, type);
+    end
+    return type;
 end
 
 proc parse_var ts, st, tt in
@@ -193,20 +198,27 @@ proc parse_return ts, st, tt in
     return make_ast_return(return_, expr);
 end
 
-proc parse_assign_op ts, st, tt, op in
-    var ident = ts_expect(ts, TK_Ident);
+proc parse_assign_op ts, st, tt, lhs, op in
     var op_tk = ts_expect(ts, op);
     var expr = parse_expression(ts, st, tt);
     if not expr then
         printf("ERROR: Expected expression after '%s'\n", token_value(op_tk));
-        print_token_loc(ident);
+        print_token_loc(op_tk);
         exit(1);
     end
-    var symbol = st_get_symbol(st, token_value(ident));
-    if not symbol then
-        symbol = st_prepare_undef(st, token_value(ident), ident);
+    var k = ast_kind(lhs);
+    if k == AstK_Ident then
+        // LEAK: I think this ends up leaking the LHS AST node
+        var symbol = st_get_symbol(st, ast_ident(lhs));
+        if not symbol then
+            symbol = st_prepare_undef(st, ast_ident(lhs), ast_token(lhs));
+        end
+        return make_ast_assign_op(op_tk, symbol_name(symbol), op, expr);
+    elif k == AstK_MemberAccess then
+        return make_ast_assign_member(op_tk, lhs, op, expr);
+    else
+        assert(false, "parse_assign_op for %s (%d) not implemented.\n", ast_kind_cstr(k), k);
     end
-    return make_ast_assign_op(ident, symbol_name(symbol), op, expr);
 end
 
 proc parse_pointer_op ts, st, tt in
@@ -278,6 +290,26 @@ proc parse_cast ts, st, tt in
     return make_ast_cast(cast_, expr, type);
 end
 
+proc parse_sizeof ts, st, tt in
+    var sizeof_ = ts_expect(ts, TK_KW__sizeof);
+    ts_expect(ts, TK_LParen);
+    var idx = ts_idx(ts);
+    var expr = parse_expression(ts, st, tt);
+    if not expr then
+        ts_revert(ts, idx);
+        var type = parse_type(ts, st, tt, true);
+        ts_expect(ts, TK_RParen);
+        return make_ast_sizeof_type(sizeof_, type);
+    end
+    ts_expect(ts, TK_RParen);
+    return make_ast_sizeof_expr(sizeof_, expr);
+end
+
+proc parse_offsetof ts, st, tt in
+    NYI_ERR(__FILE__, __LINE__, "parse_offsetof");
+    return NULL;
+end
+
 proc parse_assert ts, st, tt in
     var assert_ = ts_expect(ts, TK_KW_assert);
     ts_expect(ts, TK_LParen);
@@ -316,7 +348,7 @@ proc parse_assert ts, st, tt in
     end
 
     printf_args = make_vector(1);
-    var string = string_from_cstr(" File \"");
+    var string = string_from_cstr("  File \"");
     string_append_cstr(string, token_filename(assert_));
     string_append_cstr(string, "\", line ");
     string_append_int(string, token_line(assert_));
@@ -369,6 +401,10 @@ proc parse_primary ts, st, tt in
         return parse_pointer_op(ts, st, tt);
     elif k == TK_KW_cast then
         return parse_cast(ts, st, tt);
+    elif k == TK_KW__offsetof then
+        return parse_offsetof(ts, st, tt);
+    elif k == TK_KW__sizeof then
+        return parse_sizeof(ts, st, tt);
     end
     return NULL;
 end
@@ -380,18 +416,21 @@ proc parse_postfix ts, st, tt in
         return NULL;
     end
 
-    if ts_accept(ts, TK_Dot) then
-        var member = ts_expect(ts, TK_Ident);
-        return make_ast_member_access(peek, expr, token_value(member));
+    while ts_peekk_one_of_2(ts, TK_LParen, TK_Dot) do
+        var tk = ts_next(ts);
+        var k = token_kind(tk);
+        if k == TK_LParen then
+            var args = make_vector(0);
+            parse_args_until(ts, st, tt, args, TK_RParen);
+            ts_expect(ts, TK_RParen);
+            expr = make_ast_call(peek, expr, args);
+        elif k == TK_Dot then
+            var member = ts_expect(ts, TK_Ident);
+            expr = make_ast_member_access(tk, expr, token_value(member));
+        end
     end
 
-    if not ts_accept(ts, TK_LParen) then
-        return expr;
-    end
-    var args = make_vector(0);
-    parse_args_until(ts, st, tt, args, TK_RParen);
-    ts_expect(ts, TK_RParen);
-    return make_ast_call(peek, expr, args);
+    return expr;
 end
 
 proc parse_prefix ts, st, tt in
@@ -616,45 +655,37 @@ proc parse_statement ts: token_stream, st: symbol_table, tt: type_table -> ast i
     elif ts_peekk(ts, TK_KW_assert) then
         stmt = parse_assert(ts, st, tt);
         expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_Assign) then
-        stmt = parse_assign_op(ts, st, tt, TK_Assign);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_PlusEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_PlusEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_MinusEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_MinusEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_StarEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_StarEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_SlashEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_SlashEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_PercentEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_PercentEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_LShiftEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_LShiftEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_RShiftEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_RShiftEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_AmperEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_AmperEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_CaretEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_CaretEq);
-        expect_semi = true;
-    elif ts_peekk2(ts, TK_Ident, TK_BarEq) then
-        stmt = parse_assign_op(ts, st, tt, TK_BarEq);
-        expect_semi = true;
     elif ts_peekk_one_of_4(ts, TK_KW_u8!, TK_KW_u16!, TK_KW_u32!, TK_KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
         expect_semi = true;
     else
-        stmt = parse_expression(ts, st, tt);
         expect_semi = true;
+        stmt = parse_expression(ts, st, tt);
+        if stmt and (ast_kind(stmt) == AstK_Ident or ast_kind(stmt) == AstK_MemberAccess) then
+            if ts_peekk(ts, TK_Assign) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_Assign);
+            elif ts_peekk(ts, TK_PlusEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_PlusEq);
+            elif ts_peekk(ts, TK_MinusEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_MinusEq);
+            elif ts_peekk(ts, TK_StarEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_StarEq);
+            elif ts_peekk(ts, TK_SlashEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_SlashEq);
+            elif ts_peekk(ts, TK_PercentEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_PercentEq);
+            elif ts_peekk(ts, TK_LShiftEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_LShiftEq);
+            elif ts_peekk(ts, TK_RShiftEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_RShiftEq);
+            elif ts_peekk(ts, TK_AmperEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_AmperEq);
+            elif ts_peekk(ts, TK_CaretEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_CaretEq);
+            elif ts_peekk(ts, TK_BarEq) then
+                stmt = parse_assign_op(ts, st, tt, stmt, TK_BarEq);
+            end
+        end
     end
 
     if not stmt then
@@ -958,17 +989,33 @@ proc parse_struct ts, st, tt in
     var fields = make_vector(0);
     var procs = make_vector(0);
     var proc_symbols = make_vector(0);
+    var field_names = make_set(0, cstr_eq, cstr_hash);
     while not ts_peekk(ts, TK_KW_end) do
+        var field_name;
         if ts_peekk(ts, TK_KW_proc) then
             var proc_ = parse_proc(ts, st, tt);
             vector_push(procs, proc_);
             vector_push(proc_symbols, st_get_symbol(st, ast_ident(proc_)));
+            field_name = ast_ident(proc_);
+            if set_contains(field_names, field_name) then
+                printf("ERROR: struct `%s` already contains a member named `%s.`\n",
+                    tt_get_type_name(tt, struct_type), field_name);
+                print_ast_src_loc(proc_);
+                exit(1);
+            end
         elif ts_peekk(ts, TK_Ident) then
             var field_ident = ts_next(ts);
             ts_expect(ts, TK_Colon);
             var field_type = parse_type(ts, st, tt, true);
             ts_expect(ts, TK_Semicolon);
             vector_push(fields, make_field(field_type, token_value(field_ident), -1, field_ident));
+            field_name = token_value(field_ident);
+            if set_contains(field_names, field_name) then
+                printf("ERROR: struct `%s` already contains a member named `%s.`\n",
+                    tt_get_type_name(tt, struct_type), field_name);
+                print_token_loc(field_ident);
+                exit(1);
+            end
         else
             var tk = ts_peek(ts);
             printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(token_kind(tk)));
@@ -976,6 +1023,7 @@ proc parse_struct ts, st, tt in
             print_token_loc(tk);
             exit(1);
         end
+        set_add(field_names, field_name);
     end
     ts_expect(ts, TK_KW_end);
 

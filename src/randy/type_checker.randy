@@ -1,18 +1,4 @@
 
-proc _tc_print_type_name tt, type in
-    if type then
-        if type_is_procedure(type) then
-            var string = tt_get_proc_type_name(tt, type);
-            printf("%s", string_cstr(string));
-            free_string(string);
-        else
-            printf("%s", tt_get_type_name(tt, type));
-        end
-    else
-        printf("{no type}");
-    end
-end
-
 proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
     var sym_type = symbol_type(lhs_sym);
     if not sym_type or sym_type == tt_any_type(tt) then
@@ -30,9 +16,9 @@ proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
         
     if not types_assignable(tt, sym_type, rhs_type) then
         printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
-        _tc_print_type_name(tt, sym_type);
+        tt_print_type_name(tt, sym_type);
         printf("` which is not assignable by `");
-        _tc_print_type_name(tt, rhs_type);
+        tt_print_type_name(tt, rhs_type);
         printf(".`\n");
         print_ast_src_loc(ast);
         exit(1);
@@ -44,7 +30,7 @@ proc _tc_check_is_scalar_type tt, ast, type in
         return;
     end
     printf("ERROR: used type `");
-    _tc_print_type_name(tt, type);
+    tt_print_type_name(tt, type);
     printf("` where scalar is required.\n");
     print_ast_src_loc(ast);
 end
@@ -54,7 +40,7 @@ proc _tc_check_is_int_like tt, ast, type in
         return;
     end
     printf("ERROR: used type `");
-    _tc_print_type_name(tt, type);
+    tt_print_type_name(tt, type);
     printf("` where `int`-like is required.\n");
     print_ast_src_loc(ast);
 end
@@ -107,9 +93,9 @@ proc tc_check_call tt, st, ast in
             printf("\nERROR: Type mismatch for argument %d: ", i);
             print_ast(ast);
             printf("NOTE: The expected type is `");
-            _tc_print_type_name(tt, param_type);
+            tt_print_type_name(tt, param_type);
             printf("` but got `");
-            _tc_print_type_name(tt, arg_type);
+            tt_print_type_name(tt, arg_type);
             printf(".`\n");
             print_ast_src_loc(ast);
             //exit(1);
@@ -182,9 +168,9 @@ proc tc_check_assign_op tt, st, ast in
         end
 
         printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
-        _tc_print_type_name(tt, lhs_type);
+        tt_print_type_name(tt, lhs_type);
         printf("` which is not assignable by `");
-        _tc_print_type_name(tt, rhs_type);
+        tt_print_type_name(tt, rhs_type);
         printf(".`\n");
         print_ast_src_loc(ast);
         exit(1);
@@ -299,6 +285,45 @@ proc tc_check_cast tt, st, ast in
     tc_check(tt, st, ast_expr(ast));
 end
 
+proc tc_check_member_access tt, st, ast in
+    // field resolution happened in type inference so not much needed to check here
+    check_ast_kind(AstK_MemberAccess, ast);
+    tc_check(tt, st, ast_expr(ast));
+end
+
+proc tc_check_assign_member tt, st, ast in
+    check_ast_kind(AstK_AssignMember, ast);
+
+    var lhs = ast_lhs(ast);
+    var rhs = ast_rhs(ast);
+    tc_check(tt, st, lhs);
+    tc_check(tt, st, rhs);
+
+    var op = ast_op(ast);
+    var lhs_type = tt_get_ast_type(tt, lhs);
+    var rhs_type = tt_get_ast_type(tt, rhs);
+
+    if op == TK_Assign then
+        if types_assignable(tt, lhs_type, rhs_type) then
+            return;
+        end
+    elif op == TK_PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        return; // reference += int_like
+    elif op == TK_MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        return; // reference -= int_like
+    elif types_assignable(tt, lhs_type, rhs_type) then
+        return; // TODO: Verify this is correct behaviour.
+    end
+
+    printf("ERROR: The type of `%s` is `", ast_member(lhs));
+    tt_print_type_name(tt, lhs_type);
+    printf("` which is not assignable by `");
+    tt_print_type_name(tt, rhs_type);
+    printf(".`\n");
+    print_ast_src_loc(ast);
+    exit(1);
+end
+
 proc tc_check tt, st, ast in
     var k = ast_kind(ast);
     if k == AstK_Ident then // nothing
@@ -316,7 +341,7 @@ proc tc_check tt, st, ast in
     elif k == AstK_PointerWrite then tc_check_pointer_write(tt, st, ast);
     elif k == AstK_Prefix then tc_check_prefix_op(tt, st, ast);
     elif k == AstK_Const then tc_check_const(tt, st, ast);
-    elif k == AstK_Extern then //
+    elif k == AstK_Extern then // nothing
     elif k == AstK_InlineAsm then // nothing
     elif k == AstK_Global then tc_check_global(tt, st, ast);
     elif k == AstK_Break then // nothing
@@ -324,9 +349,13 @@ proc tc_check tt, st, ast in
     elif k == AstK_AssignOp then tc_check_assign_op(tt, st, ast);
     elif k == AstK_Struct then // nothing
     elif k == AstK_Cast then tc_check_cast(tt, st, ast);
+    elif k == AstK_MemberAccess then tc_check_member_access(tt, st, ast);
+    elif k == AstK_AssignMember then tc_check_assign_member(tt, st, ast);
+    elif k == AstK_SizeofExpr then // nothing
+    elif k == AstK_SizeofType then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
-        printf("Unhandled AstK: %d\n", k);
+        printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));
         exit(1);

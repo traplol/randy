@@ -17,8 +17,28 @@ proc x86_64_emit_get_local cc, ir in
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    if g_Experimental then
+        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+    end
     var str = make_string(20);
     string_append_cstr(str, "    movq -");
+    string_append_int(str, offs);
+    string_append_cstr(str, "(%rbp), %rax");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+    cc_out(cc, "    pushq %rax");
+end
+
+proc x86_64_emit_ref_local cc, ir in
+    check_ir_kind(IRK_RefLocal, ir);
+    //print_ir(ir);
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    if g_Experimental then
+        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+    end
+    var str = make_string(20);
+    string_append_cstr(str, "    leaq -");
     string_append_int(str, offs);
     string_append_cstr(str, "(%rbp), %rax");
     cc_out(cc, string_cstr(str));
@@ -332,6 +352,9 @@ proc x86_64_emit_set_local cc, ir in
     cc_out(cc, "    popq %rax");
     var str = make_string(20);
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    if g_Experimental then
+        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+    end
     string_append_cstr(str, "    movq %rax, -");
     string_append_int(str, offs);
     string_append_cstr(str, "(%rbp)");
@@ -349,11 +372,14 @@ proc x86_64_emit_new_proc cc, ir in
     cc_out_label(cc, label);
     cc_out(cc, "    pushq %rbp");
     cc_out(cc, "    movq %rsp, %rbp");
-    var n = ir_instr_nlocals(ir);
+    var n = ir_instr_nlocals(ir) * REG_SIZE;
+    if g_Experimental then
+        n = ir_instr_expr_size(ir) / BYTE_BITS;
+    end
     if n > 0 then
         var str = make_string(20);
         string_append_cstr(str, "    subq $");
-        string_append_int(str, n * REG_SIZE);
+        string_append_int(str, n);
         string_append_cstr(str, ", %rsp");
         cc_out(cc, string_cstr(str));
         free_string(str);
@@ -366,6 +392,9 @@ proc x86_64_emit_set_local_arg cc, ir in
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var local_n = ir_instr_n(ir);
     var offs = REG_SIZE * (local_n+1);
+    if g_Experimental then
+        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+    end
     var arg_n = ir_instr_arg(ir);
     var str = make_string(20);
     if arg_n < SYSV_REGISTERS then
@@ -378,6 +407,9 @@ proc x86_64_emit_set_local_arg cc, ir in
         free_string(str);
     else
         var n = (local_n - SYSV_REGISTERS + 2) * REG_SIZE;
+        if g_Experimental then
+            assert(false, "todo: ran out of registers\n");
+        end
         string_append_cstr(str, "    movq ");
         string_append_int(str, n);
         string_append_cstr(str, "(%rbp), %rax");
@@ -644,6 +676,26 @@ proc x86_64_emit_ptr_copy cc, ir in
     free_string(str);
 end
 
+proc x86_64_emit_ptr_offset cc, ir in
+    check_ir_kind(IRK_PtrOffset, ir);
+    //print_ir(ir);
+    var offset = ir_instr_offset(ir) / BYTE_BITS;
+    if offset == 0 then
+        return;
+    end
+    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out(cc, "    popq %rax");
+
+    var str = make_string(20);
+    string_append_cstr(str, "    leaq ");
+    string_append_int(str, offset);
+    string_append_cstr(str, "(%rax), %rax");
+    cc_out(cc, string_cstr(str));
+    free_string(str);
+
+    cc_out(cc, "    pushq %rax");
+end
+
 proc x86_64_emit_bit_not cc, ir in
     check_ir_kind(IRK_BitNot, ir);
     //print_ir(ir);
@@ -712,6 +764,18 @@ proc x86_64_emit_get_global cc, ir in
     free_string(str);
 end
 
+proc x86_64_emit_ref_global cc, ir in
+    check_ir_kind(IRK_RefGlobal, ir);
+    //print_ir(ir);
+    var str = make_string(20);
+    string_append_cstr(str, "    leaq ");
+    string_append_cstr(str, ir_instr_label(ir));
+    string_append_cstr(str, ", %rax");
+    cc_out(cc, string_cstr(str));
+    cc_out(cc, "    pushq %rax");
+    free_string(str);
+end
+
 proc x86_64_emit_negative cc, ir in
     check_ir_kind(IRK_Negative, ir);
     //print_ir(ir);
@@ -772,9 +836,12 @@ proc x86_64_emit_instruction cc: compiler_context, ir: ir_instr in
     elif k == IRK_ScopeOpen then // nothing to do
     elif k == IRK_ScopeClose then // nothing to do
     elif k == IRK_PtrCopy then x86_64_emit_ptr_copy(cc, ir);
+    elif k == IRK_PtrOffset then x86_64_emit_ptr_offset(cc, ir);
+    elif k == IRK_RefLocal then x86_64_emit_ref_local(cc, ir);
+    elif k == IRK_RefGlobal then x86_64_emit_ref_global(cc, ir);
     else
-        printf("`x86_64_emit_instruction` in x86_64_backend.randy\n");
-        printf("Unhandled IRK: %d\n", k);
+        printf("`x86_64_emit_instruction` in File \"%s\", line %d\n", __FILE__, __LINE__);
+        printf("Unhandled IRK: %s (%d)\n", ir_instr_kind_cstr(k), k);
         print_ir(ir);
         exit(1);
     end

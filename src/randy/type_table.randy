@@ -39,26 +39,27 @@ const TTYPE_kind      = 8;  // TyK
 const TTYPE_size      = 12; // uint32
 const TTYPE_params    = 16; // type vector
 const TTYPE_ast       = 24; // ast
+const TTYPE_ref_to_this = 32; // type
 // reference
-const TTYPE_ref_type  = 32; // type
+const TTYPE_deref_type  = 40; // type
 // procedure
-const TTYPE_proc_return_type = 32; // type
-const TTYPE_proc_parameters  = 40; // symbol vector
-const TTYPE_proc_varargs     = 48; // bool
+const TTYPE_proc_return_type = 40; // type
+const TTYPE_proc_parameters  = 48; // symbol vector
+const TTYPE_proc_varargs     = 56; // bool
 // struct
-const TTYPE_struct_fields = 32; // field vector
-const TTYPE_struct_procs  = 40; // proc_symbol vector
+const TTYPE_struct_fields = 40; // field vector
+const TTYPE_struct_procs  = 48; // proc_symbol vector
 // enum
-const TTYPE_enum_names  = 32; // cstr vector
-const TTYPE_enum_values = 40; // int vector
+const TTYPE_enum_names  = 40; // cstr vector
+const TTYPE_enum_values = 48; // int vector
 // union
-const TTYPE_union_names = 32; // cstr vector
-const TTYPE_union_types = 40; // type vector
+const TTYPE_union_names = 40; // cstr vector
+const TTYPE_union_types = 48; // type vector
 // array
-const TTYPE_array_count = 32; // number of elems in array
-const TTYPE_array_type  = 40; // type of each elem in array
+const TTYPE_array_count = 40; // number of elems in array
+const TTYPE_array_type  = 48; // type of each elem in array
 
-const sizeof_TTYPE = 56;
+const sizeof_TTYPE = 64;
 const TYPE_NEEDS_SIZING = (1<<32)-1;
 
 proc make_type kind: int, id: int -> type in
@@ -75,7 +76,7 @@ end
 
 proc make_type_reference id: int, type: type in
     var self = make_type(TyK_reference, id);
-    u64!(self + TTYPE_ref_type, type);
+    u64!(self + TTYPE_deref_type, type);
     return self;
 end
 
@@ -120,7 +121,8 @@ proc type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 proc type_id self: type in return cast(u64@(self + TTYPE_id), int); end
 proc type_params self: type in return cast(u64@(self + TTYPE_params), vector); end
 proc type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
-proc type_ref_type self: type in return cast(u64@(self + TTYPE_ref_type), type); end
+proc type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
+proc type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
 proc type_proc_return_type self: type in
     return cast(u64@(self + TTYPE_proc_return_type), type);
 end
@@ -147,7 +149,8 @@ proc type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
 proc type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
 proc type_set_params self: type, params: vector in u64!(self + TTYPE_params, params); end
 proc type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
-proc type_set_ref_type self: type, type: type in u64!(self + TTYPE_ref_type, type); end
+proc type_set_deref_type self: type, type: type in u64!(self + TTYPE_deref_type, type); end
+proc type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this, type); end
 proc type_set_proc_return_type self: type, type: type in
     u64!(self + TTYPE_proc_return_type, type);
 end
@@ -317,10 +320,14 @@ proc _tt_make_type tyk, name, size, type_ids, types, names in
 end
 
 proc _tt_make_ref_type type, name, type_ids, types, names in
+    assert(not type_ref_to_this(type));
     var type_idx = vector_len(types);
     var t = make_type_reference(type_idx, type);
-    type_set_size(t, 64);
-    map_set(type_ids, name, type_idx);
+    type_set_size(t, PTR_BITS);
+    type_set_ref_to_this(type, t);
+    if name then
+        map_set(type_ids, name, type_idx);
+    end
     vector_push(types, t);
     vector_push(names, name);
     return t;
@@ -348,13 +355,13 @@ proc make_type_table -> type_table in
     var any_t = _tt_make_type(TyK_any, "any", 0, type_ids, types, names);
     u64!(self + TTYPE_TABLE_any_type, any_t);
 
-    var bool_t = _tt_make_type(TyK_int_like, "bool", 1, type_ids, types, names);
+    var bool_t = _tt_make_type(TyK_int_like, "bool", BOOL_BITS, type_ids, types, names);
     u64!(self + TTYPE_TABLE_bool_type, bool_t);
 
-    var int_t = _tt_make_type(TyK_int_like, "int", 64, type_ids, types, names);
+    var int_t = _tt_make_type(TyK_int_like, "int", INT_BITS, type_ids, types, names);
     u64!(self + TTYPE_TABLE_int_type, int_t);
 
-    var char_t = _tt_make_type(TyK_int_like, "char", 8, type_ids, types, names);
+    var char_t = _tt_make_type(TyK_int_like, "char", CHAR_BITS, type_ids, types, names);
     u64!(self + TTYPE_TABLE_char_type, char_t);
 
     var ptr_t = _tt_make_ref_type(void_t, "ptr", type_ids, types, names);
@@ -423,6 +430,17 @@ proc tt_get_type_or_make_undefined self, name in
     vector_push(types, type);
     vector_push(type_table_names(self), name);
     return type;
+end
+
+proc tt_get_reference_to_type self, type in
+    var ref = type_ref_to_this(type);
+    if not ref then
+        ref = _tt_make_ref_type(type, NULL,
+                    type_table_type_ids(self),
+                    type_table_types(self),
+                    type_table_names(self));
+    end
+    return ref;
 end
 
 proc tt_make_anon_proc self, return_type, param_types, varargs in
@@ -499,7 +517,6 @@ proc tt_calculate_struct self, stype, again_q in
     if type_size(stype) != TYPE_NEEDS_SIZING then
         return;
     end
-    printf("calculating struct %s, size = %d\n", tt_get_type_name(self, stype), type_size(stype));
     var fields = type_struct_fields(stype);
     var bit_offs = 0;
     var i = 0; var len = vector_len(fields);
@@ -516,7 +533,6 @@ proc tt_calculate_struct self, stype, again_q in
         var size = type_size(ftype);
         if size == TYPE_NEEDS_SIZING then
             queue_enqueue(again_q, stype);
-            printf("early return because need to calc again!\n");
             return;
         end
         if not type_is_struct(ftype) then
@@ -524,15 +540,11 @@ proc tt_calculate_struct self, stype, again_q in
         end
         field_set_bit_offset(field, bit_offs);
         bit_offs += size;
-
-        printf("  field: %s @ +%ld -> %s, size = %d\n", fname, field_bit_offset(field) / 8,
-            tt_get_type_name(self, ftype), type_size(ftype) / 8);
         i += 1;
     end
     if ptr_align then
-        bit_offs = (bit_offs + 63) & -64;
+        bit_offs = (bit_offs + (PTR_BITS-1)) & -PTR_BITS;
     end
-    printf("total size: %d (%d bits)\n", bit_offs / 8,  bit_offs);
     type_set_size(stype, bit_offs);
 end
 
@@ -591,9 +603,9 @@ proc tt_calculate_structs self in
         var type = vector_get(types, i);
         if type_is_undefined(type) then
             printf("WARN: type `%s` is still undefined!\n", tt_get_type_name(self, type));
-            type_set_size(type, 64);
+            type_set_size(type, PTR_BITS);
             type_set_kind(type, TyK_reference);
-            type_set_ref_type(type, void);
+            type_set_deref_type(type, void);
         elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
             queue_enqueue(to_calc, type);
         end
@@ -609,4 +621,38 @@ proc tt_calculate_structs self in
         tt_calculate_struct(self, type, to_calc);
     end
     free_queue(to_calc);
+end
+
+proc tt_print_type_name self, type in
+    if type then
+        if type_is_procedure(type) then
+            var string = tt_get_proc_type_name(self, type);
+            printf("%s", string_cstr(string));
+            free_string(string);
+        else
+            var name = tt_get_type_name(self, type);
+            if name then
+                printf("%s", name);
+            elif type_is_reference(type) then
+                var refs = 0;
+                while type_is_reference(type) do
+                    if type_deref_type(type) then
+                        type = type_deref_type(type);
+                        refs += 1;
+                    else
+                        break;
+                    end
+                end
+                printf("%s", tt_get_type_name(self, type));
+                while refs != 0 do
+                    printf("&");
+                    refs -= 1;
+                end
+            else
+                printf("<type id %d>", type_id(type));
+            end
+        end
+    else
+        printf("{no type}");
+    end
 end

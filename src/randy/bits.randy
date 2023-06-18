@@ -1,0 +1,9 @@
+
+const BOOL_BITS = 1;
+const BYTE_BITS = 8;
+const CHAR_BITS = 8;
+const PTR_BITS = 64;
+const INT_BITS = 64;
+
+const FLOAT_BITS = 32;
+const DOUBLE_BITS = 64;

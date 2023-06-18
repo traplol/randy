@@ -17,7 +17,7 @@ proc type_infer_cur_procs self: type_infer in
     return cast(u64@(self + TTYPE_INFER_cur_procs), vector);
 end
 proc type_infer_did_returns self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_did_returns), string);
+    return cast(u64@(self + TTYPE_INFER_did_returns), string&);
 end
 proc type_infer_again self: type_infer in
     return cast(u64@(self + TTYPE_INFER_again), set);
@@ -89,6 +89,19 @@ end
 proc ti_infer_integer self, tt, st, ast -> type in
     check_ast_kind(AstK_Integer, ast);
     return tt_int_type(tt);
+    // var val = cast(ast_value(ast), int);
+    // var type;
+    // if val >= -(1<<7) and val < 1<<7 then
+    //     type = tt_get_type_or_null(tt, "int8");
+    // elif val >= -(1<<15) and val < 1<<15 then
+    //     type = tt_get_type_or_null(tt, "int16");
+    // elif val >= -(1<<31) and val < 1<<31 then
+    //     type = tt_get_type_or_null(tt, "int32");
+    // else
+    //     type = tt_int_type(tt);
+    // end
+    // assert(type);
+    // return type;
 end
 
 proc ti_infer_string self, tt, st, ast -> type in
@@ -106,7 +119,7 @@ proc ti_infer_call self, tt, st, ast -> type in
         // FIXME: call_type should not accept ptr when type system is more fleshed out.
         if call_type != any and call_type != tt_ptr_type(tt) then
             printf("WARN: type `");
-            _ti_print_type_name(tt, call_type);
+            tt_print_type_name(tt, call_type);
             printf("` is not a procedure.\n");
             printf("NOTE: The expression is: ");
             print_ast(ast);
@@ -234,20 +247,6 @@ proc ti_infer_binop self, tt, st, ast -> type in
     return tt_any_type(tt);
 end
 
-proc _ti_print_type_name tt, type in
-    if type then
-        if type_is_procedure(type) then
-            var string = tt_get_proc_type_name(tt, type);
-            printf("%s", string_cstr(string));
-            free_string(string);
-        else
-            printf("%s", tt_get_type_name(tt, type));
-        end
-    else
-        printf("{no type}");
-    end
-end
-
 proc ti_infer_return self, tt, st, ast -> type in
     check_ast_kind(AstK_Return, ast);
     var type;
@@ -267,9 +266,9 @@ proc ti_infer_return self, tt, st, ast -> type in
         // nothing
     elif not types_assignable(tt, type, ret_type) then
         printf("WARN: Return type for `%s` is `", symbol_name(cur_proc));
-        _ti_print_type_name(tt, ret_type);
+        tt_print_type_name(tt, ret_type);
         printf("` cannot return `");
-        _ti_print_type_name(tt, type);
+        tt_print_type_name(tt, type);
         printf(".`\nNOTE: The expression is: ");
         print_ast(ast);
         print_token_loc(ast_token(ast));
@@ -318,7 +317,7 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
 
     if op != TK_Assign and not type_is_int_like(type) then
         printf("WARN: `");
-        _ti_print_type_name(tt, type);
+        tt_print_type_name(tt, type);
         printf("` is not a primitive type and cannot be used with TODO: get operator string\n");
         printf(".`\nNOTE: The expression is: ");
         print_ast(ast);
@@ -453,6 +452,86 @@ proc ti_infer_cast self, tt, st, ast -> type in
     return ast_type(ast);
 end
 
+proc _ti_get_field_type type, member in
+    var fields = type_struct_fields(type);
+    var i = 0; var len = vector_len(fields);
+    while i < len do
+        var field = vector_get(fields, i);
+        if cstr_eq(field_name(field), member) then
+            return field_type(field);
+        end
+        i += 1;
+    end
+    var procs = type_struct_procs(type);
+    i = 0; len = vector_len(procs);
+    while i < len do
+        var proc_ = vector_get(procs, i);
+        if cstr_eq(symbol_name(proc_), member) then
+            return symbol_type(proc_);
+        end
+        i += 1;
+    end
+    return NULL;
+end
+
+proc ti_infer_member_access self, tt, st, ast in
+    check_ast_kind(AstK_MemberAccess, ast);
+    var type = ti_infer(self, tt, st, ast_expr(ast));
+    var member = ast_member(ast);
+    var ftype = NULL;
+    if type_is_struct(type) then
+        ftype = _ti_get_field_type(type, member);
+    elif type_is_reference(type) then
+        var ref_type = type_deref_type(type);
+        assert(ref_type, "reference type has no deref type");
+        if not type_is_struct(ref_type) then
+            printf("ERROR: type `");
+            tt_print_type_name(tt, ref_type);
+            printf("` is not a struct.\n");
+            print_ast_src_loc(ast);
+            exit(1);
+        end
+        ftype = _ti_get_field_type(ref_type, member);
+    else
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` is not a struct.\n");
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+    if not ftype then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` has no member `%s.`\n", ast_member(ast));
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+    return ftype; 
+end
+
+proc ti_infer_assign_member self, tt, st, ast in
+    // nothing really to infer, members are required type declarations.
+    check_ast_kind(AstK_AssignMember, ast);
+    ti_infer(self, tt, st, ast_lhs(ast));
+    ti_infer(self, tt, st, ast_rhs(ast));
+    return tt_void_type(tt);
+end
+
+proc ti_infer_sizeof_expr self, tt, st, ast in
+    check_ast_kind(AstK_SizeofExpr, ast);
+    var expr = ast_expr(ast);
+    var type = ti_infer(self, tt, st, ast_expr(ast));
+    if ast_kind(expr) == AstK_Ident then
+        var sym = st_get_symbol(st, ast_ident(expr));
+        type = symbol_type(sym);
+        if type == tt_any_type(tt) then
+            type = tt_get_type_or_null(tt, ast_ident(ast_expr(ast)));
+        end
+    end
+    ast_change_sizeof_expr_to_type(ast, type);
+    return tt_int_type(tt);
+end
+
 proc ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
     var type: type;
@@ -479,11 +558,17 @@ proc ti_infer self, tt, st, ast -> type in
     elif k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
     elif k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
     elif k == AstK_Struct then type = tt_void_type(tt);
+    elif k == AstK_MemberAccess then type = ti_infer_member_access(self, tt, st, ast);
+    elif k == AstK_AssignMember then type = ti_infer_assign_member(self, tt, st, ast);
+        // This seems like a bug but sizeof isn't supposed to evaluate its arguments.
+    elif k == AstK_SizeofExpr then type = ti_infer_sizeof_expr(self, tt, st, ast);
+    elif k == AstK_SizeofType then type = tt_int_type(tt);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));
+        print_ast(ast);
         exit(1);
     end
     tt_set_ast_type(tt, ast, type);
@@ -507,7 +592,7 @@ proc type_infer type_table, symbol_table, compile_order in
         type_infer_set_again(self, make_set(0, NULL, NULL));
         var cur = set_begin(again);
         while cur != set_end(again) do
-            var sym = u64@(cur);
+            var sym = cast(u64@(cur), symbol);
             var type = symbol_type(sym);
             var ast = type_ast(type);
             assert(ast, "ast from type_infer_again should not be null");

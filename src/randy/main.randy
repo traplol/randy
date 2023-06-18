@@ -9,8 +9,9 @@
 
 global g_SymbolTable = NULL;
 global g_TypeTable = NULL;
-global g_SpecialFlag = false;
+global g_Experimental = false;
 
+#include bits
 #include utils
 #include token
 #include lexer
@@ -147,8 +148,8 @@ proc main argc: int, argv: ptr in
             elif cstr_eq("-ast", arg) then
                 do_print_ast = true;
                 will_compile = false;
-            elif cstr_eq("-special", arg) then
-                g_SpecialFlag = true;
+            elif cstr_eq("-experimental", arg) then
+                g_Experimental = true;
             elif cstr_eq("-ld", arg) then
                 i += 1;
                 while i < argc do
@@ -157,10 +158,6 @@ proc main argc: int, argv: ptr in
                 end
             end
             i += 1;
-        end
-
-        if g_SpecialFlag then
-            printf("special enabled\n");
         end
 
         if not in_path then

@@ -26,6 +26,9 @@ const AstK_AssignOp     = 20;
 const AstK_Cast         = 21;
 const AstK_Struct       = 22;
 const AstK_MemberAccess = 23;
+const AstK_AssignMember = 24;
+const AstK_SizeofExpr   = 25;
+const AstK_SizeofType   = 26;
 
 proc ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -52,6 +55,9 @@ proc ast_kind_cstr k: int in
     if k == AstK_Cast then return "AstK_Cast"; end
     if k == AstK_Struct then return "AstK_Struct"; end
     if k == AstK_MemberAccess then return "AstK_MemberAccess"; end
+    if k == AstK_AssignMember then return "AstK_AssignMember"; end
+    if k == AstK_SizeofExpr then return "AstK_SizeofExpr"; end
+    if k == AstK_SizeofType then return "AstK_SizeofType"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -130,6 +136,13 @@ const TAST_procs       = 32; // ast_proc vector
 // MemberAccess
 const TAST_expr        = 16; // ast
 const TAST_member      = 24; // cstr
+// AssignMember
+const TAST_expr        = 16; // ast_member_access
+const TAST_op          = 24; // TK
+const TAST_assign_expr = 32; // ast
+// SizeofExpr/Type
+const TAST_expr        = 16; // ast
+const TAST_type        = 24; // type
 
 const sizeof_TAST      = 40;
 
@@ -153,7 +166,7 @@ proc make_ast_integer token: token, value: int -> ast in
     return self;
 end
 
-proc make_ast_string token: token, value: string -> ast in
+proc make_ast_string token: token, value: string& -> ast in
     var self = _make_ast(AstK_String, true, token);
     u64!(self + TAST_value, value);
     return self;
@@ -306,6 +319,36 @@ proc make_ast_member_access token: token, expr: ast, member: cstr -> ast in
     return self;
 end
 
+proc make_ast_assign_member token: token, lhs: ast, op: int, rhs: ast -> ast in
+    assert(ast_kind(lhs) == AstK_MemberAccess,
+        "Compiler bug: cannot make_ast_assign_member where lhs is %s (%d)\n",
+        ast_kind_cstr(ast_kind(lhs)),
+        ast_kind(lhs));
+    var self = _make_ast(AstK_AssignMember, false, token);
+    u64!(self + TAST_lhs, lhs);
+    u64!(self + TAST_op, op);
+    u64!(self + TAST_rhs, rhs);
+    return self;
+end
+
+proc make_ast_sizeof_expr token: token, expr: ast -> ast in
+    var self = _make_ast(AstK_SizeofExpr, true, token);
+    u64!(self + TAST_expr, expr);
+    return self;
+end
+
+proc make_ast_sizeof_type token: token, type: type -> ast in
+    var self = _make_ast(AstK_SizeofType, true, token);
+    u64!(self + TAST_type, type);
+    return self;
+end
+
+proc ast_change_sizeof_expr_to_type self: ast, type: type in
+    assert(ast_kind(self) == AstK_SizeofExpr);
+    u32!(self + TAST_kind, AstK_SizeofType);
+    u64!(self + TAST_type, type);
+end
+
 proc ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
 proc ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end
 proc ast_token self: ast in return cast(u64@(self + TAST_token), token); end
@@ -449,11 +492,6 @@ proc _print_ast_var_assign ast, indent in
         _print_type(type);
     end
     printf(" = ");
-    _print_ast(ast_assign_expr(ast), indent);
-end
-
-proc _print_ast_assign ast, indent in
-    printf("%s = ", ast_ident(ast));
     _print_ast(ast_assign_expr(ast), indent);
 end
 
@@ -665,9 +703,42 @@ end
 
 proc _print_ast_member_access ast, indent in
     var expr = ast_expr(ast);
+    printf("(");
     var member = ast_member(ast);
     _print_ast(expr, indent);
-    printf(".%s", member);
+    printf(".%s)", member);
+end
+
+proc _print_ast_assign_member ast, indent in
+    _print_ast(ast_lhs(ast), indent);
+    var op = ast_op(ast);
+    var op_str = "FIXME in ast.randy";
+    if op == TK_Assign      then op_str = "=";
+    elif op == TK_PlusEq    then op_str = "+=";
+    elif op == TK_MinusEq   then op_str = "-=";
+    elif op == TK_StarEq    then op_str = "*=";
+    elif op == TK_SlashEq   then op_str = "/=";
+    elif op == TK_PercentEq then op_str = "%=";
+    elif op == TK_LShiftEq  then op_str = "<<=";
+    elif op == TK_RShiftEq  then op_str = ">>=";
+    elif op == TK_AmperEq   then op_str = "&=";
+    elif op == TK_CaretEq   then op_str = "^=";
+    elif op == TK_BarEq     then op_str = "|=";
+    end
+    printf(" %s ", op_str);
+    _print_ast(ast_rhs(ast), indent);
+end
+
+proc _print_ast_sizeof_expr ast, indent in
+    printf("__sizeof(");
+    _print_ast(ast_expr(ast), indent);
+    printf(")");
+end
+
+proc _print_ast_sizeof_type ast, indent in
+    printf("__sizeof(");
+    tt_print_type_name(g_TypeTable, ast_type(ast));
+    printf(")");
 end
 
 proc _print_ast ast, indent in
@@ -696,6 +767,9 @@ proc _print_ast ast, indent in
     elif k == AstK_Cast then _print_ast_cast(ast, indent);
     elif k == AstK_Struct then _print_ast_struct(ast, indent);
     elif k == AstK_MemberAccess then _print_ast_member_access(ast, indent);
+    elif k == AstK_AssignMember then _print_ast_assign_member(ast, indent);
+    elif k == AstK_SizeofExpr then _print_ast_sizeof_expr(ast, indent);
+    elif k == AstK_SizeofType then _print_ast_sizeof_type(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

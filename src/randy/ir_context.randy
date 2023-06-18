@@ -52,6 +52,9 @@ const IRK_OpBitShiftR   = 49;
 const IRK_ScopeOpen     = 50;
 const IRK_ScopeClose    = 51;
 const IRK_PtrCopy       = 52;
+const IRK_PtrOffset     = 53;
+const IRK_RefLocal      = 54;
+const IRK_RefGlobal     = 55;
 
 proc ir_instr_kind_cstr k: int -> cstr in
     if k == IRK_GetLocal then return "IRK_GetLocal"; end
@@ -104,6 +107,9 @@ proc ir_instr_kind_cstr k: int -> cstr in
     if k == IRK_ScopeOpen then return "IRK_ScopeOpen"; end
     if k == IRK_ScopeClose then return "IRK_ScopeClose"; end
     if k == IRK_PtrCopy then return "IRK_PtrCopy"; end
+    if k == IRK_PtrOffset then return "IRK_PtrOffset"; end
+    if k == IRK_RefLocal then return "IRK_RefLocal"; end
+    if k == IRK_RefGlobal then return "IRK_RefGlobal"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -125,10 +131,13 @@ const TIR_INSTR_varargs  = 32;
 const TIR_INSTR_asm      = 32;
 const TIR_INSTR_arg      = 32;
 const TIR_INSTR_src_name = 32;
-const TIR_INSTR_type     = 32;
+const TIR_INSTR_offset   = 32;
 
 const TIR_INSTR_nlocals  = 40;
-const sizeof_TIR_INSTR   = 48;
+
+const TIR_INSTR_expr_size = 48;
+const TIR_INSTR_expr_offs = 56;
+const sizeof_TIR_INSTR   = 64;
 
 proc ir_instr_kind self: ir_instr in return cast(u64@(self + TIR_INSTR_kind), int); end
 proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), src_loc); end
@@ -146,7 +155,9 @@ proc ir_instr_asm self: ir_instr in return cast(u64@(self + TIR_INSTR_asm), cstr
 proc ir_instr_arg self: ir_instr in return cast(u64@(self + TIR_INSTR_arg), int); end
 proc ir_instr_src_name self: ir_instr in return cast(u64@(self + TIR_INSTR_src_name), cstr); end
 proc ir_instr_nlocals self: ir_instr in return cast(u64@(self + TIR_INSTR_nlocals), int); end
-proc ir_instr_type self: ir_instr in return cast(u64@(self + TIR_INSTR_type), type); end
+proc ir_instr_offset self: ir_instr in return cast(u64@(self + TIR_INSTR_offset), int); end
+proc ir_instr_expr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_size), int); end
+proc ir_instr_expr_offs self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_offs), int); end
 
 proc make_ir_alloc_temps n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
@@ -187,11 +198,20 @@ proc make_ir_free_temps n -> ir_instr in
     u64!(self + TIR_INSTR_n, n);
     return cast(self, ir_instr);
 end
-proc make_ir_get_local local, n -> ir_instr in
+proc make_ir_get_local local, n, offs: int -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
+    u64!(self + TIR_INSTR_expr_offs, offs);
+    return cast(self, ir_instr);
+end
+proc make_ir_ref_local local, n, offs: int -> ir_instr in
+    var self = calloc(1, sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_RefLocal);
+    u64!(self + TIR_INSTR_local, local);
+    u64!(self + TIR_INSTR_n, n);
+    u64!(self + TIR_INSTR_expr_offs, offs);
     return cast(self, ir_instr);
 end
 proc make_ir_goto label -> ir_instr in
@@ -256,13 +276,12 @@ proc make_ir_scope_close -> ir_instr in
     u64!(self + TIR_INSTR_kind, IRK_ScopeClose);
     return cast(self, ir_instr);
 end
-proc make_ir_new_proc src_name, name, params, locals -> ir_instr in
+proc make_ir_new_proc src_name, name, params -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_NewProc);
     u64!(self + TIR_INSTR_src_name, src_name);
     u64!(self + TIR_INSTR_name, name);
     u64!(self + TIR_INSTR_params, params);
-    u64!(self + TIR_INSTR_nlocals, locals);
     return cast(self, ir_instr);
 end
 proc make_ir_simple_op op -> ir_instr in
@@ -298,6 +317,12 @@ proc make_ir_ptr_copy size -> ir_instr in
     u64!(self + TIR_INSTR_size, size);
     return cast(self, ir_instr);
 end
+proc make_ir_ptr_offs offset -> ir_instr in
+    var self = calloc(1, sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_PtrOffset);
+    u64!(self + TIR_INSTR_offset, offset);
+    return cast(self, ir_instr);
+end
 proc make_ir_push_int value -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_PushInt);
@@ -321,19 +346,21 @@ proc make_ir_set_arg_temp n -> ir_instr in
     u64!(self + TIR_INSTR_n, n);
     return cast(self, ir_instr);
 end
-proc make_ir_set_local local, n -> ir_instr in
+proc make_ir_set_local local, n, offs: int -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocal);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, n);
+    u64!(self + TIR_INSTR_expr_offs, offs);
     return cast(self, ir_instr);
 end
-proc make_ir_set_local_arg local, local_n, arg -> ir_instr in
+proc make_ir_set_local_arg local, local_n, arg, offs: int -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
     u64!(self + TIR_INSTR_local, local);
     u64!(self + TIR_INSTR_n, local_n);
     u64!(self + TIR_INSTR_arg, arg);
+    u64!(self + TIR_INSTR_expr_offs, offs);
     return cast(self, ir_instr);
 end
 proc make_ir_store_temp n -> ir_instr in
@@ -357,6 +384,13 @@ end
 proc make_ir_get_global name, label -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_GetGlobal);
+    u64!(self + TIR_INSTR_label, label);
+    u64!(self + TIR_INSTR_src_name, name);
+    return cast(self, ir_instr);
+end
+proc make_ir_ref_global name, label -> ir_instr in
+    var self = calloc(1, sizeof_TIR_INSTR);
+    u64!(self + TIR_INSTR_kind, IRK_RefGlobal);
     u64!(self + TIR_INSTR_label, label);
     u64!(self + TIR_INSTR_src_name, name);
     return cast(self, ir_instr);
@@ -391,7 +425,12 @@ end
 proc print_ir_get_local self in
     printf("(IR.GetLocal ");
     printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
+end
+proc print_ir_ref_local self in
+    printf("(IR.RefLocal ");
+    printf("local='%s', ", u64@(self + TIR_INSTR_local));
+    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
 end
 proc print_ir_goto self in
     printf("(IR.Goto ");
@@ -446,7 +485,8 @@ proc print_ir_new_proc self in
             printf(", ");
         end
     end
-    printf("], nlocals=%d)\n", u64@(self + TIR_INSTR_nlocals));
+    printf("], nlocals=%d, ", u64@(self + TIR_INSTR_nlocals));
+    printf("expr_size=%d)\n", u64@(self + TIR_INSTR_expr_size));
 end
 proc print_ir_op_add self in
     printf("(IR.OpAdd)\n");
@@ -499,6 +539,10 @@ proc print_ir_ptr_copy self in
     printf("(IR.PtrCopy ");
     printf("size=%d)\n", u64@(self + TIR_INSTR_size));
 end
+proc print_ir_ptr_offset self in
+    printf("(IR.PtrOffset ");
+    printf("offset=%d)\n", u64@(self + TIR_INSTR_offset));
+end
 proc print_ir_push_int self in
     printf("(IR.PushInt ");
     printf("value=%d)\n", u64@(self + TIR_INSTR_value));
@@ -517,13 +561,13 @@ end
 proc print_ir_set_local self in
     printf("(IR.SetLocal ");
     printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
 end
 proc print_ir_set_local_arg self in
     printf("(IR.SetLocalArg ");
     printf("local='%s', ", u64@(self + TIR_INSTR_local));
     printf("n=%d, ", u64@(self + TIR_INSTR_n));
-    printf("arg=%d)\n", u64@(self + TIR_INSTR_arg));
+    printf("arg=%d, offs=%d)\n", u64@(self + TIR_INSTR_arg), u64@(self + TIR_INSTR_expr_offs));
 end
 proc print_ir_store_temp self in
     printf("(IR.StoreTemp ");
@@ -539,6 +583,11 @@ proc print_ir_set_global self in
 end
 proc print_ir_get_global self in
     printf("(IR.GetGlobal ");
+    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
+    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+end
+proc print_ir_ref_global self in
+    printf("(IR.RefGlobal ");
     printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("label='%s')\n", u64@(self + TIR_INSTR_label));
 end
@@ -589,6 +638,9 @@ proc print_ir ir: ir_instr in
     elif k == IRK_ScopeOpen then print_ir_scope_open(ir);
     elif k == IRK_ScopeClose then print_ir_scope_close(ir);
     elif k == IRK_PtrCopy then print_ir_ptr_copy(ir);
+    elif k == IRK_PtrOffset then print_ir_ptr_offset(ir);
+    elif k == IRK_RefLocal then print_ir_ref_local(ir);
+    elif k == IRK_RefGlobal then print_ir_ref_global(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -666,9 +718,26 @@ proc global_info_kind self: global_info in return cast(u64@(self + TGLOBAL_INFO_
 proc global_info_label self: global_info in return cast(u64@(self + TGLOBAL_INFO_label), cstr); end
 proc global_info_value self: global_info in return cast(u64@(self + TGLOBAL_INFO_value), ptr); end
 
+const TLOCAL_INFO_n = 0;
+const TLOCAL_INFO_offs = 8;
+const TLOCAL_INFO_size = 16;
+const sizeof_TLOCAL_INFO = 24;
+
+proc make_local_info n: int, offs: int, size: int -> local_info in
+    var self = malloc(sizeof_TLOCAL_INFO);
+    u64!(self + TLOCAL_INFO_n, n);
+    u64!(self + TLOCAL_INFO_offs, offs);
+    u64!(self + TLOCAL_INFO_size, size);
+    return cast(self, local_info);
+end
+
+proc local_info_n self: local_info in return cast(u64@(self + TLOCAL_INFO_n), int); end
+proc local_info_offs self: local_info in return cast(u64@(self + TLOCAL_INFO_offs), int); end
+proc local_info_size self: local_info in return cast(u64@(self + TLOCAL_INFO_size), int); end
+
 const TIR_CONTEXT_instructions =  0;  // ir_instruction vector
 const TIR_CONTEXT_label_id     =  8;  // int
-const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : string -> label
+const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : string& -> label
 const TIR_CONTEXT_externs      = 24;  // (cstr, proc_info) map   : name -> proc_info
 const TIR_CONTEXT_labels       = 32;  // string set : all labels
 const TIR_CONTEXT_constants    = 40;  // (cstr, const_info) map  : name -> const_info
@@ -676,17 +745,18 @@ const TIR_CONTEXT_src_locs     = 48;  // src_loc vector
 const TIR_CONTEXT_file_set     = 56;  // cstr set : paths
 const TIR_CONTEXT_files        = 64;  // cstr vector
 const TIR_CONTEXT_procs        = 72;  // (cstr, proc_info) map   : name -> proc_info
-const TIR_CONTEXT_proc_locals  = 80;  // (cstr, int) map vector  : stack of scope: name -> location
+const TIR_CONTEXT_proc_locals  = 80;  // (cstr, local_info) map vector  : stack of scope: name -> location
 const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> global_info
 // Order of definition is preserved in the `globals' vector.
 const TIR_CONTEXT_globals      = 96;  // global_info vector
 const TIR_CONTEXT_break_dests  = 104; // cstr vector -> label to goto
 const TIR_CONTEXT_conti_dests  = 112; // cstr vector -> label to goto
-const TIR_CONTEXT_nlocals      = 120; // int : max number of locals allocated
-const sizeof_TIR_CONTEXT       = 128;
+const TIR_CONTEXT_num_locals   = 120; // int : max number of locals allocated
+const TIR_CONTEXT_locals_size  = 128; // int : max size needed for all locals
+const sizeof_TIR_CONTEXT       = 136;
 
 proc make_ir_context -> ir_context in
-    var self = malloc(sizeof_TIR_CONTEXT);
+    var self = calloc(1, sizeof_TIR_CONTEXT);
     u64!(self + TIR_CONTEXT_instructions, make_vector(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
     u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
@@ -719,7 +789,8 @@ proc ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_glob
 proc ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), vector); end
 proc ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), vector); end
 proc ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), vector); end
-proc ir_nlocals self: ir_context in return cast(u64@(self + TIR_CONTEXT_nlocals), int); end
+proc ir_num_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_num_locals), int); end
+proc ir_locals_size self: ir_context in return cast(u64@(self + TIR_CONTEXT_locals_size), int); end
 
 proc ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
@@ -789,24 +860,44 @@ proc ir_new_proc self, ident, params in
     set_add(ir_labels(self), label_cstr);
     map_set(procs, ident, make_proc_info(label_cstr, params, false));
 
-    if vector_len(ir_proc_locals(self)) != 0 then
-        printf("WARN: Compiler bug? proc locals not empty when creating new proc\n");
-    end
-    u64!(self + TIR_CONTEXT_nlocals, 0);
+    assert(vector_len(ir_proc_locals(self)) == 0,
+        "Compiler bug: proc locals not empty when creating new proc\n");
+    u64!(self + TIR_CONTEXT_num_locals, 0);
+    u64!(self + TIR_CONTEXT_locals_size, 0);
     return label_cstr;
 end
 
-proc ir_new_local self, ident in
+proc ir_new_local self, ident, st in
     var proc_locals = ir_proc_locals(self);
     var local_idx = 0;
+    var offset = 0;
     var i = 0; var len = vector_len(proc_locals);
     while i < len do
-        local_idx = local_idx + map_len(vector_get(proc_locals, i));
+        var map = vector_get(proc_locals, i);
+        local_idx += map_len(map);
+        var cur = map_begin(map);
+        while cur != map_end(map) do
+            var local_info = cast(map_pair_val(cur), local_info);
+            offset += local_info_size(local_info);
+            cur = map_next(map, cur);
+        end
         i += 1;
     end
-    map_set(ir_cur_scope(self), ident, local_idx);
-    if local_idx + 1 > ir_nlocals(self) then
-        u64!(self + TIR_CONTEXT_nlocals, local_idx + 1);
+    var size = 0;
+    if g_Experimental then
+        var sym = st_get_symbol(st, ident);
+        assert(sym);
+        var type = symbol_type(sym);
+        assert(type);
+        size = type_size(type);
+        if offset + size > ir_locals_size(self) then
+            u64!(self + TIR_CONTEXT_locals_size, offset + size);
+        end
+            
+    end
+    map_set(ir_cur_scope(self), ident, make_local_info(local_idx, offset, size));
+    if local_idx + 1 > ir_num_locals(self) then
+        u64!(self + TIR_CONTEXT_num_locals, local_idx + 1);
     end
     return local_idx;
 end
@@ -894,11 +985,25 @@ proc ir_get_local self, ident in
     while i >= 0 do
         found = map_find(vector_get(proc_locals, i), ident);
         if found then
-            return map_pair_val(found);
+            return local_info_n(map_pair_val(found));
         end
         i -= 1;
     end
     assert(false, "Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
+end
+
+proc ir_get_local_offset self, ident in
+    var proc_locals = ir_proc_locals(self);
+    var i = vector_len(proc_locals) - 1;
+    var found;
+    while i >= 0 do
+        found = map_find(vector_get(proc_locals, i), ident);
+        if found then
+            return local_info_offs(map_pair_val(found));
+        end
+        i -= 1;
+    end
+    assert(false, "Compiler bug: didn't check `ir_is_local` before calling `ir_get_local_offset`\n");
 end
 
 proc ir_is_const self, ident in
@@ -995,6 +1100,14 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
                 return make_ast_integer(ast_token(ast), cast(const_info_value(ci), int)); // @LEAK
             end
         end
+    elif k == AstK_SizeofExpr then
+        var expr_type = tt_get_ast_type(tt, ast_expr(ast));
+        var size_bytes = (type_size(expr_type) + BYTE_BITS-1) / BYTE_BITS;
+        return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
+    elif k == AstK_SizeofType then
+        var type = ast_type(ast);
+        var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
+        return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
     elif k == AstK_BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail);
@@ -1104,7 +1217,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
         printf("ERROR: Expression is not compile-time evaluable.\n");
         printf("NOTE: The expression was: ");
         print_ast(ast);
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
     return ast;
@@ -1129,7 +1242,8 @@ proc ir_emit_ident self, ast, st, tt in
     var ident = ast_ident(ast);
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
-        ir_append(self, make_ir_get_local(ident, n));
+        var offs = ir_get_local_offset(self, ident);
+        ir_append(self, make_ir_get_local(ident, n, offs));
     elif ir_is_const(self, ident) then
         var const_info = ir_get_const(self, ident);
         var cik = const_info_kind(const_info);
@@ -1309,13 +1423,11 @@ proc ir_emit_var_decl self, ast, st, tt in
     assert(sym);
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
-        //printf("---------------------\n");
-        printf("ERROR: type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
-        //print_ast(ast);
+        printf("ERROR: type of `%s` is `%s` size=8\n", ident, tt_get_type_name(tt, sym_type));
         ir_print_src_loc(self);
         exit(1);
     end
-    ir_new_local(self, ident);
+    ir_new_local(self, ident, st);
 end
 
 proc ir_emit_var_assign self, ast, st, tt in
@@ -1330,15 +1442,14 @@ proc ir_emit_var_assign self, ast, st, tt in
     assert(sym);
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
-        //printf("---------------------\n");
-        printf("ERROR: type of %s is %s size=%d\n", ident, tt_get_type_name(tt, sym_type), type_size(sym_type)/8);
-        //print_ast(ast);
+        printf("ERROR: type of `%s` is `%s` size=0\n", ident, tt_get_type_name(tt, sym_type));
         ir_print_src_loc(self);
         exit(1);
     end
-    var n = ir_new_local(self, ident);
     ir_compile(self, ast_assign_expr(ast), st, tt);
-    ir_append(self, make_ir_set_local(ident, n));
+    var n = ir_new_local(self, ident, st);
+    var offs = ir_get_local_offset(self, ident);
+    ir_append(self, make_ir_set_local(ident, n, offs));
 end
 
 proc ir_emit_assign_op self, ast, st, tt in
@@ -1346,7 +1457,8 @@ proc ir_emit_assign_op self, ast, st, tt in
     var ident = ast_ident(ast);
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
-        ir_append(self, make_ir_get_local(ident, n));
+        var offs = ir_get_local_offset(self, ident);
+        ir_append(self, make_ir_get_local(ident, n, offs));
     elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
         var label = global_info_label(gi);
@@ -1361,7 +1473,7 @@ proc ir_emit_assign_op self, ast, st, tt in
     ir_compile(self, ast_assign_expr(ast), st, tt);
 
     var op = ast_op(ast);
-    var ir_op;
+    var ir_op = -1;
     if op == TK_PlusEq then ir_op = IRK_OpAdd;
     elif op == TK_MinusEq then ir_op = IRK_OpSub;
     elif op == TK_StarEq then ir_op = IRK_OpMul;
@@ -1377,13 +1489,16 @@ proc ir_emit_assign_op self, ast, st, tt in
         ir_print_src_loc(self);
         assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
     end
+
     if op != TK_Assign then
+        assert(ir_op != -1, "Compiler bug: ir_op wasn't assigned. op = %d\n", op);
         ir_append(self, make_ir_simple_op(ir_op));
     end
 
     if ir_is_local(self, ident) then
-        var n = cast(ir_get_local(self, ident), int);
-        ir_append(self, make_ir_set_local(ident, n));
+        var n = ir_get_local(self, ident);
+        var offs = ir_get_local_offset(self, ident);
+        ir_append(self, make_ir_set_local(ident, n, offs));
     elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
         var label = global_info_label(gi);
@@ -1394,27 +1509,48 @@ proc ir_emit_assign_op self, ast, st, tt in
     end
 end
 
+proc ir_emit_assign_member self, ast, st, tt in
+    check_ast_kind(AstK_AssignMember, ast);
+    var lhs = ast_lhs(ast);
+    var rhs = ast_rhs(ast);
+    var op = ast_op(ast);
+
+    if op == TK_Assign then
+        // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
+        ir_compile(self, rhs, st, tt);
+        if ast_kind(lhs) == AstK_MemberAccess then
+            ir_emit_member_access(self, lhs, st, tt, false);
+        else
+            ir_compile(self, lhs, st, tt);
+        end
+        var lhs_type = tt_get_ast_type(tt, lhs);
+        var size = type_size(lhs_type);
+        ir_append(self, make_ir_ptr_write(size));
+    else
+        NYI_ERR(__FILE__, __LINE__, "ir_emit_assign_member");
+    end
+end
+
 proc ir_emit_procedure self, ast, st, tt in
     check_ast_kind(AstK_Procedure, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
     var label = ir_new_proc(self, ident, params);
-    var insn = make_ir_new_proc(ident, label, params, 0);
+    var insn = make_ir_new_proc(ident, label, params);
     ir_push_scope(self);
     ir_append(self, insn);
 
-    var i = 0;
-    var len = vector_len(params);
-    var param;
-    var n;
+    var i = 0; var len = vector_len(params);
     while i < len do
-        param = vector_get(params, i);
-        n = ir_new_local(self, param);
-        ir_append(self, make_ir_set_local_arg(param, n, i));
+        var param = vector_get(params, i);
+        var n = ir_new_local(self, param, st);
+        var offs = ir_get_local_offset(self, param);
+        ir_append(self, make_ir_set_local_arg(param, n, i, offs));
         i += 1;
     end
     ir_emit_body(self, ast_body(ast), st, tt);
-    u64!(insn + TIR_INSTR_nlocals, ir_nlocals(self));
+    u64!(insn + TIR_INSTR_nlocals, ir_num_locals(self));
+    u64!(insn + TIR_INSTR_expr_size, ir_locals_size(self));
     ir_append(self, make_ir_close_proc(ident, label));
     ir_pop_scope(self);
 end
@@ -1600,6 +1736,110 @@ proc ir_emit_struct self, ast, st, tt in
     //NYI_ERR(__FILE__, __LINE__, "ir_emit_struct");
 end
 
+proc ir_emit_member_access self, ast, st, tt, deref: bool in
+    check_ast_kind(AstK_MemberAccess, ast);
+
+    // Member access is essentially a left-associative binary operator and when
+    // they are chained together in the form of `a.b.c.d`, they act as a linked
+    // list of more MemberAccess. We can utilize this by walking the list backwards
+    // and calculating the exact offset.
+    // At some point this will need to be adapted for dereferencing reference types.
+
+    var offset = 0;
+    var head = ast;
+    var deref_stack = make_vector(0);
+    while ast_kind(head) == AstK_MemberAccess do
+        var member = ast_member(head);
+        var type = tt_get_ast_type(tt, ast_expr(head));
+        var struct_type = type;
+        if type_is_reference(type) then
+            struct_type = type_deref_type(type);
+        end
+        assert(type_is_struct(struct_type), "TODO: catch this bug in type checker.\n");
+        var fields = type_struct_fields(struct_type);
+        var field = NULL;
+        var i = 0; var len = vector_len(fields);
+        while i < len do
+            field = vector_get(fields, i);
+            if cstr_eq(field_name(field), member) then
+                break;
+            end
+            i += 1;
+        end
+        // This assert is < and not <= because a successful find breaks early and
+        // if i == len, this means we didn't find the field which is either a bug
+        // in the type inference or we're trying to emit procedure lookup which
+        // isn't implemented yet.
+        assert(i < len, "TODO: update ir_emit_member_access for procs\n");
+        assert(field, "Compiler bug: field should not be NULL\n");
+        var offs = field_bit_offset(field);
+        assert(offs >= 0, "Compiler bug: field offset should be >= 0\n");
+        offset += offs;
+        if type_is_reference(type) then
+            vector_push(deref_stack, offset);
+            offset = 0;
+        end
+        //assert(not type_is_reference(type), "TODO: implement auto-deref reference types\n");
+        head = ast_expr(head);
+    end
+    
+    var head_type = tt_get_ast_type(tt, head);
+    assert(head_type);
+    if type_is_struct(head_type) and ast_kind(head) == AstK_Ident then
+        assert(false, "stack allocations not supported yet.\n");
+        // var ident = ast_ident(head);
+        // if ir_is_local(self, ident) then
+        //     var n = ir_get_local(self, ident);
+        //     var offs = ir_get_local_offset(self, ident);
+        //     ir_append(self, make_ir_ref_local(ident, n, offs));
+        // elif ir_is_global(self, ident) then
+        //     var gi = ir_get_global(self, ident);
+        //     ir_append(self, make_ir_ref_global(ident, global_info_label(gi)));
+        // else
+        //     assert(false, "TODO: `%s` is not a local nor global, how to get reference?\n", ident);
+        // end
+    else
+        ir_compile(self, head, st, tt);
+    end
+
+    if offset != 0 then
+        vector_push(deref_stack, offset);
+    end
+    var i = vector_len(deref_stack) - 1;
+    while i >= 0 do
+        ir_append(self, make_ir_ptr_offs(vector_get(deref_stack, i)));
+        if i > 0 then
+            ir_append(self, make_ir_ptr_read(PTR_BITS));
+        end
+        i -= 1;
+    end
+    free_vector(deref_stack);
+
+    if deref then
+        var type = tt_get_ast_type(tt, ast_expr(ast));
+        if type_is_reference(type) then
+            type = type_deref_type(type);
+            assert(type, "TODO: Type is reference but has no ref type\n");
+        end
+        assert(type_is_struct(type), "TODO: catch this bug in type checker.\n");
+        var fields = type_struct_fields(type);
+        var i = 0; var len = vector_len(fields);
+        var member = ast_member(ast);
+        var field;
+        while i < len do
+            field = vector_get(fields, i);
+            if cstr_eq(field_name(field), member) then
+                break;
+            end
+            i += 1;
+        end
+        var size = type_size(field_type(field));
+        assert(size > 0, "Compiler bug: size cannot be zero for auto-deref\n");
+        assert(size <= PTR_BITS, "TODO: support larger than memory read: %d\n", size);
+        ir_append(self, make_ir_ptr_read(size));
+    end
+end
+
 proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false);
@@ -1627,9 +1867,11 @@ proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     elif k == AstK_Continue then ir_emit_continue(self, ast, st, tt);
     elif k == AstK_AssignOp then ir_emit_assign_op(self, ast, st, tt);
     elif k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
+    elif k == AstK_MemberAccess then ir_emit_member_access(self, ast, st, tt, true);
+    elif k == AstK_AssignMember then ir_emit_assign_member(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
-        printf("Unhandled AstK: %d\n", k);
+        printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
         print_token(ast_token(ast));
         print_token_loc(ast_token(ast));
         exit(1);
