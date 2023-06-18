@@ -135,15 +135,15 @@ proc test_many_foos in
         var foo = cast(vector_get(foos, i), Foo&);
         if foo.a != i then
             printf("test_many_foos: fail on foo.a\n");
-            return 0;
+            return false;
         end
         if foo.bar.b != i * i then
             printf("test_many_foos: fail on foo.bar.b\n");
-            return 0;
+            return false;
         end
         if foo.bar.baz.c != i * i * i then
             printf("test_many_foos: fail on foo.bar.baz.c\n");
-            return 0;
+            return false;
         end
         i += 1;
     end
@@ -156,7 +156,16 @@ proc test_many_foos in
     end
     free_vector(foos);
     printf("test_many_foos: pass\n");
-    return 1;
+    return true;
+end
+
+proc test_member_access_from_return in
+    printf("testing member access works with function calls\n");
+    if make_vector(12345).capacity != 12345 then
+        printf("test_member_access_from_return: fail");
+    end
+    printf("test_member_access_from_return: pass\n");
+    return true;
 end
 
 proc main in
@@ -167,6 +176,11 @@ proc main in
 
     if not test_many_foos() then
         printf("test_many_foos: fail.\n");
+        return 1;
+    end
+
+    if not test_member_access_from_return() then
+        printf("test_member_access_from_return: fail.\n");
         return 1;
     end
     printf("pass all\n");
