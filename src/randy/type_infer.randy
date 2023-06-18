@@ -265,14 +265,8 @@ proc ti_infer_return self, tt, st, ast -> type in
     elif type_is_reference(ret_type) and type == any then
         // nothing
     elif not types_assignable(tt, type, ret_type) then
-        printf("WARN: Return type for `%s` is `", symbol_name(cur_proc));
-        tt_print_type_name(tt, ret_type);
-        printf("` cannot return `");
-        tt_print_type_name(tt, type);
-        printf(".`\nNOTE: The expression is: ");
-        print_ast(ast);
-        print_token_loc(ast_token(ast));
-        //exit(1);
+        // error message is handled in type checker
+        return tt_void_type(tt);
     end
     ti_set_did_return(self, true);
     return tt_void_type(tt);

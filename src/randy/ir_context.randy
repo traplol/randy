@@ -1415,7 +1415,7 @@ proc ir_emit_var_decl self, ast, st, tt in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
     if ir_is_cur_scope_local(self, ident) then
-        printf("ERROR: Local `%s` already declared.\n", ident);
+        printf("ERROR: local `%s` already declared.\n", ident);
         ir_print_src_loc(self);
         exit(1);
     end
@@ -1423,7 +1423,7 @@ proc ir_emit_var_decl self, ast, st, tt in
     assert(sym);
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
-        printf("ERROR: type of `%s` is `%s` size=8\n", ident, tt_get_type_name(tt, sym_type));
+        printf("ERROR: type of `%s` is undefined.\n", ident);
         ir_print_src_loc(self);
         exit(1);
     end
@@ -1434,7 +1434,7 @@ proc ir_emit_var_assign self, ast, st, tt in
     check_ast_kind(AstK_VarAssign, ast);
     var ident = ast_ident(ast);
     if ir_is_cur_scope_local(self, ident) then
-        printf("ERROR: Local `%s` already declared.\n", ident);
+        printf("ERROR: local `%s` already declared.\n", ident);
         ir_print_src_loc(self);
         exit(1);
     end
@@ -1442,7 +1442,7 @@ proc ir_emit_var_assign self, ast, st, tt in
     assert(sym);
     var sym_type = symbol_type(sym);
     if sym_type and type_size(sym_type) == 0 then
-        printf("ERROR: type of `%s` is `%s` size=0\n", ident, tt_get_type_name(tt, sym_type));
+        printf("ERROR: type of `%s` is undefined.\n", ident);
         ir_print_src_loc(self);
         exit(1);
     end
