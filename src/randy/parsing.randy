@@ -1085,12 +1085,18 @@ proc parse_enum ts, st, tt in
     var cur_value = 0;
     while not ts_peekk(ts, TK_KW_end) do
         var val_id = ts_expect(ts, TK_Ident);
+        var val = NULL;
         if ts_accept(ts, TK_Assign) then
-            var int = ts_expect(ts, TK_Integer);
-            cur_value = cast(token_value(int), int);
+            val = parse_expression(ts, st, tt);
+            if val and ast_kind(val) == AstK_Integer then
+                cur_value = cast(ast_value(val), int);
+            end
         end
         ts_expect(ts, TK_Semicolon);
-        vector_push(values, make_enum_value(val_id, token_value(val_id), cur_value));
+        if not val then
+            val = make_ast_integer(val_id, cur_value);
+        end
+        vector_push(values, make_enum_value(val_id, token_value(val_id), val));
         cur_value += 1;
     end
     ts_expect(ts, TK_KW_end);

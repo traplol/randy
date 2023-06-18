@@ -26,14 +26,16 @@ end
 struct EnumValue in
     token: token;
     name: cstr;
-    value: int;
+    value: ast;
+    cache_value: ptr;
 end
 
-proc make_enum_value token: token, name: cstr, value: int -> EnumValue& in
+proc make_enum_value token: token, name: cstr, value: ast -> EnumValue& in
     var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
     self.token = token;
     self.name = name;
     self.value = value;
+    self.cache_value = NULL;
     return self;
 end
 

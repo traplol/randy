@@ -9,6 +9,14 @@ proc test msg, expect, actual in
     end
 end
 
+proc test_cstr msg, expect, actual in
+    if cstr_eq(expect, actual) then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s, expect: \"%s\", actual: \"%s\"\n", msg, expect, actual);
+    end
+end
+
 enum Foo in
     A; B; C; D; E;
 end
@@ -29,6 +37,34 @@ enum Baz in
     E;
 end
 
+enum Qux in
+    A = 1 << 0;
+    B = 1 << 1;
+    C = 1 << 2;
+    D = 1 << 3;
+    E = 1 << 4;
+end
+
+enum WithStrings in
+    Hello = "hello world";
+    Bye = "cya!";
+end
+
+enum SelfRef in
+    A = 100;
+    B = SelfRef::A + 10;
+    C = SelfRef::B + 10;
+    D = SelfRef::C + 10;
+    E = SelfRef::D + 10;
+
+    // These cases trigger comptime eval recursion limit.
+    // F = SelfRef::F;      // self reference
+    // G = SelfRef::H - 10; // mutual recursion
+    // H = SelfRef::G + 10;
+end
+
+const foo = Foo::E;
+
 proc main in
 
     test("Foo::A == 0", 0, cast(Foo::A, int));
@@ -48,6 +84,23 @@ proc main in
     test("Baz::C == 34", 34, cast(Baz::C, int));
     test("Baz::D == 44", 44, cast(Baz::D, int));
     test("Baz::E == 45", 45, cast(Baz::E, int));
+
+    test("Qux::A == 1 << 0", 1 << 0, cast(Qux::A, int));
+    test("Qux::B == 1 << 1", 1 << 1, cast(Qux::B, int));
+    test("Qux::C == 1 << 2", 1 << 2, cast(Qux::C, int));
+    test("Qux::D == 1 << 3", 1 << 3, cast(Qux::D, int));
+    test("Qux::E == 1 << 4", 1 << 4, cast(Qux::E, int));
+
+    test_cstr("WithStrings::Hello == \"hello world\"", "hello world", cast(WithStrings::Hello, cstr));
+    test_cstr("WithStrings::Bye == \"cya!\"", "cya!", cast(WithStrings::Bye, cstr));
+
+    test("SelfRef::A == 100", 100, cast(SelfRef::A, int));
+    test("SelfRef::B == 110", 110, cast(SelfRef::B, int));
+    test("SelfRef::C == 120", 120, cast(SelfRef::C, int));
+    test("SelfRef::D == 130", 130, cast(SelfRef::D, int));
+    test("SelfRef::E == 140", 140, cast(SelfRef::E, int));
+
+    test("const foo is Foo::E", cast(Foo::E, int), cast(foo, int));
 
     return 0;
 end

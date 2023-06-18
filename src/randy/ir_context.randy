@@ -1074,7 +1074,39 @@ proc _comptime_eval_is_n n, ast in
     return ast_kind(ast) == AstK_Integer and ast_value(ast) == n;
 end
 
-proc ir_comptime_eval self, ast, st, tt, error_on_fail in
+proc _comptime_scope_resolve_val self, ast, st, tt, depth in
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+
+    var type = ast_type(ast_lhs(ast));
+    var member = ast_ident(ast_rhs(ast));
+    if type_is_enum(type) then
+        var enum_vals = type_enum_values(type);
+        var i = 0; var len = enum_vals.length;
+        while i < len do
+            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            if cstr_eq(ev.name, member) then
+                if not ev.cache_value then
+                    ev.cache_value = ir_comptime_eval(self, ev.value, st, tt, true, depth + 1);
+                end
+                return ev.cache_value;
+            end
+            i += 1;
+        end
+        assert(false, "Error should have been reported in type checker\n");
+    end
+end
+
+proc ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
+
+    if depth > 10 then
+        printf("ERROR: comptime eval reached recursion limit.\n");
+        printf("NOTE: The expression was: ");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+
     var evaled; var result: int;
     var op; var ident; var ci;
     var lhs; var rhs;
@@ -1095,6 +1127,8 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
                 return make_ast_integer(ast_token(ast), cast(const_info_value(ci), int)); // @LEAK
             end
         end
+    elif k == AstK_ScopeResolve then
+        return _comptime_scope_resolve_val(self, ast, st, tt, depth);
     elif k == AstK_SizeofExpr then
         var expr_type = tt_get_ast_type(tt, ast_expr(ast));
         var size_bytes = (type_size(expr_type) + BYTE_BITS-1) / BYTE_BITS;
@@ -1105,8 +1139,8 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
         return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
     elif k == AstK_BinOp then
         op = ast_op(ast);
-        lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail);
-        rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail);
+        lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
+        rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail, depth + 1);
 
         if op == TK_Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
         if op == TK_Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
@@ -1186,7 +1220,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
         end
     elif k == AstK_Prefix then
         op = ast_op(ast);
-        rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
+        rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
         evaled = false;
         if ast_kind(rhs) == AstK_Integer then
             rhs_val = cast(ast_value(rhs), int);
@@ -1205,7 +1239,7 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail in
             end
         end
     elif k == AstK_Cast then
-        return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail);
+        return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
     end
 
     if error_on_fail then
@@ -1613,7 +1647,7 @@ end
 proc ir_emit_const self, ast, st, tt in
     check_ast_kind(AstK_Const, ast);
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr, st, tt, true);
+    var val = ir_comptime_eval(self, expr, st, tt, true, 0);
     var const_info = NULL;
     var k = ast_kind(val);
     if k == AstK_String then
@@ -1677,7 +1711,7 @@ proc ir_emit_global self, ast, st, tt in
     end
 
     var expr = ast_assign_expr(ast);
-    var val = ir_comptime_eval(self, expr, st, tt, true);
+    var val = ir_comptime_eval(self, expr, st, tt, true, 0);
     var k = ast_kind(val);
     if k == AstK_String then
         ir_add_global_string(self, ident, ast_value(val));
@@ -1823,30 +1857,13 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
 end
 
 proc ir_emit_scope_resolve self, ast, st, tt in
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
-
-    var type = ast_type(ast_lhs(ast));
-    var member = ast_ident(ast_rhs(ast));
-    if type_is_enum(type) then
-        var enum_vals = type_enum_values(type);
-        var i = 0; var len = enum_vals.length;
-        while i < len do
-            var ev = cast(vector_get(enum_vals, i), EnumValue&);
-            if cstr_eq(ev.name, member) then
-                ir_append(self, make_ir_push_int(ev.value));
-                return;
-            end
-            i += 1;
-        end
-        assert(false, "Error should have been reported in type checker\n");
-    end
-
+    var val = _comptime_scope_resolve_val(self, ast, st, tt, 0);
+    ir_compile(self, val, st, tt);
 end
 
 proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     // comptime eval will just return back the ast node if it's not evaluable
-    ast = ir_comptime_eval(self, ast, st, tt, false);
+    ast = ir_comptime_eval(self, ast, st, tt, false, 0);
     var k = ast_kind(ast);
     ir_push_src_loc(self, token_src_loc(ast_token(ast)));
     if k == AstK_Ident then ir_emit_ident(self, ast, st, tt);

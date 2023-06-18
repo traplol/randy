@@ -13,3 +13,16 @@ pass: Baz::B == 33
 pass: Baz::C == 34
 pass: Baz::D == 44
 pass: Baz::E == 45
+pass: Qux::A == 1 << 0
+pass: Qux::B == 1 << 1
+pass: Qux::C == 1 << 2
+pass: Qux::D == 1 << 3
+pass: Qux::E == 1 << 4
+pass: WithStrings::Hello == "hello world"
+pass: WithStrings::Bye == "cya!"
+pass: SelfRef::A == 100
+pass: SelfRef::B == 110
+pass: SelfRef::C == 120
+pass: SelfRef::D == 130
+pass: SelfRef::E == 140
+pass: const foo is Foo::E
