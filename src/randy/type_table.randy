@@ -604,9 +604,73 @@ proc tt_detect_cycles self, stype in
     return false;
 end
 
+proc tt_check_struct_for_field_name_collisions self, type in
+    var member_name_map = make_map(0, cstr_eq, cstr_hash);
+    var fields = type_struct_fields(type);
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field = cast(vector_get(fields, i), field);
+        var fname = field_name(field);
+        var ftoke = field_token(field);
+        var found = map_find(member_name_map, fname);
+        if found then
+            printf("ERROR: struct `");
+            tt_print_type_name(self, type);
+            printf("` already contains a member named `%s.`\n", fname);
+            print_token_loc(ftoke);
+            printf("NOTE: it was previously defined here\n");
+            print_token_loc(cast(map_pair_val(found), token));
+            g_Errors += 1;
+        end
+        map_set(member_name_map, fname, ftoke);
+        i += 1;
+    end
+
+    var procs = type_struct_procs(type);
+    i = 0; len = procs.length;
+    while i < len do
+        var proc_ast = cast(vector_get(procs, i), ast);
+        var proc_nam = ast_ident(proc_ast);
+        var proc_tok = ast_token(proc_ast);
+        var found = map_find(member_name_map, proc_nam);
+        if found then
+            printf("ERROR: struct `");
+            tt_print_type_name(self, type);
+            printf("` already contains a member named `%s.`\n", proc_nam);
+            print_token_loc(proc_tok);
+            printf("NOTE: it was previously defined here\n");
+            print_token_loc(cast(map_pair_val(found), token));
+            g_Errors += 1;
+        end
+        map_set(member_name_map, proc_nam, proc_tok);
+        i += 1;
+    end
+    free_map(member_name_map);
+end
+
+proc tt_check_enum_for_field_name_collisions self, type in
+    var member_name_map = make_map(0, cstr_eq, cstr_hash);
+    var enum_vals = type_enum_values(type);
+    var i = 0; var len = enum_vals.length;
+    while i < len do
+        var ev = cast(vector_get(enum_vals, i), EnumValue&);
+        var found = map_find(member_name_map, ev.name);
+        if found then
+            printf("ERROR: enum `");
+            tt_print_type_name(self, type);
+            printf("` already contains a member named `%s.`\n", ev.name);
+            print_token_loc(ev.token);
+            printf("NOTE: it was previously defined here\n");
+            print_token_loc(cast(map_pair_val(found), token));
+            g_Errors += 1;
+        end
+        map_set(member_name_map, ev.name, ev.token);
+        i += 1;
+    end
+    free_map(member_name_map);
+end
+
 proc tt_calculate_structs self in
-    printf("TODO: Check structs for field/proc name collisions.\n  File \"%s\", line %d\n",
-        __FILE__, __LINE__);
     var to_calc = make_queue(0);
     var types = type_table_types(self);
     var i = 0; var len = types.length;
@@ -620,6 +684,11 @@ proc tt_calculate_structs self in
             type_set_deref_type(type, void);
         elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
             queue_enqueue(to_calc, type);
+        end
+        if type_is_struct(type) then
+            tt_check_struct_for_field_name_collisions(self, type);
+        elif type_is_enum(type) then
+            tt_check_enum_for_field_name_collisions(self, type);
         end
         i += 1;
     end
