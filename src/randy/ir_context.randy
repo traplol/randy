@@ -821,11 +821,6 @@ proc ir_current_src_loc self in
     return vector_back(src_locs);
 end
 
-proc ir_print_src_loc self in
-    var src_loc = ir_current_src_loc(self);
-    print_src_loc(src_loc);
-end
-
 proc ir_push_scope self in
     vector_push(ir_proc_locals(self), make_map(0, cstr_eq, cstr_hash));
     ir_append(self, make_ir_scope_open());
@@ -843,12 +838,12 @@ proc ir_cur_scope self in
     return vector_back(ir_proc_locals(self));
 end
 
-proc ir_new_proc self, ident, params in
+proc ir_new_proc self, ident, params, ast in
     var procs = ir_procs(self);
     var found = map_find(procs, ident);
     if found then
         printf("ERROR: proc `%s` already defined\n", ident);
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
     
@@ -1324,17 +1319,13 @@ proc ir_emit_call self, ast, st, tt in
         var info;
         if ir_is_proc(self, ident) then
             info = ir_get_proc(self, ident);
-            if not _ir_check_arg_count(self, ident, info, args.length) then
-                ir_print_src_loc(self);
-                exit(1);
-            end
+            assert(_ir_check_arg_count(self, ident, info, args.length),
+                "Compiler bug: this should have been caught in type checking.\n");
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
         elif ir_is_extern(self, ident) then
             info = ir_get_extern(self, ident);
-            if not _ir_check_arg_count(self, ident, info, args.length) then
-                ir_print_src_loc(self);
-                exit(1);
-            end
+            assert(_ir_check_arg_count(self, ident, info, args.length),
+                "Compiler bug: this should have been caught in type checking.\n");
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
         elif ir_is_label(self, ident) then
             ir_append(self, make_ir_call(ident, false));
@@ -1455,7 +1446,7 @@ proc ir_emit_assign_op self, ast, st, tt in
         //ir_append(self, make_ir_lazy_ident(ast_token(ast)));
         printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
     ir_compile(self, ast_assign_expr(ast), st, tt);
@@ -1474,7 +1465,7 @@ proc ir_emit_assign_op self, ast, st, tt in
     elif op == TK_BarEq then ir_op = IRK_OpBitOR;
     elif op == TK_Assign then // nothing
     else
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
     end
 
@@ -1492,7 +1483,7 @@ proc ir_emit_assign_op self, ast, st, tt in
         var label = global_info_label(gi);
         ir_append(self, make_ir_set_global(ident, label));
     else
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         assert(false, "Compiler bug: Unhandled assignment for non-local and non-global\n");
     end
 end
@@ -1523,7 +1514,7 @@ proc ir_emit_procedure self, ast, st, tt in
     check_ast_kind(AstK_Procedure, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
-    var label = ir_new_proc(self, ident, params);
+    var label = ir_new_proc(self, ident, params, ast);
     var insn = make_ir_new_proc(ident, label, params);
     ir_push_scope(self);
     ir_append(self, insn);
@@ -1637,7 +1628,7 @@ proc ir_emit_const self, ast, st, tt in
             if const_info_kind(existing) != const_info_kind(const_info) or
                 const_info_value(existing) != const_info_value(const_info) then
                 printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast_ident(ast));
-                ir_print_src_loc(self);
+                print_ast_src_loc(ast);
                 exit(1);
             end
         else
@@ -1659,7 +1650,7 @@ proc ir_emit_extern self, ast, st, tt in
         if params.length != proc_info_params(info).length
             or is_varargs != proc_info_varargs(info) then
             printf("ERROR: Redefintion of extern `%s` with different number of arguments.", ident);
-            ir_print_src_loc(self);
+            print_ast_src_loc(ast);
             exit(1);
         end
     end
@@ -1681,7 +1672,7 @@ proc ir_emit_global self, ast, st, tt in
     var ident = ast_ident(ast);
     if ir_is_global(self, ident) then
         printf("ERROR: global `%s` already defined.\n", ident);
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
 
@@ -1702,7 +1693,7 @@ proc ir_emit_break self, ast, st, tt in
     var dest = ir_get_break_dest(self);
     if not dest then
         printf("ERROR: 'break' must be within a loop body.\n");
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
     ir_append(self, make_ir_goto(dest));
@@ -1713,7 +1704,7 @@ proc ir_emit_continue self, ast, st, tt in
     var dest = ir_get_continue_dest(self);
     if not dest then
         printf("ERROR: 'continue' must be within a loop body.\n");
-        ir_print_src_loc(self);
+        print_ast_src_loc(ast);
         exit(1);
     end
     ir_append(self, make_ir_goto(dest));
