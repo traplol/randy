@@ -10,6 +10,7 @@
 global g_SymbolTable = NULL;
 global g_TypeTable = NULL;
 global g_Experimental = false;
+global g_Errors = 0;
 
 #include bits
 #include utils
@@ -246,7 +247,7 @@ proc main argc: int, argv: ptr in
             ir_print_whole_ir(irctx);
         end
 
-        if not will_compile then
+        if not will_compile or g_Errors != 0 then
             return 0;
         end
 

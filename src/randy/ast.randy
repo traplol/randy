@@ -166,7 +166,7 @@ proc make_ast_integer token: token, value: int -> ast in
     return self;
 end
 
-proc make_ast_string token: token, value: string& -> ast in
+proc make_ast_string token: token, value: String& -> ast in
     var self = _make_ast(AstK_String, true, token);
     u64!(self + TAST_value, value);
     return self;

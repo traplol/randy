@@ -17,7 +17,7 @@ proc type_infer_cur_procs self: type_infer in
     return cast(u64@(self + TTYPE_INFER_cur_procs), vector);
 end
 proc type_infer_did_returns self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_did_returns), string&);
+    return cast(u64@(self + TTYPE_INFER_did_returns), String&);
 end
 proc type_infer_again self: type_infer in
     return cast(u64@(self + TTYPE_INFER_again), set);

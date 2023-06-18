@@ -28,7 +28,7 @@ proc get_escaped_char c: char -> char in
     return c;
 end
 
-proc get_ident_kind string: string& in
+proc get_ident_kind string: String& in
     var cstr = string_cstr(string);
     var first = u8@(cstr);
     if 'a' == first then
@@ -385,7 +385,7 @@ proc lex_file path: cstr, include_paths: vector in
     return res;
 end
 
-proc handle_include src_file: cstr, line_no: int, tokens: vector, include_paths: vector, included_already: set, arg: string& in
+proc handle_include src_file: cstr, line_no: int, tokens: vector, include_paths: vector, included_already: set, arg: String& in
     string_append_cstr(arg, ".randy");
 
     var i = 0;

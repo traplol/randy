@@ -31,7 +31,7 @@ proc write_file fd: fd, buf: ptr, count: int -> int in
     return cast(syscall(SYS_write, fd, buf, count), int);
 end
 
-proc getcwd -> string& in
+proc getcwd -> String& in
     var str = make_string(1024);
     while not syscall(SYS_getcwd, string_buf(str), string_cap(str)) do
         var temp = make_string(string_cap(str) + 1024);

@@ -80,7 +80,7 @@ proc cc_out_label self: compiler_context, cstr: cstr in
     free_string(str);
 end
 
-proc cc_out_string self: compiler_context, string: string& in
+proc cc_out_string self: compiler_context, string: String& in
     var str = make_string(20);
     string_append_cstr(str, ".byte ");
     var i = 0;

@@ -14,7 +14,7 @@ proc make_vector init: int -> vector in
 end
 
 proc free_vector self: vector in
-    free_string(cast(self, string&));
+    free_string(cast(self, String&));
 end
 
 proc vector_buf self: vector -> ptr in
@@ -40,21 +40,21 @@ proc vector_set self: vector, idx: int, val: ptr in
 end
 
 proc vector_resize self: vector, new_cap: int in
-    string_resize(cast(self, string&), new_cap * sizeof_TVECTOR_ELEMENT);
+    string_resize(cast(self, String&), new_cap * sizeof_TVECTOR_ELEMENT);
 end
 
 proc vector_push self: vector, val: ptr in
-    var len = string_len(cast(self, string&));
-    var cap = string_cap(cast(self, string&));
+    var len = string_len(cast(self, String&));
+    var cap = string_cap(cast(self, String&));
     if len >= cap then
-        string_resize(cast(self, string&), (2 * cap) + sizeof_TVECTOR_ELEMENT);
+        string_resize(cast(self, String&), (2 * cap) + sizeof_TVECTOR_ELEMENT);
     end
     u64!(u64@(self) + len, val);
     u64!(self + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);
 end
 
 proc vector_pop self: vector in
-    var len = string_len(cast(self, string&));
+    var len = string_len(cast(self, String&));
     if len > 0 then
         u64!(self + TVECTOR_length, len - sizeof_TVECTOR_ELEMENT);
     else
@@ -73,5 +73,5 @@ proc vector_back self: vector -> ptr in
 end
 
 proc vector_set_len self: vector, len: int in
-    string_set_len(cast(self, string&), len * sizeof_TVECTOR_ELEMENT);
+    string_set_len(cast(self, String&), len * sizeof_TVECTOR_ELEMENT);
 end

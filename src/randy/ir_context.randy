@@ -737,7 +737,7 @@ proc local_info_size self: local_info in return cast(u64@(self + TLOCAL_INFO_siz
 
 const TIR_CONTEXT_instructions =  0;  // ir_instruction vector
 const TIR_CONTEXT_label_id     =  8;  // int
-const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : string& -> label
+const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : String& -> label
 const TIR_CONTEXT_externs      = 24;  // (cstr, proc_info) map   : name -> proc_info
 const TIR_CONTEXT_labels       = 32;  // string set : all labels
 const TIR_CONTEXT_constants    = 40;  // (cstr, const_info) map  : name -> const_info

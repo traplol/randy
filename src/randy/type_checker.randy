@@ -4,14 +4,14 @@ proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
     if not sym_type or sym_type == tt_any_type(tt) then
         printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
 
     var rhs_type = tt_get_ast_type(tt, rhs_expr);
     if not rhs_type or rhs_type == tt_any_type(tt) then
         printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
         
     if not types_assignable(tt, sym_type, rhs_type) then
@@ -21,7 +21,7 @@ proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
         tt_print_type_name(tt, rhs_type);
         printf(".`\n");
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
 end
 
@@ -33,6 +33,7 @@ proc _tc_check_is_scalar_type tt, ast, type in
     tt_print_type_name(tt, type);
     printf("` where scalar is required.\n");
     print_ast_src_loc(ast);
+    g_Errors += 1;
 end
 
 proc _tc_check_is_int_like tt, ast, type in
@@ -43,6 +44,7 @@ proc _tc_check_is_int_like tt, ast, type in
     tt_print_type_name(tt, type);
     printf("` where `int`-like is required.\n");
     print_ast_src_loc(ast);
+    g_Errors += 1;
 end
 
 proc tc_check_body tt, st, body in
@@ -67,7 +69,7 @@ proc tc_check_call tt, st, ast in
         printf("The expression is: ");
         print_ast(ast);
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
 
     // TODO: remove this when function types have a first class representation.
@@ -98,7 +100,7 @@ proc tc_check_call tt, st, ast in
             tt_print_type_name(tt, arg_type);
             printf(".`\n");
             print_ast_src_loc(ast);
-            //exit(1);
+            g_Errors += 1;
         end
         i += 1;
     end
@@ -149,14 +151,14 @@ proc tc_check_assign_op tt, st, ast in
         if not lhs_type or lhs_type == tt_any_type(tt) then
             printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
             print_ast_src_loc(ast);
-            exit(1);
+            g_Errors += 1;
         end
 
         var rhs_type = tt_get_ast_type(tt, ast_assign_expr(ast));
         if not rhs_type or rhs_type == tt_any_type(tt) then
             printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
             print_ast_src_loc(ast);
-            exit(1);
+            g_Errors += 1;
         end
 
         if op == TK_PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
@@ -173,7 +175,7 @@ proc tc_check_assign_op tt, st, ast in
         tt_print_type_name(tt, rhs_type);
         printf(".`\n");
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
 end
 
@@ -208,7 +210,7 @@ proc tc_check_procedure tt, st, ast in
             i += 1;
         end
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
     end
 
     tc_check_body(tt, st, ast_body(ast));
@@ -321,7 +323,7 @@ proc tc_check_assign_member tt, st, ast in
     tt_print_type_name(tt, rhs_type);
     printf(".`\n");
     print_ast_src_loc(ast);
-    exit(1);
+    g_Errors += 1;
 end
 
 proc tc_check tt, st, ast in
