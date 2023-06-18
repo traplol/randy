@@ -1,0 +1,5 @@
+test_many_players: creating many `player` objects.
+test_many_players: checking the player fields are correct.
+test_many_players: freeing the `player` objects.
+test_many_players: pass
+pass all

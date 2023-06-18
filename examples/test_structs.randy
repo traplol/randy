@@ -1,0 +1,103 @@
+#include std/core
+#include std/vector
+
+struct point in
+    x: int;
+    y: int;
+end
+
+proc make_point x, y -> point& in
+    var self = cast(malloc(__sizeof(point)), point&);
+    self.x = x;
+    self.y = y;
+    return self;
+end
+
+proc free_point self: point& in
+    free(self);
+end
+
+struct player in
+    name: cstr;
+    health: int;
+    pos: point&;
+end
+
+proc make_player name, health, x, y -> player& in
+    var player = cast(malloc(__sizeof(player)), player&);
+    player.name = name;
+    player.health = health;
+    player.pos = make_point(x, y);
+    return player;
+end
+
+proc free_player self: player& in
+    if self then
+        free_point(self.pos);
+        free(self);
+    end
+end
+
+proc print_player player: player& in
+    printf("player: %s health: %d\n", player.name, player.health);
+    printf("  at x=%d, y=%d\n", player.pos.x, player.pos.y);
+end
+
+const PLAYER_NAME = "abcdefghijklmnopqrstuvwxyz";
+
+proc make_players n: int in
+    var players = make_vector(n);
+    var i = 0;
+    while i < n do
+        var player = make_player(PLAYER_NAME, i, i * 11, i * i);
+        vector_push(players, player);
+        i += 1;
+    end
+    return players;
+end
+
+proc test_many_players in
+    printf("test_many_players: creating many `player` objects.\n");
+    var players = make_players(100000);
+    printf("test_many_players: checking the player fields are correct.\n");
+    var i = 0; var len = vector_len(players);
+    while i < len do
+        var player = cast(vector_get(players, i), player&);
+        if player.name != PLAYER_NAME then
+            printf("test_many_players:fail on player.name\n");
+            return false;
+        end
+        if player.health != i then
+            printf("test_many_players:fail on player.health\n");
+            return false;
+        end
+        if player.pos.x != i * 11 then
+            printf("test_many_players:fail on player.pos.x\n");
+            return false;
+        end
+        if player.pos.y != i * i then
+            printf("test_many_players:fail on player.pos.y\n");
+            return false;
+        end
+        i += 1;
+    end
+
+    printf("test_many_players: freeing the `player` objects.\n");
+    i = 0;
+    while i < len do
+        free_player(cast(vector_get(players, i), player&));
+        i += 1;
+    end
+    free_vector(players);
+    printf("test_many_players: pass\n");
+    return true;
+end
+
+proc main in
+    if not test_many_players() then
+        printf("test_many_players: fail.\n");
+        return 1;
+    end
+    printf("pass all\n");
+    return 0;
+end
