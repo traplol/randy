@@ -31,23 +31,23 @@ end
 
 proc main in
 
-    test("Foo.A == 0", 0, cast(Foo.A, int));
-    test("Foo.B == 1", 1, cast(Foo.B, int));
-    test("Foo.C == 2", 2, cast(Foo.C, int));
-    test("Foo.D == 3", 3, cast(Foo.D, int));
-    test("Foo.E == 4", 4, cast(Foo.E, int));
+    test("Foo::A == 0", 0, cast(Foo::A, int));
+    test("Foo::B == 1", 1, cast(Foo::B, int));
+    test("Foo::C == 2", 2, cast(Foo::C, int));
+    test("Foo::D == 3", 3, cast(Foo::D, int));
+    test("Foo::E == 4", 4, cast(Foo::E, int));
 
-    test("ooF.A == 4", 4, cast(ooF.A, int));
-    test("ooF.B == 3", 3, cast(ooF.B, int));
-    test("ooF.C == 2", 2, cast(ooF.C, int));
-    test("ooF.D == 1", 1, cast(ooF.D, int));
-    test("ooF.E == 0", 0, cast(ooF.E, int));
+    test("ooF::A == 4", 4, cast(ooF::A, int));
+    test("ooF::B == 3", 3, cast(ooF::B, int));
+    test("ooF::C == 2", 2, cast(ooF::C, int));
+    test("ooF::D == 1", 1, cast(ooF::D, int));
+    test("ooF::E == 0", 0, cast(ooF::E, int));
 
-    test("Baz.A == 0",   0, cast(Baz.A, int));
-    test("Baz.B == 33", 33, cast(Baz.B, int));
-    test("Baz.C == 34", 34, cast(Baz.C, int));
-    test("Baz.D == 44", 44, cast(Baz.D, int));
-    test("Baz.E == 45", 45, cast(Baz.E, int));
+    test("Baz::A == 0",   0, cast(Baz::A, int));
+    test("Baz::B == 33", 33, cast(Baz::B, int));
+    test("Baz::C == 34", 34, cast(Baz::C, int));
+    test("Baz::D == 44", 44, cast(Baz::D, int));
+    test("Baz::E == 45", 45, cast(Baz::E, int));
 
     return 0;
 end

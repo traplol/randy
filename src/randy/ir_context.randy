@@ -1721,22 +1721,6 @@ end
 proc ir_emit_member_access self, ast, st, tt, deref: bool in
     check_ast_kind(AstK_MemberAccess, ast);
 
-    var t = tt_get_ast_type(tt, ast);
-    if type_is_enum(t) then
-        var enum_vals = type_enum_values(t);
-        var i = 0; var len = enum_vals.length;
-        var member = ast_member(ast);
-        while i < len do
-            var ev = cast(vector_get(enum_vals, i), EnumValue&);
-            if cstr_eq(ev.name, member) then
-                ir_append(self, make_ir_push_int(ev.value));
-                return;
-            end
-            i += 1;
-        end
-        assert(false, "Error should have been reported in type checker\n");
-    end
-
     // Member access is essentially a left-associative binary operator and when
     // they are chained together in the form of `a.b.c.d`, they act as a linked
     // list of more MemberAccess. We can utilize this by walking the list backwards
@@ -1838,6 +1822,28 @@ proc ir_emit_member_access self, ast, st, tt, deref: bool in
     end
 end
 
+proc ir_emit_scope_resolve self, ast, st, tt in
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+
+    var type = ast_type(ast_lhs(ast));
+    var member = ast_ident(ast_rhs(ast));
+    if type_is_enum(type) then
+        var enum_vals = type_enum_values(type);
+        var i = 0; var len = enum_vals.length;
+        while i < len do
+            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            if cstr_eq(ev.name, member) then
+                ir_append(self, make_ir_push_int(ev.value));
+                return;
+            end
+            i += 1;
+        end
+        assert(false, "Error should have been reported in type checker\n");
+    end
+
+end
+
 proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false);
@@ -1868,6 +1874,7 @@ proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
     elif k == AstK_MemberAccess then ir_emit_member_access(self, ast, st, tt, true);
     elif k == AstK_AssignMember then ir_emit_assign_member(self, ast, st, tt);
     elif k == AstK_Enum then ir_emit_enum(self, ast, st, tt);
+    elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

@@ -489,7 +489,9 @@ proc ti_infer_member_access self, tt, st, ast in
         end
         ftype = _ti_get_field_type(ref_type, member);
     elif type_is_enum(type) then
-        return type;
+        assert(false, "TODO: FIXME enum's don't use . operator for access\n");
+    elif type_is_union(type) then
+        assert(false, "TODO: FIXME union's don't use . operator for access\n");
     else
         ftype = tt_any_type(tt); // let it get resolved again later
     end
@@ -526,6 +528,12 @@ proc ti_infer_sizeof_expr self, tt, st, ast in
     return tt_int_type(tt);
 end
 
+proc ti_infer_scope_resolve self, tt, st, ast in
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+    return ast_type(ast_lhs(ast));
+end
+
 proc ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
     var type: type;
@@ -558,6 +566,8 @@ proc ti_infer self, tt, st, ast -> type in
     elif k == AstK_SizeofExpr then type = ti_infer_sizeof_expr(self, tt, st, ast);
     elif k == AstK_SizeofType then type = tt_int_type(tt);
     elif k == AstK_Enum then type = tt_void_type(tt);
+    elif k == AstK_Type then type = tt_void_type(tt);
+    elif k == AstK_ScopeResolve then type = ti_infer_scope_resolve(self, tt, st, ast);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

@@ -220,8 +220,13 @@ proc _lex_code filename, code, include_paths, included_already -> Vector& in
                 vector_push(tokens, make_token(TK_Semicolon, ";", ";", line_no, filename));
                 i += 1;
             elif c == ':' then
-                vector_push(tokens, make_token(TK_Colon, ":", ":", line_no, filename));
-                i += 1;
+                if string_get(code, i + 1) == ':' then
+                    vector_push(tokens, make_token(TK_ColonColon, "::", "::", line_no, filename));
+                    i += 2;
+                else
+                    vector_push(tokens, make_token(TK_Colon, ":", ":", line_no, filename));
+                    i += 1;
+                end
             elif c == ',' then
                 vector_push(tokens, make_token(TK_Comma, ",", ",", line_no, filename));
                 i += 1;

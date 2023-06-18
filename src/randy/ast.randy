@@ -30,6 +30,8 @@ const AstK_AssignMember = 24;
 const AstK_SizeofExpr   = 25;
 const AstK_SizeofType   = 26;
 const AstK_Enum         = 27;
+const AstK_Type         = 28;
+const AstK_ScopeResolve = 29;
 
 proc ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -60,6 +62,8 @@ proc ast_kind_cstr k: int in
     if k == AstK_SizeofExpr then return "AstK_SizeofExpr"; end
     if k == AstK_SizeofType then return "AstK_SizeofType"; end
     if k == AstK_Enum then return "AstK_Enum"; end
+    if k == AstK_Type then return "AstK_Type"; end
+    if k == AstK_ScopeResolve then return "AstK_ScopeResolve"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -150,6 +154,11 @@ const TAST_type        = 24; // type
 const TAST_ident       = 16; // cstr
 const TAST_enum        = 24; // type
 const TAST_values      = 32; // EnumValue& Vector&
+// Type
+const TAST_type        = 24; // type
+// ScopeResolve
+const TAST_lhs         = 16; // Union(type_ast, scope_resolve_ast)
+const TAST_rhs         = 32; // Union(type_ast, ident_ast)
 
 const sizeof_TAST      = 40;
 
@@ -361,6 +370,19 @@ proc make_ast_enum token: token, ident: cstr, enum_: type, values: Vector& -> as
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_enum, enum_);
     u64!(self + TAST_values, values);
+    return self;
+end
+
+proc make_ast_type token: token, type: type -> ast in
+    var self = _make_ast(AstK_Type, false, token);
+    u64!(self + TAST_type, type);
+    return self;
+end
+
+proc make_ast_scope_resolve token: token, lhs: ast, rhs: ast -> ast in
+    var self = _make_ast(AstK_ScopeResolve, true, token);
+    u64!(self + TAST_lhs, lhs);
+    u64!(self + TAST_rhs, rhs);
     return self;
 end
 
@@ -775,6 +797,16 @@ proc _print_ast_enum ast, indent in
     
 end
 
+proc _print_ast_type ast, indent in
+    tt_print_type_name(g_TypeTable, ast_type(ast));
+end
+
+proc _print_ast_scope_resolve ast, indent in
+    _print_ast(ast_lhs(ast), indent);
+    printf("::");
+    _print_ast(ast_rhs(ast), indent);
+end
+
 proc _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -805,6 +837,8 @@ proc _print_ast ast, indent in
     elif k == AstK_SizeofExpr then _print_ast_sizeof_expr(ast, indent);
     elif k == AstK_SizeofType then _print_ast_sizeof_type(ast, indent);
     elif k == AstK_Enum then _print_ast_enum(ast, indent);
+    elif k == AstK_Type then _print_ast_type(ast, indent);
+    elif k == AstK_ScopeResolve then _print_ast_scope_resolve(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
