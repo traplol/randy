@@ -174,10 +174,10 @@ proc main argc: int, argv: ptr in
         string_push(source_dir, '/');
         string_append_cstr(source_dir, in_path);
         var abspath = string_duplicate(source_dir);
-        while string_len(source_dir) > 0 and string_back(source_dir) != '/' do
+        while source_dir.length > 0 and string_back(source_dir) != '/' do
             string_pop(source_dir);
         end
-        if string_len(source_dir) > 1 then
+        if source_dir.length > 1 then
             string_pop(source_dir);
         end
         vector_push(include_paths, source_dir);

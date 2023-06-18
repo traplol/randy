@@ -100,7 +100,7 @@ end
 proc _lex_code filename, code, include_paths, included_already -> Vector& in
     var i = 0;
     var tokens = make_vector(0);
-    var length = string_len(code);
+    var length = code.length;
     // pad the ending so we don't have to check that every memory access is valid.
     string_push(code, 0);
     string_push(code, 0);
@@ -210,7 +210,7 @@ proc _lex_code filename, code, include_paths, included_already -> Vector& in
                     end
                 end
                 // trim whitespace off end of arg
-                while string_len(arg) > 0 and is_whitespace(string_back(arg)) do
+                while arg.length > 0 and is_whitespace(string_back(arg)) do
                     string_pop(arg);
                 end
                 handle_directive(filename, line_no, tokens, include_paths, included_already, directive, arg);
@@ -390,7 +390,7 @@ proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths
 
     var i = 0;
     var cur_dir = string_from_cstr(src_file);
-    while string_len(cur_dir) > 0 and string_back(cur_dir) != '/' do
+    while cur_dir.length > 0 and string_back(cur_dir) != '/' do
         string_pop(cur_dir);
     end
     var found = cur_dir;

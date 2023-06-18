@@ -45,7 +45,7 @@ end
 
 proc ti_set_did_return self, val in
     var str = type_infer_did_returns(self);
-    var len = string_len(str);
+    var len = str.length;
     if len > 0 then
         string_set(str, len - 1, val);
     end
@@ -493,11 +493,7 @@ proc ti_infer_member_access self, tt, st, ast in
         end
         ftype = _ti_get_field_type(ref_type, member);
     else
-        printf("ERROR: type `");
-        tt_print_type_name(tt, type);
-        printf("` is not a struct.\n");
-        print_ast_src_loc(ast);
-        exit(1);
+        ftype = tt_any_type(tt); // let it get resolved again later
     end
     if not ftype then
         printf("ERROR: type `");

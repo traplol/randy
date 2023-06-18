@@ -48,7 +48,7 @@ end
 
 proc string_hash string: String& -> int in
     var hash = 5381;
-    var len = string_len(string);
+    var len = string.length;
     var i = 0;
     while i < len do
         hash = hash * 33 + string_get(string, i);
@@ -126,7 +126,7 @@ end
 
 proc int_from_string string: String& -> int in
     var result = 0;
-    var i = string_len(string) - 1;
+    var i = string.length - 1;
     var k = 1;
     var c;
     while i >= 0 do

@@ -409,13 +409,13 @@ proc _print_ast_ident ast, indent in
 end
 
 proc _print_ast_integer ast, indent in
-    printf("%ld", ast_value(ast));
+    printf("%ld", cast(ast_value(ast), int));
 end
 
 proc _print_ast_string ast, indent in
     printf("\"");
-    var string = ast_value(ast);
-    var i = 0; var len = string_len(string);
+    var string = cast(ast_value(ast), String&);
+    var i = 0; var len = string.length;
     while i < len do
         var c = string_get(string, i);
         if c == '\n' then

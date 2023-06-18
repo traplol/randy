@@ -84,7 +84,7 @@ proc cc_out_string self: compiler_context, string: String& in
     var str = make_string(20);
     string_append_cstr(str, ".byte ");
     var i = 0;
-    var len = string_len(string);
+    var len = string.length;
     while i < len do
         string_append_int(str, string_get(string, i));
         i += 1;
@@ -217,8 +217,8 @@ proc cc_lines_to_file cctx: compiler_context, path: cstr in
     var num_lines = vector_len(lines);
     var line; var line_len;
     while i < num_lines do
-        line = vector_get(lines, i);
-        j = 0; line_len = string_len(line);
+        line = cast(vector_get(lines, i), String&);
+        j = 0; line_len = line.length;
         while j < line_len do
             if p == buffer_end then
                 write_file(fd, buffer, BUFLEN);
