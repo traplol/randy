@@ -2,92 +2,97 @@
 #include core
 #include memory
 
-const TSTRING_buffer = 0;
-const TSTRING_length = 8;
-const TSTRING_capacity = 16;
-const sizeof_TSTRING = 24;
-
-proc make_string init: int -> string in
-    var self = malloc(sizeof_TSTRING);
-    var buf = malloc(init);
-
-    u64!(self + TSTRING_buffer, buf);
-    u64!(self + TSTRING_length, 0);
-    u64!(self + TSTRING_capacity, init);
-    
-    return cast(self, string);
+// const TSTRING_buffer = 0;
+// const TSTRING_length = 8;
+// const TSTRING_capacity = 16;
+// const sizeof_TSTRING = 24;
+struct string in
+    buffer: char&;
+    length: int;
+    capacity: int;
 end
 
-proc free_string self: string in
+proc make_string init: int -> string& in
+    var self = cast(malloc(__sizeof(string)), string&);
+    var buf = malloc(init);
+
+    self.buffer = buf;
+    self.length = 0;
+    self.capacity = init;
+    
+    return self;
+end
+
+proc free_string self: string& in
     free(cast(u64@(self), ptr));
     free(self);
 end
 
-proc string_buf self: string -> ptr in
-    return cast(u64@(self), ptr);
+proc string_buf self: string& -> char& in
+    return self.buffer;
 end
 
-proc string_len self: string -> int in
-    return cast(u64@(self + TSTRING_length), int);
+proc string_len self: string& -> int in
+    return self.length;
 end
 
-proc string_set_len self: string, n: int in
-    if n >= 0 and n <= string_cap(self) then
-        u64!(self + TSTRING_length, n);
+proc string_set_len self: string&, n: int in
+    if n >= 0 and n <= self.capacity then
+        self.length = n;
     end
 end
 
-proc string_reset self: string in
-    string_set_len(self, 0);
+proc string_reset self: string& in
+    self.length = 0;
 end
 
-proc string_cap self: string -> int in
-    return cast(u64@(self + TSTRING_capacity), int);
+proc string_cap self: string& -> int in
+    return self.capacity;
 end
 
-proc string_get self: string, idx: int -> char in
-    return cast(u8@(u64@(self) + idx), char);
+proc string_get self: string&, idx: int -> char in
+    return cast(u8@(self.buffer + idx), char);
 end
 
-proc string_set self: string, idx: int, val: char in
-    u8!(u64@(self) + idx, val);
+proc string_set self: string&, idx: int, val: char in
+    u8!(self.buffer + idx, val);
 end
 
-proc string_resize self: string, new_cap: int in
+proc string_resize self: string&, new_cap: int in
     var new = malloc(new_cap);
-    var old = cast(u64@(self), ptr);
+    var old = self.buffer;
     var len = string_len(self);
     if new_cap < len then
         len = new_cap;
     end
     memcpy(new, old, len);
     free(old);
-    u64!(self, new);
-    u64!(self + TSTRING_length, len);
-    u64!(self + TSTRING_capacity, new_cap);
+    self.buffer = new;
+    self.length = len;
+    self.capacity = new_cap;
 end
 
-proc string_push self: string, val: char in
+proc string_push self: string&, val: char in
     var len = string_len(self);
     var cap = string_cap(self);
     if len == cap then
         string_resize(self, 2 * cap + 1);
     end
     string_set(self, len, val);
-    u64!(self + TSTRING_length, len+1);
+    self.length = len + 1;
 end
 
-proc string_pop self: string in
+proc string_pop self: string& in
     var len = string_len(self);
     if len > 0 then
-        u64!(self + TSTRING_length, len - 1);
+        self.length = len - 1;
     else
         printf("ERROR: string_pop out of bounds.\n");
         abort();
     end
 end
 
-proc string_back self: string -> char in
+proc string_back self: string& -> char in
     var len = string_len(self);
     if len > 0 then
         return string_get(self, len-1);
@@ -96,7 +101,7 @@ proc string_back self: string -> char in
     abort();
 end
 
-proc string_append_string self: string, string: string in
+proc string_append_string self: string&, string: string& in
     var len = string_len(string);
     var i = 0;
     while i < len do
@@ -105,25 +110,25 @@ proc string_append_string self: string, string: string in
     end
 end
 
-proc string_append_cstr self: string, cstr: cstr in
+proc string_append_cstr self: string&, cstr: cstr in
     var i = 0;
     while u8@(cstr) do
         string_push(self, u8@(cstr));
-        cstr = cstr + 1;
+        cstr += 1;
         i += 1;
     end
 end
 
-proc string_from_cstr cstr: cstr -> string in
+proc string_from_cstr cstr: cstr -> string& in
     var string = make_string(2);
     while u8@(cstr) do
         string_push(string, u8@(cstr));
-        cstr = cstr + 1;
+        cstr += 1;
     end
     return string;
 end
 
-proc string_eq string_a: string, string_b: string -> bool in
+proc string_eq string_a: string&, string_b: string& -> bool in
     if string_a == string_b then
         return true;
     end
@@ -147,7 +152,7 @@ proc string_eq string_a: string, string_b: string -> bool in
     return true;
 end
 
-proc string_cstr string: string -> cstr in
+proc string_cstr string: string& -> cstr in
     var len = string_len(string);
     if len == string_cap(string) then
         string_resize(string, len+1);
@@ -184,7 +189,7 @@ proc cstr_len cstr: cstr -> int in
     return i;
 end
 
-proc string_duplicate self: string -> string in
+proc string_duplicate self: string& -> string& in
     var copy = make_string(string_cap(self));
     memcpy(string_buf(copy), string_buf(self), string_len(self));
     string_set_len(copy, string_len(self));

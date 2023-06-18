@@ -2,10 +2,10 @@
 #include string
 #include core
 
-const TVECTOR_buffer = TSTRING_buffer;
-const TVECTOR_length = TSTRING_length;
-const TVECTOR_capacity = TSTRING_capacity;
-const sizeof_TVECTOR = sizeof_TSTRING;
+const TVECTOR_buffer = 0;
+const TVECTOR_length = 8;
+const TVECTOR_capacity = 16;
+const sizeof_TVECTOR = 24;
 const sizeof_TVECTOR_ELEMENT = sizeof_PTR;
 
 proc make_vector init: int -> vector in
@@ -14,7 +14,7 @@ proc make_vector init: int -> vector in
 end
 
 proc free_vector self: vector in
-    free_string(cast(self, string));
+    free_string(cast(self, string&));
 end
 
 proc vector_buf self: vector -> ptr in
@@ -40,21 +40,21 @@ proc vector_set self: vector, idx: int, val: ptr in
 end
 
 proc vector_resize self: vector, new_cap: int in
-    string_resize(self, new_cap * sizeof_TVECTOR_ELEMENT);
+    string_resize(cast(self, string&), new_cap * sizeof_TVECTOR_ELEMENT);
 end
 
 proc vector_push self: vector, val: ptr in
-    var len = string_len(self);
-    var cap = string_cap(self);
+    var len = string_len(cast(self, string&));
+    var cap = string_cap(cast(self, string&));
     if len >= cap then
-        string_resize(cast(self, string), (2 * cap) + sizeof_TVECTOR_ELEMENT);
+        string_resize(cast(self, string&), (2 * cap) + sizeof_TVECTOR_ELEMENT);
     end
     u64!(u64@(self) + len, val);
     u64!(self + TVECTOR_length, len + sizeof_TVECTOR_ELEMENT);
 end
 
 proc vector_pop self: vector in
-    var len = string_len(self);
+    var len = string_len(cast(self, string&));
     if len > 0 then
         u64!(self + TVECTOR_length, len - sizeof_TVECTOR_ELEMENT);
     else
@@ -73,5 +73,5 @@ proc vector_back self: vector -> ptr in
 end
 
 proc vector_set_len self: vector, len: int in
-    string_set_len(self, len * sizeof_TVECTOR_ELEMENT);
+    string_set_len(cast(self, string&), len * sizeof_TVECTOR_ELEMENT);
 end
