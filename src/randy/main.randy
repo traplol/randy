@@ -225,7 +225,7 @@ proc main argc: int, argv: ptr in
         end
 
         if do_print_ast then
-            print_compile_ast(roots, compile_order);
+            print_compile_ast(compile_order);
         end
 
         time(starttime);
@@ -258,16 +258,14 @@ proc main argc: int, argv: ptr in
 
         var main_proc = NULL;
         var exit_proc = NULL;
-        if ir_is_proc(irctx, "main") then
-            main_proc = proc_info_label(ir_get_proc(irctx, "main"));
-        elif ir_is_label(irctx, "_proc_main") then
+        if ir_is_label(irctx, "_proc_main") then
             main_proc = "_proc_main";
         else
             printf("ERROR: no `main` procedure.\n");
             return 1;
         end
-        if ir_is_proc(irctx, "exit") then
-            exit_proc = proc_info_label(ir_get_proc(irctx, "exit"));
+        if ir_is_label(irctx, "_proc_exit") then
+            exit_proc = "_proc_exit";
         end
 
         time(starttime);

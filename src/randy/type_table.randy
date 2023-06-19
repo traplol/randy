@@ -631,20 +631,18 @@ proc tt_check_struct_for_field_name_collisions self, type in
     var procs = type_struct_procs(type);
     i = 0; len = procs.length;
     while i < len do
-        var proc_ast = cast(vector_get(procs, i), ast);
-        var proc_nam = ast_ident(proc_ast);
-        var proc_tok = ast_token(proc_ast);
-        var found = map_find(member_name_map, proc_nam);
+        var proc_ = cast(vector_get(procs, i), Symbol&);
+        var found = map_find(member_name_map, proc_.name);
         if found then
             printf("ERROR: struct `");
             tt_print_type_name(self, type);
-            printf("` already contains a member named `%s.`\n", proc_nam);
-            print_token_loc(proc_tok);
+            printf("` already contains a member named `%s.`\n", proc_.name);
+            print_token_loc(proc_.token);
             printf("NOTE: it was previously defined here\n");
             print_token_loc(cast(map_pair_val(found), Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, proc_nam, proc_tok);
+        map_set(member_name_map, proc_.name, proc_.token);
         i += 1;
     end
     free_map(member_name_map);
@@ -738,4 +736,90 @@ proc tt_print_type_name self, type in
     else
         printf("{no type}");
     end
+end
+
+proc scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
+    assert(ast_kind(ast) == AstK_ScopeResolve);
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
+        ast_kind_cstr(ast_kind(ast_rhs(ast))));
+    var type = ast_type(ast_lhs(ast));
+    if type_is_struct(type) then
+        var member = ast_ident(ast_rhs(ast));
+        var procs = type_struct_procs(type);
+        var i = 0; var len = procs.length;
+        while i < len do
+            var proc_ = cast(vector_get(procs, i), Symbol&);
+            var proc_name = symbol_name(proc_);
+            if cstr_eq(member, proc_name) then
+                var proc_type = symbol_type(proc_);
+                assert(proc_type);
+                assert(type_is_procedure(proc_type));
+                return proc_type;
+            end
+            i += 1;
+        end
+        if error then
+            printf("ERROR: type `");
+            tt_print_type_name(tt, type);
+            printf("` has no member `%s.`\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        return tt_any_type(tt);
+    elif type_is_enum(type) then
+        return type;
+    elif type_is_union(type) then
+        assert(false, "scope resolve for unions not implemented yet.\n");
+    elif error then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` is not a struct, enum, or union.\n");
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+    return tt_any_type(tt);
+end
+
+proc scope_resolve_proc tt: type_table, ast: ast, error: bool -> Symbol& in
+    assert(ast_kind(ast) == AstK_ScopeResolve);
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
+        ast_kind_cstr(ast_kind(ast_rhs(ast))));
+    var type = ast_type(ast_lhs(ast));
+    if type_is_struct(type) then
+        var member = ast_ident(ast_rhs(ast));
+        var procs = type_struct_procs(type);
+        var i = 0; var len = procs.length;
+        while i < len do
+            var proc_ = cast(vector_get(procs, i), Symbol&);
+            var proc_name = symbol_name(proc_);
+            if cstr_eq(member, proc_name) then
+                var proc_type = symbol_type(proc_);
+                assert(proc_type);
+                assert(type_is_procedure(proc_type));
+                return proc_;
+            end
+            i += 1;
+        end
+        if error then
+            printf("ERROR: type `");
+            tt_print_type_name(tt, type);
+            printf("` has no member `%s.`\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        return NULL;
+    elif type_is_enum(type) then
+        assert(false, "scope_resolve_proc for unions not implemented yet.\n");
+    elif type_is_union(type) then
+        assert(false, "scope_resolve_proc for unions not implemented yet.\n");
+    elif error then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` is not a struct, enum, or union.\n");
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+    return NULL;
 end

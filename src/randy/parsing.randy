@@ -1079,6 +1079,14 @@ proc parse_struct ts, st, tt in
         type_set_struct_procs(struct_type, proc_symbols);
     end
 
+    var i = 0; var len = proc_symbols.length;
+    while i < len do
+        var proc_sym = cast(vector_get(proc_symbols, i), Symbol&);
+        assert(not proc_sym.owned_by);
+        proc_sym.owned_by = struct_type;
+        i += 1;
+    end
+
     var ast = make_ast_struct(struct_, struct_type, fields, procs);
     type_set_ast(struct_type, ast);
     return ast;

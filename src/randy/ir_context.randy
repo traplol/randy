@@ -127,6 +127,7 @@ const TIR_INSTR_params   = 24;
 const TIR_INSTR_size     = 24;
 
 const TIR_INSTR_value    = 32;
+const TIR_INSTR_symbol   = 32;
 const TIR_INSTR_varargs  = 32;
 const TIR_INSTR_asm      = 32;
 const TIR_INSTR_arg      = 32;
@@ -158,6 +159,7 @@ proc ir_instr_nlocals self: ir_instr in return cast(u64@(self + TIR_INSTR_nlocal
 proc ir_instr_offset self: ir_instr in return cast(u64@(self + TIR_INSTR_offset), int); end
 proc ir_instr_expr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_size), int); end
 proc ir_instr_expr_offs self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_offs), int); end
+proc ir_instr_symbol self: ir_instr in return cast(u64@(self + TIR_INSTR_symbol), Symbol&); end
 
 proc make_ir_alloc_temps n -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
@@ -172,16 +174,18 @@ proc make_ir_call label, varargs -> ir_instr in
     u64!(self + TIR_INSTR_varargs, varargs);
     return cast(self, ir_instr);
 end
-proc make_ir_lazy_ident ident -> ir_instr in
+proc make_ir_lazy_ident ident, symbol -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_LazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
+    u64!(self + TIR_INSTR_symbol, symbol);
     return cast(self, ir_instr);
 end
-proc make_ir_call_lazy_ident ident, nargs -> ir_instr in
+proc make_ir_call_lazy_ident ident, symbol, nargs -> ir_instr in
     var self = calloc(1, sizeof_TIR_INSTR);
     u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
     u64!(self + TIR_INSTR_ident, ident);
+    u64!(self + TIR_INSTR_symbol, symbol);
     u64!(self + TIR_INSTR_nargs, nargs);
     return cast(self, ir_instr);
 end
@@ -647,14 +651,12 @@ proc print_ir ir: ir_instr in
 end
 
 const TPROC_INFO_label = 0;    // cstr
-const TPROC_INFO_params = 8;   // cstr Vector&
 const TPROC_INFO_varargs = 16; // bool
 const sizeof_TPROC_INFO = 24;
 
 proc make_proc_info label: cstr, params: Vector&, varargs: bool -> proc_info in
     var self = malloc(sizeof_TPROC_INFO);
     u64!(self + TPROC_INFO_label, label);
-    u64!(self + TPROC_INFO_params, params);
     u64!(self + TPROC_INFO_varargs, varargs);
     return cast(self, proc_info);
 end
@@ -662,25 +664,8 @@ end
 proc proc_info_label self: proc_info -> cstr in
     return cast(u64@(self + TPROC_INFO_label), cstr);
 end
-proc proc_info_params self: proc_info -> Vector& in
-    return cast(u64@(self + TPROC_INFO_params), Vector&);
-end
 proc proc_info_varargs self: proc_info -> bool in
     return cast(u8@(self + TPROC_INFO_varargs), bool);
-end
-proc print_proc_info self in
-    printf("(ProcInfo label='%s', params=[", proc_info_label(self));
-    var i = 0;
-    var params = proc_info_params(self);
-    var len = params.length;
-    while i < len do
-        printf("'%s'", vector_get(params, i));
-        i += 1;
-        if i < len then
-            printf(", ");
-        end
-    end
-    printf("], varargs=%d)\n", proc_info_varargs(self));
 end
 
 const TCONST_INFO_kind = 0;
@@ -766,7 +751,7 @@ proc make_ir_context -> ir_context in
     u64!(self + TIR_CONTEXT_src_locs, make_vector(0));
     u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_files, make_vector(0));
-    u64!(self + TIR_CONTEXT_procs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_procs, make_map(0, NULL, NULL));
     u64!(self + TIR_CONTEXT_proc_locals, make_vector(0));
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_globals, make_vector(0));
@@ -838,7 +823,7 @@ proc ir_cur_scope self in
     return vector_back(ir_proc_locals(self));
 end
 
-proc ir_new_proc self, ident, params, ast in
+proc ir_new_proc self, ident, params, ast, symbol in
     var procs = ir_procs(self);
     var found = map_find(procs, ident);
     if found then
@@ -849,16 +834,23 @@ proc ir_new_proc self, ident, params, ast in
     
     var label = make_string(20); // @LEAK
     string_append_cstr(label, "_proc_");
+    if symbol.owned_by then
+        string_push(label, '_');
+        string_append_int(label, type_id(symbol.owned_by));
+        string_push(label, '_');
+    end
     string_append_cstr(label, ident);
 
     var label_cstr = string_cstr(label);
     set_add(ir_labels(self), label_cstr);
-    map_set(procs, ident, make_proc_info(label_cstr, params, false));
+    map_set(procs, symbol_name(symbol), make_proc_info(label_cstr, params, false));
 
     assert(ir_proc_locals(self).length == 0,
         "Compiler bug: proc locals not empty when creating new proc\n");
     u64!(self + TIR_CONTEXT_num_locals, 0);
     u64!(self + TIR_CONTEXT_locals_size, 0);
+    symbol.label = label_cstr;
+    symbol.is_varargs = false;
     return label_cstr;
 end
 
@@ -932,7 +924,12 @@ proc ir_is_label self, ident in
 end
 
 proc ir_is_proc self, ident in
-    return map_find(ir_procs(self), ident) != NULL;
+    //var sym = st_get_symbol(g_SymbolTable, ident);
+    if map_find(ir_procs(self), ident) != NULL then
+        return true;
+    else
+        return false;
+    end
 end
 
 proc ir_get_proc self, ident in
@@ -1135,8 +1132,10 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
         return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
     elif k == AstK_SizeofType then
         var type = ast_type(ast);
-        var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
-        return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
+        if type then
+            var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
+            return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
+        end
     elif k == AstK_BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
@@ -1294,7 +1293,7 @@ proc ir_emit_ident self, ast, st, tt in
         var gi = ir_get_global(self, ident);
         ir_append(self, make_ir_get_global(ident, global_info_label(gi)));
     else
-        ir_append(self, make_ir_lazy_ident(ast_token(ast)));
+        ir_append(self, make_ir_lazy_ident(ast_token(ast), st_get_symbol(st, ident)));
     end
 end
 
@@ -1308,20 +1307,6 @@ proc ir_emit_string self, ast, st, tt in
     var string = ast_value(ast);
     var string_label = ir_string_label(self, string);
     ir_append(self, make_ir_push_label(string_label));
-end
-
-proc _ir_check_arg_count self, ident, info, nargs in
-    var nparams = proc_info_params(info).length;
-    var varargs = proc_info_varargs(info);
-
-    if not varargs and nargs != nparams then
-        printf("ERROR: Call to `%s` expects %d arguments but got %d.\n", ident, nparams, nargs);
-        return false;
-    elif varargs and nargs < nparams then
-        printf("ERROR: Call to `%s` expects at least %d arguments but got %d.\n", ident, nparams, nargs);
-        return false;
-    end
-    return true;
 end
 
 proc ir_emit_call self, ast, st, tt in
@@ -1353,13 +1338,9 @@ proc ir_emit_call self, ast, st, tt in
         var info;
         if ir_is_proc(self, ident) then
             info = ir_get_proc(self, ident);
-            assert(_ir_check_arg_count(self, ident, info, args.length),
-                "Compiler bug: this should have been caught in type checking.\n");
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
         elif ir_is_extern(self, ident) then
             info = ir_get_extern(self, ident);
-            assert(_ir_check_arg_count(self, ident, info, args.length),
-                "Compiler bug: this should have been caught in type checking.\n");
             ir_append(self, make_ir_call(proc_info_label(info), proc_info_varargs(info)));
         elif ir_is_label(self, ident) then
             ir_append(self, make_ir_call(ident, false));
@@ -1367,10 +1348,12 @@ proc ir_emit_call self, ast, st, tt in
             ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_pop_call());
         else
-            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), len));
+            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), st_get_symbol(st, ident), len));
         end
     elif ast_kind(expr) == AstK_ScopeResolve then
-        assert(false, "yayayayaya\n");
+        var proc_ = scope_resolve_proc(tt, expr, true);
+        assert(proc_.label != NULL);
+        ir_append(self, make_ir_call(proc_.label, proc_.is_varargs));
     else
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_pop_call());
@@ -1548,13 +1531,9 @@ end
 
 proc ir_emit_procedure self, ast, st, tt in
     check_ast_kind(AstK_Procedure, ast);
-    // printf("=================================\n");
-    // printf("Emitting procedure:\n");
-    // print_ast(ast);
-    // printf("=================================\n");
     var ident = ast_ident(ast);
     var params = ast_params(ast);
-    var label = ir_new_proc(self, ident, params, ast);
+    var label = ir_new_proc(self, ident, params, ast, st_get_symbol(st, ident));
     var insn = make_ir_new_proc(ident, label, params);
     ir_push_scope(self);
     ir_append(self, insn);
@@ -1684,17 +1663,6 @@ proc ir_emit_extern self, ast, st, tt in
     var ident = ast_ident(ast);
     var params = ast_params(ast);
     var is_varargs = ast_varargs(ast);
-    
-    if ir_is_extern(self, ident) then
-        var info = ir_get_extern(self, ident);
-        if params.length != proc_info_params(info).length
-            or is_varargs != proc_info_varargs(info) then
-            printf("ERROR: Redefintion of extern `%s` with different number of arguments.", ident);
-            print_ast_src_loc(ast);
-            exit(1);
-        end
-    end
-
     ir_add_extern(self, ident, params, is_varargs);
 end
 
@@ -1911,33 +1879,33 @@ end
 proc ir_resolve_lazy_idents self in
     var instrs = ir_instructions(self);
     var i = 0; var len = instrs.length;
-    var k; var ir; var token; var ident;
+    var k; var ir; var token;
     var info = NULL;
     while i < len do
         ir = vector_get(instrs, i);
         k = ir_instr_kind(ir);
         if k == IRK_LazyIdent then
             token = ir_instr_ident(ir);
-            ident = token_value(token);
+            var symbol = ir_instr_symbol(ir);
             var new_ir;
-            if ir_is_const(self, ident) then
-                info = ir_get_const(self, ident);
+            if ir_is_const(self, symbol_name(symbol)) then
+                info = ir_get_const(self, symbol_name(symbol));
                 var cik = const_info_kind(info);
                 if cik == CIK_String then
                     new_ir = make_ir_push_label(const_info_value(info));
                 elif cik == CIK_Integer then
                     new_ir = make_ir_push_int(const_info_value(info));
                 end
-            elif ir_is_proc(self, ident) then
-                info = ir_get_proc(self, ident);
+            elif ir_is_proc(self, symbol_name(symbol)) then
+                info = ir_get_proc(self, symbol_name(symbol));
                 new_ir = make_ir_push_label(proc_info_label(info));
-            elif ir_is_extern(self, ident) then
-                info = ir_get_extern(self, ident);
+            elif ir_is_extern(self, symbol_name(symbol)) then
+                info = ir_get_extern(self, symbol_name(symbol));
                 new_ir = make_ir_push_label(proc_info_label(info));
-            elif ir_is_label(self, ident) then
-                new_ir = make_ir_push_label(ident);
+            elif ir_is_label(self, symbol_name(symbol)) then
+                new_ir = make_ir_push_label(symbol_name(symbol));
             else
-                printf("ERROR: Undeclared identifier: `%s`\n", ident);
+                printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
                 print_src_loc(token_src_loc(token));
                 exit(1);
             end
@@ -1945,23 +1913,19 @@ proc ir_resolve_lazy_idents self in
             vector_set(instrs, i, new_ir);
         elif k == IRK_CallLazyIdent then
             token = ir_instr_ident(ir);
-            ident = token_value(token);
+            var symbol = ir_instr_symbol(ir);
             var nargs = ir_instr_nargs(ir);
             var call = NULL;
-            if ir_is_proc(self, ident) then
-                info = ir_get_proc(self, ident);
+            if ir_is_proc(self, symbol_name(symbol)) then
+                info = ir_get_proc(self, symbol_name(symbol));
                 call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
-            elif ir_is_extern(self, ident) then
-                info = ir_get_extern(self, ident);
+            elif ir_is_extern(self, symbol_name(symbol)) then
+                info = ir_get_extern(self, symbol_name(symbol));
                 call = make_ir_call(proc_info_label(info), proc_info_varargs(info));
-            elif ir_is_label(self, ident) then
-                call = make_ir_call(ident, false);
+            elif ir_is_label(self, symbol_name(symbol)) then
+                call = make_ir_call(symbol_name(symbol), false);
             else
-                printf("ERROR: Undeclared identifier: `%s`\n", ident);
-                print_src_loc(token_src_loc(token));
-                exit(1);
-            end
-            if not _ir_check_arg_count(self, ident, info, nargs) then
+                printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
                 print_src_loc(token_src_loc(token));
                 exit(1);
             end

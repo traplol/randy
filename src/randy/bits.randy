@@ -1,5 +1,5 @@
 
-const BOOL_BITS = 1;
+const BOOL_BITS = 8;
 const BYTE_BITS = 8;
 const CHAR_BITS = 8;
 const PTR_BITS = 64;

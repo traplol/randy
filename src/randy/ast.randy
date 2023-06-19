@@ -560,7 +560,15 @@ proc _print_ast_body body, indent in
 end
 
 proc _print_ast_procedure ast, indent in
-    printf("proc %s", ast_ident(ast));
+    var proc_sym = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    assert(proc_sym);
+    if proc_sym and proc_sym.owned_by then
+        printf("proc ");
+        tt_print_type_name(g_TypeTable, proc_sym.owned_by);
+        printf("::%s", ast_ident(ast));
+    else
+        printf("proc %s", ast_ident(ast));
+    end
     var i = 0;
     var params = ast_params(ast);
     var len = params.length;
@@ -579,8 +587,6 @@ proc _print_ast_procedure ast, indent in
             printf(",");
         end
     end
-    var proc_sym = st_get_symbol(g_SymbolTable, ast_ident(ast));
-    assert(proc_sym);
     var proc_type = symbol_type(proc_sym);
     if proc_type then
         assert(type_is_procedure(proc_type), "proc_type not procedure.\n");
@@ -863,17 +869,8 @@ proc print_whole_ast roots in
     end
 end
 
-proc print_compile_ast roots, compile_order: Vector& in
-    var i = 0; var len = roots.length;
-    while i < len do
-        var ast = vector_get(roots, i);
-        if ast_kind(ast) != AstK_Procedure then
-            print_ast(ast);
-        end
-        i += 1;
-    end
-
-    i = 0; len = compile_order.length;
+proc print_compile_ast compile_order: Vector& in
+    var i = 0; var len = compile_order.length;
     while i < len do
         print_ast(vector_get(compile_order, i));
         i += 1;
