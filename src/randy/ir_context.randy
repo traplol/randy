@@ -1509,53 +1509,53 @@ def ir_emit_assign_op self, ast, st, tt in
     end
 end
 
-def _experimental_ir_emit_assign_member self, ast, st, tt in
-    var lhs = ast_lhs(ast);
-    var rhs = ast_rhs(ast);
-    var op = ast_op(ast);
-
-    if op == TK::Assign then
-        // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
-        ir_compile(self, rhs, st, tt);
-        if ast_kind(lhs) == AstK_MemberAccess then
-            ir_emit_member_access(self, lhs, st, tt, false);
-        else
-            ir_compile(self, lhs, st, tt);
-        end
-        var lhs_type = tt_get_ast_type(tt, lhs);
-        var size = type_size(lhs_type);
-        ir_append(self, make_ir_ptr_write(size));
-    else
-        NYI_ERR(__FILE__, __LINE__, "ir_emit_assign_member");
-    end
-end
-
 def ir_emit_assign_member self, ast, st, tt in
     check_ast_kind(AstK_AssignMember, ast);
-
-    if g_Experimental then
-        _experimental_ir_emit_assign_member(self, ast, st, tt);
-        return;
-    end
-        
     var lhs = ast_lhs(ast);
     var rhs = ast_rhs(ast);
     var op = ast_op(ast);
 
-    if op == TK::Assign then
-        // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
-        ir_compile(self, rhs, st, tt);
+    if op != TK::Assign then
         if ast_kind(lhs) == AstK_MemberAccess then
-            ir_emit_member_access(self, lhs, st, tt, false);
+            // dereference self
+            ir_emit_member_access(self, lhs, st, tt, true);
         else
             ir_compile(self, lhs, st, tt);
         end
-        var lhs_type = tt_get_ast_type(tt, lhs);
-        var size = type_size(lhs_type);
-        ir_append(self, make_ir_ptr_write(size));
-    else
-        NYI_ERR(__FILE__, __LINE__, "ir_emit_assign_member");
     end
+
+    ir_compile(self, rhs, st, tt);
+
+    var ir_op = -1;
+    if op == TK::PlusEq then ir_op = IRK_OpAdd;
+    elif op == TK::MinusEq then ir_op = IRK_OpSub;
+    elif op == TK::StarEq then ir_op = IRK_OpMul;
+    elif op == TK::SlashEq then ir_op = IRK_OpDiv;
+    elif op == TK::PercentEq then ir_op = IRK_OpMod;
+    elif op == TK::LShiftEq then ir_op = IRK_OpBitShiftL;
+    elif op == TK::RShiftEq then ir_op = IRK_OpBitShiftR;
+    elif op == TK::AmperEq then ir_op = IRK_OpBitAND;
+    elif op == TK::CaretEq then ir_op = IRK_OpBitXOR;
+    elif op == TK::BarEq then ir_op = IRK_OpBitOR;
+    elif op == TK::Assign then // nothing
+    else
+        print_ast_src_loc(ast);
+        assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
+    end
+
+    if op != TK::Assign then
+        assert(ir_op != -1, "Compiler bug: ir_op wasn't assigned. op = %d\n", op);
+        ir_append(self, make_ir_simple_op(ir_op));
+    end
+
+    if ast_kind(lhs) == AstK_MemberAccess then
+        ir_emit_member_access(self, lhs, st, tt, false);
+    else
+        ir_compile(self, lhs, st, tt);
+    end
+    var lhs_type = tt_get_ast_type(tt, lhs);
+    var size = type_size(lhs_type);
+    ir_append(self, make_ir_ptr_write(size));
 end
 
 def ir_emit_def self, ast, st, tt in
