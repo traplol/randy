@@ -22,6 +22,15 @@ struct Player in
     health: int;
     // Point is a struct by reference
     pos: Point&;
+
+    def move self, dx, dy in
+        self.pos.x += dx;
+        self.pos.y += dy;
+    end
+
+    def take_damage self, n in
+        self.health -= n;
+    end
 end
 
 def make_player name, health, x, y -> Player& in
@@ -50,7 +59,9 @@ def make_players n: int in
     var players = make_vector(n);
     var i = 0;
     while i < n do
-        var player = make_player(PLAYER_NAME, i, i * 11, i * i);
+        var player = make_player(PLAYER_NAME, 100 + i, i * 11, i * i);
+        Player::move(player, 10, 20);
+        Player::take_damage(player, 30);
         vector_push(players, player);
         i += 1;
     end
@@ -68,15 +79,15 @@ def test_many_players in
             printf("test_many_players:fail on player.name\n");
             return false;
         end
-        if player.health != i then
+        if player.health != (100 + i - 30) then
             printf("test_many_players:fail on player.health\n");
             return false;
         end
-        if player.pos.x != i * 11 then
+        if player.pos.x != (i * 11) + 10 then
             printf("test_many_players:fail on player.pos.x\n");
             return false;
         end
-        if player.pos.y != i * i then
+        if player.pos.y != (i * i) + 20 then
             printf("test_many_players:fail on player.pos.y\n");
             return false;
         end
