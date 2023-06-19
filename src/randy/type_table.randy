@@ -48,7 +48,6 @@ const TyK_def       = 5;
 const TyK_struct    = 6;
 const TyK_enum      = 7;
 const TyK_union     = 8; // NYI
-const TyK_array     = 9; // NYI
 
 const TTYPE_id        = 0;  // int
 const TTYPE_kind      = 8;  // TyK
@@ -70,9 +69,6 @@ const TTYPE_enum_values = 40; // EnumValue& Vector&
 // union
 const TTYPE_union_names = 40; // cstr Vector&
 const TTYPE_union_types = 48; // type Vector&
-// array
-const TTYPE_array_count = 40; // number of elems in array
-const TTYPE_array_type  = 48; // type of each elem in array
 
 const sizeof_TTYPE = 64;
 const TYPE_NEEDS_SIZING = (1<<32)-1;
@@ -123,13 +119,6 @@ def make_type_union id: int, union_names: Vector&, union_types: Vector& in
     return self;
 end
 
-def make_type_array id: int, count: int, type: type in
-    var self = make_type(TyK_array, id);
-    u64!(self + TTYPE_array_count, count);
-    u64!(self + TTYPE_array_type, type);
-    return self;
-end
-
 def type_kind self: type in return cast(u32@(self + TTYPE_kind), int); end
 def type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 def type_id self: type in return cast(u64@(self + TTYPE_id), int); end
@@ -155,8 +144,6 @@ end
 def type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
 def type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
 def type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
-def type_array_count self: type in return cast(u64@(self + TTYPE_array_count), int); end
-def type_array_type self: type in return cast(u64@(self + TTYPE_array_type), type); end
 
 def type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
 def type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
@@ -178,8 +165,6 @@ def type_set_struct_defs self: type, defs: Vector& in u64!(self + TTYPE_struct_d
 def type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
 def type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
 def type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
-def type_set_array_count self: type, count: int in u64!(self + TTYPE_array_count, count); end
-def type_set_array_type self: type, type: type in u64!(self + TTYPE_array_type, type); end
 
 def type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
 def type_is_void self: type in return type_kind(self) == TyK_void; end
@@ -190,7 +175,6 @@ def type_is_struct self: type in return type_kind(self) == TyK_struct; end
 def type_is_def self: type in return type_kind(self) == TyK_def; end
 def type_is_enum self: type in return type_kind(self) == TyK_enum; end
 def type_is_union self: type in return type_kind(self) == TyK_union; end
-def type_is_array self: type in return type_kind(self) == TyK_array; end
 
 def type_is_scalar self: type in
     if type_is_int_like(self) then
@@ -256,7 +240,7 @@ def _basic_def_type_match tt, lhs, rhs in
     return true;
 end
 
-def types_assignable tt: type_table, lhs: type, rhs: type in
+def types_assignable tt: TypeTable&, lhs: type, rhs: type in
     if types_eq(lhs, rhs) then
         return true;
     end
@@ -302,24 +286,19 @@ def types_assignable tt: type_table, lhs: type, rhs: type in
     return false;
 end
 
-def print_type self: type in
-    var kind = type_kind(self);
-    var id = type_id(self);
-    printf("kind=%d, id=%d\n", kind, id);
+struct TypeTable in
+    type_ids: map;   // (cstr, int) map : name -> type_id
+    types: Vector&;  // type Vector& : type_id is index into this Vector&
+    names: Vector&;  // cstr Vector& : type_id is index into this Vector&, may have NULLs
+    ast_types: map;  // (ast, type) map : ast -> type
+    void_type: type; // fast ref to `void` type
+    any_type: type;  // fast ref to `any` type
+    int_type: type;  // fast ref to `int` type
+    char_type: type; // fast ref to `char` type
+    ptr_type: type;  // fast ref to `ptr` type
+    cstr_type: type; // fast ref to `cstr` type
+    bool_type: type; // fast ref to `bool` type
 end
-
-const TTYPE_TABLE_type_ids  = 0;  // (cstr, int) map : name -> type_id
-const TTYPE_TABLE_types     = 8;  // type Vector& : type_id is index into this Vector&
-const TTYPE_TABLE_names     = 16; // cstr Vector& : type_id is index into this Vector&, may have NULLs
-const TTYPE_TABLE_ast_types = 24; // (ast, type) map : ast -> type
-const TTYPE_TABLE_void_type = 32; // fast ref to `void` type
-const TTYPE_TABLE_any_type  = 40; // fast ref to `any` type
-const TTYPE_TABLE_int_type  = 48; // fast ref to `int` type
-const TTYPE_TABLE_char_type = 56; // fast ref to `char` type
-const TTYPE_TABLE_ptr_type  = 64; // fast ref to `ptr` type
-const TTYPE_TABLE_cstr_type = 72; // fast ref to `cstr` type
-const TTYPE_TABLE_bool_type = 80; // fast ref to `bool` type
-const sizeof_TTYPE_TABLE    = 88;
 
 def _tt_make_type tyk, name, size, type_ids, types, names in
     var type_idx = types.length;
@@ -351,36 +330,36 @@ def _tt_make_type_alias type, name, type_ids, types, names in
     vector_push(names, name);
 end
 
-def make_type_table -> type_table in
-    var self = malloc(sizeof_TTYPE_TABLE);
+def make_type_table -> TypeTable& in
+    var self: TypeTable& = malloc(__sizeof(TypeTable));
     var type_ids = make_map(0, cstr_eq, cstr_hash);
     var types = make_vector(0);
     var names = make_vector(0);
-    u64!(self + TTYPE_TABLE_type_ids, type_ids);
-    u64!(self + TTYPE_TABLE_types, types);
-    u64!(self + TTYPE_TABLE_names, names);
-    u64!(self + TTYPE_TABLE_ast_types, make_map(0, NULL, NULL));
+    self.type_ids = type_ids;
+    self.types = types;
+    self.names = names;
+    self.ast_types = make_map(0, NULL, NULL);
 
     var void_t = _tt_make_type(TyK_void, "void", 0, type_ids, types, names);
-    u64!(self + TTYPE_TABLE_void_type, void_t);
+    self.void_type = void_t;
 
     var any_t = _tt_make_type(TyK_any, "any", 0, type_ids, types, names);
-    u64!(self + TTYPE_TABLE_any_type, any_t);
+    self.any_type = any_t;
 
     var bool_t = _tt_make_type(TyK_int_like, "bool", BOOL_BITS, type_ids, types, names);
-    u64!(self + TTYPE_TABLE_bool_type, bool_t);
+    self.bool_type = bool_t;
 
     var int_t = _tt_make_type(TyK_int_like, "int", INT_BITS, type_ids, types, names);
-    u64!(self + TTYPE_TABLE_int_type, int_t);
+    self.int_type = int_t;
 
     var char_t = _tt_make_type(TyK_int_like, "char", CHAR_BITS, type_ids, types, names);
-    u64!(self + TTYPE_TABLE_char_type, char_t);
+    self.char_type = char_t;
 
     var ptr_t = _tt_make_ref_type(void_t, "ptr", type_ids, types, names);
-    u64!(self + TTYPE_TABLE_ptr_type, ptr_t);
+    self.ptr_type = ptr_t;
 
     var cstr_t = _tt_make_ref_type(char_t, "cstr", type_ids, types, names);
-    u64!(self + TTYPE_TABLE_cstr_type, cstr_t);
+    self.cstr_type = cstr_t;
 
     _tt_make_type_alias(char_t, "int8", type_ids, types, names);
     _tt_make_type_alias(int_t, "int64", type_ids, types, names);
@@ -388,20 +367,20 @@ def make_type_table -> type_table in
     _tt_make_type(TyK_int_like, "int16", 16, type_ids, types, names);
     _tt_make_type(TyK_int_like, "int32", 32, type_ids, types, names);
 
-    return cast(self, type_table);
+    return self;
 end
 
-def type_table_type_ids self: type_table in return cast(u64@(self + TTYPE_TABLE_type_ids), map); end
-def type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), Vector&); end
-def type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), Vector&); end
-def type_table_ast_types self: type_table in return cast(u64@(self + TTYPE_TABLE_ast_types), map); end
-def tt_any_type self: type_table in return cast(u64@(self + TTYPE_TABLE_any_type), type); end
-def tt_void_type self: type_table in return cast(u64@(self + TTYPE_TABLE_void_type), type); end
-def tt_int_type self: type_table in return cast(u64@(self + TTYPE_TABLE_int_type), type); end
-def tt_ptr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_ptr_type), type); end
-def tt_cstr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_cstr_type), type); end
-def tt_bool_type self: type_table in return cast(u64@(self + TTYPE_TABLE_bool_type), type); end
-def tt_char_type self: type_table in return cast(u64@(self + TTYPE_TABLE_char_type), type); end
+def type_table_type_ids self: TypeTable& in return self.type_ids; end
+def type_table_types self: TypeTable& in return self.types; end
+def type_table_names self: TypeTable& in return self.names; end
+def type_table_ast_types self: TypeTable& in return self.ast_types; end
+def tt_any_type self: TypeTable& in return self.any_type; end
+def tt_void_type self: TypeTable& in return self.void_type; end
+def tt_int_type self: TypeTable& in return self.int_type; end
+def tt_ptr_type self: TypeTable& in return self.ptr_type; end
+def tt_cstr_type self: TypeTable& in return self.cstr_type; end
+def tt_bool_type self: TypeTable& in return self.bool_type; end
+def tt_char_type self: TypeTable& in return self.char_type; end
 
 def tt_get_ast_type self, ast in
     var found = map_find(type_table_ast_types(self), ast);
@@ -453,6 +432,14 @@ def tt_get_reference_to_type self, type in
                     type_table_names(self));
     end
     return ref;
+end
+
+def tt_make_generic_undefined self, name, generic_params -> type in
+    assert(false, "Not implemented\n");
+end
+
+def tt_make_generic_instance self, name, inst_params -> type in
+    assert(false, "Not implemented\n");
 end
 
 def tt_make_anon_def self, return_type, param_types, varargs in
@@ -738,7 +725,7 @@ def tt_print_type_name self, type in
     end
 end
 
-def scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
+def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
     assert(ast_kind(ast) == AstK_ScopeResolve);
     assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
     assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
@@ -781,7 +768,7 @@ def scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
     return tt_any_type(tt);
 end
 
-def scope_resolve_def tt: type_table, ast: ast, error: bool -> Symbol& in
+def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
     assert(ast_kind(ast) == AstK_ScopeResolve);
     assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
     assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",

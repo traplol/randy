@@ -7,8 +7,8 @@
 #include std/time
 #include std/process
 
-global g_SymbolTable = NULL;
-global g_TypeTable = NULL;
+global g_SymbolTable: SymbolTable& = NULL;
+global g_TypeTable: TypeTable& = NULL;
 global g_Experimental = false;
 global g_Errors = 0;
 

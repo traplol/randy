@@ -93,11 +93,17 @@ def parse_type ts, st, tt, is_instance in
         end
         ts_expect(ts, TK::RSquare);
     end
-    if inst_params or generic_params then
-        NYI_ERR(__FILE__, __LINE__, "generic types");
+
+    if generic_params then
+        return tt_make_generic_undefined(tt, token_value(type_ident), generic_params);
     end
 
-    var type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
+    var type;
+    if inst_params then
+        type = tt_make_generic_instance(tt, token_value(type_ident), inst_params);
+    else
+        type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
+    end
     if ts_accept(ts, TK::Amper) then
         type = tt_get_reference_to_type(tt, type);
     end
@@ -681,11 +687,11 @@ def parse_binary_lor ts, st, tt in
     return lhs;
 end
 
-def parse_expression ts: token_stream, st: SymbolTable&, tt: type_table -> ast in
+def parse_expression ts: token_stream, st: SymbolTable&, tt: TypeTable& -> ast in
     return parse_binary_lor(ts, st, tt);
 end
 
-def parse_statement ts: token_stream, st: SymbolTable&, tt: type_table -> ast in
+def parse_statement ts: token_stream, st: SymbolTable&, tt: TypeTable& -> ast in
     var stmt: ast;
     var expect_semi = true;
     if ts_peekk(ts, TK::KW_var) then
@@ -1131,7 +1137,7 @@ def parse_enum ts, st, tt in
     return make_ast_enum(enum_, token_value(ident), enum_type, values);
 end
 
-def parse ts: token_stream, st: SymbolTable&, tt: type_table in
+def parse ts: token_stream, st: SymbolTable&, tt: TypeTable& in
     var roots = make_vector(0);
     var parsed: ast = NULL; var tk: Token&;
     while ts_peek(ts) do

@@ -1864,7 +1864,7 @@ def ir_emit_scope_resolve self, ast, st, tt in
     ir_compile(self, val, st, tt);
 end
 
-def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: type_table in
+def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false, 0);
     var k = ast_kind(ast);
@@ -1965,7 +1965,7 @@ def ir_resolve_lazy_idents self in
     end
 end
 
-def ir_compile_roots self: ir_context, roots: Vector&, symbol_table: SymbolTable&, type_table: type_table, compile_order: Vector& in
+def ir_compile_roots self: ir_context, roots: Vector&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector& in
 
     if false then
         // compile everything in order
