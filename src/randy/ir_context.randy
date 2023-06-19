@@ -1453,24 +1453,26 @@ end
 def ir_emit_assign_op self, ast, st, tt in
     check_ast_kind(AstK_AssignOp, ast);
     var ident = ast_ident(ast);
-    if ir_is_local(self, ident) then
-        var n = ir_get_local(self, ident);
-        var offs = ir_get_local_offset(self, ident);
-        ir_append(self, make_ir_get_local(ident, n, offs));
-    elif ir_is_global(self, ident) then
-        var gi = ir_get_global(self, ident);
-        var label = global_info_label(gi);
-        ir_append(self, make_ir_get_global(ident, label));
-    else
+    var op = ast_op(ast);
+    if op != TK::Assign then
+        if ir_is_local(self, ident) then
+            var n = ir_get_local(self, ident);
+            var offs = ir_get_local_offset(self, ident);
+            ir_append(self, make_ir_get_local(ident, n, offs));
+        elif ir_is_global(self, ident) then
+            var gi = ir_get_global(self, ident);
+            var label = global_info_label(gi);
+            ir_append(self, make_ir_get_global(ident, label));
+            else
         //ir_append(self, make_ir_lazy_ident(ast_token(ast)));
         printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
         print_ast_src_loc(ast);
         exit(1);
+        end
     end
     ir_compile(self, ast_assign_expr(ast), st, tt);
 
-    var op = ast_op(ast);
     var ir_op = -1;
     if op == TK::PlusEq then ir_op = IRK_OpAdd;
     elif op == TK::MinusEq then ir_op = IRK_OpSub;
@@ -1507,8 +1509,35 @@ def ir_emit_assign_op self, ast, st, tt in
     end
 end
 
+def _experimental_ir_emit_assign_member self, ast, st, tt in
+    var lhs = ast_lhs(ast);
+    var rhs = ast_rhs(ast);
+    var op = ast_op(ast);
+
+    if op == TK::Assign then
+        // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
+        ir_compile(self, rhs, st, tt);
+        if ast_kind(lhs) == AstK_MemberAccess then
+            ir_emit_member_access(self, lhs, st, tt, false);
+        else
+            ir_compile(self, lhs, st, tt);
+        end
+        var lhs_type = tt_get_ast_type(tt, lhs);
+        var size = type_size(lhs_type);
+        ir_append(self, make_ir_ptr_write(size));
+    else
+        NYI_ERR(__FILE__, __LINE__, "ir_emit_assign_member");
+    end
+end
+
 def ir_emit_assign_member self, ast, st, tt in
     check_ast_kind(AstK_AssignMember, ast);
+
+    if g_Experimental then
+        _experimental_ir_emit_assign_member(self, ast, st, tt);
+        return;
+    end
+        
     var lhs = ast_lhs(ast);
     var rhs = ast_rhs(ast);
     var op = ast_op(ast);
