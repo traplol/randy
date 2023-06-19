@@ -4,12 +4,12 @@
 TODO: figure out a way to scope types and then allow nested types such as structs within structs
       or enums within structs. this will be needed to make unions nice to use.
 
-every procedure has its own type because a procedure without type declarations won't have a concrete
-type until after type inference. this means we need a special equality comparison for procedure
+every function has its own type because a function without type declarations won't have a concrete
+type until after type inference. this means we need a special equality comparison for function
 types. we need this because we want to allow passing functions around and we need a way to specify
-that procedure's type. e.g.
+that function type. e.g.
 
-proc map[N,M] fn: (N -> M), vals: vector[N] -> vector[M] in
+def map[N,M] fn: (N -> M), vals: vector[N] -> vector[M] in
     var result = make_vector[M](vals.length);
     var i = 0;
     while i < vals.length do
@@ -22,7 +22,7 @@ maybe we should do:
   parsing + type definition -> type inference -> type solidification -> type checking
 - during parsing we declare + define types
 - during type inference we resolve types
-- during type solidification we turn all generic types into concrete types and all "same" procedure
+- during type solidification we turn all generic types into concrete types and all "same" function
   types are unified into a single type
 - then type checking can verify that every expression has resolved into a concrete type
 
@@ -71,6 +71,26 @@ features:
     - [x] basic type checking
     - [ ] remove `ptr`'s ability to auto-cast to reference types
   - [ ] variadic functions
+       - we could do this like C# or C++ variadiac templates in the form:
+         ```
+            def foo a, b, ...c in
+            end
+
+            - OR -
+
+            def foo a, b, c... in
+            end
+         ```
+         where `c` is an un-typed array of the arguments.
+       - accessing varargs is like using a regular array with `c.get(i)` and
+         `c.length`
+       - varargs might aswell have its own type with with no `.set` function
+       - we could use the regular calling conventions and just pass this array
+         as a regular pointer + length pair.
+       - the array should probably be allocated on the stack by the caller and
+         then freed when the callee returns.
+       - passing values larger than ptr_width bytes is a concern, probably just
+         pass them by reference and be aware of this when using varargs.
   - [ ] native array support
   - [x] bitwise ops: ^ | & << >>
   - [x] assignment ops: += -= *= etc
@@ -79,8 +99,8 @@ features:
     - [x] nested structs
     - [x] structs with references
     - [x] auto-deref with . operator
-    - [x] Type::procs(...)
-    - [ ] var.procs(...)
+    - [x] Type::defs(...)
+    - [ ] var.defs(...)
     - [ ] meta/reflection generation
     - [x] c default align/layout
     - [ ] #packed    - no alignment or padding
@@ -98,7 +118,7 @@ features:
          programmer. there should also be some metric to determine if a function is even inlinable
          and when it's not, just give a warning and emit a regular call.
        - [ ] allow inline at call site
-       - [ ] allow inline at proc definition
+       - [ ] allow inline at def definition
   - [x] closures
        - do I really care about this or is it just more uneeded complexity?
        -> no closures are not something to care about this early
@@ -123,7 +143,7 @@ as `cstr` or `string` depending on usage? e.g.
 
     extern printf fmt: cstr, ... -> int;
 
-    proc greet x: cstr in
+    def greet x: cstr in
         printf("Hello, %s\n", x);
     end
 
@@ -135,17 +155,17 @@ a second pass to resolve symbols before type checking.
 
     do_action("bark"); // is this automatically converted to a std/string?
 
-    proc do_action action: string in
+    def do_action action: string in
         ...
     end
 
 ====================================================================================================
 type model and checking:
 The language is strongly- and statically-typed. The type model tries to allow for type inference
-everywhere but does not allow polymorphic types when there are usage conflicts. Procedure parameter
-types are not overloadable, meaning you cannot have a `proc foo a: int` and a `proc foo a: cstr`.
+everywhere but does not allow polymorphic types when there are usage conflicts. Function parameter
+types are not overloadable, meaning you cannot have a `def foo a: int` and a `def foo a: cstr`.
 e.g.
-    proc foo a in
+    def foo a in
         return a + 3;
     end
 
@@ -158,7 +178,7 @@ e.g.
 Basic type checking can probably be done in two shallow passes and one or two deep passes.
 The first shallow pass will look for specific type definitions: enums, structs, unions and declare
 them with empty bodies. The second shallow pass will look at all top-level statements and annotate
-them with the known types; particularly this is where `proc`s and `extern`s will be declared with
+them with the known types; particularly this is where `def`s and `extern`s will be declared with
 known types. The third, and first deep, pass will visit every expression and assignment and attempt
 to resolve a concrete type out of the `any` types. Generics will probably be instantiated into
 monomorphs during this pass. The fourth pass may be unecessary but it will do the same as the
@@ -180,9 +200,9 @@ enum syntax:
         PushInt;     // 2
         AllocTemps;  // 3
         SetLocal = 23; // jump to 23
-        NewProc;     // 24
+        NewDef;      // 24
         SetLocalArg; // 25
-        CloseProc;   // 26...
+        CloseDef;    // 26...
     end
 
 no implicit conversion between int and enum: must use `ir_kind.from(int)`
@@ -247,7 +267,7 @@ generic syntax:
 
         buckets: vector[map_pair];
 
-        proc set self, key, value in
+        def set self, key, value in
             var hash = KHasher.hash(key);
             ...
             if KComparer.equals(key, self.buckets.get(idx).key) then
@@ -257,7 +277,7 @@ generic syntax:
         end
     end
 
-    proc foo a:[T1], b:[T2] in
+    def foo a:[T1], b:[T2] in
         return a.get(b);
     end
 
