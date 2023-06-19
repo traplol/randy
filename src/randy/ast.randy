@@ -195,7 +195,7 @@ proc make_ast_call token: token, expr: ast, args: Vector& -> ast in
     return self;
 end
 
-proc make_ast_binop token: token, lhs: ast, op: int, rhs: ast -> ast in
+proc make_ast_binop token: token, lhs: ast, op: TK, rhs: ast -> ast in
     var self = _make_ast(AstK_BinOp, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_op, op);
@@ -222,7 +222,7 @@ proc make_ast_var_assign token: token, ident: cstr, expr: ast -> ast in
     return self;
 end
 
-proc make_ast_assign_op token: token, ident: cstr, op: int, expr: ast -> ast in
+proc make_ast_assign_op token: token, ident: cstr, op: TK, expr: ast -> ast in
     var self = _make_ast(AstK_AssignOp, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_op, op);
@@ -269,7 +269,7 @@ proc make_ast_pointer_op token: token, size: int, op: int, args: Vector& -> ast 
     return self;
 end
 
-proc make_ast_prefix token: token, op: int, expr: ast -> ast in
+proc make_ast_prefix token: token, op: TK, expr: ast -> ast in
     var self = _make_ast(AstK_Prefix, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_op, op);
@@ -335,7 +335,7 @@ proc make_ast_member_access token: token, expr: ast, member: cstr -> ast in
     return self;
 end
 
-proc make_ast_assign_member token: token, lhs: ast, op: int, rhs: ast -> ast in
+proc make_ast_assign_member token: token, lhs: ast, op: TK, rhs: ast -> ast in
     assert(ast_kind(lhs) == AstK_MemberAccess,
         "Compiler bug: cannot make_ast_assign_member where lhs is %s (%d)\n",
         ast_kind_cstr(ast_kind(lhs)),
@@ -526,17 +526,17 @@ proc _print_ast_assign_op ast, indent in
     printf("%s ", ast_ident(ast));
     var op = ast_op(ast);
     var op_str = "FIXME in ast.randy";
-    if op == TK_Assign      then op_str = "=";
-    elif op == TK_PlusEq    then op_str = "+=";
-    elif op == TK_MinusEq   then op_str = "-=";
-    elif op == TK_StarEq    then op_str = "*=";
-    elif op == TK_SlashEq   then op_str = "/=";
-    elif op == TK_PercentEq then op_str = "%=";
-    elif op == TK_LShiftEq  then op_str = "<<=";
-    elif op == TK_RShiftEq  then op_str = ">>=";
-    elif op == TK_AmperEq   then op_str = "&=";
-    elif op == TK_CaretEq   then op_str = "^=";
-    elif op == TK_BarEq     then op_str = "|=";
+    if op == TK::Assign      then op_str = "=";
+    elif op == TK::PlusEq    then op_str = "+=";
+    elif op == TK::MinusEq   then op_str = "-=";
+    elif op == TK::StarEq    then op_str = "*=";
+    elif op == TK::SlashEq   then op_str = "/=";
+    elif op == TK::PercentEq then op_str = "%=";
+    elif op == TK::LShiftEq  then op_str = "<<=";
+    elif op == TK::RShiftEq  then op_str = ">>=";
+    elif op == TK::AmperEq   then op_str = "&=";
+    elif op == TK::CaretEq   then op_str = "^=";
+    elif op == TK::BarEq     then op_str = "|=";
     end
     printf("%s ", op_str);
     _print_ast(ast_assign_expr(ast), indent);
@@ -631,8 +631,8 @@ end
 
 proc _print_ast_prefix ast, indent in
     var token = ast_token(ast);
-    // FIXME == TK_KW_assert is a hack.
-    if token_kind(token) == TK_KW_not or token_kind(token) == TK_KW_assert then
+    // FIXME == TK::KW_assert is a hack.
+    if token_kind(token) == TK::KW_not or token_kind(token) == TK::KW_assert then
         printf("not ");
     else
         printf("%s", token_cstr(token));
@@ -742,17 +742,17 @@ proc _print_ast_assign_member ast, indent in
     _print_ast(ast_lhs(ast), indent);
     var op = ast_op(ast);
     var op_str = "FIXME in ast.randy";
-    if op == TK_Assign      then op_str = "=";
-    elif op == TK_PlusEq    then op_str = "+=";
-    elif op == TK_MinusEq   then op_str = "-=";
-    elif op == TK_StarEq    then op_str = "*=";
-    elif op == TK_SlashEq   then op_str = "/=";
-    elif op == TK_PercentEq then op_str = "%=";
-    elif op == TK_LShiftEq  then op_str = "<<=";
-    elif op == TK_RShiftEq  then op_str = ">>=";
-    elif op == TK_AmperEq   then op_str = "&=";
-    elif op == TK_CaretEq   then op_str = "^=";
-    elif op == TK_BarEq     then op_str = "|=";
+    if op == TK::Assign      then op_str = "=";
+    elif op == TK::PlusEq    then op_str = "+=";
+    elif op == TK::MinusEq   then op_str = "-=";
+    elif op == TK::StarEq    then op_str = "*=";
+    elif op == TK::SlashEq   then op_str = "/=";
+    elif op == TK::PercentEq then op_str = "%=";
+    elif op == TK::LShiftEq  then op_str = "<<=";
+    elif op == TK::RShiftEq  then op_str = ">>=";
+    elif op == TK::AmperEq   then op_str = "&=";
+    elif op == TK::CaretEq   then op_str = "^=";
+    elif op == TK::BarEq     then op_str = "|=";
     end
     printf(" %s ", op_str);
     _print_ast(ast_rhs(ast), indent);

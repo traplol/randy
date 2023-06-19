@@ -172,8 +172,8 @@ proc ti_infer_binop self, tt, st, ast -> type in
     var lhs = ti_infer(self, tt, st, ast_lhs(ast));
     var rhs = ti_infer(self, tt, st, ast_rhs(ast));
     var op = ast_op(ast);
-    if op == TK_Less or op == TK_LessEq or op == TK_Greater or op == TK_GreaterEq or
-        op == TK_EqEq or op == TK_NotEq or op == TK_KW_and or op == TK_KW_or then
+    if op == TK::Less or op == TK::LessEq or op == TK::Greater or op == TK::GreaterEq or
+        op == TK::EqEq or op == TK::NotEq or op == TK::KW_and or op == TK::KW_or then
         return tt_bool_type(tt);
     end
 
@@ -185,7 +185,7 @@ proc ti_infer_binop self, tt, st, ast -> type in
 
     if lhs == rhs then
         // pointer - pointer => int.
-        if lhs == ptr and op == TK_Minus then
+        if lhs == ptr and op == TK::Minus then
             return int;
         end
         return lhs;
@@ -296,7 +296,7 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
     var op = ast_op(ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
 
-    if op != TK_Assign and not type_is_int_like(type) then
+    if op != TK::Assign and not type_is_int_like(type) then
         printf("WARN: `");
         tt_print_type_name(tt, type);
         printf("` is not a primitive type and cannot be used with TODO: get operator string\n");
@@ -311,7 +311,7 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
     var symbol = st_get_symbol(st, ident);
     var sym_type = symbol_type(symbol);
 
-    if op == TK_Assign then
+    if op == TK::Assign then
         _ti_infer_assignment(tt, symbol, type, ast_assign_expr(ast));
     end
     return tt_void_type(tt);
@@ -389,7 +389,7 @@ end
 proc ti_infer_prefix_op self, tt, st, ast -> type in
     check_ast_kind(AstK_Prefix, ast);
     var t = ti_infer(self, tt, st, ast_expr(ast));
-    if ast_op == TK_KW_not then
+    if ast_op == TK::KW_not then
         return tt_bool_type(tt);
     end
     return t;

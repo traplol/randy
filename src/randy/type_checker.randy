@@ -215,7 +215,7 @@ proc tc_check_assign_op self, tt, st, ast in
     assert(lhs_sym);
 
     var op = ast_op(ast);
-    if op == TK_Assign then
+    if op == TK::Assign then
         var expr = ast_assign_expr(ast);
         tc_check(self, tt, st, expr);
         _tc_check_ident_type(tt, lhs_sym, expr, ast);
@@ -234,9 +234,9 @@ proc tc_check_assign_op self, tt, st, ast in
             g_Errors += 1;
         end
 
-        if op == TK_PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        if op == TK::PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
             return; // reference += int_like
-        elif op == TK_MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        elif op == TK::MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
             return; // reference -= int_like
         elif types_assignable(tt, lhs_type, rhs_type) then
             return; // TODO: Verify this is correct behaviour.
@@ -335,7 +335,7 @@ proc tc_check_prefix_op self, tt, st, ast in
     assert(expr_type);
 
     var op = ast_op(ast);
-    if op == TK_KW_not then
+    if op == TK::KW_not then
         _tc_check_is_scalar_type(tt, ast, expr_type);
     else
         _tc_check_is_int_like(tt, ast, expr_type);
@@ -441,13 +441,13 @@ proc tc_check_assign_member self, tt, st, ast in
     var lhs_type = tt_get_ast_type(tt, lhs);
     var rhs_type = tt_get_ast_type(tt, rhs);
 
-    if op == TK_Assign then
+    if op == TK::Assign then
         if types_assignable(tt, lhs_type, rhs_type) then
             return;
         end
-    elif op == TK_PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+    elif op == TK::PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
         return; // reference += int_like
-    elif op == TK_MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+    elif op == TK::MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
         return; // reference -= int_like
     elif types_assignable(tt, lhs_type, rhs_type) then
         return; // TODO: Verify this is correct behaviour.

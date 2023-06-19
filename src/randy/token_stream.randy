@@ -23,7 +23,7 @@ proc ts_peek self: token_stream -> token in
     return cast(vector_get(tks, idx), token);
 end
 
-proc ts_peekk self: token_stream, kind: int -> bool in
+proc ts_peekk self: token_stream, kind: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;
@@ -32,7 +32,7 @@ proc ts_peekk self: token_stream, kind: int -> bool in
     return token_kind(peek) == kind;
 end
 
-proc ts_peekk_one_of_2 self: token_stream, k1: int, k2: int -> bool in
+proc ts_peekk_one_of_2 self: token_stream, k1: TK, k2: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;
@@ -41,7 +41,7 @@ proc ts_peekk_one_of_2 self: token_stream, k1: int, k2: int -> bool in
     return tk == k1 or tk == k2;
 end
 
-proc ts_peekk_one_of_3 self: token_stream, k1: int, k2: int, k3: int -> bool in
+proc ts_peekk_one_of_3 self: token_stream, k1: TK, k2: TK, k3: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;
@@ -50,7 +50,7 @@ proc ts_peekk_one_of_3 self: token_stream, k1: int, k2: int, k3: int -> bool in
     return tk == k1 or tk == k2 or tk == k3;
 end
 
-proc ts_peekk_one_of_4 self: token_stream, k1: int, k2: int, k3: int, k4: int -> bool in
+proc ts_peekk_one_of_4 self: token_stream, k1: TK, k2: TK, k3: TK, k4: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;
@@ -59,7 +59,7 @@ proc ts_peekk_one_of_4 self: token_stream, k1: int, k2: int, k3: int, k4: int ->
     return tk == k1 or tk == k2 or tk == k3 or tk == k4;
 end
 
-proc ts_peekk_one_of_5 self: token_stream, k1: int, k2: int, k3: int, k4: int, k5: int -> bool in
+proc ts_peekk_one_of_5 self: token_stream, k1: TK, k2: TK, k3: TK, k4: TK, k5: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;
@@ -74,7 +74,7 @@ proc ts_next self: token_stream -> token in
     return peek;
 end
 
-proc ts_accept self: token_stream, kind: int -> token in
+proc ts_accept self: token_stream, kind: TK -> token in
     var tmp = ts_peek(self);
     if tmp and token_kind(tmp) == kind then
         return ts_next(self);
@@ -82,7 +82,7 @@ proc ts_accept self: token_stream, kind: int -> token in
     return cast(NULL, token);
 end
 
-proc ts_expect self: token_stream, kind: int -> token in
+proc ts_expect self: token_stream, kind: TK -> token in
     var tmp = ts_peek(self);
     if not tmp then
         printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
@@ -101,7 +101,7 @@ proc ts_expect self: token_stream, kind: int -> token in
     return tmp;
 end
 
-proc ts_peekk2 self: token_stream, kind1: int, kind2: int -> bool in
+proc ts_peekk2 self: token_stream, kind1: TK, kind2: TK -> bool in
     var peek = ts_peek(self);
     if not peek then
         return false;

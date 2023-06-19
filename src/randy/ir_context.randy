@@ -1142,74 +1142,74 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
         rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail, depth + 1);
 
-        if op == TK_Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
-        if op == TK_Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
-        if op == TK_Minus and _comptime_eval_is_n(0, rhs) then return lhs; end // k - 0
-        if op == TK_Star  and _comptime_eval_is_n(1, rhs) then return lhs; end // k * 1
-        if op == TK_Star  and _comptime_eval_is_n(1, lhs) then return rhs; end // 1 * k
-        if op == TK_Slash and _comptime_eval_is_n(1, rhs) then return lhs; end // k / 1
+        if op == TK::Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
+        if op == TK::Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
+        if op == TK::Minus and _comptime_eval_is_n(0, rhs) then return lhs; end // k - 0
+        if op == TK::Star  and _comptime_eval_is_n(1, rhs) then return lhs; end // k * 1
+        if op == TK::Star  and _comptime_eval_is_n(1, lhs) then return rhs; end // 1 * k
+        if op == TK::Slash and _comptime_eval_is_n(1, rhs) then return lhs; end // k / 1
 
         if ast_kind(lhs) == ast_kind(rhs) then
             if ast_kind(lhs) == AstK_Integer then
                 lhs_val = cast(ast_value(lhs), int);
                 rhs_val = cast(ast_value(rhs), int);
                 evaled = false;
-                if op == TK_Plus then
+                if op == TK::Plus then
                     evaled = true;
                     result = lhs_val + rhs_val;
-                elif op == TK_Minus then
+                elif op == TK::Minus then
                     evaled = true;
                     result = lhs_val - rhs_val;
-                elif op == TK_Star then
+                elif op == TK::Star then
                     evaled = true;
                     result = lhs_val * rhs_val;
-                elif op == TK_KW_and then
+                elif op == TK::KW_and then
                     evaled = true;
                     result = lhs_val and rhs_val;
-                elif op == TK_KW_or then
+                elif op == TK::KW_or then
                     evaled = true;
                     result = lhs_val or rhs_val;
-                elif op == TK_Slash then
+                elif op == TK::Slash then
                     if rhs_val != 0 then
                         evaled = true;
                         result = lhs_val / rhs_val;
                     end
-                elif op == TK_Percent then
+                elif op == TK::Percent then
                     if rhs_val != 0 then
                         evaled = true;
                         result = lhs_val % rhs_val;
                     end
-                elif op == TK_Caret then
+                elif op == TK::Caret then
                     evaled = true;
                     result = lhs_val ^ rhs_val;
-                elif op == TK_Amper then
+                elif op == TK::Amper then
                     evaled = true;
                     result = lhs_val & rhs_val;
-                elif op == TK_Bar then
+                elif op == TK::Bar then
                     evaled = true;
                     result = lhs_val | rhs_val;
-                elif op == TK_LShift then
+                elif op == TK::LShift then
                     evaled = true;
                     result = lhs_val << rhs_val;
-                elif op == TK_RShift then
+                elif op == TK::RShift then
                     evaled = true;
                     result = lhs_val >> rhs_val;
-                elif op == TK_EqEq then
+                elif op == TK::EqEq then
                     evaled = true;
                     result = lhs_val == rhs_val;
-                elif op == TK_NotEq then
+                elif op == TK::NotEq then
                     evaled = true;
                     result = lhs_val != rhs_val;
-                elif op == TK_Less then
+                elif op == TK::Less then
                     evaled = true;
                     result = lhs_val < rhs_val;
-                elif op == TK_LessEq then
+                elif op == TK::LessEq then
                     evaled = true;
                     result = lhs_val <= rhs_val;
-                elif op == TK_Greater then
+                elif op == TK::Greater then
                     evaled = true;
                     result = lhs_val > rhs_val;
-                elif op == TK_GreaterEq then
+                elif op == TK::GreaterEq then
                     evaled = true;
                     result = lhs_val >= rhs_val;
                 end
@@ -1224,13 +1224,13 @@ proc ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
         evaled = false;
         if ast_kind(rhs) == AstK_Integer then
             rhs_val = cast(ast_value(rhs), int);
-            if op == TK_Minus then
+            if op == TK::Minus then
                 evaled = true;
                 result = 0 - rhs_val;
-            elif op == TK_KW_not then
+            elif op == TK::KW_not then
                 evaled = true;
                 result = not rhs_val;
-            elif op == TK_Tilde then
+            elif op == TK::Tilde then
                 evaled = true;
                 result = ~rhs_val;
             end
@@ -1397,24 +1397,24 @@ proc ir_emit_binop self, ast, st, tt in
     check_ast_kind(AstK_BinOp, ast);
     var op = ast_op(ast);
     var simple = -1;
-    if op == TK_Plus then simple = IRK_OpAdd;
-    elif op == TK_Minus then simple = IRK_OpSub;
-    elif op == TK_Star then simple = IRK_OpMul;
-    elif op == TK_Slash then simple = IRK_OpDiv;
-    elif op == TK_Percent then simple = IRK_OpMod;
-    elif op == TK_EqEq then simple = IRK_OpEq;
-    elif op == TK_NotEq then simple = IRK_OpNotEq;
-    elif op == TK_Less then simple = IRK_OpLess;
-    elif op == TK_Greater then simple = IRK_OpGreater;
-    elif op == TK_LessEq then simple = IRK_OpLessEq;
-    elif op == TK_GreaterEq then simple = IRK_OpGreaterEq;
-    elif op == TK_Caret then simple = IRK_OpBitXOR;
-    elif op == TK_Amper then simple = IRK_OpBitAND;
-    elif op == TK_Bar then simple = IRK_OpBitOR;
-    elif op == TK_LShift then simple = IRK_OpBitShiftL;
-    elif op == TK_RShift then simple = IRK_OpBitShiftR;
-    elif op == TK_KW_and then ir_emit_logic_and(self, ast, st, tt);
-    elif op == TK_KW_or then ir_emit_logic_or(self, ast, st, tt);
+    if op == TK::Plus then simple = IRK_OpAdd;
+    elif op == TK::Minus then simple = IRK_OpSub;
+    elif op == TK::Star then simple = IRK_OpMul;
+    elif op == TK::Slash then simple = IRK_OpDiv;
+    elif op == TK::Percent then simple = IRK_OpMod;
+    elif op == TK::EqEq then simple = IRK_OpEq;
+    elif op == TK::NotEq then simple = IRK_OpNotEq;
+    elif op == TK::Less then simple = IRK_OpLess;
+    elif op == TK::Greater then simple = IRK_OpGreater;
+    elif op == TK::LessEq then simple = IRK_OpLessEq;
+    elif op == TK::GreaterEq then simple = IRK_OpGreaterEq;
+    elif op == TK::Caret then simple = IRK_OpBitXOR;
+    elif op == TK::Amper then simple = IRK_OpBitAND;
+    elif op == TK::Bar then simple = IRK_OpBitOR;
+    elif op == TK::LShift then simple = IRK_OpBitShiftL;
+    elif op == TK::RShift then simple = IRK_OpBitShiftR;
+    elif op == TK::KW_and then ir_emit_logic_and(self, ast, st, tt);
+    elif op == TK::KW_or then ir_emit_logic_or(self, ast, st, tt);
     else
         printf("Unhandled binop: %d\n", op);
         print_token(ast_token(ast));
@@ -1489,23 +1489,23 @@ proc ir_emit_assign_op self, ast, st, tt in
 
     var op = ast_op(ast);
     var ir_op = -1;
-    if op == TK_PlusEq then ir_op = IRK_OpAdd;
-    elif op == TK_MinusEq then ir_op = IRK_OpSub;
-    elif op == TK_StarEq then ir_op = IRK_OpMul;
-    elif op == TK_SlashEq then ir_op = IRK_OpDiv;
-    elif op == TK_PercentEq then ir_op = IRK_OpMod;
-    elif op == TK_LShiftEq then ir_op = IRK_OpBitShiftL;
-    elif op == TK_RShiftEq then ir_op = IRK_OpBitShiftR;
-    elif op == TK_AmperEq then ir_op = IRK_OpBitAND;
-    elif op == TK_CaretEq then ir_op = IRK_OpBitXOR;
-    elif op == TK_BarEq then ir_op = IRK_OpBitOR;
-    elif op == TK_Assign then // nothing
+    if op == TK::PlusEq then ir_op = IRK_OpAdd;
+    elif op == TK::MinusEq then ir_op = IRK_OpSub;
+    elif op == TK::StarEq then ir_op = IRK_OpMul;
+    elif op == TK::SlashEq then ir_op = IRK_OpDiv;
+    elif op == TK::PercentEq then ir_op = IRK_OpMod;
+    elif op == TK::LShiftEq then ir_op = IRK_OpBitShiftL;
+    elif op == TK::RShiftEq then ir_op = IRK_OpBitShiftR;
+    elif op == TK::AmperEq then ir_op = IRK_OpBitAND;
+    elif op == TK::CaretEq then ir_op = IRK_OpBitXOR;
+    elif op == TK::BarEq then ir_op = IRK_OpBitOR;
+    elif op == TK::Assign then // nothing
     else
         print_ast_src_loc(ast);
         assert(false, "Compiler bug: Unhandled assign op: %d\n", op);
     end
 
-    if op != TK_Assign then
+    if op != TK::Assign then
         assert(ir_op != -1, "Compiler bug: ir_op wasn't assigned. op = %d\n", op);
         ir_append(self, make_ir_simple_op(ir_op));
     end
@@ -1530,7 +1530,7 @@ proc ir_emit_assign_member self, ast, st, tt in
     var rhs = ast_rhs(ast);
     var op = ast_op(ast);
 
-    if op == TK_Assign then
+    if op == TK::Assign then
         // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
         ir_compile(self, rhs, st, tt);
         if ast_kind(lhs) == AstK_MemberAccess then
@@ -1632,13 +1632,13 @@ proc ir_emit_prefix_op self, ast, st, tt in
     check_ast_kind(AstK_Prefix, ast);
     var expr = ast_expr(ast);
     var op = ast_op(ast);
-    if op == TK_Tilde then
+    if op == TK::Tilde then
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_bit_not());
-    elif op == TK_KW_not then
+    elif op == TK::KW_not then
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_logic_not());
-    elif op == TK_Minus then
+    elif op == TK::Minus then
         if ast_kind(expr) == AstK_Integer then
             ir_append(self, make_ir_push_int(0 - ast_value(expr)));
         else
