@@ -3,7 +3,7 @@
 #include std/string
 
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -11,7 +11,7 @@ proc test msg, cond in
     end
 end
 
-proc test_default_set in
+def test_default_set in
     printf("Testing default set.\n");
     var set = make_set_default();
 
@@ -57,7 +57,7 @@ proc test_default_set in
     free_set(set);
 end
 
-proc cstr_hash cstr: cstr -> int in
+def cstr_hash cstr: cstr -> int in
     var hash = 5381;
     var c = cast(u8@(cstr), char);
     while c do
@@ -68,7 +68,7 @@ proc cstr_hash cstr: cstr -> int in
     return hash;
 end
 
-proc test_cstr_set in
+def test_cstr_set in
     printf("Testing set with cstrings.\n");
     var set = make_set(16, cstr_eq, cstr_hash);
 
@@ -90,7 +90,7 @@ proc test_cstr_set in
     test("set no longer contains \"hello world\"", not set_contains(set, "hello world"));
 end
 
-proc main in
+def main in
     test_default_set();
     test_cstr_set();
     return 0;

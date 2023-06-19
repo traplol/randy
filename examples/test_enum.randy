@@ -1,7 +1,7 @@
 
 #include std/core
 
-proc test msg, expect, actual in
+def test msg, expect, actual in
     if expect == actual then
         printf("pass: %s\n", msg);
     else
@@ -9,7 +9,7 @@ proc test msg, expect, actual in
     end
 end
 
-proc test_cstr msg, expect, actual in
+def test_cstr msg, expect, actual in
     if cstr_eq(expect, actual) then
         printf("pass: %s\n", msg);
     else
@@ -65,7 +65,7 @@ end
 
 const foo = Foo::E;
 
-proc main in
+def main in
 
     test("Foo::A == 0", 0, cast(Foo::A, int));
     test("Foo::B == 1", 1, cast(Foo::B, int));

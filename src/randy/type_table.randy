@@ -5,7 +5,7 @@ const TFIELD_bit_offset = 16; // int
 const TFIELD_token      = 24; // Token&
 const sizeof_TFIELD = 32;
 
-proc make_field type, name, bit_offset, token -> field in
+def make_field type, name, bit_offset, token -> field in
     var self = malloc(sizeof_TFIELD);
     u64!(self + TFIELD_type, type);
     u64!(self + TFIELD_name, name);
@@ -14,12 +14,12 @@ proc make_field type, name, bit_offset, token -> field in
     return cast(self, field);
 end
 
-proc field_type self: field -> type in return cast(u64@(self + TFIELD_type), type); end
-proc field_name self: field -> cstr in return cast(u64@(self + TFIELD_name), cstr); end
-proc field_bit_offset self: field -> int in return cast(u64@(self + TFIELD_bit_offset), int); end
-proc field_token self: field -> Token& in return cast(u64@(self + TFIELD_token), Token&); end
+def field_type self: field -> type in return cast(u64@(self + TFIELD_type), type); end
+def field_name self: field -> cstr in return cast(u64@(self + TFIELD_name), cstr); end
+def field_bit_offset self: field -> int in return cast(u64@(self + TFIELD_bit_offset), int); end
+def field_token self: field -> Token& in return cast(u64@(self + TFIELD_token), Token&); end
 
-proc field_set_bit_offset self: field, bit_offset: int in
+def field_set_bit_offset self: field, bit_offset: int in
     u64!(self + TFIELD_bit_offset, bit_offset);
 end
 
@@ -30,7 +30,7 @@ struct EnumValue in
     cache_value: ptr;
 end
 
-proc make_enum_value token: Token&, name: cstr, value: ast -> EnumValue& in
+def make_enum_value token: Token&, name: cstr, value: ast -> EnumValue& in
     var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
     self.token = token;
     self.name = name;
@@ -44,9 +44,9 @@ const TyK_void      = 1;
 const TyK_any       = 2;
 const TyK_int_like  = 3;
 const TyK_reference = 4; // NYI
-const TyK_procedure = 5;
-const TyK_struct    = 6; // NYI
-const TyK_enum      = 7; // NYI
+const TyK_def       = 5;
+const TyK_struct    = 6;
+const TyK_enum      = 7;
 const TyK_union     = 8; // NYI
 const TyK_array     = 9; // NYI
 
@@ -58,13 +58,13 @@ const TTYPE_ast       = 24; // ast
 const TTYPE_ref_to_this = 32; // type
 // reference
 const TTYPE_deref_type  = 40; // type
-// procedure
-const TTYPE_proc_return_type = 40; // type
-const TTYPE_proc_parameters  = 48; // symbol Vector&
-const TTYPE_proc_varargs     = 56; // bool
+// def
+const TTYPE_def_return_type = 40; // type
+const TTYPE_def_parameters  = 48; // symbol Vector&
+const TTYPE_def_varargs     = 56; // bool
 // struct
 const TTYPE_struct_fields = 40; // field Vector&
-const TTYPE_struct_procs  = 48; // proc_symbol Vector&
+const TTYPE_struct_defs   = 48; // def_symbol Vector&
 // enum
 const TTYPE_enum_values = 40; // EnumValue& Vector&
 // union
@@ -77,7 +77,7 @@ const TTYPE_array_type  = 48; // type of each elem in array
 const sizeof_TTYPE = 64;
 const TYPE_NEEDS_SIZING = (1<<32)-1;
 
-proc make_type kind: int, id: int -> type in
+def make_type kind: int, id: int -> type in
     var self = calloc(1, sizeof_TTYPE);
     u64!(self + TTYPE_id, id);
     u32!(self + TTYPE_kind, kind);
@@ -85,136 +85,136 @@ proc make_type kind: int, id: int -> type in
     return cast(self, type);
 end
 
-proc make_type_undefined id: int in
+def make_type_undefined id: int in
     return make_type(TyK_undefined, id);
 end
 
-proc make_type_reference id: int, type: type in
+def make_type_reference id: int, type: type in
     var self = make_type(TyK_reference, id);
     u64!(self + TTYPE_deref_type, type);
     return self;
 end
 
-proc make_type_procedure id: int, return_type: type, param_types: Vector&, varargs: bool in
-    var self = make_type(TyK_procedure, id);
-    u64!(self + TTYPE_proc_return_type, return_type);
-    u64!(self + TTYPE_proc_parameters, param_types);
-    u8!(self + TTYPE_proc_varargs, varargs);
+def make_type_def id: int, return_type: type, param_types: Vector&, varargs: bool in
+    var self = make_type(TyK_def, id);
+    u64!(self + TTYPE_def_return_type, return_type);
+    u64!(self + TTYPE_def_parameters, param_types);
+    u8!(self + TTYPE_def_varargs, varargs);
     return self;
 end
 
-proc make_type_struct id: int, fields: Vector&, procs: Vector& in
+def make_type_struct id: int, fields: Vector&, defs: Vector& in
     var self = make_type(TyK_struct, id);
     u64!(self + TTYPE_struct_fields, fields);
-    u64!(self + TTYPE_struct_procs, procs);
+    u64!(self + TTYPE_struct_defs, defs);
     return self;
 end
 
-proc make_type_enum id: int, enum_values: Vector& in
+def make_type_enum id: int, enum_values: Vector& in
     var self = make_type(TyK_enum, id);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
 
-proc make_type_union id: int, union_names: Vector&, union_types: Vector& in
+def make_type_union id: int, union_names: Vector&, union_types: Vector& in
     var self = make_type(TyK_union, id);
     u64!(self + TTYPE_union_names, union_names);
     u64!(self + TTYPE_union_types, union_types);
     return self;
 end
 
-proc make_type_array id: int, count: int, type: type in
+def make_type_array id: int, count: int, type: type in
     var self = make_type(TyK_array, id);
     u64!(self + TTYPE_array_count, count);
     u64!(self + TTYPE_array_type, type);
     return self;
 end
 
-proc type_kind self: type in return cast(u32@(self + TTYPE_kind), int); end
-proc type_size self: type in return cast(u32@(self + TTYPE_size), int); end
-proc type_id self: type in return cast(u64@(self + TTYPE_id), int); end
-proc type_params self: type in return cast(u64@(self + TTYPE_params), Vector&); end
-proc type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
-proc type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
-proc type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
-proc type_proc_return_type self: type in
-    return cast(u64@(self + TTYPE_proc_return_type), type);
+def type_kind self: type in return cast(u32@(self + TTYPE_kind), int); end
+def type_size self: type in return cast(u32@(self + TTYPE_size), int); end
+def type_id self: type in return cast(u64@(self + TTYPE_id), int); end
+def type_params self: type in return cast(u64@(self + TTYPE_params), Vector&); end
+def type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
+def type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
+def type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
+def type_def_return_type self: type in
+    return cast(u64@(self + TTYPE_def_return_type), type);
 end
-proc type_proc_parameters self: type in
-    return cast(u64@(self + TTYPE_proc_parameters), Vector&);
+def type_def_parameters self: type in
+    return cast(u64@(self + TTYPE_def_parameters), Vector&);
 end
-proc type_proc_varargs self: type in
-    return cast(u8@(self + TTYPE_proc_varargs), bool);
+def type_def_varargs self: type in
+    return cast(u8@(self + TTYPE_def_varargs), bool);
 end
-proc type_struct_fields self: type in
+def type_struct_fields self: type in
     return cast(u64@(self + TTYPE_struct_fields), Vector&);
 end
-proc type_struct_procs self: type in
-    return cast(u64@(self + TTYPE_struct_procs), Vector&);
+def type_struct_defs self: type in
+    return cast(u64@(self + TTYPE_struct_defs), Vector&);
 end
-proc type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
-proc type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
-proc type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
-proc type_array_count self: type in return cast(u64@(self + TTYPE_array_count), int); end
-proc type_array_type self: type in return cast(u64@(self + TTYPE_array_type), type); end
+def type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
+def type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
+def type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
+def type_array_count self: type in return cast(u64@(self + TTYPE_array_count), int); end
+def type_array_type self: type in return cast(u64@(self + TTYPE_array_type), type); end
 
-proc type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
-proc type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
-proc type_set_params self: type, params: Vector& in u64!(self + TTYPE_params, params); end
-proc type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
-proc type_set_deref_type self: type, type: type in u64!(self + TTYPE_deref_type, type); end
-proc type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this, type); end
-proc type_set_proc_return_type self: type, type: type in
-    u64!(self + TTYPE_proc_return_type, type);
+def type_set_kind self: type, kind: int in u32!(self + TTYPE_kind, kind); end
+def type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
+def type_set_params self: type, params: Vector& in u64!(self + TTYPE_params, params); end
+def type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
+def type_set_deref_type self: type, type: type in u64!(self + TTYPE_deref_type, type); end
+def type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this, type); end
+def type_set_def_return_type self: type, type: type in
+    u64!(self + TTYPE_def_return_type, type);
 end
-proc type_set_proc_parameters self: type, params: Vector& in
-    u64!(self + TTYPE_proc_parameters, params);
+def type_set_def_parameters self: type, params: Vector& in
+    u64!(self + TTYPE_def_parameters, params);
 end
-proc type_set_proc_varargs self: type, varargs: bool in
-    u8!(self + TTYPE_proc_varargs, varargs);
+def type_set_def_varargs self: type, varargs: bool in
+    u8!(self + TTYPE_def_varargs, varargs);
 end
-proc type_set_struct_fields self: type, fields: Vector& in u64!(self + TTYPE_struct_fields, fields); end
-proc type_set_struct_procs self: type, procs: Vector& in u64!(self + TTYPE_struct_procs, procs); end
-proc type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
-proc type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
-proc type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
-proc type_set_array_count self: type, count: int in u64!(self + TTYPE_array_count, count); end
-proc type_set_array_type self: type, type: type in u64!(self + TTYPE_array_type, type); end
+def type_set_struct_fields self: type, fields: Vector& in u64!(self + TTYPE_struct_fields, fields); end
+def type_set_struct_defs self: type, defs: Vector& in u64!(self + TTYPE_struct_defs, defs); end
+def type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
+def type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
+def type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
+def type_set_array_count self: type, count: int in u64!(self + TTYPE_array_count, count); end
+def type_set_array_type self: type, type: type in u64!(self + TTYPE_array_type, type); end
 
-proc type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
-proc type_is_void self: type in return type_kind(self) == TyK_void; end
-proc type_is_any self: type in return type_kind(self) == TyK_any; end
-proc type_is_int_like self: type in return type_kind(self) == TyK_int_like; end
-proc type_is_reference self: type in return type_kind(self) == TyK_reference; end
-proc type_is_struct self: type in return type_kind(self) == TyK_struct; end
-proc type_is_procedure self: type in return type_kind(self) == TyK_procedure; end
-proc type_is_enum self: type in return type_kind(self) == TyK_enum; end
-proc type_is_union self: type in return type_kind(self) == TyK_union; end
-proc type_is_array self: type in return type_kind(self) == TyK_array; end
+def type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
+def type_is_void self: type in return type_kind(self) == TyK_void; end
+def type_is_any self: type in return type_kind(self) == TyK_any; end
+def type_is_int_like self: type in return type_kind(self) == TyK_int_like; end
+def type_is_reference self: type in return type_kind(self) == TyK_reference; end
+def type_is_struct self: type in return type_kind(self) == TyK_struct; end
+def type_is_def self: type in return type_kind(self) == TyK_def; end
+def type_is_enum self: type in return type_kind(self) == TyK_enum; end
+def type_is_union self: type in return type_kind(self) == TyK_union; end
+def type_is_array self: type in return type_kind(self) == TyK_array; end
 
-proc type_is_scalar self: type in
+def type_is_scalar self: type in
     if type_is_int_like(self) then
         return true;
     elif type_is_reference(self) then
         return true;
-    elif type_is_procedure(self) then
+    elif type_is_def(self) then
         return true;
     end
     return false;
 end
 
-proc types_eq a: type, b: type in
+def types_eq a: type, b: type in
     if a == b then
         return true;
     end
-    if type_is_procedure(a) and type_is_procedure(b) then
-        var a_ret = type_proc_return_type(a);
-        var b_ret = type_proc_return_type(b);
+    if type_is_def(a) and type_is_def(b) then
+        var a_ret = type_def_return_type(a);
+        var b_ret = type_def_return_type(b);
         if not types_eq(a_ret, b_ret) then
             return false;
         end
-        var a_params = type_proc_parameters(a);
-        var b_params = type_proc_parameters(b);
+        var a_params = type_def_parameters(a);
+        var b_params = type_def_parameters(b);
         if a_params.length != b_params.length then
             return false;
         end
@@ -232,14 +232,14 @@ proc types_eq a: type, b: type in
     return a == b;
 end
 
-proc _basic_proc_type_match tt, lhs, rhs in
-    if type_proc_varargs(lhs) != type_proc_varargs(rhs) then
+def _basic_def_type_match tt, lhs, rhs in
+    if type_def_varargs(lhs) != type_def_varargs(rhs) then
         return false;
-    elif not types_assignable(tt, type_proc_return_type(lhs), type_proc_return_type(rhs)) then
+    elif not types_assignable(tt, type_def_return_type(lhs), type_def_return_type(rhs)) then
         return false;
     end
-    var lhs_params = type_proc_parameters(lhs);
-    var rhs_params = type_proc_parameters(rhs);
+    var lhs_params = type_def_parameters(lhs);
+    var rhs_params = type_def_parameters(rhs);
     if lhs_params.length != rhs_params.length then
         return false;
     end
@@ -256,7 +256,7 @@ proc _basic_proc_type_match tt, lhs, rhs in
     return true;
 end
 
-proc types_assignable tt: type_table, lhs: type, rhs: type in
+def types_assignable tt: type_table, lhs: type, rhs: type in
     if types_eq(lhs, rhs) then
         return true;
     end
@@ -282,11 +282,11 @@ proc types_assignable tt: type_table, lhs: type, rhs: type in
         return true;
     elif type_is_reference(lhs) and rhs == ptr then
         return true;
-    elif type_is_procedure(lhs) and type_is_procedure(rhs) then
-        return _basic_proc_type_match(tt, lhs, rhs);
-    elif lhs == ptr and type_is_procedure(rhs) then
+    elif type_is_def(lhs) and type_is_def(rhs) then
+        return _basic_def_type_match(tt, lhs, rhs);
+    elif lhs == ptr and type_is_def(rhs) then
         return true;
-    elif type_is_procedure(lhs) and rhs == ptr then
+    elif type_is_def(lhs) and rhs == ptr then
         return true;
     elif lhs == char and rhs == int then
         return true;
@@ -302,7 +302,7 @@ proc types_assignable tt: type_table, lhs: type, rhs: type in
     return false;
 end
 
-proc print_type self: type in
+def print_type self: type in
     var kind = type_kind(self);
     var id = type_id(self);
     printf("kind=%d, id=%d\n", kind, id);
@@ -321,7 +321,7 @@ const TTYPE_TABLE_cstr_type = 72; // fast ref to `cstr` type
 const TTYPE_TABLE_bool_type = 80; // fast ref to `bool` type
 const sizeof_TTYPE_TABLE    = 88;
 
-proc _tt_make_type tyk, name, size, type_ids, types, names in
+def _tt_make_type tyk, name, size, type_ids, types, names in
     var type_idx = types.length;
     var t = make_type(tyk, type_idx);
     type_set_size(t, size);
@@ -331,7 +331,7 @@ proc _tt_make_type tyk, name, size, type_ids, types, names in
     return t;
 end
 
-proc _tt_make_ref_type type, name, type_ids, types, names in
+def _tt_make_ref_type type, name, type_ids, types, names in
     assert(not type_ref_to_this(type));
     var type_idx = types.length;
     var t = make_type_reference(type_idx, type);
@@ -345,13 +345,13 @@ proc _tt_make_ref_type type, name, type_ids, types, names in
     return t;
 end
 
-proc _tt_make_type_alias type, name, type_ids, types, names in
+def _tt_make_type_alias type, name, type_ids, types, names in
     map_set(type_ids, name, types.length);
     vector_push(types, type);
     vector_push(names, name);
 end
 
-proc make_type_table -> type_table in
+def make_type_table -> type_table in
     var self = malloc(sizeof_TTYPE_TABLE);
     var type_ids = make_map(0, cstr_eq, cstr_hash);
     var types = make_vector(0);
@@ -391,19 +391,19 @@ proc make_type_table -> type_table in
     return cast(self, type_table);
 end
 
-proc type_table_type_ids self: type_table in return cast(u64@(self + TTYPE_TABLE_type_ids), map); end
-proc type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), Vector&); end
-proc type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), Vector&); end
-proc type_table_ast_types self: type_table in return cast(u64@(self + TTYPE_TABLE_ast_types), map); end
-proc tt_any_type self: type_table in return cast(u64@(self + TTYPE_TABLE_any_type), type); end
-proc tt_void_type self: type_table in return cast(u64@(self + TTYPE_TABLE_void_type), type); end
-proc tt_int_type self: type_table in return cast(u64@(self + TTYPE_TABLE_int_type), type); end
-proc tt_ptr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_ptr_type), type); end
-proc tt_cstr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_cstr_type), type); end
-proc tt_bool_type self: type_table in return cast(u64@(self + TTYPE_TABLE_bool_type), type); end
-proc tt_char_type self: type_table in return cast(u64@(self + TTYPE_TABLE_char_type), type); end
+def type_table_type_ids self: type_table in return cast(u64@(self + TTYPE_TABLE_type_ids), map); end
+def type_table_types self: type_table in return cast(u64@(self + TTYPE_TABLE_types), Vector&); end
+def type_table_names self: type_table in return cast(u64@(self + TTYPE_TABLE_names), Vector&); end
+def type_table_ast_types self: type_table in return cast(u64@(self + TTYPE_TABLE_ast_types), map); end
+def tt_any_type self: type_table in return cast(u64@(self + TTYPE_TABLE_any_type), type); end
+def tt_void_type self: type_table in return cast(u64@(self + TTYPE_TABLE_void_type), type); end
+def tt_int_type self: type_table in return cast(u64@(self + TTYPE_TABLE_int_type), type); end
+def tt_ptr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_ptr_type), type); end
+def tt_cstr_type self: type_table in return cast(u64@(self + TTYPE_TABLE_cstr_type), type); end
+def tt_bool_type self: type_table in return cast(u64@(self + TTYPE_TABLE_bool_type), type); end
+def tt_char_type self: type_table in return cast(u64@(self + TTYPE_TABLE_char_type), type); end
 
-proc tt_get_ast_type self, ast in
+def tt_get_ast_type self, ast in
     var found = map_find(type_table_ast_types(self), ast);
     if found then
         return map_pair_val(found);
@@ -411,15 +411,15 @@ proc tt_get_ast_type self, ast in
     return NULL;
 end
 
-proc tt_set_ast_type self, ast, type in
+def tt_set_ast_type self, ast, type in
     map_set(type_table_ast_types(self), ast, type);
 end
 
-proc tt_get_type_name self, type in
+def tt_get_type_name self, type in
     return vector_get(type_table_names(self), type_id(type));
 end
 
-proc tt_get_type_or_null self, name in
+def tt_get_type_or_null self, name in
     var type_ids = type_table_type_ids(self);
     var found = map_find(type_ids, name);
     var types = type_table_types(self);
@@ -429,7 +429,7 @@ proc tt_get_type_or_null self, name in
     return NULL;
 end
 
-proc tt_get_type_or_make_undefined self, name in
+def tt_get_type_or_make_undefined self, name in
     var type_ids = type_table_type_ids(self);
     var found = map_find(type_ids, name);
     var types = type_table_types(self);
@@ -444,7 +444,7 @@ proc tt_get_type_or_make_undefined self, name in
     return type;
 end
 
-proc tt_get_reference_to_type self, type in
+def tt_get_reference_to_type self, type in
     var ref = type_ref_to_this(type);
     if not ref then
         ref = _tt_make_ref_type(type, NULL,
@@ -455,23 +455,23 @@ proc tt_get_reference_to_type self, type in
     return ref;
 end
 
-proc tt_make_anon_proc self, return_type, param_types, varargs in
+def tt_make_anon_def self, return_type, param_types, varargs in
     var types = type_table_types(self);
-    var type = make_type_procedure(types.length, return_type, param_types, varargs);
+    var type = make_type_def(types.length, return_type, param_types, varargs);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
 end
 
-proc tt_make_anon_struct self, fields, procs in
+def tt_make_anon_struct self, fields, defs in
     var types = type_table_types(self);
-    var type = make_type_struct(types.length, fields, procs);
+    var type = make_type_struct(types.length, fields, defs);
     vector_push(types, type);
     vector_push(type_table_names(self), NULL);
     return type;
 end
 
-proc tt_make_anon_union self, field_names, field_types in
+def tt_make_anon_union self, field_names, field_types in
     var types = type_table_types(self);
     var type = make_type_union(types.length, field_names, field_types);
     vector_push(types, type);
@@ -479,11 +479,11 @@ proc tt_make_anon_union self, field_names, field_types in
     return type;
 end
 
-proc _tt_append_proc_type_repr self, string, type in
+def _tt_append_def_type_repr self, string, type in
     if not type then
         string_append_cstr(string, "{null}");
-    elif type_is_procedure(type) then
-        var ptn = tt_get_proc_type_name(self, type);
+    elif type_is_def(type) then
+        var ptn = tt_get_def_type_name(self, type);
         string_append_string(string, ptn);
         free_string(ptn);
     else
@@ -496,20 +496,20 @@ proc _tt_append_proc_type_repr self, string, type in
     end
 end
 
-proc tt_get_proc_type_name self, type in
-    if not type_is_procedure(type) then
+def tt_get_def_type_name self, type in
+    if not type_is_def(type) then
         return NULL;
     end
 
     var string = make_string(20);
     string_push(string, '(');
-    var params = type_proc_parameters(type);
-    var ret_ty = type_proc_return_type(type);
+    var params = type_def_parameters(type);
+    var ret_ty = type_def_return_type(type);
 
     var i = 0; var len = params.length;
     while i < len do
         var param_type = vector_get(params, i);
-        _tt_append_proc_type_repr(self, string, param_type);
+        _tt_append_def_type_repr(self, string, param_type);
         i += 1;
         if i < len then
             string_append_cstr(string, ", ");
@@ -520,12 +520,12 @@ proc tt_get_proc_type_name self, type in
     end
 
     string_append_cstr(string, " -> ");
-    _tt_append_proc_type_repr(self, string, ret_ty);
+    _tt_append_def_type_repr(self, string, ret_ty);
     string_push(string, ')');
     return string;
 end
 
-proc tt_calculate_struct self, stype, again_q in
+def tt_calculate_struct self, stype, again_q in
     if type_size(stype) != TYPE_NEEDS_SIZING then
         return;
     end
@@ -560,7 +560,7 @@ proc tt_calculate_struct self, stype, again_q in
     type_set_size(stype, bit_offs);
 end
 
-proc tt_detect_cycles self, stype in
+def tt_detect_cycles self, stype in
     // Breadth-first search for cycles.
     var q = make_queue(0);
     var explored = make_set(0, NULL, NULL);
@@ -606,7 +606,7 @@ proc tt_detect_cycles self, stype in
     return false;
 end
 
-proc tt_check_struct_for_field_name_collisions self, type in
+def tt_check_struct_for_field_name_collisions self, type in
     var member_name_map = make_map(0, cstr_eq, cstr_hash);
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
@@ -628,27 +628,27 @@ proc tt_check_struct_for_field_name_collisions self, type in
         i += 1;
     end
 
-    var procs = type_struct_procs(type);
-    i = 0; len = procs.length;
+    var defs = type_struct_defs(type);
+    i = 0; len = defs.length;
     while i < len do
-        var proc_ = cast(vector_get(procs, i), Symbol&);
-        var found = map_find(member_name_map, proc_.name);
+        var def_ = cast(vector_get(defs, i), Symbol&);
+        var found = map_find(member_name_map, def_.name);
         if found then
             printf("ERROR: struct `");
             tt_print_type_name(self, type);
-            printf("` already contains a member named `%s.`\n", proc_.name);
-            print_token_loc(proc_.token);
+            printf("` already contains a member named `%s.`\n", def_.name);
+            print_token_loc(def_.token);
             printf("NOTE: it was previously defined here\n");
             print_token_loc(cast(map_pair_val(found), Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, proc_.name, proc_.token);
+        map_set(member_name_map, def_.name, def_.token);
         i += 1;
     end
     free_map(member_name_map);
 end
 
-proc tt_check_enum_for_field_name_collisions self, type in
+def tt_check_enum_for_field_name_collisions self, type in
     var member_name_map = make_map(0, cstr_eq, cstr_hash);
     var enum_vals = type_enum_values(type);
     var i = 0; var len = enum_vals.length;
@@ -670,7 +670,7 @@ proc tt_check_enum_for_field_name_collisions self, type in
     free_map(member_name_map);
 end
 
-proc tt_calculate_structs self in
+def tt_calculate_structs self in
     var to_calc = make_queue(0);
     var types = type_table_types(self);
     var i = 0; var len = types.length;
@@ -704,10 +704,10 @@ proc tt_calculate_structs self in
     free_queue(to_calc);
 end
 
-proc tt_print_type_name self, type in
+def tt_print_type_name self, type in
     if type then
-        if type_is_procedure(type) then
-            var string = tt_get_proc_type_name(self, type);
+        if type_is_def(type) then
+            var string = tt_get_def_type_name(self, type);
             printf("%s", string_cstr(string));
             free_string(string);
         else
@@ -738,7 +738,7 @@ proc tt_print_type_name self, type in
     end
 end
 
-proc scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
+def scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
     assert(ast_kind(ast) == AstK_ScopeResolve);
     assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
     assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
@@ -746,16 +746,16 @@ proc scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
     var type = ast_type(ast_lhs(ast));
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
-        var procs = type_struct_procs(type);
-        var i = 0; var len = procs.length;
+        var defs = type_struct_defs(type);
+        var i = 0; var len = defs.length;
         while i < len do
-            var proc_ = cast(vector_get(procs, i), Symbol&);
-            var proc_name = symbol_name(proc_);
-            if cstr_eq(member, proc_name) then
-                var proc_type = symbol_type(proc_);
-                assert(proc_type);
-                assert(type_is_procedure(proc_type));
-                return proc_type;
+            var def_ = cast(vector_get(defs, i), Symbol&);
+            var def_name = symbol_name(def_);
+            if cstr_eq(member, def_name) then
+                var def_type = symbol_type(def_);
+                assert(def_type);
+                assert(type_is_def(def_type));
+                return def_type;
             end
             i += 1;
         end
@@ -781,7 +781,7 @@ proc scope_resolve_type tt: type_table, ast: ast, error: bool -> type in
     return tt_any_type(tt);
 end
 
-proc scope_resolve_proc tt: type_table, ast: ast, error: bool -> Symbol& in
+def scope_resolve_def tt: type_table, ast: ast, error: bool -> Symbol& in
     assert(ast_kind(ast) == AstK_ScopeResolve);
     assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
     assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
@@ -789,16 +789,16 @@ proc scope_resolve_proc tt: type_table, ast: ast, error: bool -> Symbol& in
     var type = ast_type(ast_lhs(ast));
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
-        var procs = type_struct_procs(type);
-        var i = 0; var len = procs.length;
+        var defs = type_struct_defs(type);
+        var i = 0; var len = defs.length;
         while i < len do
-            var proc_ = cast(vector_get(procs, i), Symbol&);
-            var proc_name = symbol_name(proc_);
-            if cstr_eq(member, proc_name) then
-                var proc_type = symbol_type(proc_);
-                assert(proc_type);
-                assert(type_is_procedure(proc_type));
-                return proc_;
+            var def_ = cast(vector_get(defs, i), Symbol&);
+            var def_name = symbol_name(def_);
+            if cstr_eq(member, def_name) then
+                var def_type = symbol_type(def_);
+                assert(def_type);
+                assert(type_is_def(def_type));
+                return def_;
             end
             i += 1;
         end
@@ -811,9 +811,9 @@ proc scope_resolve_proc tt: type_table, ast: ast, error: bool -> Symbol& in
         end
         return NULL;
     elif type_is_enum(type) then
-        assert(false, "scope_resolve_proc for unions not implemented yet.\n");
+        assert(false, "scope_resolve_def for unions not implemented yet.\n");
     elif type_is_union(type) then
-        assert(false, "scope_resolve_proc for unions not implemented yet.\n");
+        assert(false, "scope_resolve_def for unions not implemented yet.\n");
     elif error then
         printf("ERROR: type `");
         tt_print_type_name(tt, type);

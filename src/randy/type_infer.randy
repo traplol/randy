@@ -1,49 +1,49 @@
 // handle a minimal amount of errors here, defer most type errors to the type checker.
 
-const TTYPE_INFER_cur_procs   = 0;  // stack of procs
+const TTYPE_INFER_cur_defs   = 0;  // stack of defs
 const TTYPE_INFER_did_returns = 8;  // stack of bools
-const TTYPE_INFER_again       = 16; // set of proc symbols
+const TTYPE_INFER_again       = 16; // set of def symbols
 const sizeof_TTYPE_INFER = 24;
 
-proc make_type_infer -> type_infer in
+def make_type_infer -> type_infer in
     var self = malloc(sizeof_TTYPE_INFER);
-    u64!(self + TTYPE_INFER_cur_procs, make_vector(0));
+    u64!(self + TTYPE_INFER_cur_defs, make_vector(0));
     u64!(self + TTYPE_INFER_did_returns, make_string(0));
     u64!(self + TTYPE_INFER_again, make_set(0, NULL, NULL));
     return cast(self, type_infer);
 end
 
-proc type_infer_cur_procs self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_cur_procs), Vector&);
+def type_infer_cur_defs self: type_infer in
+    return cast(u64@(self + TTYPE_INFER_cur_defs), Vector&);
 end
-proc type_infer_did_returns self: type_infer in
+def type_infer_did_returns self: type_infer in
     return cast(u64@(self + TTYPE_INFER_did_returns), String&);
 end
-proc type_infer_again self: type_infer in
+def type_infer_again self: type_infer in
     return cast(u64@(self + TTYPE_INFER_again), set);
 end
-proc type_infer_set_again self: type_infer, set: set in
+def type_infer_set_again self: type_infer, set: set in
     u64!(self + TTYPE_INFER_again, set);
 end
 
-proc free_type_infer self: type_infer in
+def free_type_infer self: type_infer in
     if self then
-        free_vector(type_infer_cur_procs(self));
+        free_vector(type_infer_cur_defs(self));
         free_string(type_infer_did_returns(self));
         free_set(type_infer_again(self));
         free(self);
     end
 end
 
-proc ti_current_proc self in
-    return vector_back(type_infer_cur_procs(self));
+def ti_current_def self in
+    return vector_back(type_infer_cur_defs(self));
 end
 
-proc ti_did_return self in
+def ti_did_return self in
     return string_back(type_infer_did_returns(self));
 end
 
-proc ti_set_did_return self, val in
+def ti_set_did_return self, val in
     var str = type_infer_did_returns(self);
     var len = str.length;
     if len > 0 then
@@ -51,17 +51,17 @@ proc ti_set_did_return self, val in
     end
 end
 
-proc ti_push_proc self, proc_symbol in
-    vector_push(type_infer_cur_procs(self), proc_symbol);
+def ti_push_def self, def_symbol in
+    vector_push(type_infer_cur_defs(self), def_symbol);
     string_push(type_infer_did_returns(self), 0);
 end
 
-proc ti_pop_proc self in
-    vector_pop(type_infer_cur_procs(self));
+def ti_pop_def self in
+    vector_pop(type_infer_cur_defs(self));
     string_pop(type_infer_did_returns(self));
 end
 
-proc ti_infer_vector self, tt, st, vector in
+def ti_infer_vector self, tt, st, vector in
     var i = 0; var len = vector.length;
     while i < len do
         var ast = vector_get(vector, i);
@@ -70,7 +70,7 @@ proc ti_infer_vector self, tt, st, vector in
     end
 end
 
-proc ti_infer_ident self, tt, st, ast -> type in
+def ti_infer_ident self, tt, st, ast -> type in
     check_ast_kind(AstK_Ident, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -83,23 +83,23 @@ proc ti_infer_ident self, tt, st, ast -> type in
     return tt_any_type(tt);
 end
 
-proc ti_infer_integer self, tt, st, ast -> type in
+def ti_infer_integer self, tt, st, ast -> type in
     check_ast_kind(AstK_Integer, ast);
     return tt_int_type(tt);
 end
 
-proc ti_infer_string self, tt, st, ast -> type in
+def ti_infer_string self, tt, st, ast -> type in
     check_ast_kind(AstK_String, ast);
     return tt_cstr_type(tt);
 end
 
-proc ti_infer_call self, tt, st, ast -> type in
+def ti_infer_call self, tt, st, ast -> type in
     check_ast_kind(AstK_Call, ast);
     var expr = ast_expr(ast);
     var call_type = ti_infer(self, tt, st, expr);
     var any = tt_any_type(tt);
     // TODO: put this check in type checker
-    if not type_is_procedure(call_type) then
+    if not type_is_def(call_type) then
         ti_infer_vector(self, tt, st, ast_args(ast));
         return tt_any_type(tt);
     end
@@ -110,29 +110,29 @@ proc ti_infer_call self, tt, st, ast -> type in
         call_type = symbol_type(call_symbol);
     elif ast_kind(expr) == AstK_ScopeResolve then
         call_type = scope_resolve_type(tt, expr, true);
-        if not type_is_procedure(call_type) then
+        if not type_is_def(call_type) then
             ti_infer_vector(self, tt, st, ast_args(ast));
             return tt_any_type(tt);
         end
-        var proc_ = type_ast(call_type);
-        assert(proc_, "Compiler bug: call_type has no proc ast\n");
-        call_symbol = st_get_symbol(st, ast_ident(proc_));
-        assert(call_symbol, "Compiler bug: proc has no symbol\n");
+        var def_ = type_ast(call_type);
+        assert(def_, "Compiler bug: call_type has no def ast\n");
+        call_symbol = st_get_symbol(st, ast_ident(def_));
+        assert(call_symbol, "Compiler bug: def has no symbol\n");
     end
 
-    if not type_is_procedure(call_type) then
+    if not type_is_def(call_type) then
         ti_infer_vector(self, tt, st, ast_args(ast));
         return tt_any_type(tt);
     end
 
-    var proc_ast = type_ast(call_type);
-    var proc_params = NULL;
-    if proc_ast then
-        proc_params = ast_params(proc_ast);
+    var def_ast = type_ast(call_type);
+    var def_params = NULL;
+    if def_ast then
+        def_params = ast_params(def_ast);
     end
 
     // TODO: need to handle varargs at some point
-    var param_types = type_proc_parameters(call_type);
+    var param_types = type_def_parameters(call_type);
     var args = ast_args(ast);
     var i = 0; var len = min(param_types.length, args.length);
     var changed = false;
@@ -143,8 +143,8 @@ proc ti_infer_call self, tt, st, ast -> type in
         assert(par_type);
         if arg_type != any and par_type == any then
             vector_set(param_types, i, arg_type);
-            if proc_params then
-                var par_sym = st_get_symbol(st, vector_get(proc_params, i));
+            if def_params then
+                var par_sym = st_get_symbol(st, vector_get(def_params, i));
                 symbol_set_type(par_sym, arg_type);
             end
             changed = true;
@@ -157,17 +157,17 @@ proc ti_infer_call self, tt, st, ast -> type in
         i += 1;
     end
     if changed then
-        var proc_ast = type_ast(call_type);
-        if proc_ast and not set_contains(type_infer_again(self), call_symbol) then
+        var def_ast = type_ast(call_type);
+        if def_ast and not set_contains(type_infer_again(self), call_symbol) then
             set_add(type_infer_again(self), call_symbol);
             // FIXME: is there a better way to do this without recursion?
-            ti_infer_procedure(self, tt, st, proc_ast);
+            ti_infer_def(self, tt, st, def_ast);
         end
     end
-    return type_proc_return_type(call_type);
+    return type_def_return_type(call_type);
 end
 
-proc ti_infer_binop self, tt, st, ast -> type in
+def ti_infer_binop self, tt, st, ast -> type in
     check_ast_kind(AstK_BinOp, ast);
     var lhs = ti_infer(self, tt, st, ast_lhs(ast));
     var rhs = ti_infer(self, tt, st, ast_rhs(ast));
@@ -234,7 +234,7 @@ proc ti_infer_binop self, tt, st, ast -> type in
     return tt_any_type(tt);
 end
 
-proc ti_infer_return self, tt, st, ast -> type in
+def ti_infer_return self, tt, st, ast -> type in
     check_ast_kind(AstK_Return, ast);
     var type;
     if ast_expr(ast) then
@@ -242,13 +242,13 @@ proc ti_infer_return self, tt, st, ast -> type in
     else
         type = tt_void_type(tt);
     end
-    var cur_proc = ti_current_proc(self);
-    var proc_type = symbol_type(cur_proc);
-    assert(type_is_procedure(proc_type), "proc_type not procedure type");
-    var ret_type = type_proc_return_type(proc_type);
+    var cur_def = ti_current_def(self);
+    var def_type = symbol_type(cur_def);
+    assert(type_is_def(def_type), "def_type not def type");
+    var ret_type = type_def_return_type(def_type);
     var any = tt_any_type(tt);
     if not ret_type or ret_type == any then
-        type_set_proc_return_type(proc_type, type);
+        type_set_def_return_type(def_type, type);
     elif type_is_reference(ret_type) and type == any then
         // nothing
     elif not types_assignable(tt, type, ret_type) then
@@ -259,7 +259,7 @@ proc ti_infer_return self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_var_decl self, tt, st, ast -> type in
+def ti_infer_var_decl self, tt, st, ast -> type in
     check_ast_kind(AstK_VarDecl, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -269,7 +269,7 @@ proc ti_infer_var_decl self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
+def _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
     var sym_type = symbol_type(symbol);
     var any = tt_any_type(tt);
     if not sym_type or sym_type == any then
@@ -282,7 +282,7 @@ proc _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
     end
 end
 
-proc ti_infer_var_assign self, tt, st, ast -> type in
+def ti_infer_var_assign self, tt, st, ast -> type in
     check_ast_kind(AstK_VarAssign, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -291,7 +291,7 @@ proc ti_infer_var_assign self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_assign_op self, tt, st, ast -> type in
+def ti_infer_assign_op self, tt, st, ast -> type in
     check_ast_kind(AstK_AssignOp, ast);
     var op = ast_op(ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
@@ -317,27 +317,27 @@ proc ti_infer_assign_op self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_procedure self, tt, st, ast -> type in
-    check_ast_kind(AstK_Procedure, ast);
+def ti_infer_def self, tt, st, ast -> type in
+    check_ast_kind(AstK_Def, ast);
     var ident = ast_ident(ast);
     //printf("infer: %s\n", ident);
     var symbol = st_get_symbol(st, ident);
-    ti_push_proc(self, symbol);
+    ti_push_def(self, symbol);
     ti_infer_vector(self, tt, st, ast_body(ast));
-    var proc_type = symbol_type(symbol);
-    assert(type_is_procedure(proc_type),
-           "Compiler bug: procedure type is not actually procedure type.\n");
+    var def_type = symbol_type(symbol);
+    assert(type_is_def(def_type),
+           "Compiler bug: def type is not actually def type.\n");
     // don't handle the case where function is declared with a type but doesn't return here
     // because we'll let the IR compiler determine that.
     // it'just needless complexity to deal with checking every branch for returns here.
-    if not ti_did_return(self) and type_proc_return_type(proc_type) == tt_any_type(tt) then
-        type_set_proc_return_type(proc_type, tt_void_type(tt));
+    if not ti_did_return(self) and type_def_return_type(def_type) == tt_any_type(tt) then
+        type_set_def_return_type(def_type, tt_void_type(tt));
     end
-    ti_pop_proc(self);
+    ti_pop_def(self);
     return tt_void_type(tt);
 end
 
-proc ti_infer_if_else self, tt, st, ast -> type in
+def ti_infer_if_else self, tt, st, ast -> type in
     check_ast_kind(AstK_IfElse, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
@@ -346,7 +346,7 @@ proc ti_infer_if_else self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_while self, tt, st, ast -> type in
+def ti_infer_while self, tt, st, ast -> type in
     check_ast_kind(AstK_While, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
@@ -354,7 +354,7 @@ proc ti_infer_while self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_pointer_read self, tt, st, ast -> type in
+def ti_infer_pointer_read self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerRead, ast);
     var args = ast_pop_args(ast);
     ti_infer(self, tt, st, vector_get(args, 0));
@@ -375,7 +375,7 @@ proc ti_infer_pointer_read self, tt, st, ast -> type in
     return type;
 end
 
-proc ti_infer_pointer_write self, tt, st, ast -> type in
+def ti_infer_pointer_write self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerWrite, ast);
     var args = ast_pop_args(ast);
     var i = 0; var len = args.length;
@@ -386,7 +386,7 @@ proc ti_infer_pointer_write self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_prefix_op self, tt, st, ast -> type in
+def ti_infer_prefix_op self, tt, st, ast -> type in
     check_ast_kind(AstK_Prefix, ast);
     var t = ti_infer(self, tt, st, ast_expr(ast));
     if ast_op == TK::KW_not then
@@ -395,7 +395,7 @@ proc ti_infer_prefix_op self, tt, st, ast -> type in
     return t;
 end
 
-proc ti_infer_const self, tt, st, ast -> type in
+def ti_infer_const self, tt, st, ast -> type in
     check_ast_kind(AstK_Const, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -404,21 +404,21 @@ proc ti_infer_const self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_extern self, tt, st, ast -> type in
+def ti_infer_extern self, tt, st, ast -> type in
     check_ast_kind(AstK_Extern, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
-proc ti_infer_inline_asm self, tt, st, ast -> type in
+def ti_infer_inline_asm self, tt, st, ast -> type in
     check_ast_kind(AstK_InlineAsm, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
-proc ti_infer_global self, tt, st, ast -> type in
+def ti_infer_global self, tt, st, ast -> type in
     check_ast_kind(AstK_Global, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
@@ -427,13 +427,13 @@ proc ti_infer_global self, tt, st, ast -> type in
     return tt_void_type(tt);
 end
 
-proc ti_infer_cast self, tt, st, ast -> type in
+def ti_infer_cast self, tt, st, ast -> type in
     check_ast_kind(AstK_Cast, ast);
     ti_infer(self, tt, st, ast_expr(ast));
     return ast_type(ast);
 end
 
-proc _ti_get_field_type type, member in
+def _ti_get_field_type type, member in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
@@ -443,19 +443,19 @@ proc _ti_get_field_type type, member in
         end
         i += 1;
     end
-    var procs = type_struct_procs(type);
-    i = 0; len = procs.length;
+    var defs = type_struct_defs(type);
+    i = 0; len = defs.length;
     while i < len do
-        var proc_ = vector_get(procs, i);
-        if cstr_eq(symbol_name(proc_), member) then
-            return symbol_type(proc_);
+        var def_ = vector_get(defs, i);
+        if cstr_eq(symbol_name(def_), member) then
+            return symbol_type(def_);
         end
         i += 1;
     end
     return NULL;
 end
 
-proc ti_infer_member_access self, tt, st, ast in
+def ti_infer_member_access self, tt, st, ast in
     check_ast_kind(AstK_MemberAccess, ast);
     var type = ti_infer(self, tt, st, ast_expr(ast));
     var member = ast_member(ast);
@@ -492,7 +492,7 @@ proc ti_infer_member_access self, tt, st, ast in
     return ftype; 
 end
 
-proc ti_infer_assign_member self, tt, st, ast in
+def ti_infer_assign_member self, tt, st, ast in
     // nothing really to infer, members are required type declarations.
     check_ast_kind(AstK_AssignMember, ast);
     ti_infer(self, tt, st, ast_lhs(ast));
@@ -500,7 +500,7 @@ proc ti_infer_assign_member self, tt, st, ast in
     return tt_void_type(tt);
 end
 
-proc ti_infer_sizeof_expr self, tt, st, ast in
+def ti_infer_sizeof_expr self, tt, st, ast in
     check_ast_kind(AstK_SizeofExpr, ast);
     var expr = ast_expr(ast);
     var type = ti_infer(self, tt, st, ast_expr(ast));
@@ -516,11 +516,11 @@ proc ti_infer_sizeof_expr self, tt, st, ast in
     return tt_int_type(tt);
 end
 
-proc ti_infer_scope_resolve self, tt, st, ast in
+def ti_infer_scope_resolve self, tt, st, ast in
     return scope_resolve_type(tt, ast, true);
 end
 
-proc ti_infer self, tt, st, ast -> type in
+def ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
     var type: type;
     if k == AstK_Ident then type = ti_infer_ident(self, tt, st, ast);
@@ -531,7 +531,7 @@ proc ti_infer self, tt, st, ast -> type in
     elif k == AstK_Return then type = ti_infer_return(self, tt, st, ast);
     elif k == AstK_VarDecl then type = ti_infer_var_decl(self, tt, st, ast);
     elif k == AstK_VarAssign then type = ti_infer_var_assign(self, tt, st, ast);
-    elif k == AstK_Procedure then type = ti_infer_procedure(self, tt, st, ast);
+    elif k == AstK_Def then type = ti_infer_def(self, tt, st, ast);
     elif k == AstK_IfElse then type = ti_infer_if_else(self, tt, st, ast);
     elif k == AstK_While then type = ti_infer_while(self, tt, st, ast);
     elif k == AstK_PointerRead then type = ti_infer_pointer_read(self, tt, st, ast);
@@ -566,7 +566,7 @@ proc ti_infer self, tt, st, ast -> type in
     return type;
 end
 
-proc type_infer type_table, symbol_table, compile_order: Vector& in
+def type_infer type_table, symbol_table, compile_order: Vector& in
     var self = make_type_infer();
     var i = 0; var len = compile_order.length;
     while i < len do

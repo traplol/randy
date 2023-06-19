@@ -1,6 +1,6 @@
 #include std/core
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -10,7 +10,7 @@ end
 
 const foo = -1234567890123456789;
 
-proc main in
+def main in
     var i = -123456;
     test("i is less than 0", i < 0);
     test("i is -123456", i == (0 - 123456));

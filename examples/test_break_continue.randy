@@ -1,6 +1,6 @@
 #include std/core
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -9,7 +9,7 @@ proc test msg, cond in
 end
 
 
-proc test_break in
+def test_break in
     printf("Testing basic break\n");
     var i = 0;
     while i < 10 do
@@ -35,7 +35,7 @@ proc test_break in
     end
 end
 
-proc test_continue in
+def test_continue in
     printf("Testing basic continue\n");
     var i = 0;
     while i < 10 do
@@ -63,7 +63,7 @@ proc test_continue in
     end
 end
 
-proc main in
+def main in
     test_break();
     test_continue();
     return 0;

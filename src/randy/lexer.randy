@@ -1,21 +1,21 @@
 
-proc is_digit c: char -> bool in
+def is_digit c: char -> bool in
     return '0' <= c and c <= '9';
 end
 
-proc is_whitespace c: char -> bool in
+def is_whitespace c: char -> bool in
     return c == ' ' or c == '\t' or c == '\n' or c == 0;
 end
 
-proc is_ident_start c: char -> bool in
+def is_ident_start c: char -> bool in
     return c == '_' or ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z');
 end
 
-proc is_ident_char c: char -> bool in
+def is_ident_char c: char -> bool in
     return is_ident_start(c) or is_digit(c) or c == '@' or c == '!';
 end
 
-proc get_escaped_char c: char -> char in
+def get_escaped_char c: char -> char in
     if c == 't' then
         return 9; // \t tab
     elif c == 'n' then
@@ -28,7 +28,7 @@ proc get_escaped_char c: char -> char in
     return c;
 end
 
-proc get_ident_kind string: String& in
+def get_ident_kind string: String& in
     var cstr = string_cstr(string);
     var first = u8@(cstr);
     if 'a' == first then
@@ -42,6 +42,7 @@ proc get_ident_kind string: String& in
         if cstr_eq("const", cstr) then return TK::KW_const; end
         if cstr_eq("continue", cstr) then return TK::KW_continue; end
     elif 'd' == first then
+        if cstr_eq("def", cstr) then return TK::KW_def; end
         if cstr_eq("do", cstr) then return TK::KW_do; end
     elif 'e' == first then
         if cstr_eq("else", cstr) then return TK::KW_else; end
@@ -60,7 +61,7 @@ proc get_ident_kind string: String& in
     elif 'o' == first then
         if cstr_eq("or", cstr) then return TK::KW_or; end
     elif 'p' == first then
-        if cstr_eq("proc", cstr) then return TK::KW_proc; end
+        if cstr_eq("def", cstr) then return TK::KW_def; end
     elif 'r' == first then
         if cstr_eq("return", cstr) then return TK::KW_return; end
     elif 's' == first then
@@ -91,13 +92,13 @@ proc get_ident_kind string: String& in
     return TK::Ident;
 end
 
-proc _unrecognized_char filename, line_no, c in
+def _unrecognized_char filename, line_no, c in
     printf("Unrecognized character: '%c' (%d)\n", c, c);
     printf("  File \"%s\", line %d\n", filename, line_no);
     exit(1);
 end
 
-proc _lex_code filename, code, include_paths, included_already -> Vector& in
+def _lex_code filename, code, include_paths, included_already -> Vector& in
     var i = 0;
     var tokens = make_vector(0);
     var length = code.length;
@@ -375,7 +376,7 @@ proc _lex_code filename, code, include_paths, included_already -> Vector& in
     return tokens;
 end
 
-proc _lex_file_aux path: cstr, include_paths: Vector&, included_already: set -> Vector& in
+def _lex_file_aux path: cstr, include_paths: Vector&, included_already: set -> Vector& in
     var code = read_file_to_string(path);
     if not code then
         return cast(NULL, Vector&);
@@ -383,14 +384,14 @@ proc _lex_file_aux path: cstr, include_paths: Vector&, included_already: set -> 
     return _lex_code(path, code, include_paths, included_already);
 end
 
-proc lex_file path: cstr, include_paths: Vector& in
+def lex_file path: cstr, include_paths: Vector& in
     var included_already = make_set(0, string_eq, string_hash);
     var res = _lex_file_aux(path, include_paths, included_already);
     free_set(included_already);
     return res;
 end
 
-proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths: Vector&, included_already: set, arg: String& in
+def handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths: Vector&, included_already: set, arg: String& in
     string_append_cstr(arg, ".randy");
 
     var i = 0;
@@ -443,7 +444,7 @@ proc handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths
     end
 end
 
-proc handle_directive src_file, line_no, tokens, include_paths, included_already, directive, arg in
+def handle_directive src_file, line_no, tokens, include_paths, included_already, directive, arg in
     if cstr_eq("#include", string_cstr(directive)) then
         handle_include(src_file, line_no, tokens, include_paths, included_already, arg);
     end

@@ -1,19 +1,19 @@
 
 struct TypeCheck in
-    current_proc_name: cstr;
-    current_proc_type: type;
+    current_def_name: cstr;
+    current_def_type: type;
 end
 
-proc make_type_check -> TypeCheck& in
+def make_type_check -> TypeCheck& in
     var self = cast(calloc(1, __sizeof(TypeCheck)), TypeCheck&);
     return self;
 end
 
-proc free_type_check self: TypeCheck& in
+def free_type_check self: TypeCheck& in
     free(self);
 end
 
-proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
+def _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
     var sym_type = symbol_type(lhs_sym);
     if not sym_type or sym_type == tt_any_type(tt) then
         printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
@@ -39,7 +39,7 @@ proc _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
     end
 end
 
-proc _tc_check_is_scalar_type tt, ast, type in
+def _tc_check_is_scalar_type tt, ast, type in
     if type_is_scalar(type) then
         return;
     end
@@ -50,7 +50,7 @@ proc _tc_check_is_scalar_type tt, ast, type in
     g_Errors += 1;
 end
 
-proc _tc_check_ident_has_type st, ident, ast in
+def _tc_check_ident_has_type st, ident, ast in
     var sym = st_get_symbol(st, ident);
     var type = symbol_type(sym);
     if not type or type_size(type) == 0 then
@@ -60,7 +60,7 @@ proc _tc_check_ident_has_type st, ident, ast in
     end
 end
 
-proc _tc_check_is_int_like tt, ast, type in
+def _tc_check_is_int_like tt, ast, type in
     if type_is_int_like(type) then
         return;
     end
@@ -71,7 +71,7 @@ proc _tc_check_is_int_like tt, ast, type in
     g_Errors += 1;
 end
 
-proc tc_check_body self, tt, st, body in
+def tc_check_body self, tt, st, body in
     var i = 0; var len = body.length;
     while i < len do
         var ast = vector_get(body, i);
@@ -83,17 +83,17 @@ proc tc_check_body self, tt, st, body in
     end
 end
 
-proc tc_check_ident self, tt, st, ast in
+def tc_check_ident self, tt, st, ast in
     check_ast_kind(AstK_Ident, ast);
     _tc_check_ident_has_type(st, ast_ident(ast), ast);
 end
 
-proc tc_check_call self, tt, st, ast in
+def tc_check_call self, tt, st, ast in
     check_ast_kind(AstK_Call, ast);
     tc_check(self, tt, st, ast_expr(ast));
     var call_type = tt_get_ast_type(tt, ast_expr(ast));
     assert(call_type);
-    if not type_is_procedure(call_type) then
+    if not type_is_def(call_type) then
         printf("ERROR: type `");
         tt_print_type_name(tt, call_type);
         printf("` is not a callable object.\n");
@@ -104,7 +104,7 @@ proc tc_check_call self, tt, st, ast in
         return;
     end
 
-    var param_types = type_proc_parameters(call_type);
+    var param_types = type_def_parameters(call_type);
     var args = ast_args(ast);
     var i = 0; var len = min(param_types.length, args.length);
     while i < len do
@@ -138,7 +138,7 @@ proc tc_check_call self, tt, st, ast in
         i += 1;
     end
 
-    if (i < param_types.length) or (i > param_types.length and not type_proc_varargs(call_type)) then
+    if (i < param_types.length) or (i > param_types.length and not type_def_varargs(call_type)) then
         var expr = ast_expr(ast);
         if ast_kind(expr) == AstK_Ident then
             printf("ERROR: call to `%s` expects %d arguments but got %d.\n",
@@ -159,23 +159,23 @@ proc tc_check_call self, tt, st, ast in
     end
 end
 
-proc tc_check_binop self, tt, st, ast in
+def tc_check_binop self, tt, st, ast in
     check_ast_kind(AstK_BinOp, ast);
     tc_check(self, tt, st, ast_lhs(ast));
     tc_check(self, tt, st, ast_rhs(ast));
 end
 
-proc tc_check_return self, tt, st, ast in
+def tc_check_return self, tt, st, ast in
     check_ast_kind(AstK_Return, ast);
-    assert(self.current_proc_type);
-    var return_type = type_proc_return_type(self.current_proc_type);
+    assert(self.current_def_type);
+    var return_type = type_def_return_type(self.current_def_type);
     var expr = ast_expr(ast);
     if expr then
         tc_check(self, tt, st, expr);
         var expr_type = tt_get_ast_type(tt, expr);
         assert(expr_type);
         if not types_assignable(tt, return_type, expr_type) then
-            printf("ERROR: Return type for `%s` is `", self.current_proc_name);
+            printf("ERROR: Return type for `%s` is `", self.current_def_name);
             tt_print_type_name(tt, return_type);
             printf("` cannot return `");
             tt_print_type_name(tt, expr_type);
@@ -185,7 +185,7 @@ proc tc_check_return self, tt, st, ast in
             g_Errors += 1;
         end
     elif return_type != tt_void_type(tt) then
-        printf("ERROR: Return type for `%s` is `", self.current_proc_name);
+        printf("ERROR: Return type for `%s` is `", self.current_def_name);
         tt_print_type_name(tt, return_type);
         printf("` cannot return `void.`\n");
         printf("NOTE: The expression is: ");
@@ -195,12 +195,12 @@ proc tc_check_return self, tt, st, ast in
     end
 end
 
-proc tc_check_var_decl self, tt, st, ast in
+def tc_check_var_decl self, tt, st, ast in
     check_ast_kind(AstK_VarDecl, ast);
     _tc_check_ident_has_type(st, ast_ident(ast), ast);
 end
 
-proc tc_check_var_assign self, tt, st, ast in
+def tc_check_var_assign self, tt, st, ast in
     check_ast_kind(AstK_VarAssign, ast);
     var expr = ast_assign_expr(ast);
     tc_check(self, tt, st, expr);
@@ -209,7 +209,7 @@ proc tc_check_var_assign self, tt, st, ast in
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
-proc tc_check_assign_op self, tt, st, ast in
+def tc_check_assign_op self, tt, st, ast in
     check_ast_kind(AstK_AssignOp, ast);
     var lhs_sym = st_get_symbol(st, ast_ident(ast));
     assert(lhs_sym);
@@ -252,8 +252,8 @@ proc tc_check_assign_op self, tt, st, ast in
     end
 end
 
-proc tc_check_procedure self, tt, st, ast in
-    check_ast_kind(AstK_Procedure, ast);
+def tc_check_def self, tt, st, ast in
+    check_ast_kind(AstK_Def, ast);
     var params = ast_params(ast);
     var i = 0; var len = params.length;
     var any = tt_any_type(tt);
@@ -269,7 +269,7 @@ proc tc_check_procedure self, tt, st, ast in
         i += 1;
     end
     if errors.length > 0 then
-        printf("ERROR: in proc `%s`: \n", ast_ident(ast));
+        printf("ERROR: in def `%s`: \n", ast_ident(ast));
         i = 0; len = errors.length;
         while i < len do
             var sym = vector_get(errors, i);
@@ -285,16 +285,16 @@ proc tc_check_procedure self, tt, st, ast in
     var sym = st_get_symbol(st, ast_ident(ast));
     assert(sym);
 
-    self.current_proc_name = symbol_name(sym);
-    self.current_proc_type = symbol_type(sym);
+    self.current_def_name = symbol_name(sym);
+    self.current_def_type = symbol_type(sym);
 
     tc_check_body(self, tt, st, ast_body(ast));
 
-    self.current_proc_type = NULL;
-    self.current_proc_name = NULL;
+    self.current_def_type = NULL;
+    self.current_def_name = NULL;
 end
 
-proc tc_check_if_else self, tt, st, ast in
+def tc_check_if_else self, tt, st, ast in
     check_ast_kind(AstK_IfElse, ast);
     tc_check(self, tt, st, ast_test(ast));
     tc_check_body(self, tt, st, ast_consequence(ast));
@@ -305,7 +305,7 @@ proc tc_check_if_else self, tt, st, ast in
     _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
 end
 
-proc tc_check_while self, tt, st, ast in
+def tc_check_while self, tt, st, ast in
     check_ast_kind(AstK_While, ast);
     tc_check(self, tt, st, ast_test(ast));
     tc_check_body(self, tt, st, ast_body(ast));
@@ -315,19 +315,19 @@ proc tc_check_while self, tt, st, ast in
     _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
 end
 
-proc tc_check_pointer_read self, tt, st, ast in
+def tc_check_pointer_read self, tt, st, ast in
     check_ast_kind(AstK_PointerRead, ast);
     tc_check(self, tt, st, vector_get(ast_pop_args(ast), 0));
 end
 
-proc tc_check_pointer_write self, tt, st, ast in
+def tc_check_pointer_write self, tt, st, ast in
     check_ast_kind(AstK_PointerWrite, ast);
     var pop_args = ast_pop_args(ast);
     tc_check(self, tt, st, vector_get(pop_args, 0));
     tc_check(self, tt, st, vector_get(pop_args, 1));
 end
 
-proc tc_check_prefix_op self, tt, st, ast in
+def tc_check_prefix_op self, tt, st, ast in
     check_ast_kind(AstK_Prefix, ast);
     tc_check(self, tt, st, ast_expr(ast));
 
@@ -342,7 +342,7 @@ proc tc_check_prefix_op self, tt, st, ast in
     end
 end
 
-proc tc_check_const self, tt, st, ast in
+def tc_check_const self, tt, st, ast in
     check_ast_kind(AstK_Const, ast);
     var expr = ast_assign_expr(ast);
     tc_check(self, tt, st, expr);
@@ -351,7 +351,7 @@ proc tc_check_const self, tt, st, ast in
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
-proc tc_check_global self, tt, st, ast in
+def tc_check_global self, tt, st, ast in
     check_ast_kind(AstK_Global, ast);
     var expr = ast_assign_expr(ast);
     tc_check(self, tt, st, expr);
@@ -360,12 +360,12 @@ proc tc_check_global self, tt, st, ast in
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
-proc tc_check_cast self, tt, st, ast in
+def tc_check_cast self, tt, st, ast in
     check_ast_kind(AstK_Cast, ast);
     tc_check(self, tt, st, ast_expr(ast));
 end
 
-proc tc_check_member_access self, tt, st, ast in
+def tc_check_member_access self, tt, st, ast in
     // field resolution happened in type inference so not much needed to check here
     check_ast_kind(AstK_MemberAccess, ast);
     var expr = ast_expr(ast);
@@ -406,11 +406,11 @@ proc tc_check_member_access self, tt, st, ast in
         i += 1;
     end
     if not found then
-        var procs = type_struct_procs(type);
-        i = 0; len = procs.length;
+        var defs = type_struct_defs(type);
+        i = 0; len = defs.length;
         while i < len do
-            var proc_ = vector_get(procs, i);
-            if cstr_eq(symbol_name(proc_), member) then
+            var def_ = vector_get(defs, i);
+            if cstr_eq(symbol_name(def_), member) then
                 found = true;
                 break;
             end
@@ -429,7 +429,7 @@ proc tc_check_member_access self, tt, st, ast in
     end
 end
 
-proc tc_check_assign_member self, tt, st, ast in
+def tc_check_assign_member self, tt, st, ast in
     check_ast_kind(AstK_AssignMember, ast);
 
     var lhs = ast_lhs(ast);
@@ -462,7 +462,7 @@ proc tc_check_assign_member self, tt, st, ast in
     g_Errors += 1;
 end
 
-proc tc_check_scope_resolve self, tt, st, ast in
+def tc_check_scope_resolve self, tt, st, ast in
     assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
     assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
 
@@ -496,7 +496,7 @@ proc tc_check_scope_resolve self, tt, st, ast in
     end
 end
 
-proc tc_check self, tt, st, ast in
+def tc_check self, tt, st, ast in
     var k = ast_kind(ast);
     if k == AstK_Ident then tc_check_ident(self, tt, st, ast);
     elif k == AstK_Integer then // nothing
@@ -506,7 +506,7 @@ proc tc_check self, tt, st, ast in
     elif k == AstK_Return then tc_check_return(self, tt, st, ast);
     elif k == AstK_VarDecl then tc_check_var_decl(self, tt, st, ast);
     elif k == AstK_VarAssign then tc_check_var_assign(self, tt, st, ast);
-    elif k == AstK_Procedure then tc_check_procedure(self, tt, st, ast);
+    elif k == AstK_Def then tc_check_def(self, tt, st, ast);
     elif k == AstK_IfElse then tc_check_if_else(self, tt, st, ast);
     elif k == AstK_While then tc_check_while(self, tt, st, ast);
     elif k == AstK_PointerRead then tc_check_pointer_read(self, tt, st, ast);
@@ -537,7 +537,7 @@ proc tc_check self, tt, st, ast in
     end
 end
 
-proc type_check type_table, symbol_table, compile_order: Vector& in
+def type_check type_table, symbol_table, compile_order: Vector& in
     var type_checker = make_type_check();
     var i = 0; var len = compile_order.length;
     while i < len do

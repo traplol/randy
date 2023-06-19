@@ -18,7 +18,7 @@ const false: bool = cast(0, bool);
 const NULL: ptr = cast(0, ptr);
 const sizeof_PTR = 8;
 
-proc _flush_output in
+def _flush_output in
     fflush(u64@(stdout));
     fflush(u64@(stderr));
 end
@@ -33,11 +33,11 @@ asm errno in
 end
 
 
-proc _error msg in
+def _error msg in
     fprintf(u64@(stderr), "ERRNO: %s -> %s\n", strerror(errno()), msg);
 end
 
-proc exit code: int in
+def exit code: int in
     _flush_output();
     syscall(SYS_exit, code);
 end
@@ -54,7 +54,7 @@ asm __builting_break in
 "
 end
 
-proc abort in
+def abort in
     _flush_output();
     __builtin_trap();
 end

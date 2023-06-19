@@ -4,11 +4,11 @@ extern printf fmt, ...;
 global string = "hello world";
 global foo = 42;
 
-proc change_foo n in
+def change_foo n in
     foo = n;
 end
 
-proc main in
+def main in
     printf("foo is %d\n", foo);
     change_foo(999);
     printf("foo is %d\n", foo);

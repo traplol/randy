@@ -28,14 +28,14 @@ global g_Errors = 0;
 #include x86_64_backend
 #include compile_order
 
-proc print_timespan msg, starttime, endtime in
+def print_timespan msg, starttime, endtime in
     var elap_s = timespec_sec(endtime) - timespec_sec(starttime);
     var elap_ns = timespec_nsec(endtime) - timespec_nsec(starttime);
     var elap_ms = (elap_s * 1000) + (elap_ns / 1000000);
     printf("%s%dms\n", msg, elap_ms);
 end
 
-proc print_usage in
+def print_usage in
     printf("usage: randy -c file -o path [flags]\n");
     printf("Options and arguments:\n");
     printf("-h            : Show this message\n");
@@ -48,7 +48,7 @@ proc print_usage in
     printf("-v -vv -vvv   : Compiler verbosity level\n");
 end
 
-proc assemble_and_link asm_path, obj_path, exe_path, ld_flags in
+def assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     var as_args = make_vector(0);
     vector_push(as_args, "as");
     vector_push(as_args, "-c");
@@ -75,7 +75,7 @@ proc assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     free_vector(ld_args);
 end
 
-proc main argc: int, argv: ptr in
+def main argc: int, argv: ptr in
     var i = 0;
     if argc < 2 then
         printf("No input file.\n");
@@ -256,16 +256,16 @@ proc main argc: int, argv: ptr in
             return 0;
         end
 
-        var main_proc = NULL;
-        var exit_proc = NULL;
-        if ir_is_label(irctx, "_proc_main") then
-            main_proc = "_proc_main";
+        var main_def = NULL;
+        var exit_def = NULL;
+        if ir_is_label(irctx, "_def_main") then
+            main_def = "_def_main";
         else
             printf("ERROR: no `main` procedure.\n");
             return 1;
         end
-        if ir_is_label(irctx, "_proc_exit") then
-            exit_proc = "_proc_exit";
+        if ir_is_label(irctx, "_def_exit") then
+            exit_def = "_def_exit";
         end
 
         time(starttime);
@@ -273,7 +273,7 @@ proc main argc: int, argv: ptr in
         cc_out(cctx, ".text");
         cc_out_files(irctx, cctx);
         cc_out_instructions(irctx, cctx);
-        cc_out_start(cctx, main_proc, exit_proc);
+        cc_out_start(cctx, main_def, exit_def);
         cc_out_externs(irctx, cctx);
         cc_out_data_section(irctx, cctx);
         time(endtime);

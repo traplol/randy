@@ -1,6 +1,6 @@
 #include std/core
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -8,7 +8,7 @@ proc test msg, cond in
     end
 end
 
-proc test_not in
+def test_not in
     test("~0 is -1", ~0 == -1);
     test("~-1 is 0", ~-1 == 0);
     test("~1 is -2", ~1 == -2);
@@ -25,7 +25,7 @@ proc test_not in
 
 end
 
-proc test_xor in
+def test_xor in
     test("1 ^ 1 is 0", (1 ^ 1) == 0);
     test("1 ^ 0 is 1", (1 ^ 0) == 1);
     test("0 ^ 0 is 0", (0 ^ 0) == 0);
@@ -34,7 +34,7 @@ proc test_xor in
     test("0b11001100 ^ 0b01010101 is 0b10011001", (204 ^ 85) == 153);
 end
 
-proc test_and in
+def test_and in
     test("1 & 1 is 0", (1 & 1) == 1);
     test("1 & 0 is 1", (1 & 0) == 0);
     test("0 & 0 is 0", (0 & 0) == 0);
@@ -43,7 +43,7 @@ proc test_and in
     test("0b11001100 & 0b01010101 is 0b01000100", (204 & 85) == 68);
 end
 
-proc test_or in
+def test_or in
     test("1 | 1 is 1", (1 | 1) == 1);
     test("1 | 0 is 1", (1 | 0) == 1);
     test("0 | 0 is 0", (0 | 0) == 0);
@@ -52,7 +52,7 @@ proc test_or in
     test("0b11001100 | 0b01010101 is 0b11011101", (204 | 85) == 221);
 end
 
-proc test_shift_left in
+def test_shift_left in
     test("0 << 0 is 0", (0 << 0) == 0);
     test("0 << 1 is 0", (0 << 1) == 0);
     test("1 << 0 is 1", (1 << 0) == 1);
@@ -66,7 +66,7 @@ proc test_shift_left in
     test("1 << 64 is 1", (1 << 64) == 1);
 end
 
-proc test_shift_right in
+def test_shift_right in
     test("0 >> 0 is 0", (0 >> 0) == 0);
     test("0 >> 1 is 0", (0 >> 1) == 0);
     test("10 >> 1 is 5", (10 >> 1) == 5);
@@ -79,7 +79,7 @@ proc test_shift_right in
     test("-9223372036854775808 >> 32 is -2147483648", (-9223372036854775808 >> 32) == -2147483648);
 end
 
-proc test_precedence in
+def test_precedence in
     test("-1109977348 ^ -3376289167 & -3025785286 ^ 1582495014 ^ 2443749081 | 56740593 is 1944973299", 1944973299 == (-1109977348 ^ -3376289167 & -3025785286 ^ 1582495014 ^ 2443749081 | 56740593));
     test("587661749 & 291323364 & 3540408141 ^ 269838236 & 3850052591 & 3584741438 is 17039624", 17039624 == (587661749 & 291323364 & 3540408141 ^ 269838236 & 3850052591 & 3584741438));
     test("2312963827 & -951979549 & -476628329 | 3366528025 | -656940519 | 531283189 is -536871169", -536871169 == (2312963827 & -951979549 & -476628329 | 3366528025 | -656940519 | 531283189));
@@ -92,7 +92,7 @@ proc test_precedence in
     test("-1860992199 & 2191132187 | 793873687 | -3843279912 ^ 2236238784 ^ -3532150755 is 3218333471", 3218333471 == (-1860992199 & 2191132187 | 793873687 | -3843279912 ^ 2236238784 ^ -3532150755));
 end
 
-proc main in
+def main in
     test_not();
     test_xor();
     test_and();

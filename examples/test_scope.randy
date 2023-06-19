@@ -1,6 +1,6 @@
 #include std/core
 
-proc main in
+def main in
     var foo = 123;
     printf("L0: foo is %d\n", foo);
     if true then

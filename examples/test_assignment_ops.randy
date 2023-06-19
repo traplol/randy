@@ -1,6 +1,6 @@
 #include std/core
 
-proc test msg, expect, actual in
+def test msg, expect, actual in
     if expect == actual then
         printf("pass: %s\n", msg);
     else
@@ -8,7 +8,7 @@ proc test msg, expect, actual in
     end
 end
 
-proc test_simple in
+def test_simple in
     var foo = 10;
     foo += 5;
     test("foo is 15", 15, foo);
@@ -32,7 +32,7 @@ proc test_simple in
     test("foo is 16", 16, foo);
 end
 
-proc test_compound in
+def test_compound in
     var foo = 123;
     foo += 3 * 4;
     test("foo is 135", 135, foo);
@@ -57,19 +57,19 @@ proc test_compound in
 end
 
 global gfoo = 123;
-proc change_gfoo in
+def change_gfoo in
     gfoo = 100;
     test("gfoo is 100", 100, gfoo);
     return gfoo - 1;
 end
 
-proc test_edge1 in
+def test_edge1 in
     test("gfoo is 123", 123, gfoo);
     gfoo += change_gfoo(); // should be 123 + 99 = 222
     test("gfoo is 222", 222, gfoo);
 end
 
-proc main in
+def main in
     test_simple();
     test_compound();
     test_edge1();

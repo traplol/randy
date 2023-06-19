@@ -1,7 +1,7 @@
 #include std/core
 #include std/list
 
-proc main in
+def main in
     var list = make_list();
 
     var i = 0;

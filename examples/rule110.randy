@@ -5,7 +5,7 @@
 // This is an implementation of the Rule 110 cellular automaton
 // more info at: https://en.wikipedia.org/wiki/Rule_110
 
-proc next_state state in
+def next_state state in
     var next = make_string(0);
     var left; var center; var right;
     var i = 0; var len = string_len(state);
@@ -38,7 +38,7 @@ proc next_state state in
     return next;
 end
 
-proc main in
+def main in
     var steps = 500;
     var i = 0;
     var state = string_from_cstr("    *   *      *         *             *              *      *                 *");

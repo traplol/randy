@@ -10,6 +10,6 @@ asm test_asm in
 "
 end
 
-proc main in
+def main in
     printf("test_asm = %d\n", test_asm());
 end

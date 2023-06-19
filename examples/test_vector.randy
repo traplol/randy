@@ -1,7 +1,7 @@
 #include std/core
 #include std/vector
 
-proc main in
+def main in
     var vector = make_vector(10);
     printf("Vector len = %d\n", vector_len(vector));
     printf("Vector cap = %d\n", vector_cap(vector));

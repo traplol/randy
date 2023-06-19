@@ -10,7 +10,7 @@ struct Vector in
     capacity: int;
 end
 
-proc make_vector init: int -> Vector& in
+def make_vector init: int -> Vector& in
     var self = cast(malloc(__sizeof(Vector)), Vector&);
     self.buffer = malloc(sizeof_TVECTOR_ELEMENT * init);
     self.length = 0;
@@ -18,33 +18,33 @@ proc make_vector init: int -> Vector& in
     return self;
 end
 
-proc free_vector self: Vector& in
+def free_vector self: Vector& in
     free_string(cast(self, String&));
 end
 
-proc vector_buf self: Vector& -> ptr in
+def vector_buf self: Vector& -> ptr in
     return self.buffer;
 end
 
-proc vector_len self: Vector& -> int in
+def vector_len self: Vector& -> int in
     return self.length;
 end
 
-proc vector_cap self: Vector& -> int in
+def vector_cap self: Vector& -> int in
     return self.capacity;
 end
 
-proc vector_get self: Vector&, idx: int -> ptr in
+def vector_get self: Vector&, idx: int -> ptr in
     // TODO: Bounds check & abort
     return cast(u64@(self.buffer + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
 end
 
-proc vector_set self: Vector&, idx: int, val: ptr in
+def vector_set self: Vector&, idx: int, val: ptr in
     // TODO: Bounds check & abort
     u64!(self.buffer + (idx * sizeof_TVECTOR_ELEMENT), val);
 end
 
-proc vector_resize self: Vector&, new_cap: int in
+def vector_resize self: Vector&, new_cap: int in
     var new = malloc(new_cap * sizeof_TVECTOR_ELEMENT);
     var old = self.buffer;
     var len = self.length;
@@ -58,7 +58,7 @@ proc vector_resize self: Vector&, new_cap: int in
     self.capacity = new_cap;
 end
 
-proc vector_push self: Vector&, val: ptr in
+def vector_push self: Vector&, val: ptr in
     var len = self.length;
     var cap = self.capacity;
     if len >= cap then
@@ -68,7 +68,7 @@ proc vector_push self: Vector&, val: ptr in
     self.length = len + 1;
 end
 
-proc vector_pop self: Vector& in
+def vector_pop self: Vector& in
     var len = self.length;
     if len > 0 then
         self.length = len - 1;
@@ -78,7 +78,7 @@ proc vector_pop self: Vector& in
     end
 end
 
-proc vector_back self: Vector& -> ptr in
+def vector_back self: Vector& -> ptr in
     var len = self.length;
     if len > 0 then
         return cast(u64@(self.buffer + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
@@ -87,6 +87,6 @@ proc vector_back self: Vector& -> ptr in
     abort();
 end
 
-proc vector_set_len self: Vector&, len: int in
+def vector_set_len self: Vector&, len: int in
     self.length = len;
 end

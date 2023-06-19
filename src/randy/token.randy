@@ -5,7 +5,7 @@ enum TK in
     String;
     Char;
     Ident;
-    KW_proc;
+    KW_def;
     KW_do;
     KW_var;
     KW_in;
@@ -84,12 +84,12 @@ enum TK in
     ColonColon;
 end
 
-proc token_kind_cstr k: TK -> cstr in
+def token_kind_cstr k: TK -> cstr in
     if k == TK::Integer then return "TK::Integer";
     elif k == TK::String then return "TK::String";
     elif k == TK::Char then return "TK::Char";
     elif k == TK::Ident then return "TK::Ident";
-    elif k == TK::KW_proc then return "TK::KW_proc";
+    elif k == TK::KW_def then return "TK::KW_def";
     elif k == TK::KW_do then return "TK::KW_do";
     elif k == TK::KW_var then return "TK::KW_var";
     elif k == TK::KW_in then return "TK::KW_in";
@@ -181,7 +181,7 @@ struct SrcLoc in
     line: int;
 end
 
-proc make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> Token& in
+def make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> Token& in
     var self = cast(malloc(__sizeof(Token)), Token&);
     self.kind = kind;
     self.cstr = cstr;
@@ -192,24 +192,24 @@ proc make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> T
     return self;
 end
 
-proc free_token self: Token& in
+def free_token self: Token& in
     if self then
         free(self.src_loc);
         free(self);
     end
 end
 
-proc token_kind self: Token& in return self.kind; end
-proc token_cstr self: Token& in return self.cstr; end
-proc token_value self: Token& in return self.value; end
-proc token_filename self: Token& in return self.src_loc.filename; end
-proc token_line self: Token& in return self.src_loc.line; end
+def token_kind self: Token& in return self.kind; end
+def token_cstr self: Token& in return self.cstr; end
+def token_value self: Token& in return self.value; end
+def token_filename self: Token& in return self.src_loc.filename; end
+def token_line self: Token& in return self.src_loc.line; end
 
-proc token_src_loc self: Token& in return self.src_loc; end
-proc src_loc_filename self: SrcLoc& in return self.filename; end
-proc src_loc_line self: SrcLoc& in return self.line; end
+def token_src_loc self: Token& in return self.src_loc; end
+def src_loc_filename self: SrcLoc& in return self.filename; end
+def src_loc_line self: SrcLoc& in return self.line; end
 
-proc print_token self: Token& in
+def print_token self: Token& in
     var k = token_kind(self);
     printf("token: %s -> '%s' = ", token_kind_cstr(k)
                                  , token_cstr(self));
@@ -226,12 +226,12 @@ proc print_token self: Token& in
     end
 end
 
-proc print_src_loc self: SrcLoc& in
+def print_src_loc self: SrcLoc& in
     var line_no = src_loc_line(self);
     var filename = src_loc_filename(self);
     printf("  File \"%s\", line %d\n", filename, line_no);
 end
 
-proc print_token_loc self: Token& in
+def print_token_loc self: Token& in
     print_src_loc(token_src_loc(self));
 end

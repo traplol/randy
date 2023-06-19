@@ -1,6 +1,6 @@
 #include std/vector
 
-proc merge dest, left, right in
+def merge dest, left, right in
     var i = 0;
     var j = 0;
     var k = 0;
@@ -31,7 +31,7 @@ proc merge dest, left, right in
     end
 end
 
-proc merge_sort arr in
+def merge_sort arr in
     if vector_len(arr) <= 1 then
         return arr;
     end
@@ -68,7 +68,7 @@ proc merge_sort arr in
     return arr;
 end
 
-proc main in
+def main in
     var arr = make_vector(10);
     vector_push(arr, 5);
     vector_push(arr, 2);

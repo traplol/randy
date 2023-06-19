@@ -9,7 +9,7 @@ const TQUEUE_capacity = 24;
 const sizeof_TQUEUE   = 32;
 const sizeof_TQUEUE_ELEM = sizeof_PTR;
 
-proc make_queue init: int -> queue in
+def make_queue init: int -> queue in
     if init <= 0 then
         init = 16;
     end
@@ -23,22 +23,22 @@ proc make_queue init: int -> queue in
     return cast(self, queue);
 end
 
-proc free_queue self: queue in
+def free_queue self: queue in
     if self then
         free(u64@(self + TQUEUE_buffer));
         free(self);
     end
 end
 
-proc queue_len self: queue -> int in
+def queue_len self: queue -> int in
     return cast(u64@(self + TQUEUE_tail) - u64@(self + TQUEUE_head), int);
 end
 
-proc queue_cap self: queue -> int in
+def queue_cap self: queue -> int in
     return cast(u64@(self + TQUEUE_capacity), int);
 end
 
-proc queue_resize self: queue, new_cap: int in
+def queue_resize self: queue, new_cap: int in
     var old_buf = cast(u64@(self + TQUEUE_buffer), ptr);
     var old_cap = cast(u64@(self + TQUEUE_capacity), int);
     if new_cap == old_cap then
@@ -63,7 +63,7 @@ proc queue_resize self: queue, new_cap: int in
     free(old_buf);
 end
 
-proc queue_enqueue self: queue, elem: ptr in
+def queue_enqueue self: queue, elem: ptr in
     var tail = cast(u64@(self + TQUEUE_tail), int);
     var cap = cast(u64@(self + TQUEUE_capacity), int);
     if tail == cap then
@@ -75,7 +75,7 @@ proc queue_enqueue self: queue, elem: ptr in
     u64!(self + TQUEUE_tail, tail + 1);
 end
 
-proc queue_dequeue self: queue -> ptr in
+def queue_dequeue self: queue -> ptr in
     var head = cast(u64@(self + TQUEUE_head), int);
     var tail = cast(u64@(self + TQUEUE_tail), int);
     if head == tail then
@@ -93,7 +93,7 @@ proc queue_dequeue self: queue -> ptr in
     return val;
 end
 
-proc queue_peek self: queue -> ptr in
+def queue_peek self: queue -> ptr in
     var head = cast(u64@(self + TQUEUE_head), int);
     var tail = cast(u64@(self + TQUEUE_tail), int);
     if head == tail then
@@ -104,7 +104,7 @@ proc queue_peek self: queue -> ptr in
     return cast(u64@(u64@(self + TQUEUE_buffer) + head * sizeof_TQUEUE_ELEM), ptr);
 end
 
-proc queue_reset self: queue in
+def queue_reset self: queue in
     u64!(self + TQUEUE_head, 0);
     u64!(self + TQUEUE_tail, 0);
 end

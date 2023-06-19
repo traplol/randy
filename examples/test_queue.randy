@@ -1,6 +1,6 @@
 #include std/queue
 
-proc test msg, expect, actual: ptr in
+def test msg, expect, actual: ptr in
     if expect == actual then
         printf("pass: %s\n", msg);
     else
@@ -9,7 +9,7 @@ proc test msg, expect, actual: ptr in
     end
 end
 
-proc main in
+def main in
     var q = make_queue(0);
     test("queue is empty", 0, queue_len(q));
     queue_enqueue(q, 123);

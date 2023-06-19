@@ -6,14 +6,14 @@ struct Point in
     y: int;
 end
 
-proc make_point x, y -> Point& in
+def make_point x, y -> Point& in
     var self = cast(malloc(__sizeof(Point)), Point&);
     self.x = x;
     self.y = y;
     return self;
 end
 
-proc free_point self: Point& in
+def free_point self: Point& in
     free(self);
 end
 
@@ -24,7 +24,7 @@ struct Player in
     pos: Point&;
 end
 
-proc make_player name, health, x, y -> Player& in
+def make_player name, health, x, y -> Player& in
     var player = cast(malloc(__sizeof(Player)), Player&);
     player.name = name;
     player.health = health;
@@ -32,21 +32,21 @@ proc make_player name, health, x, y -> Player& in
     return player;
 end
 
-proc free_player self: Player& in
+def free_player self: Player& in
     if self then
         free_point(self.pos);
         free(self);
     end
 end
 
-proc print_player player: Player& in
+def print_player player: Player& in
     printf("player: %s health: %d\n", player.name, player.health);
     printf("  at x=%d, y=%d\n", player.pos.x, player.pos.y);
 end
 
 const PLAYER_NAME = "abcdefghijklmnopqrstuvwxyz";
 
-proc make_players n: int in
+def make_players n: int in
     var players = make_vector(n);
     var i = 0;
     while i < n do
@@ -57,7 +57,7 @@ proc make_players n: int in
     return players;
 end
 
-proc test_many_players in
+def test_many_players in
     printf("test_many_players: creating many `Player` objects.\n");
     var players = make_players(100000);
     printf("test_many_players: checking the player fields are correct.\n");
@@ -109,7 +109,7 @@ struct Baz in
     c: int;
 end
 
-proc make_foo a, b, c -> Foo& in
+def make_foo a, b, c -> Foo& in
     var self = cast(malloc(__sizeof(Foo)), Foo&);
     self.a = a;
     self.bar.b = b;
@@ -117,11 +117,11 @@ proc make_foo a, b, c -> Foo& in
     return self;
 end
 
-proc free_foo self: Foo& in
+def free_foo self: Foo& in
     free(self);
 end
 
-proc test_many_foos in
+def test_many_foos in
     printf("test_many_foos: making many `Foo` objects.\n");
     var foos = make_vector(100000);
     var i = 0; var len = vector_cap(foos);
@@ -159,7 +159,7 @@ proc test_many_foos in
     return true;
 end
 
-proc test_member_access_from_return in
+def test_member_access_from_return in
     printf("testing member access works with function calls\n");
     if make_vector(12345).capacity != 12345 then
         printf("test_member_access_from_return: fail");
@@ -168,7 +168,7 @@ proc test_member_access_from_return in
     return true;
 end
 
-proc main in
+def main in
     if not test_many_players() then
         printf("test_many_players: fail.\n");
         return 1;

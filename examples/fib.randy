@@ -1,6 +1,6 @@
 extern printf cstr, ...;
 
-proc fib n in
+def fib n in
     if n < 2 then
         return n;
     else
@@ -8,6 +8,6 @@ proc fib n in
     end
 end
 
-proc main in
+def main in
     printf("%ld\n", fib(40));
 end

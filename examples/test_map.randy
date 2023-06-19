@@ -3,7 +3,7 @@
 #include std/string
 
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -11,7 +11,7 @@ proc test msg, cond in
     end
 end
 
-proc cstr_hash cstr: cstr -> int in
+def cstr_hash cstr: cstr -> int in
     var hash = 5381;
     var c = cast(u8@(cstr), char);
     while c do
@@ -22,7 +22,7 @@ proc cstr_hash cstr: cstr -> int in
     return hash;
 end
 
-proc test_cstr_map in
+def test_cstr_map in
     printf("Testing set with cstrings.\n");
     var map = make_map(16, cstr_eq, cstr_hash);
 
@@ -56,7 +56,7 @@ proc test_cstr_map in
     test("map no longer contains \"hello world\"", not map_find(map, "hello world"));
 end
 
-proc main in
+def main in
     test_cstr_map();
     return 0;
 end

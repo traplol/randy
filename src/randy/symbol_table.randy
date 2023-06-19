@@ -3,7 +3,7 @@ enum SymbolKind in
     Undef;
     Const;
     Global;
-    Proc;
+    Def;
     Extern;
     Asm;
     Param;
@@ -21,7 +21,7 @@ struct Symbol in
     is_varargs: bool;
 end
 
-proc make_symbol kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
+def make_symbol kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
     var self = cast(malloc(__sizeof(Symbol)), Symbol&);
     self.kind = kind;
     self.name = name;
@@ -33,23 +33,23 @@ proc make_symbol kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
     return self;
 end
 
-proc symbol_kind self: Symbol& -> SymbolKind in return self.kind; end
-proc symbol_name self: Symbol& -> cstr in return self.name; end
-proc symbol_token self: Symbol& -> Token& in return self.token; end
-proc symbol_type self: Symbol& -> type in return self.type; end
+def symbol_kind self: Symbol& -> SymbolKind in return self.kind; end
+def symbol_name self: Symbol& -> cstr in return self.name; end
+def symbol_token self: Symbol& -> Token& in return self.token; end
+def symbol_type self: Symbol& -> type in return self.type; end
 
-proc symbol_set_kind self: Symbol&, kind: SymbolKind in self.kind = kind; end
-proc symbol_set_type self: Symbol&, type: type in self.type = type; end
+def symbol_set_kind self: Symbol&, kind: SymbolKind in self.kind = kind; end
+def symbol_set_type self: Symbol&, type: type in self.type = type; end
 
-proc symbol_is_undef self: Symbol& in return self.kind == SymbolKind::Undef; end
-proc symbol_is_const self: Symbol& in return self.kind == SymbolKind::Const; end
-proc symbol_is_global self: Symbol& in return self.kind == SymbolKind::Global; end
-proc symbol_is_proc self: Symbol& in return self.kind == SymbolKind::Proc; end
-proc symbol_is_extern self: Symbol& in return self.kind == SymbolKind::Extern; end
-proc symbol_is_asm self: Symbol& in return self.kind == SymbolKind::Asm; end
-proc symbol_is_param self: Symbol& in return self.kind == SymbolKind::Param; end
-proc symbol_is_local self: Symbol& in return self.kind == SymbolKind::Local; end
-proc symbol_is_enum self: Symbol& in return self.kind == SymbolKind::Enum; end
+def symbol_is_undef self: Symbol& in return self.kind == SymbolKind::Undef; end
+def symbol_is_const self: Symbol& in return self.kind == SymbolKind::Const; end
+def symbol_is_global self: Symbol& in return self.kind == SymbolKind::Global; end
+def symbol_is_def self: Symbol& in return self.kind == SymbolKind::Def; end
+def symbol_is_extern self: Symbol& in return self.kind == SymbolKind::Extern; end
+def symbol_is_asm self: Symbol& in return self.kind == SymbolKind::Asm; end
+def symbol_is_param self: Symbol& in return self.kind == SymbolKind::Param; end
+def symbol_is_local self: Symbol& in return self.kind == SymbolKind::Local; end
+def symbol_is_enum self: Symbol& in return self.kind == SymbolKind::Enum; end
 
 // This symbol table keeps track of identifiers relative to scope and internalizes
 // those idents to a specific id. In this case the id happens to be the same cstr
@@ -59,17 +59,17 @@ struct SymbolTable in
     scope: Vector&; // (cstr, ptr) map Vector& : scope resolution for identifiers to symbols
 end
 
-proc make_symbol_table -> SymbolTable& in
+def make_symbol_table -> SymbolTable& in
     var self = cast(malloc(__sizeof(SymbolTable)), SymbolTable&);
     self.table = make_map(0, NULL, NULL);
     self.scope = make_vector(0);
     return self;
 end
 
-proc symbol_table_table self: SymbolTable& in return self.table; end
-proc symbol_table_scope self: SymbolTable& in return self.scope; end
+def symbol_table_table self: SymbolTable& in return self.table; end
+def symbol_table_scope self: SymbolTable& in return self.scope; end
 
-proc st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: Token& -> Symbol& in
+def st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: Token& -> Symbol& in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then
@@ -89,32 +89,32 @@ proc st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: To
     return symbol;
 end
 
-proc st_make_const self, ident, token in
+def st_make_const self, ident, token in
     return st_make_symbol(self, SymbolKind::Const, ident, token);
 end
-proc st_make_global self, ident, token in
+def st_make_global self, ident, token in
     return st_make_symbol(self, SymbolKind::Global, ident, token);
 end
-proc st_make_proc self, ident, token in
-    return st_make_symbol(self, SymbolKind::Proc, ident, token);
+def st_make_def self, ident, token in
+    return st_make_symbol(self, SymbolKind::Def, ident, token);
 end
-proc st_make_extern self, ident, token in
+def st_make_extern self, ident, token in
     return st_make_symbol(self, SymbolKind::Extern, ident, token);
 end
-proc st_make_asm self, ident, token in
+def st_make_asm self, ident, token in
     return st_make_symbol(self, SymbolKind::Asm, ident, token);
 end
-proc st_make_param self, ident, token in
+def st_make_param self, ident, token in
     return st_make_symbol(self, SymbolKind::Param, ident, token);
 end
-proc st_make_local self, ident, token in
+def st_make_local self, ident, token in
     return st_make_symbol(self, SymbolKind::Local, ident, token);
 end
-proc st_make_enum self, ident, token in
+def st_make_enum self, ident, token in
     return st_make_symbol(self, SymbolKind::Enum, ident, token);
 end
 
-proc st_prepare_undef self, ident, token in
+def st_prepare_undef self, ident, token in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then
@@ -134,7 +134,7 @@ proc st_prepare_undef self, ident, token in
     return symbol;
 end
 
-proc st_get_symbol self, ident -> Symbol& in
+def st_get_symbol self, ident -> Symbol& in
     var scope = symbol_table_scope(self);
     var i = scope.length - 1;
     while i >= 0 do
@@ -151,7 +151,7 @@ proc st_get_symbol self, ident -> Symbol& in
     return NULL;
 end
 
-proc st_get_symbol_here self, ident in
+def st_get_symbol_here self, ident in
     var scope = vector_back(symbol_table_scope(self));
     var found = map_find(scope, ident);
     if found then
@@ -160,17 +160,17 @@ proc st_get_symbol_here self, ident in
     return NULL;
 end
 
-proc st_push_scope self in
+def st_push_scope self in
     vector_push(symbol_table_scope(self), make_map(0, cstr_eq, cstr_hash));
 end
 
-proc st_pop_scope self in
+def st_pop_scope self in
     var scope = symbol_table_scope(self);
     var map = vector_back(scope);
     vector_pop(scope);
     free_map(map);
 end
 
-proc st_depth self in
+def st_depth self in
     return symbol_table_scope(self).length;
 end

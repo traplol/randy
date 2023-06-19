@@ -1,7 +1,7 @@
 #include std/core
 #include std/string
 
-proc test msg, cond in
+def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
@@ -9,7 +9,7 @@ proc test msg, cond in
     end
 end
 
-proc test_strings in
+def test_strings in
     printf("Testing strings.\n");
     var empty = string_from_cstr("");
     test("empty len is 0", 0 == string_len(empty));
@@ -45,7 +45,7 @@ proc test_strings in
     test("other new len is 8", 8 == string_len(other));
 end
 
-proc test_cstrings in
+def test_cstrings in
     printf("Testing cstrings.\n");
     test("cstr_eq(\"\", \"\") is equal", cstr_eq("", ""));
     test("cstr_eq(NULL, NULL) is equal", cstr_eq(NULL, NULL));
@@ -59,7 +59,7 @@ proc test_cstrings in
     test("cstring \"\" length is 0", 0 == cstr_len(""));
 end
 
-proc test_large_string in
+def test_large_string in
     printf("Testing strings can be large.\n");
     var str = make_string(0);
     var i = 0; var n = 500000000;
@@ -78,7 +78,7 @@ proc test_large_string in
     test("string len is correct", n == string_len(str));
 end
 
-proc main in
+def main in
     test_strings();
     test_cstrings();
     test_large_string();

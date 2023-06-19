@@ -1,17 +1,17 @@
 #include std/core
 
-proc return_true t in
+def return_true t in
     printf("true %s ", t);
     return 1;
 end
 
-proc return_false t in
+def return_false t in
     printf("false %s ", t);
     return 0;
 end
 
 
-proc branch_test_1 in
+def branch_test_1 in
     if return_true("") then
         puts("this should print.");
     else
@@ -25,7 +25,7 @@ proc branch_test_1 in
     end
 end
 
-proc branch_test_2 in
+def branch_test_2 in
     if return_true("and") and return_false("") then
         puts("this should not print.");
     else
@@ -39,7 +39,7 @@ proc branch_test_2 in
     end
 end
 
-proc branch_test_3 in
+def branch_test_3 in
     if return_false("or") or return_true("and") and return_false("") then
         puts("this should not print.");
     else
@@ -65,7 +65,7 @@ end
 
 
 
-proc main in
+def main in
     branch_test_1();
     branch_test_2();
     branch_test_3();

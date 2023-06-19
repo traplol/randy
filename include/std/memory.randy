@@ -6,23 +6,23 @@ extern free ptr: ptr -> void;
 extern memcpy dest: ptr, src: ptr, n: int -> ptr;
 extern memset s: ptr, c: char, n: int -> ptr;
 
-// proc _malloc_logger pointer in
+// def _malloc_logger pointer in
 //     printf("malloc'd %p\n", pointer);
 // end
 
-// asm __proc_malloc in
+// asm __def_malloc in
 //     "
 //     call malloc
 //     #pushq %rax
 //     #movq %rax, %rdi
-//     #call _proc__malloc_logger
+//     #call _def__malloc_logger
 //     #popq %rax
 //     ret
 //     "
 // end
 
-// proc malloc size in
-//     var mem = __proc_malloc(size);
+// def malloc size in
+//     var mem = __def_malloc(size);
 //     if not mem then
 //         _error("malloc returned nullptr");
 //         abort();
@@ -30,15 +30,15 @@ extern memset s: ptr, c: char, n: int -> ptr;
 //     return mem;
 // end
 
-// asm __proc_calloc in
+// asm __def_calloc in
 // "
 //     call calloc
 //     ret
 // "
 // end
 
-// proc calloc num, size in
-//     var mem = __proc_calloc(num, size);
+// def calloc num, size in
+//     var mem = __def_calloc(num, size);
 //     if not mem then
 //         _error("calloc returned nullptr");
 //         abort();
@@ -48,20 +48,20 @@ extern memset s: ptr, c: char, n: int -> ptr;
 
 
 
-// proc _free_logger ptr in
+// def _free_logger ptr in
 //     printf("freed'd %p\n", ptr);
 // end
 
-// asm __proc_free in
+// asm __def_free in
 //     "
 //     #pushq %rdi
-//     #call _proc__free_logger
+//     #call _def__free_logger
 //     #popq %rdi
 //     call free
 //     ret
 //     "
 // end
 
-// proc free pointer in
-//     return __proc_free(pointer);
+// def free pointer in
+//     return __def_free(pointer);
 // end

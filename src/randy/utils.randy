@@ -1,5 +1,5 @@
 
-proc read_file_to_string path: cstr -> String& in
+def read_file_to_string path: cstr -> String& in
     var fd = open_for_read(path);
     if fd < 0 then
         printf("error reading file: (%d) %s\n", fd, path);
@@ -35,7 +35,7 @@ proc read_file_to_string path: cstr -> String& in
     return string;
 end
 
-proc cstr_hash cstr: cstr -> int in
+def cstr_hash cstr: cstr -> int in
     var hash = 5381;
     var c = cast(u8@(cstr), char);
     while c do
@@ -46,7 +46,7 @@ proc cstr_hash cstr: cstr -> int in
     return hash;
 end
 
-proc string_hash string: String& -> int in
+def string_hash string: String& -> int in
     var hash = 5381;
     var len = string.length;
     var i = 0;
@@ -57,7 +57,7 @@ proc string_hash string: String& -> int in
     return hash;
 end
 
-proc _string_append_int_slow string: String&, n: int in
+def _string_append_int_slow string: String&, n: int in
     // no zero check because this isn't called unless very positive or very negative number.
     var temp = n;
     var len = 0;
@@ -88,7 +88,7 @@ proc _string_append_int_slow string: String&, n: int in
     free(buf);
 end
 
-proc string_append_int string: String&, n: int in
+def string_append_int string: String&, n: int in
     // This will iteratively generate the characters for n -> str in left-to-right
     // order but it will fail when we start to approach numbers that will overflow.
     // We consider the alternative method "slow" because it does the same length
@@ -124,7 +124,7 @@ proc string_append_int string: String&, n: int in
     end
 end
 
-proc int_from_string string: String& -> int in
+def int_from_string string: String& -> int in
     var result = 0;
     var i = string.length - 1;
     var k = 1;
@@ -142,16 +142,16 @@ proc int_from_string string: String& -> int in
     return result;
 end
 
-proc NYI_ERR file: cstr, line: int, what: cstr in
+def NYI_ERR file: cstr, line: int, what: cstr in
     printf("'%s' not implemented\n", what);
     printf("  File \"%s\", line %d\n", file, line);
     exit(1);
 end
 
-proc min a: int, b: int -> int in if a < b then return a; else return b; end end
-proc max a: int, b: int -> int in if a > b then return a; else return b; end end
+def min a: int, b: int -> int in if a < b then return a; else return b; end end
+def max a: int, b: int -> int in if a > b then return a; else return b; end end
 
-proc cstr_starts_with cstr: cstr, substr: cstr -> bool in
+def cstr_starts_with cstr: cstr, substr: cstr -> bool in
     if cstr == substr then
         return true;
     end

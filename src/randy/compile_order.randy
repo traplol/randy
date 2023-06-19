@@ -1,5 +1,5 @@
 
-proc _compile_order_visit tt, st, stmt, seen, order in
+def _compile_order_visit tt, st, stmt, seen, order in
     if not stmt then
         return;
     end
@@ -9,16 +9,16 @@ proc _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     elif k == AstK_Ident then
         var sym = st_get_symbol(st, ast_ident(stmt));
-        if symbol_is_proc(sym) then
+        if symbol_is_def(sym) then
             if set_contains(seen, sym) then
                 return;
             end
             set_add(seen, sym);
             var type = symbol_type(sym);
             assert(type, "Type for %s was null.\n", symbol_name(sym));
-            var proc_ = type_ast(type);
-            assert(proc_, "AST for symbol %s was null\n", symbol_name(sym));
-            _compile_order_proc(tt, st, proc_, seen, order);
+            var def_ = type_ast(type);
+            assert(def_, "AST for symbol %s was null\n", symbol_name(sym));
+            _compile_order_def(tt, st, def_, seen, order);
         end
     elif k == AstK_BinOp then
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
@@ -52,17 +52,17 @@ proc _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
     elif k == AstK_ScopeResolve then
         var resolved = scope_resolve_type(tt, stmt, false);
-        if type_is_procedure(resolved) then
-            var proc_ = type_ast(resolved);
-            assert(proc_, "Compiler bug: resolved type to procedure with no AST.\n");
-            _compile_order_proc(tt, st, proc_, seen, order);
+        if type_is_def(resolved) then
+            var def_ = type_ast(resolved);
+            assert(def_, "Compiler bug: resolved type to def with no AST.\n");
+            _compile_order_def(tt, st, def_, seen, order);
         end
     // elif k == AstK_SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end
 end
 
-proc _compile_order_visit_vector tt, st, vector, seen, order in
+def _compile_order_visit_vector tt, st, vector, seen, order in
     var i = 0; var len = vector.length;
     while i < len do
         var stmt = vector_get(vector, i);
@@ -71,37 +71,37 @@ proc _compile_order_visit_vector tt, st, vector, seen, order in
     end
 end
 
-proc _compile_order_proc tt, st, proc_, seen, order in
-    _compile_order_visit_vector(tt, st, ast_body(proc_), seen, order);
-    vector_push(order, proc_);
+def _compile_order_def tt, st, def_, seen, order in
+    _compile_order_visit_vector(tt, st, ast_body(def_), seen, order);
+    vector_push(order, def_);
 end
 
-proc compile_order_main roots, type_table, symbol_table -> Vector& in
-    var main_proc = NULL;
-    var exit_proc = NULL;
+def compile_order_main roots, type_table, symbol_table -> Vector& in
+    var main_def = NULL;
+    var exit_def = NULL;
     var compile_order = make_vector(128);
     var i = 0; var len = roots.length;
     while i < len do
         var ast = vector_get(roots, i);
-        if ast_kind(ast) == AstK_Procedure then
+        if ast_kind(ast) == AstK_Def then
             if cstr_eq("main", ast_ident(ast)) then
-                main_proc = ast;
+                main_def = ast;
             elif cstr_eq("exit", ast_ident(ast)) then
-                exit_proc = ast;
+                exit_def = ast;
             end
         else
             vector_push(compile_order, ast);
         end
         i += 1;
     end
-    if not main_proc then
+    if not main_def then
         free_vector(compile_order);
         return NULL;
     end
     var seen = make_set(0, NULL, NULL);
-    _compile_order_proc(type_table, symbol_table, main_proc, seen, compile_order);
-    if exit_proc and not set_contains(seen, st_get_symbol(symbol_table, ast_ident(exit_proc))) then
-        _compile_order_proc(type_table, symbol_table, exit_proc, seen, compile_order);
+    _compile_order_def(type_table, symbol_table, main_def, seen, compile_order);
+    if exit_def and not set_contains(seen, st_get_symbol(symbol_table, ast_ident(exit_def))) then
+        _compile_order_def(type_table, symbol_table, exit_def, seen, compile_order);
     end
     free_set(seen);
     return compile_order;
