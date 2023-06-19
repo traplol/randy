@@ -51,10 +51,16 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
     elif k == AstK_ScopeResolve then
-        var resolved = scope_resolve_type(tt, stmt, false);
-        if type_is_def(resolved) then
-            var def_ = type_ast(resolved);
-            assert(def_, "Compiler bug: resolved type to def with no AST.\n");
+        var sym = scope_resolve_def(tt, stmt, false);
+        if sym and symbol_is_def(sym) then
+            if set_contains(seen, sym) then
+                return;
+            end
+            set_add(seen, sym);
+            var type = symbol_type(sym);
+            assert(type, "Type for %s was null.\n", symbol_name(sym));
+            var def_ = type_ast(type);
+            assert(def_, "AST for symbol %s was null\n", symbol_name(sym));
             _compile_order_def(tt, st, def_, seen, order);
         end
     // elif k == AstK_SizeofExpr then

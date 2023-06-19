@@ -811,7 +811,7 @@ def scope_resolve_def tt: type_table, ast: ast, error: bool -> Symbol& in
         end
         return NULL;
     elif type_is_enum(type) then
-        assert(false, "scope_resolve_def for unions not implemented yet.\n");
+        return NULL;
     elif type_is_union(type) then
         assert(false, "scope_resolve_def for unions not implemented yet.\n");
     elif error then
