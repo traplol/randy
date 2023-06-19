@@ -1,4 +1,6 @@
 ====================================================================================================
+
+
 TODO: figure out a way to scope types and then allow nested types such as structs within structs
       or enums within structs. this will be needed to make unions nice to use.
 
@@ -77,17 +79,18 @@ features:
     - [x] nested structs
     - [x] structs with references
     - [x] auto-deref with . operator
-    - [ ] procs
+    - [x] Type::procs(...)
+    - [ ] var.procs(...)
     - [ ] meta/reflection generation
     - [x] c default align/layout
     - [ ] #packed    - no alignment or padding
     - [ ] #optimized - re-order struct for best memory layout
-  - [ ] enums
+  - [~] enums
     - [x] basic sequential enum
     - [x] specific enum values
     - [ ] meta/reflection generation
-    - [ ] constant expressions for values
-    - [ ] more than just integer enums
+    - [x] constant expressions for values
+    - [x] more than just integer enums
   - [ ] tagged unions
   - [ ] tail call elimination
   - [ ] inlinable functions
