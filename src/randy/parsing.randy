@@ -415,9 +415,6 @@ proc parse_primary ts, st, tt in
     return NULL;
 end
 
-// Foo[int]::SubStr[int]::size;
-// Enum::asdf;
-
 proc parse_scope_resolve ts, st, tt, lhs in
     var tk = ts_expect(ts, TK_ColonColon);
     if ast_kind(lhs) == AstK_Ident then
@@ -432,8 +429,18 @@ proc parse_scope_resolve ts, st, tt, lhs in
     if not rhs or (ast_kind(rhs) != AstK_Ident and ast_kind(rhs) != AstK_Type) then
         printf("ERROR: expected identifier on rhs of '::'\n");
         print_token_loc(tk);
+        print_ast(rhs);
         exit(1);
     end
+
+    if ts_accept(ts, TK_LParen) then
+        var args = make_vector(0);
+        parse_args_until(ts, st, tt, args, TK_RParen);
+        ts_expect(ts, TK_RParen);
+        lhs = make_ast_scope_resolve(tk, lhs, rhs);
+        return make_ast_call(tk, lhs, args);
+    end
+
     lhs = make_ast_scope_resolve(tk, lhs, rhs);
     while ts_accept(ts, TK_ColonColon) do
         var rhs = parse_primary(ts, st, tt);
@@ -443,6 +450,12 @@ proc parse_scope_resolve ts, st, tt, lhs in
             exit(1);
         end
         lhs = make_ast_scope_resolve(tk, lhs, rhs);
+        if ts_accept(ts, TK_LParen) then
+            var args = make_vector(0);
+            parse_args_until(ts, st, tt, args, TK_RParen);
+            ts_expect(ts, TK_RParen);
+            return make_ast_call(tk, lhs, args);
+        end
     end
     return lhs;
 end
@@ -668,11 +681,11 @@ proc parse_binary_lor ts, st, tt in
     return lhs;
 end
 
-proc parse_expression ts: token_stream, st: symbol_table, tt: type_table -> ast in
+proc parse_expression ts: token_stream, st: SymbolTable&, tt: type_table -> ast in
     return parse_binary_lor(ts, st, tt);
 end
 
-proc parse_statement ts: token_stream, st: symbol_table, tt: type_table -> ast in
+proc parse_statement ts: token_stream, st: SymbolTable&, tt: type_table -> ast in
     var stmt: ast;
     var expect_semi = true;
     if ts_peekk(ts, TK_KW_var) then
@@ -774,7 +787,7 @@ proc parse_proc ts, st, tt in
     var proc_symbol = st_get_symbol_here(st, token_value(ident));
     if proc_symbol then
         if symbol_is_undef(proc_symbol) then
-            symbol_set_kind(proc_symbol, SK_proc);
+            symbol_set_kind(proc_symbol, SymbolKind::Proc);
         else
             printf("ERROR: proc `%s` already defined.\n", token_value(ident));
             print_token_loc(ident);
@@ -877,7 +890,7 @@ proc parse_extern ts, st, tt in
     var proc_symbol = st_get_symbol_here(st, token_value(ident));
     if proc_symbol then
         if symbol_is_undef(proc_symbol) then
-            symbol_set_kind(proc_symbol, SK_extern);
+            symbol_set_kind(proc_symbol, SymbolKind::Extern);
         else
             printf("ERROR: extern `%s` already defined.\n", token_value(ident));
             print_token_loc(ident);
@@ -970,7 +983,7 @@ proc parse_asm ts, st, tt in
     var symbol = st_get_symbol_here(st, token_value(ident));
     if symbol then
         if symbol_is_undef(symbol) then
-            symbol_set_kind(symbol, SK_asm);
+            symbol_set_kind(symbol, SymbolKind::Asm);
         else
             printf("ERROR: asm `%s` already defined.\n", token_value(ident));
             print_token_loc(ident);
@@ -1004,7 +1017,7 @@ proc parse_global ts, st, tt in
     var symbol = st_get_symbol_here(st, token_value(ident));
     if symbol then
         if symbol_is_undef(symbol) then
-            symbol_set_kind(symbol, SK_global);
+            symbol_set_kind(symbol, SymbolKind::Global);
         else
             printf("ERROR: global `%s` already defined.\n", token_value(ident));
             print_token_loc(ident);
@@ -1030,6 +1043,7 @@ proc parse_struct ts, st, tt in
     var fields = make_vector(0);
     var procs = make_vector(0);
     var proc_symbols = make_vector(0);
+    st_push_scope(st);
     while not ts_peekk(ts, TK_KW_end) do
         var field_name;
         if ts_peekk(ts, TK_KW_proc) then
@@ -1052,9 +1066,8 @@ proc parse_struct ts, st, tt in
             exit(1);
         end
     end
+    st_pop_scope(st);
     ts_expect(ts, TK_KW_end);
-
-    assert(proc_symbols.length == 0, "Struct procs not implemented yet.\n");
 
     if not struct_type then
         struct_type = tt_make_anon_struct(tt, fields, proc_symbols);
@@ -1103,13 +1116,14 @@ proc parse_enum ts, st, tt in
 
     type_set_kind(enum_type, TyK_enum);
     type_set_enum_values(enum_type, values);
+    type_set_size(enum_type, PTR_BITS);
     // var enum_symbol = st_make_enum(st, token_value(ident), ident);
     // symbol_set_type(enum_symbol, enum_type);
     //return make_ast_enum(enum_, symbol_name(enum_symbol), enum_type, values);
     return make_ast_enum(enum_, token_value(ident), enum_type, values);
 end
 
-proc parse ts: token_stream, st: symbol_table, tt: type_table in
+proc parse ts: token_stream, st: SymbolTable&, tt: type_table in
     var roots = make_vector(0);
     var parsed: ast = NULL; var tk: token;
     while ts_peek(ts) do

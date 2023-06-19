@@ -1369,6 +1369,8 @@ proc ir_emit_call self, ast, st, tt in
         else
             ir_append(self, make_ir_call_lazy_ident(ast_token(expr), len));
         end
+    elif ast_kind(expr) == AstK_ScopeResolve then
+        assert(false, "yayayayaya\n");
     else
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_pop_call());
@@ -1546,6 +1548,10 @@ end
 
 proc ir_emit_procedure self, ast, st, tt in
     check_ast_kind(AstK_Procedure, ast);
+    // printf("=================================\n");
+    // printf("Emitting procedure:\n");
+    // print_ast(ast);
+    // printf("=================================\n");
     var ident = ast_ident(ast);
     var params = ast_params(ast);
     var label = ir_new_proc(self, ident, params, ast);
@@ -1861,7 +1867,7 @@ proc ir_emit_scope_resolve self, ast, st, tt in
     ir_compile(self, val, st, tt);
 end
 
-proc ir_compile self: ir_context, ast: ast, st: symbol_table, tt: type_table in
+proc ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: type_table in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false, 0);
     var k = ast_kind(ast);
@@ -1966,7 +1972,7 @@ proc ir_resolve_lazy_idents self in
     end
 end
 
-proc ir_compile_roots self: ir_context, roots: Vector&, symbol_table: symbol_table, type_table: type_table, compile_order: Vector& in
+proc ir_compile_roots self: ir_context, roots: Vector&, symbol_table: SymbolTable&, type_table: type_table, compile_order: Vector& in
 
     if false then
         // compile everything in order

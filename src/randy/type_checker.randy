@@ -93,12 +93,15 @@ proc tc_check_call self, tt, st, ast in
     tc_check(self, tt, st, ast_expr(ast));
     var call_type = tt_get_ast_type(tt, ast_expr(ast));
     assert(call_type);
-    if not type_is_procedure(call_type) and call_type != tt_ptr_type(tt) then
-        printf("ERROR: This is not a callable object.\n");
-        printf("The expression is: ");
+    if not type_is_procedure(call_type) then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, call_type);
+        printf("` is not a callable object.\n");
+        printf("NOTE: The expression is: ");
         print_ast(ast);
         print_ast_src_loc(ast);
         g_Errors += 1;
+        return;
     end
 
     var param_types = type_proc_parameters(call_type);
@@ -111,7 +114,7 @@ proc tc_check_call self, tt, st, ast in
         assert(param_type);
         var arg_type = tt_get_ast_type(tt, arg);
         if not arg_type then
-            print_ast(ast);
+            print_ast(arg);
             print_ast_src_loc(ast);
         end
         assert(arg_type);
@@ -142,9 +145,12 @@ proc tc_check_call self, tt, st, ast in
                 ast_ident(expr),
                 param_types.length,
                 args.length);
+        elif ast_kind(expr) == AstK_ScopeResolve then
+            printf("ERROR: call to `");
+            _print_ast_scope_resolve(expr, 0);
+            printf("` expects %d arguments but got %d.\n", param_types.length, args.length);
         else
             printf("ERROR: call expects %d arguments but got %d.\n",
-                self.current_proc_name,
                 param_types.length,
                 args.length);
         end

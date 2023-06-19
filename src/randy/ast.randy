@@ -459,6 +459,8 @@ proc _print_ast_string ast, indent in
         var c = string_get(string, i);
         if c == '\n' then
             printf("\\n");
+        elif c == '"' then
+            printf("\\\"");
         elif c == '\t' then
             printf("\\t");
         elif c == '\0' then
@@ -496,20 +498,6 @@ proc _print_ast_return ast, indent in
     end
 end
 
-proc _print_type type in
-    if type then
-        if type_is_procedure(type) then
-            var string = tt_get_proc_type_name(g_TypeTable, type);
-            printf("%s", string_cstr(string));
-            free_string(string);
-        else
-            printf("%s", tt_get_type_name(g_TypeTable, type));
-        end
-    else
-        printf("{no type}");
-    end
-end
-
 proc _print_ast_var_decl ast, indent in
     printf("var %s", ast_ident(ast));
     var symbol = st_get_symbol(g_SymbolTable, ast_ident(ast));
@@ -517,7 +505,7 @@ proc _print_ast_var_decl ast, indent in
     var type = symbol_type(symbol);
     if type then
         printf(": ");
-        _print_type(type);
+        tt_print_type_name(g_TypeTable, type);
     end
 end
 
@@ -528,7 +516,7 @@ proc _print_ast_var_assign ast, indent in
     var type = symbol_type(symbol);
     if type then
         printf(": ");
-        _print_type(type);
+        tt_print_type_name(g_TypeTable, type);
     end
     printf(" = ");
     _print_ast(ast_assign_expr(ast), indent);
@@ -584,7 +572,7 @@ proc _print_ast_procedure ast, indent in
         var param_type = symbol_type(param_sym);
         if param_type then
             printf(": ");
-            _print_type(param_type);
+            tt_print_type_name(g_TypeTable, param_type);
         end
         i += 1;
         if i < len then
@@ -598,11 +586,11 @@ proc _print_ast_procedure ast, indent in
         assert(type_is_procedure(proc_type), "proc_type not procedure.\n");
         var ret_type = type_proc_return_type(proc_type);
         printf(" -> ");
-        _print_type(ret_type);
+        tt_print_type_name(g_TypeTable, ret_type);
     end
     printf(" in\n");
     _print_ast_body(ast_body(ast), indent + 1);
-    printf("end\n");
+    _print_indent(indent); printf("end\n");
 end
 
 proc _print_ast_if_else ast, indent, print_if in
@@ -708,13 +696,13 @@ proc _print_ast_cast ast, indent in
     printf("cast(");
     _print_ast(ast_expr(ast), indent);
     printf(", ");
-    _print_type(ast_type(ast));
+    tt_print_type_name(g_TypeTable, ast_type(ast));
     printf(")");
 end
 
 proc _print_ast_struct ast, indent in
     printf("struct ");
-    _print_type(ast_struct(ast));
+    tt_print_type_name(g_TypeTable, ast_struct(ast));
     printf(" in\n");
     var fields = ast_fields(ast);
     var i = 0; var len = fields.length;
@@ -722,21 +710,23 @@ proc _print_ast_struct ast, indent in
         var field = vector_get(fields, i);
         _print_indent(indent+1);
         printf("%s: ", field_name(field));
-        _print_type(field_type(field));
+        tt_print_type_name(g_TypeTable, field_type(field));
         printf("\n");
         i += 1;
     end
-    var procs = ast_procs(ast);
-    if i != 0 and procs.length != 0 then
-        printf("\n");
-    end
-    i = 0; len = procs.length;
-    while i < len do
-        _print_indent(indent+1);
-        _print_ast_procedure(cast(vector_get(procs, i), ast), indent+1);
-        printf("\n");
-        i += 1;
-    end
+    // var procs = ast_procs(ast);
+    // if i != 0 and procs.length != 0 then
+    //     printf("\n");
+    // end
+    // i = 0; len = procs.length;
+    // while i < len do
+    //     _print_indent(indent+1);
+    //     _print_ast_procedure(cast(vector_get(procs, i), ast), indent+1);
+    //     i += 1;
+    //     if i < len then
+    //         printf("\n");
+    //     end
+    // end
     _print_indent(indent); printf("end\n");
 end
 

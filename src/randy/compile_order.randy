@@ -1,4 +1,46 @@
 
+proc scope_resolve tt: type_table, ast: ast, error: bool -> type in
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
+        ast_kind_cstr(ast_kind(ast_rhs(ast))));
+    var type = ast_type(ast_lhs(ast));
+    if type_is_struct(type) then
+        var member = ast_ident(ast_rhs(ast));
+        var procs = type_struct_procs(type);
+        var i = 0; var len = procs.length;
+        while i < len do
+            var proc_ = cast(vector_get(procs, i), Symbol&);
+            var proc_name = symbol_name(proc_);
+            if cstr_eq(member, proc_name) then
+                var proc_type = symbol_type(proc_);
+                assert(proc_type);
+                assert(type_is_procedure(proc_type));
+                return proc_type;
+            end
+            i += 1;
+        end
+        if error then
+            printf("ERROR: type `");
+            tt_print_type_name(tt, type);
+            printf("` has no member `%s.`\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        return tt_any_type(tt);
+    elif type_is_enum(type) then
+        return type;
+    elif type_is_union(type) then
+        assert(false, "scope resolve for unions not implemented yet.\n");
+    elif error then
+        printf("ERROR: type `");
+        tt_print_type_name(tt, type);
+        printf("` is not a struct, enum, or union.\n");
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+    return tt_any_type(tt);
+end
+
 proc _compile_order_visit tt, st, stmt, seen, order in
     if not stmt then
         return;
@@ -50,6 +92,13 @@ proc _compile_order_visit tt, st, stmt, seen, order in
     elif k == AstK_AssignMember then
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
+    elif k == AstK_ScopeResolve then
+        var resolved = scope_resolve(tt, stmt, false);
+        if type_is_procedure(resolved) then
+            var proc_ = type_ast(resolved);
+            assert(proc_, "Compiler bug: resolved type to procedure with no AST.\n");
+            _compile_order_proc(tt, st, proc_, seen, order);
+        end
     // elif k == AstK_SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end
@@ -69,7 +118,7 @@ proc _compile_order_proc tt, st, proc_, seen, order in
     vector_push(order, proc_);
 end
 
-proc compile_order_main roots, type_table, symbol_table in
+proc compile_order_main roots, type_table, symbol_table -> Vector& in
     var main_proc = NULL;
     var exit_proc = NULL;
     var compile_order = make_vector(128);

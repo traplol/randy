@@ -61,14 +61,11 @@ proc ti_pop_proc self in
     string_pop(type_infer_did_returns(self));
 end
 
-proc ti_infer_body self, tt, st, body in
-    var i = 0; var len = body.length;
+proc ti_infer_vector self, tt, st, vector in
+    var i = 0; var len = vector.length;
     while i < len do
-        var ast = vector_get(body, i);
+        var ast = vector_get(vector, i);
         ti_infer(self, tt, st, ast);
-        if ast_kind(ast) == AstK_Return then
-            break;
-        end
         i += 1;
     end
 end
@@ -89,19 +86,6 @@ end
 proc ti_infer_integer self, tt, st, ast -> type in
     check_ast_kind(AstK_Integer, ast);
     return tt_int_type(tt);
-    // var val = cast(ast_value(ast), int);
-    // var type;
-    // if val >= -(1<<7) and val < 1<<7 then
-    //     type = tt_get_type_or_null(tt, "int8");
-    // elif val >= -(1<<15) and val < 1<<15 then
-    //     type = tt_get_type_or_null(tt, "int16");
-    // elif val >= -(1<<31) and val < 1<<31 then
-    //     type = tt_get_type_or_null(tt, "int32");
-    // else
-    //     type = tt_int_type(tt);
-    // end
-    // assert(type);
-    // return type;
 end
 
 proc ti_infer_string self, tt, st, ast -> type in
@@ -116,28 +100,31 @@ proc ti_infer_call self, tt, st, ast -> type in
     var any = tt_any_type(tt);
     // TODO: put this check in type checker
     if not type_is_procedure(call_type) then
-        // FIXME: call_type should not accept ptr when type system is more fleshed out.
-        if call_type != any and call_type != tt_ptr_type(tt) then
-            printf("WARN: type `");
-            tt_print_type_name(tt, call_type);
-            printf("` is not a procedure.\n");
-            printf("NOTE: The expression is: ");
-            print_ast(ast);
-            print_token_loc(ast_token(ast));
-        end
+        ti_infer_vector(self, tt, st, ast_args(ast));
         return tt_any_type(tt);
     end
-    if ast_kind(expr) != AstK_Ident then
-        return type_proc_return_type(call_type);
+
+    var call_symbol = NULL;
+    if ast_kind(expr) == AstK_Ident then
+        call_symbol = st_get_symbol(st, ast_ident(expr));
+        call_type = symbol_type(call_symbol);
+    elif ast_kind(expr) == AstK_ScopeResolve then
+        call_type = scope_resolve(tt, expr, true);
+        if not type_is_procedure(call_type) then
+            ti_infer_vector(self, tt, st, ast_args(ast));
+            return tt_any_type(tt);
+        end
+        var proc_ = type_ast(call_type);
+        assert(proc_, "Compiler bug: call_type has no proc ast\n");
+        call_symbol = st_get_symbol(st, ast_ident(proc_));
+        assert(call_symbol, "Compiler bug: proc has no symbol\n");
     end
-    var call_symbol = st_get_symbol(st, ast_ident(expr));
-    // if not symbol_is_proc(call_symbol) and
-    //     not symbol_is_asm(call_symbol) and
-    //     not symbol_is_extern(call_symbol) then
-    //     return type_proc_return_type(call_type);
-    // end
-    call_type = symbol_type(call_symbol);
-    assert(type_is_procedure(call_type), "call_type not procedure");
+
+    if not type_is_procedure(call_type) then
+        ti_infer_vector(self, tt, st, ast_args(ast));
+        return tt_any_type(tt);
+    end
+
     var proc_ast = type_ast(call_type);
     var proc_params = NULL;
     if proc_ast then
@@ -336,7 +323,7 @@ proc ti_infer_procedure self, tt, st, ast -> type in
     //printf("infer: %s\n", ident);
     var symbol = st_get_symbol(st, ident);
     ti_push_proc(self, symbol);
-    ti_infer_body(self, tt, st, ast_body(ast));
+    ti_infer_vector(self, tt, st, ast_body(ast));
     var proc_type = symbol_type(symbol);
     assert(type_is_procedure(proc_type),
            "Compiler bug: procedure type is not actually procedure type.\n");
@@ -354,8 +341,8 @@ proc ti_infer_if_else self, tt, st, ast -> type in
     check_ast_kind(AstK_IfElse, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
-    ti_infer_body(self, tt, st, ast_consequence(ast));
-    ti_infer_body(self, tt, st, ast_alternative(ast));
+    ti_infer_vector(self, tt, st, ast_consequence(ast));
+    ti_infer_vector(self, tt, st, ast_alternative(ast));
     return tt_void_type(tt);
 end
 
@@ -363,7 +350,7 @@ proc ti_infer_while self, tt, st, ast -> type in
     check_ast_kind(AstK_While, ast);
     // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
-    ti_infer_body(self, tt, st, ast_body(ast));
+    ti_infer_vector(self, tt, st, ast_body(ast));
     return tt_void_type(tt);
 end
 
@@ -529,9 +516,7 @@ proc ti_infer_sizeof_expr self, tt, st, ast in
 end
 
 proc ti_infer_scope_resolve self, tt, st, ast in
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
-    return ast_type(ast_lhs(ast));
+    return scope_resolve(tt, ast, true);
 end
 
 proc ti_infer self, tt, st, ast -> type in
@@ -597,7 +582,7 @@ proc type_infer type_table, symbol_table, compile_order: Vector& in
         type_infer_set_again(self, make_set(0, NULL, NULL));
         var cur = set_begin(again);
         while cur != set_end(again) do
-            var sym = cast(u64@(cur), symbol);
+            var sym = cast(u64@(cur), Symbol&);
             var type = symbol_type(sym);
             var ast = type_ast(type);
             assert(ast, "ast from type_infer_again should not be null");
