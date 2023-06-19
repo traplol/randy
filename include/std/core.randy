@@ -48,6 +48,12 @@ asm __builtin_trap in
 "
 end
 
+asm __builting_break in
+"
+    int3
+"
+end
+
 proc abort in
     _flush_output();
     __builtin_trap();
