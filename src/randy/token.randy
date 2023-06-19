@@ -169,42 +169,47 @@ proc token_kind_cstr k: TK -> cstr in
     else return "TK_OUT_OF_RANGE"; end
 end
 
-const TTOKEN_kind     = 0;  // TK
-const TTOKEN_cstr     = 8;  // cstr
-const TTOKEN_value    = 16; // Union(int, cstr)
-const TTOKEN_filename = 24; // cstr
-const TTOKEN_line     = 32; // int
-const sizeof_TTOKEN   = 40;
-
-const TSRC_LOC_filename = 0;
-const TSRC_LOC_line     = 8;
-const sizeof_TSRC_LOC   = 16;
-
-proc make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> token in
-    var self = malloc(sizeof_TTOKEN);
-    u64!(self + TTOKEN_kind, kind);
-    u64!(self + TTOKEN_cstr, cstr);
-    u64!(self + TTOKEN_value, value);
-    u64!(self + TTOKEN_line, line);
-    u64!(self + TTOKEN_filename, filename);
-    return cast(self, token);
+struct Token in
+    kind: TK;
+    cstr: cstr;
+    value: ptr; // FIXME Union(int, cstr)
+    src_loc: SrcLoc&;
 end
 
-proc free_token self: token in
-    free(self);
+struct SrcLoc in
+    filename: cstr;
+    line: int;
 end
 
-proc token_kind self: token in return cast(u64@(self + TTOKEN_kind), TK); end
-proc token_cstr self: token in return cast(u64@(self + TTOKEN_cstr), cstr); end
-proc token_value self: token in return cast(u64@(self + TTOKEN_value), ptr); end
-proc token_filename self: token in return cast(u64@(self + TTOKEN_filename), cstr); end
-proc token_line self: token in return cast(u64@(self + TTOKEN_line), int); end
+proc make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> Token& in
+    var self = cast(malloc(__sizeof(Token)), Token&);
+    self.kind = kind;
+    self.cstr = cstr;
+    self.value = value;
+    self.src_loc = cast(malloc(__sizeof(SrcLoc)), SrcLoc&);
+    self.src_loc.filename = filename;
+    self.src_loc.line = line;
+    return self;
+end
 
-proc token_src_loc self: token in return cast(cast(self, ptr) + TTOKEN_filename, src_loc); end
-proc src_loc_filename self: src_loc in return cast(u64@(self + TSRC_LOC_filename), cstr); end
-proc src_loc_line self: src_loc in return cast(u64@(self + TSRC_LOC_line), int); end
+proc free_token self: Token& in
+    if self then
+        free(self.src_loc);
+        free(self);
+    end
+end
 
-proc print_token self: token in
+proc token_kind self: Token& in return self.kind; end
+proc token_cstr self: Token& in return self.cstr; end
+proc token_value self: Token& in return self.value; end
+proc token_filename self: Token& in return self.src_loc.filename; end
+proc token_line self: Token& in return self.src_loc.line; end
+
+proc token_src_loc self: Token& in return self.src_loc; end
+proc src_loc_filename self: SrcLoc& in return self.filename; end
+proc src_loc_line self: SrcLoc& in return self.line; end
+
+proc print_token self: Token& in
     var k = token_kind(self);
     printf("token: %s -> '%s' = ", token_kind_cstr(k)
                                  , token_cstr(self));
@@ -221,12 +226,12 @@ proc print_token self: token in
     end
 end
 
-proc print_src_loc self: src_loc in
+proc print_src_loc self: SrcLoc& in
     var line_no = src_loc_line(self);
     var filename = src_loc_filename(self);
     printf("  File \"%s\", line %d\n", filename, line_no);
 end
 
-proc print_token_loc self: token in
+proc print_token_loc self: Token& in
     print_src_loc(token_src_loc(self));
 end

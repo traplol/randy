@@ -14,13 +14,13 @@ proc ts_tokens self: token_stream in return cast(u64@(self + TTOKEN_STREAM_token
 proc ts_idx self: token_stream in return cast(u64@(self + TTOKEN_STREAM_idx), int); end
 proc ts_revert self: token_stream, idx: int in u64!(self + TTOKEN_STREAM_idx, idx); end
 
-proc ts_peek self: token_stream -> token in
+proc ts_peek self: token_stream -> Token& in
     var tks = ts_tokens(self);
     var idx = ts_idx(self);
     if idx >= tks.length then
-        return cast(NULL, token);
+        return cast(NULL, Token&);
     end
-    return cast(vector_get(tks, idx), token);
+    return cast(vector_get(tks, idx), Token&);
 end
 
 proc ts_peekk self: token_stream, kind: TK -> bool in
@@ -68,21 +68,21 @@ proc ts_peekk_one_of_5 self: token_stream, k1: TK, k2: TK, k3: TK, k4: TK, k5: T
     return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
 end
 
-proc ts_next self: token_stream -> token in
+proc ts_next self: token_stream -> Token& in
     var peek = ts_peek(self);
     u64!(self + TTOKEN_STREAM_idx, u64@(self + TTOKEN_STREAM_idx) + 1);
     return peek;
 end
 
-proc ts_accept self: token_stream, kind: TK -> token in
+proc ts_accept self: token_stream, kind: TK -> Token& in
     var tmp = ts_peek(self);
     if tmp and token_kind(tmp) == kind then
         return ts_next(self);
     end
-    return cast(NULL, token);
+    return cast(NULL, Token&);
 end
 
-proc ts_expect self: token_stream, kind: TK -> token in
+proc ts_expect self: token_stream, kind: TK -> Token& in
     var tmp = ts_peek(self);
     if not tmp then
         printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));

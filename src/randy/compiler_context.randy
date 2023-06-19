@@ -101,7 +101,7 @@ proc cc_out_string self: compiler_context, string: String& in
     free_string(str);
 end
 
-proc cc_out_src_loc self: compiler_context, src_loc: src_loc in
+proc cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
     if not src_loc then
         return;
     end

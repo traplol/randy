@@ -81,7 +81,7 @@ end
 
 const TAST_kind        = 0;  // AstK
 const TAST_is_expr     = 4;  // bool
-const TAST_token       = 8;  // token
+const TAST_token       = 8;  // Token&
 // This represents each AST node as a c-"union"
 // Ident
 const TAST_ident       = 16; // cstr
@@ -162,7 +162,7 @@ const TAST_rhs         = 32; // Union(type_ast, ident_ast)
 
 const sizeof_TAST      = 40;
 
-proc _make_ast kind: int, is_expr: bool, token: token -> ast in
+proc _make_ast kind: int, is_expr: bool, token: Token& -> ast in
     var self = malloc(sizeof_TAST);
     u32!(self + TAST_kind, kind);
     u8!(self + TAST_is_expr, is_expr);
@@ -170,32 +170,32 @@ proc _make_ast kind: int, is_expr: bool, token: token -> ast in
     return cast(self, ast);
 end
 
-proc make_ast_ident token: token, ident: cstr -> ast in
+proc make_ast_ident token: Token&, ident: cstr -> ast in
     var self = _make_ast(AstK_Ident, true, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
-proc make_ast_integer token: token, value: int -> ast in
+proc make_ast_integer token: Token&, value: int -> ast in
     var self = _make_ast(AstK_Integer, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
-proc make_ast_string token: token, value: String& -> ast in
+proc make_ast_string token: Token&, value: String& -> ast in
     var self = _make_ast(AstK_String, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
-proc make_ast_call token: token, expr: ast, args: Vector& -> ast in
+proc make_ast_call token: Token&, expr: ast, args: Vector& -> ast in
     var self = _make_ast(AstK_Call, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_args, args);
     return self;
 end
 
-proc make_ast_binop token: token, lhs: ast, op: TK, rhs: ast -> ast in
+proc make_ast_binop token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
     var self = _make_ast(AstK_BinOp, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_op, op);
@@ -203,26 +203,26 @@ proc make_ast_binop token: token, lhs: ast, op: TK, rhs: ast -> ast in
     return self;
 end
 
-proc make_ast_return token: token, expr: ast -> ast in
+proc make_ast_return token: Token&, expr: ast -> ast in
     var self = _make_ast(AstK_Return, false, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
-proc make_ast_var_decl token: token, ident: cstr -> ast in
+proc make_ast_var_decl token: Token&, ident: cstr -> ast in
     var self = _make_ast(AstK_VarDecl, false, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
-proc make_ast_var_assign token: token, ident: cstr, expr: ast -> ast in
+proc make_ast_var_assign token: Token&, ident: cstr, expr: ast -> ast in
     var self = _make_ast(AstK_VarAssign, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
-proc make_ast_assign_op token: token, ident: cstr, op: TK, expr: ast -> ast in
+proc make_ast_assign_op token: Token&, ident: cstr, op: TK, expr: ast -> ast in
     var self = _make_ast(AstK_AssignOp, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_op, op);
@@ -230,7 +230,7 @@ proc make_ast_assign_op token: token, ident: cstr, op: TK, expr: ast -> ast in
     return self;
 end
 
-proc make_ast_procedure token: token, ident: cstr, params: Vector&, body: Vector& -> ast in
+proc make_ast_procedure token: Token&, ident: cstr, params: Vector&, body: Vector& -> ast in
     var self = _make_ast(AstK_Procedure, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_body, body);
@@ -238,7 +238,7 @@ proc make_ast_procedure token: token, ident: cstr, params: Vector&, body: Vector
     return self;
 end
 
-proc make_ast_if_else token: token, test: ast, conseq: Vector&, altern: Vector& -> ast in
+proc make_ast_if_else token: Token&, test: ast, conseq: Vector&, altern: Vector& -> ast in
     var self = _make_ast(AstK_IfElse, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_consequence, conseq);
@@ -246,14 +246,14 @@ proc make_ast_if_else token: token, test: ast, conseq: Vector&, altern: Vector& 
     return self;
 end
 
-proc make_ast_while token: token, test: ast, body: Vector& -> ast in
+proc make_ast_while token: Token&, test: ast, body: Vector& -> ast in
     var self = _make_ast(AstK_While, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_body, body);
     return self;
 end
 
-proc make_ast_pointer_op token: token, size: int, op: int, args: Vector& -> ast in
+proc make_ast_pointer_op token: Token&, size: int, op: int, args: Vector& -> ast in
     var astk; var is_expr;
     if op == PointerOp_Read then
         astk = AstK_PointerRead;
@@ -269,21 +269,21 @@ proc make_ast_pointer_op token: token, size: int, op: int, args: Vector& -> ast 
     return self;
 end
 
-proc make_ast_prefix token: token, op: TK, expr: ast -> ast in
+proc make_ast_prefix token: Token&, op: TK, expr: ast -> ast in
     var self = _make_ast(AstK_Prefix, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_op, op);
     return self;
 end
 
-proc make_ast_const token: token, ident: cstr, expr: ast -> ast in
+proc make_ast_const token: Token&, ident: cstr, expr: ast -> ast in
     var self = _make_ast(AstK_Const, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
-proc make_ast_extern token: token, ident: cstr, params: Vector&, varargs: bool -> ast in
+proc make_ast_extern token: Token&, ident: cstr, params: Vector&, varargs: bool -> ast in
     var self = _make_ast(AstK_Extern, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_varargs, varargs);
@@ -291,36 +291,36 @@ proc make_ast_extern token: token, ident: cstr, params: Vector&, varargs: bool -
     return self;
 end
 
-proc make_ast_inline_asm token: token, ident: cstr, asmcode: cstr -> ast in
+proc make_ast_inline_asm token: Token&, ident: cstr, asmcode: cstr -> ast in
     var self = _make_ast(AstK_InlineAsm, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_asm, asmcode);
     return self;
 end
 
-proc make_ast_global token: token, ident: cstr, assign_expr: ast -> ast in
+proc make_ast_global token: Token&, ident: cstr, assign_expr: ast -> ast in
     var self = _make_ast(AstK_Global, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, assign_expr);
     return self;
 end
 
-proc make_ast_break token: token -> ast in
+proc make_ast_break token: Token& -> ast in
     return _make_ast(AstK_Break, false, token);
 end
 
-proc make_ast_continue token: token -> ast in
+proc make_ast_continue token: Token& -> ast in
     return _make_ast(AstK_Continue, false, token);
 end
 
-proc make_ast_cast token: token, expr: ast, type: type -> ast in
+proc make_ast_cast token: Token&, expr: ast, type: type -> ast in
     var self = _make_ast(AstK_Cast, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_type, type);
     return self;
 end
 
-proc make_ast_struct token: token, struct_: type, fields: Vector&, procs: Vector& -> ast in
+proc make_ast_struct token: Token&, struct_: type, fields: Vector&, procs: Vector& -> ast in
     var self = _make_ast(AstK_Struct, false, token);
     u64!(self + TAST_struct, struct_);
     u64!(self + TAST_fields, fields);
@@ -328,14 +328,14 @@ proc make_ast_struct token: token, struct_: type, fields: Vector&, procs: Vector
     return self;
 end
 
-proc make_ast_member_access token: token, expr: ast, member: cstr -> ast in
+proc make_ast_member_access token: Token&, expr: ast, member: cstr -> ast in
     var self = _make_ast(AstK_MemberAccess, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_member, member);
     return self;
 end
 
-proc make_ast_assign_member token: token, lhs: ast, op: TK, rhs: ast -> ast in
+proc make_ast_assign_member token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
     assert(ast_kind(lhs) == AstK_MemberAccess,
         "Compiler bug: cannot make_ast_assign_member where lhs is %s (%d)\n",
         ast_kind_cstr(ast_kind(lhs)),
@@ -347,13 +347,13 @@ proc make_ast_assign_member token: token, lhs: ast, op: TK, rhs: ast -> ast in
     return self;
 end
 
-proc make_ast_sizeof_expr token: token, expr: ast -> ast in
+proc make_ast_sizeof_expr token: Token&, expr: ast -> ast in
     var self = _make_ast(AstK_SizeofExpr, true, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
-proc make_ast_sizeof_type token: token, type: type -> ast in
+proc make_ast_sizeof_type token: Token&, type: type -> ast in
     var self = _make_ast(AstK_SizeofType, true, token);
     u64!(self + TAST_type, type);
     return self;
@@ -365,7 +365,7 @@ proc ast_change_sizeof_expr_to_type self: ast, type: type in
     u64!(self + TAST_type, type);
 end
 
-proc make_ast_enum token: token, ident: cstr, enum_: type, values: Vector& -> ast in
+proc make_ast_enum token: Token&, ident: cstr, enum_: type, values: Vector& -> ast in
     var self = _make_ast(AstK_Enum, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_enum, enum_);
@@ -373,13 +373,13 @@ proc make_ast_enum token: token, ident: cstr, enum_: type, values: Vector& -> as
     return self;
 end
 
-proc make_ast_type token: token, type: type -> ast in
+proc make_ast_type token: Token&, type: type -> ast in
     var self = _make_ast(AstK_Type, false, token);
     u64!(self + TAST_type, type);
     return self;
 end
 
-proc make_ast_scope_resolve token: token, lhs: ast, rhs: ast -> ast in
+proc make_ast_scope_resolve token: Token&, lhs: ast, rhs: ast -> ast in
     var self = _make_ast(AstK_ScopeResolve, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_rhs, rhs);
@@ -389,7 +389,7 @@ end
 
 proc ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
 proc ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end
-proc ast_token self: ast in return cast(u64@(self + TAST_token), token); end
+proc ast_token self: ast in return cast(u64@(self + TAST_token), Token&); end
 proc ast_alternative self: ast in return cast(u64@(self + TAST_alternative), Vector&); end
 proc ast_args self: ast in return cast(u64@(self + TAST_args), Vector&); end
 proc ast_asm self: ast in return cast(u64@(self + TAST_asm), cstr); end

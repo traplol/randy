@@ -140,9 +140,9 @@ const TIR_INSTR_expr_offs = 56;
 const sizeof_TIR_INSTR   = 64;
 
 proc ir_instr_kind self: ir_instr in return cast(u64@(self + TIR_INSTR_kind), int); end
-proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), src_loc); end
+proc ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), SrcLoc&); end
 proc ir_instr_name self: ir_instr in return cast(u64@(self + TIR_INSTR_name), cstr); end
-proc ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), token); end
+proc ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), Token&); end
 proc ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), int); end
 proc ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
 proc ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
@@ -406,12 +406,12 @@ proc print_ir_call self in
 end
 proc print_ir_call_lazy_ident self in
     printf("(IR.CallLazyIdent ");
-    printf("ident=<Token:%s>, ", token_value(cast(u64@(self + TIR_INSTR_ident), token)));
+    printf("ident=<Token:%s>, ", token_value(cast(u64@(self + TIR_INSTR_ident), Token&)));
     printf("nargs=%d)\n", u64@(self + TIR_INSTR_nargs));
 end
 proc print_ir_lazy_ident self in
     printf("(IR.LazyIdent ");
-    printf("ident=<Token:%s>)\n", token_value(cast(u64@(self + TIR_INSTR_ident), token)));
+    printf("ident=<Token:%s>)\n", token_value(cast(u64@(self + TIR_INSTR_ident), Token&)));
 end
 proc print_ir_close_proc self in
     printf("(IR.CloseProc ");

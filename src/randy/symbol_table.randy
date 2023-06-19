@@ -14,12 +14,12 @@ end
 struct Symbol in
     kind: SymbolKind;
     name: cstr;
-    token: token;
+    token: Token&;
     type: type;
     owned_by: type;
 end
 
-proc make_symbol kind: SymbolKind, name: cstr, token: token -> Symbol& in
+proc make_symbol kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
     var self = cast(malloc(__sizeof(Symbol)), Symbol&);
     self.kind = kind;
     self.name = name;
@@ -31,7 +31,7 @@ end
 
 proc symbol_kind self: Symbol& -> SymbolKind in return self.kind; end
 proc symbol_name self: Symbol& -> cstr in return self.name; end
-proc symbol_token self: Symbol& -> token in return self.token; end
+proc symbol_token self: Symbol& -> Token& in return self.token; end
 proc symbol_type self: Symbol& -> type in return self.type; end
 
 proc symbol_set_kind self: Symbol&, kind: SymbolKind in self.kind = kind; end
@@ -65,7 +65,7 @@ end
 proc symbol_table_table self: SymbolTable& in return self.table; end
 proc symbol_table_scope self: SymbolTable& in return self.scope; end
 
-proc st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: token -> Symbol& in
+proc st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: Token& -> Symbol& in
     var table = symbol_table_table(self);
     var found = map_find(table, ident);
     if found then

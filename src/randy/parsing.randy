@@ -1125,7 +1125,7 @@ end
 
 proc parse ts: token_stream, st: SymbolTable&, tt: type_table in
     var roots = make_vector(0);
-    var parsed: ast = NULL; var tk: token;
+    var parsed: ast = NULL; var tk: Token&;
     while ts_peek(ts) do
         tk = ts_peek(ts);
         if ts_peekk(ts, TK::KW_proc) then

@@ -2,7 +2,7 @@
 const TFIELD_type       = 0;  // type
 const TFIELD_name       = 8;  // cstr
 const TFIELD_bit_offset = 16; // int
-const TFIELD_token      = 24; // token
+const TFIELD_token      = 24; // Token&
 const sizeof_TFIELD = 32;
 
 proc make_field type, name, bit_offset, token -> field in
@@ -17,20 +17,20 @@ end
 proc field_type self: field -> type in return cast(u64@(self + TFIELD_type), type); end
 proc field_name self: field -> cstr in return cast(u64@(self + TFIELD_name), cstr); end
 proc field_bit_offset self: field -> int in return cast(u64@(self + TFIELD_bit_offset), int); end
-proc field_token self: field -> token in return cast(u64@(self + TFIELD_token), token); end
+proc field_token self: field -> Token& in return cast(u64@(self + TFIELD_token), Token&); end
 
 proc field_set_bit_offset self: field, bit_offset: int in
     u64!(self + TFIELD_bit_offset, bit_offset);
 end
 
 struct EnumValue in
-    token: token;
+    token: Token&;
     name: cstr;
     value: ast;
     cache_value: ptr;
 end
 
-proc make_enum_value token: token, name: cstr, value: ast -> EnumValue& in
+proc make_enum_value token: Token&, name: cstr, value: ast -> EnumValue& in
     var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
     self.token = token;
     self.name = name;
@@ -621,7 +621,7 @@ proc tt_check_struct_for_field_name_collisions self, type in
             printf("` already contains a member named `%s.`\n", fname);
             print_token_loc(ftoke);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), token));
+            print_token_loc(cast(map_pair_val(found), Token&));
             g_Errors += 1;
         end
         map_set(member_name_map, fname, ftoke);
@@ -641,7 +641,7 @@ proc tt_check_struct_for_field_name_collisions self, type in
             printf("` already contains a member named `%s.`\n", proc_nam);
             print_token_loc(proc_tok);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), token));
+            print_token_loc(cast(map_pair_val(found), Token&));
             g_Errors += 1;
         end
         map_set(member_name_map, proc_nam, proc_tok);
@@ -663,7 +663,7 @@ proc tt_check_enum_for_field_name_collisions self, type in
             printf("` already contains a member named `%s.`\n", ev.name);
             print_token_loc(ev.token);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), token));
+            print_token_loc(cast(map_pair_val(found), Token&));
             g_Errors += 1;
         end
         map_set(member_name_map, ev.name, ev.token);
