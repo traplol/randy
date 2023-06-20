@@ -199,22 +199,10 @@ def free_token self: Token& in
     end
 end
 
-def token_kind self: Token& in return self.kind; end
-def token_cstr self: Token& in return self.cstr; end
-def token_value self: Token& in return self.value; end
-def token_filename self: Token& in return self.src_loc.filename; end
-def token_line self: Token& in return self.src_loc.line; end
-
-def token_src_loc self: Token& in return self.src_loc; end
-def src_loc_filename self: SrcLoc& in return self.filename; end
-def src_loc_line self: SrcLoc& in return self.line; end
-
 def print_token self: Token& in
-    var k = token_kind(self);
-    printf("token: %s -> '%s' = ", token_kind_cstr(k)
-                                 , token_cstr(self));
-
-    var v = token_value(self);
+    var k = self.kind;
+    printf("token: %s -> '%s' = ", token_kind_cstr(k), self.cstr);
+    var v = self.value;
     if k == TK::Integer then
         printf("%d\n", v);
     elif k == TK::String then
@@ -227,11 +215,9 @@ def print_token self: Token& in
 end
 
 def print_src_loc self: SrcLoc& in
-    var line_no = src_loc_line(self);
-    var filename = src_loc_filename(self);
-    printf("  File \"%s\", line %d\n", filename, line_no);
+    printf("  File \"%s\", line %d\n", self.filename, self.line);
 end
 
 def print_token_loc self: Token& in
-    print_src_loc(token_src_loc(self));
+    print_src_loc(self.src_loc);
 end

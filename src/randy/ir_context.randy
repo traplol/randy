@@ -410,12 +410,12 @@ def print_ir_call self in
 end
 def print_ir_call_lazy_ident self in
     printf("(IR.CallLazyIdent ");
-    printf("ident=<Token:%s>, ", token_value(cast(u64@(self + TIR_INSTR_ident), Token&)));
+    printf("ident=<Token:%s>, ", cast(u64@(self + TIR_INSTR_ident), Token&).value);
     printf("nargs=%d)\n", u64@(self + TIR_INSTR_nargs));
 end
 def print_ir_lazy_ident self in
     printf("(IR.LazyIdent ");
-    printf("ident=<Token:%s>)\n", token_value(cast(u64@(self + TIR_INSTR_ident), Token&)));
+    printf("ident=<Token:%s>)\n", cast(u64@(self + TIR_INSTR_ident), Token&).value);
 end
 def print_ir_close_def self in
     printf("(IR.CloseDef ");
@@ -787,7 +787,7 @@ def ir_push_src_loc self, src_loc in
     var src_locs = ir_src_locs(self);
     vector_push(src_locs, src_loc);
 
-    var filename = src_loc_filename(src_loc);
+    var filename = src_loc.filename;
     var fileset = ir_file_set(self);
     if not set_contains(fileset, filename) then
         set_add(fileset, filename);
@@ -1868,7 +1868,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     ast = ir_comptime_eval(self, ast, st, tt, false, 0);
     var k = ast_kind(ast);
-    ir_push_src_loc(self, token_src_loc(ast_token(ast)));
+    ir_push_src_loc(self, ast_token(ast).src_loc);
     if k == AstK_Ident then ir_emit_ident(self, ast, st, tt);
     elif k == AstK_Integer then ir_emit_integer(self, ast, st, tt);
     elif k == AstK_String then ir_emit_string(self, ast, st, tt);
@@ -1935,10 +1935,10 @@ def ir_resolve_lazy_idents self in
                 new_ir = make_ir_push_label(symbol_name(symbol));
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
-                print_src_loc(token_src_loc(token));
+                print_token_loc(token);
                 exit(1);
             end
-            u64!(new_ir + TIR_INSTR_src_loc, token_src_loc(token));
+            u64!(new_ir + TIR_INSTR_src_loc, token.src_loc);
             vector_set(instrs, i, new_ir);
         elif k == IRK_CallLazyIdent then
             token = ir_instr_ident(ir);
@@ -1955,10 +1955,10 @@ def ir_resolve_lazy_idents self in
                 call = make_ir_call(symbol_name(symbol), false);
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
-                print_src_loc(token_src_loc(token));
+                print_token_loc(token);
                 exit(1);
             end
-            u64!(call + TIR_INSTR_src_loc, token_src_loc(token));
+            u64!(call + TIR_INSTR_src_loc, token.src_loc);
             vector_set(instrs, i, call);
         end
         i += 1;

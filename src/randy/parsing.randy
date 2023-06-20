@@ -68,11 +68,11 @@ def parse_type ts, st, tt, is_instance in
         return parse_def_type(ts, st, tt, is_instance);
     end
     var type_ident = ts_expect(ts, TK::Ident);
-    var type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
+    var type = tt_get_type_or_make_undefined(tt, type_ident.value);
     var generic_params = NULL;
     if ts_accept(ts, TK::LSquare) then
         if not is_instance and tt.type_scope.length <= 1 then
-            printf("type_ident = %s\n", token_value(type_ident));
+            printf("type_ident = %s\n", type_ident.value);
             print_token_loc(type_ident);
             assert(false, "Compiler bug? type_scope depth should probably be >1 when parsing a generic.");
         end
@@ -91,7 +91,7 @@ def parse_type ts, st, tt, is_instance in
     if type_is_generic(type) and not generic_params then
         assert(type_params(type));
         printf("ERROR: type `%s` expects %d type parameters.\n",
-               token_value(type_ident), type_params(type).length);
+               type_ident.value, type_params(type).length);
         print_token_loc(type_ident);
         exit(1);
     end
@@ -129,15 +129,15 @@ def parse_var ts, st, tt in
             exit(1);
         end
     end
-    var symbol = st_get_symbol_here(st, token_value(ident));
+    var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
-        printf("ERROR: var `%s` already defined.\n", token_value(ident));
+        printf("ERROR: var `%s` already defined.\n", ident.value);
         print_token_loc(ident);
         printf("NOTE: It was previously defined here:\n");
         print_token_loc(symbol_token(symbol));
         exit(1);
     end
-    symbol = st_make_local(st, token_value(ident), ident);
+    symbol = st_make_local(st, ident.value, ident);
     symbol_set_type(symbol, type); // OK if type is NULL
     if expr then
         return make_ast_var_assign(var_, symbol_name(symbol), expr);
@@ -211,7 +211,7 @@ def parse_assign_op ts, st, tt, lhs, op in
     var op_tk = ts_expect(ts, op);
     var expr = parse_expression(ts, st, tt);
     if not expr then
-        printf("ERROR: Expected expression after '%s'\n", token_value(op_tk));
+        printf("ERROR: Expected expression after '%s'\n", op_tk.value);
         print_token_loc(op_tk);
         exit(1);
     end
@@ -271,12 +271,12 @@ def parse_pointer_op ts, st, tt in
 
     if op == PointerOp_Read and args.length != 1 then
         printf("ERROR: Expected pointer read (%s) to have exactly one argument but got %d\n",
-                token_cstr(token), args.length);
+                token.cstr, args.length);
         print_token_loc(token);
         exit(1);
     elif op == PointerOp_Write and args.length != 2 then
         printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
-                token_cstr(token), args.length);
+                token.cstr, args.length);
         print_token_loc(token);
         exit(1);
     end
@@ -358,9 +358,9 @@ def parse_assert ts, st, tt in
 
     printf_args = make_vector(1);
     var string = string_from_cstr("  File \"");
-    string_append_cstr(string, token_filename(assert_));
+    string_append_cstr(string, assert_.src_loc.filename);
     string_append_cstr(string, "\", line ");
-    string_append_int(string, token_line(assert_));
+    string_append_int(string, assert_.src_loc.line);
     string_push(string, '\n');
     vector_push(printf_args, make_ast_string(assert_, string));
     vector_push(body, make_ast_call(assert_,
@@ -399,19 +399,19 @@ def parse_primary ts, st, tt in
             var type = parse_type(ts, st, tt, true);
             return make_ast_type(ident, type);
         end
-        var symbol = st_get_symbol(st, token_value(ident));
+        var symbol = st_get_symbol(st, ident.value);
         if not symbol then
-            symbol = st_prepare_undef(st, token_value(ident), ident);
+            symbol = st_prepare_undef(st, ident.value, ident);
         end
         return make_ast_ident(peek, symbol_name(symbol));
     elif k == TK::Integer or k == TK::Char then
-        return make_ast_integer(peek, cast(token_value(ts_next(ts)), int));
+        return make_ast_integer(peek, cast(ts_next(ts).value, int));
     elif k == TK::String then
-        return make_ast_string(peek, token_value(ts_next(ts)));
+        return make_ast_string(peek, cast(ts_next(ts).value, String&));
     elif k == TK::KW__FILE__ then
-        return make_ast_string(peek, string_from_cstr(token_filename(ts_next(ts))));
+        return make_ast_string(peek, string_from_cstr(ts_next(ts).src_loc.filename));
     elif k == TK::KW__LINE__ then
-        return make_ast_integer(peek, token_line(ts_next(ts)));
+        return make_ast_integer(peek, ts_next(ts).src_loc.line);
     elif k == TK::KW_u8@ or k == TK::KW_u16@ or k == TK::KW_u32@ or k == TK::KW_u64@ then
         return parse_pointer_op(ts, st, tt);
     elif k == TK::KW_cast then
@@ -489,7 +489,7 @@ def parse_postfix ts, st, tt in
             expr = make_ast_call(tk, expr, args);
         elif k == TK::Dot then
             var member = ts_expect(ts, TK::Ident);
-            expr = make_ast_member_access(tk, expr, token_value(member));
+            expr = make_ast_member_access(tk, expr, member.value);
         end
     end
 
@@ -523,7 +523,7 @@ def parse_binary_multiplicative ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -541,7 +541,7 @@ def parse_binary_additive ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -559,7 +559,7 @@ def parse_binary_shift ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -577,7 +577,7 @@ def parse_binary_relational ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -595,7 +595,7 @@ def parse_binary_equality ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -613,7 +613,7 @@ def parse_binary_bit_and ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -631,7 +631,7 @@ def parse_binary_bit_xor ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -649,7 +649,7 @@ def parse_binary_bit_or ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -667,7 +667,7 @@ def parse_binary_land ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -685,7 +685,7 @@ def parse_binary_lor ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, token_kind(tok), rhs);
+        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -793,19 +793,19 @@ end
 def parse_def ts, st, tt in
     var def_ = ts_expect(ts, TK::KW_def);
     var ident = ts_expect(ts, TK::Ident);
-    var def_symbol = st_get_symbol_here(st, token_value(ident));
+    var def_symbol = st_get_symbol_here(st, ident.value);
     if def_symbol then
         if symbol_is_undef(def_symbol) then
             symbol_set_kind(def_symbol, SymbolKind::Def);
         else
-            printf("ERROR: def `%s` already defined.\n", token_value(ident));
+            printf("ERROR: def `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
             print_token_loc(symbol_token(def_symbol));
             exit(1);
         end
     else
-        def_symbol = st_make_def(st, token_value(ident), ident);
+        def_symbol = st_make_def(st, ident.value, ident);
     end
 
     st_push_scope(st);
@@ -815,13 +815,13 @@ def parse_def ts, st, tt in
     var any_type = tt_any_type(tt);
     while ts_peekk(ts, TK::Ident) do
         var param_id = ts_next(ts);
-        var param_symbol = st_get_symbol_here(st, token_value(param_id));
+        var param_symbol = st_get_symbol_here(st, param_id.value);
         if param_symbol then
-            printf("ERROR: param `%s` already defined.\n", token_value(param_id));
+            printf("ERROR: param `%s` already defined.\n", param_id.value);
             print_token_loc(param_id);
             exit(1);
         end
-        param_symbol = st_make_param(st, token_value(param_id), param_id);
+        param_symbol = st_make_param(st, param_id.value, param_id);
         vector_push(params, symbol_name(param_symbol));
         vector_push(param_symbols, param_symbol);
         if ts_peekk(ts, TK::KW_in) then
@@ -882,11 +882,11 @@ def parse_const ts, st, tt in
         print_token_loc(const_);
         exit(1);
     end
-    var symbol = st_get_symbol_here(st, token_value(ident));
+    var symbol = st_get_symbol_here(st, ident.value);
     // No error here because we allow you to have multiple definitions of `const`
     // if they share the same value and that won't be checked until IR generation.
     if not symbol then
-        symbol = st_make_const(st, token_value(ident), ident);
+        symbol = st_make_const(st, ident.value, ident);
     end
     symbol_set_type(symbol, type);
     return make_ast_const(const_, symbol_name(symbol), expr);
@@ -896,19 +896,19 @@ def parse_extern ts, st, tt in
     var extern_ = ts_expect(ts, TK::KW_extern);
     var ident = ts_expect(ts, TK::Ident);
     var is_varargs = false;
-    var def_symbol = st_get_symbol_here(st, token_value(ident));
+    var def_symbol = st_get_symbol_here(st, ident.value);
     if def_symbol then
         if symbol_is_undef(def_symbol) then
             symbol_set_kind(def_symbol, SymbolKind::Extern);
         else
-            printf("ERROR: extern `%s` already defined.\n", token_value(ident));
+            printf("ERROR: extern `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
             print_token_loc(symbol_token(def_symbol));
             exit(1);
         end
     else
-        def_symbol = st_make_extern(st, token_value(ident), ident);
+        def_symbol = st_make_extern(st, ident.value, ident);
     end
     st_push_scope(st);
     var body = make_vector(0);
@@ -918,13 +918,13 @@ def parse_extern ts, st, tt in
     var return_type = NULL;
     while ts_peekk(ts, TK::Ident) do
         var param_id = ts_next(ts);
-        var param_symbol = st_get_symbol_here(st, token_value(param_id));
+        var param_symbol = st_get_symbol_here(st, param_id.value);
         if param_symbol then
-            printf("ERROR: param `%s` already defined.\n", token_value(param_id));
+            printf("ERROR: param `%s` already defined.\n", param_id.value);
             print_token_loc(param_id);
             exit(1);
         end
-        param_symbol = st_make_param(st, token_value(param_id), param_id);
+        param_symbol = st_make_param(st, param_id.value, param_id);
         vector_push(params, symbol_name(param_symbol));
         vector_push(param_symbols, param_symbol);
         if ts_peekk(ts, TK::Semicolon) then
@@ -989,24 +989,24 @@ def parse_asm ts, st, tt in
     ts_expect(ts, TK::KW_in);
     var asmcode = ts_expect(ts, TK::String);
     ts_expect(ts, TK::KW_end);
-    var symbol = st_get_symbol_here(st, token_value(ident));
+    var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
         if symbol_is_undef(symbol) then
             symbol_set_kind(symbol, SymbolKind::Asm);
         else
-            printf("ERROR: asm `%s` already defined.\n", token_value(ident));
+            printf("ERROR: asm `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
             print_token_loc(symbol_token(symbol));
             exit(1);
         end
     else
-        symbol = st_make_asm(st, token_value(ident), ident);
+        symbol = st_make_asm(st, ident.value, ident);
     end
 
     var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), make_vector(0), true);
     symbol_set_type(symbol, def_type);
-    return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(token_value(asmcode)));
+    return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(asmcode.value));
 end
 
 def parse_global ts, st, tt in
@@ -1023,19 +1023,19 @@ def parse_global ts, st, tt in
         print_token_loc(global_);
         exit(1);
     end
-    var symbol = st_get_symbol_here(st, token_value(ident));
+    var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
         if symbol_is_undef(symbol) then
             symbol_set_kind(symbol, SymbolKind::Global);
         else
-            printf("ERROR: global `%s` already defined.\n", token_value(ident));
+            printf("ERROR: global `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
             print_token_loc(symbol_token(symbol));
             exit(1);
         end
     else
-        symbol = st_make_global(st, token_value(ident), ident);
+        symbol = st_make_global(st, ident.value, ident);
     end
     symbol_set_type(symbol, type);
     return make_ast_global(global_, symbol_name(symbol), expr);
@@ -1065,11 +1065,11 @@ def parse_struct ts, st, tt in
             ts_expect(ts, TK::Colon);
             var field_type = parse_type(ts, st, tt, true);
             ts_expect(ts, TK::Semicolon);
-            vector_push(fields, make_field(field_type, token_value(field_ident), -1, field_ident));
-            field_name = token_value(field_ident);
+            vector_push(fields, make_field(field_type, field_ident.value, -1, field_ident));
+            field_name = field_ident.value;
         else
             var tk = ts_peek(ts);
-            printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(token_kind(tk)));
+            printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(tk.kind));
             print_token(tk);
             print_token_loc(tk);
             exit(1);
@@ -1107,9 +1107,9 @@ def parse_enum ts, st, tt in
     var enum_ = ts_expect(ts, TK::KW_enum);
     var ident = ts_expect(ts, TK::Ident);
     ts_expect(ts, TK::KW_in);
-    var enum_type = tt_get_type_or_make_undefined(tt, token_value(ident));
+    var enum_type = tt_get_type_or_make_undefined(tt, ident.value);
     if not type_is_undefined(enum_type) then
-        printf("ERROR: type `%s` already defined.", token_value(ident));
+        printf("ERROR: type `%s` already defined.", ident.value);
         print_token_loc(ident);
         exit(1);
     end
@@ -1128,7 +1128,7 @@ def parse_enum ts, st, tt in
         if not val then
             val = make_ast_integer(val_id, cur_value);
         end
-        vector_push(values, make_enum_value(val_id, token_value(val_id), val));
+        vector_push(values, make_enum_value(val_id, val_id.value, val));
         cur_value += 1;
     end
     ts_expect(ts, TK::KW_end);
@@ -1136,10 +1136,10 @@ def parse_enum ts, st, tt in
     type_set_kind(enum_type, TyK_enum);
     type_set_enum_values(enum_type, values);
     type_set_size(enum_type, PTR_BITS);
-    // var enum_symbol = st_make_enum(st, token_value(ident), ident);
+    // var enum_symbol = st_make_enum(st, ident.value, ident);
     // symbol_set_type(enum_symbol, enum_type);
     //return make_ast_enum(enum_, symbol_name(enum_symbol), enum_type, values);
-    return make_ast_enum(enum_, token_value(ident), enum_type, values);
+    return make_ast_enum(enum_, ident.value, enum_type, values);
 end
 
 def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
@@ -1166,14 +1166,14 @@ def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
             parsed = parse_enum(ts, st, tt);
         else
             tk = ts_peek(ts);
-            printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(token_kind(tk)));
+            printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(tk.kind));
             print_token(tk);
             print_token_loc(tk);
             exit(1);
         end
 
         if not parsed then
-            printf("ERROR: Unhandled parse error for %s\n", token_kind_cstr(token_kind(tk)));
+            printf("ERROR: Unhandled parse error for %s\n", token_kind_cstr(tk.kind));
             print_token_loc(tk);
             exit(1);
         end

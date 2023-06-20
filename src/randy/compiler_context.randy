@@ -109,11 +109,11 @@ def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
         return;
     end
     var str = make_string(20);
-    var id = compiler_context_get_file_id(self, src_loc_filename(src_loc));
+    var id = compiler_context_get_file_id(self, src_loc.filename);
     string_append_cstr(str, "    .loc ");
     string_append_int(str, id);
     string_push(str, ' ');
-    string_append_int(str, src_loc_line(src_loc));
+    string_append_int(str, src_loc.line);
     cc_out(self, string_cstr(str));
     free_string(str);
 end

@@ -30,7 +30,7 @@ def ts_peekk self: TokenStream&, kind: TK -> bool in
         return false;
     end
 
-    return token_kind(peek) == kind;
+    return peek.kind == kind;
 end
 
 def ts_peekk_one_of_2 self: TokenStream&, k1: TK, k2: TK -> bool in
@@ -38,7 +38,7 @@ def ts_peekk_one_of_2 self: TokenStream&, k1: TK, k2: TK -> bool in
     if not peek then
         return false;
     end
-    var tk = token_kind(peek);
+    var tk = peek.kind;
     return tk == k1 or tk == k2;
 end
 
@@ -47,7 +47,7 @@ def ts_peekk_one_of_3 self: TokenStream&, k1: TK, k2: TK, k3: TK -> bool in
     if not peek then
         return false;
     end
-    var tk = token_kind(peek);
+    var tk = peek.kind;
     return tk == k1 or tk == k2 or tk == k3;
 end
 
@@ -56,7 +56,7 @@ def ts_peekk_one_of_4 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK -> bool
     if not peek then
         return false;
     end
-    var tk = token_kind(peek);
+    var tk = peek.kind;
     return tk == k1 or tk == k2 or tk == k3 or tk == k4;
 end
 
@@ -65,7 +65,7 @@ def ts_peekk_one_of_5 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK, k5: TK
     if not peek then
         return false;
     end
-    var tk = token_kind(peek);
+    var tk = peek.kind;
     return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
 end
 
@@ -77,7 +77,7 @@ end
 
 def ts_accept self: TokenStream&, kind: TK -> Token& in
     var tmp = ts_peek(self);
-    if tmp and token_kind(tmp) == kind then
+    if tmp and tmp.kind == kind then
         return ts_next(self);
     end
     return cast(NULL, Token&);
@@ -89,7 +89,7 @@ def ts_expect self: TokenStream&, kind: TK -> Token& in
         printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
         exit(1);
     end
-    var tmp_k = token_kind(tmp);
+    var tmp_k = tmp.kind;
     if tmp_k != kind then
         printf("ERROR: Expected token kind %s (%d), got %s\n",
             token_kind_cstr(kind),
