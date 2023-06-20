@@ -870,7 +870,7 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
         if error then
             printf("ERROR: type `");
             tt_print_type_name(tt, type);
-            printf("` has no member `%s.`\n", member);
+            printf("` has no member `%s.` (scope_resolve_type)\n", member);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
@@ -913,7 +913,7 @@ def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
         if error then
             printf("ERROR: type `");
             tt_print_type_name(tt, type);
-            printf("` has no member `%s.`\n", member);
+            printf("` has no member `%s.` (scope_resolve_def)\n", member);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end

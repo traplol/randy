@@ -97,7 +97,7 @@ def ti_infer_call self, tt, st, ast -> type in
         call_symbol = st_get_symbol(st, ast_ident(expr));
         call_type = symbol_type(call_symbol);
     elif ast_kind(expr) == AstK_ScopeResolve then
-        call_type = scope_resolve_type(tt, expr, true);
+        call_type = scope_resolve_type(tt, expr, false);
         if not type_is_def(call_type) then
             ti_infer_vector(self, tt, st, ast_args(ast));
             return tt_any_type(tt);
@@ -470,7 +470,7 @@ def ti_infer_member_access self, tt, st, ast in
     if not ftype then
         printf("ERROR: type `");
         tt_print_type_name(tt, type);
-        printf("` has no member `%s.`\n", ast_member(ast));
+        printf("` has no member `%s.` (ti_infer_member_access)\n", ast_member(ast));
         print_ast_src_loc(ast);
         exit(1);
     end
@@ -502,7 +502,7 @@ def ti_infer_sizeof_expr self, tt, st, ast in
 end
 
 def ti_infer_scope_resolve self, tt, st, ast in
-    return scope_resolve_type(tt, ast, true);
+    return scope_resolve_type(tt, ast, false);
 end
 
 def ti_infer self, tt, st, ast -> type in

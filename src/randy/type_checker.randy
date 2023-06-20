@@ -478,7 +478,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         while i < len do
             var ev = cast(vector_get(enum_vals, i), EnumValue&);
             if cstr_eq(ev.name, member) then
-                return; // OK.
+                return; // OK. found enum value
             end
             i += 1;
         end
@@ -488,7 +488,31 @@ def tc_check_scope_resolve self, tt, st, ast in
         print_ast_src_loc(ast);
         g_Errors += 1;
     elif type_is_struct(type) then
-        assert(false, "TODO: scope resolution operator for structs\n");
+        var fields = type_struct_fields(type);
+        var i = 0; var len = fields.length;
+        while i < len do
+            var field = cast(vector_get(fields, i), Field&);
+            if cstr_eq(field.name, member) then
+                return; // OK. found field
+            end
+            i += 1;
+        end
+
+        var defs = type_struct_defs(type);
+        i = 0; len = defs.length;
+        while i < len do
+            var def_sym = cast(vector_get(defs, i), Symbol&);
+            if cstr_eq(def_sym.name, member) then
+                return; // OK. found def
+            end
+            i += 1;
+        end
+
+        printf("ERROR: struct `");
+        tt_print_type_name(tt, type);
+        printf("` has no member `%s.`\n", member);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
     elif type_is_union(type) then
         assert(false, "TODO: scope resolution operator for unions\n");
     else
