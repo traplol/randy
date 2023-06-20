@@ -48,7 +48,7 @@ asm __builtin_trap in
 "
 end
 
-asm __builting_break in
+asm __builtin_break in
 "
     int3
 "
