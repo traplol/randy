@@ -15,7 +15,7 @@ def make_string init: int -> String& in
     self.buffer = buf;
     self.length = 0;
     self.capacity = init;
-    
+
     return self;
 end
 
@@ -55,6 +55,9 @@ def string_set self: String&, idx: int, val: char in
 end
 
 def string_resize self: String&, new_cap: int in
+    if new_cap < self.length or new_cap < self.capacity then
+        return;
+    end
     var new = malloc(new_cap);
     var old = self.buffer;
     var len = self.length;
@@ -105,13 +108,21 @@ def string_append_string self: String&, string: String& in
     end
 end
 
+extern strlen str: cstr -> int;
 def string_append_cstr self: String&, cstr: cstr in
-    var i = 0;
-    while u8@(cstr) do
-        string_push(self, u8@(cstr));
-        cstr += 1;
-        i += 1;
-    end
+    var n = strlen(cstr);
+    string_resize(self, self.length + n);
+    var str_end = self.buffer + self.length;
+    memcpy(str_end, cstr, n);
+    self.length += n;
+
+    // slow pure-randy impl
+    // var i = 0;
+    // while u8@(cstr) do
+    //     string_push(self, u8@(cstr));
+    //     cstr += 1;
+    //     i += 1;
+    // end
 end
 
 def string_from_cstr cstr: cstr -> String& in
