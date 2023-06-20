@@ -283,11 +283,10 @@ def make_ast_const token: Token&, ident: cstr, expr: ast -> ast in
     return self;
 end
 
-def make_ast_extern token: Token&, ident: cstr, params: Vector&, varargs: bool -> ast in
+def make_ast_extern token: Token&, ident: cstr, type: type -> ast in
     var self = _make_ast(AstK_Extern, false, token);
     u64!(self + TAST_ident, ident);
-    u64!(self + TAST_varargs, varargs);
-    u64!(self + TAST_params, params);
+    u64!(self + TAST_type, type);
     return self;
 end
 
@@ -664,24 +663,8 @@ def _print_ast_global ast, indent in
 end
 
 def _print_ast_extern ast, indent in
-    printf("extern %s", ast_ident(ast));
-    var i = 0;
-    var params = ast_params(ast);
-    var len = params.length;
-    while i < len do
-        printf(" %s", vector_get(params, i));
-        i += 1;
-        if i < len then
-            printf(",");
-        end
-    end
-    if ast_varargs(ast) then
-        if len != 0 then
-            printf(", ...");
-        else
-            printf(", ...");
-        end
-    end
+    printf("extern %s: ", ast_ident(ast));
+    tt_print_type_name(g_TypeTable, ast_type(ast));
 end
 
 def _print_ast_inline_asm ast, indent in

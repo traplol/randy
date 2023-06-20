@@ -115,7 +115,7 @@ def string_append_string self: String&, string: String& in
     // end
 end
 
-extern strlen str: cstr -> int;
+extern strlen: (cstr -> int);
 def string_append_cstr self: String&, cstr: cstr in
     var n = strlen(cstr);
     if n + self.length > self.capacity then

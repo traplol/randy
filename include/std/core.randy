@@ -2,16 +2,16 @@
 #include syscall
 #include file
 
-extern puts cstr;
-extern printf fmt, ...;
-extern fprintf file, fmt, ...;
-extern fflush file;
-extern putchar char;
+extern puts: (cstr -> int);
+extern printf: (cstr, ... -> int);
+extern fprintf: (ptr, cstr, ... -> int);
+extern fflush: (ptr -> int);
+extern putchar: (char -> int);
 
-extern stdin;
-extern stdout;
-extern stderr;
-extern strerror errnum;
+extern stdin: ptr;
+extern stdout: ptr;
+extern stderr: ptr;
+extern strerror: (int -> cstr);
 
 const true: bool = cast(1, bool);
 const false: bool = cast(0, bool);

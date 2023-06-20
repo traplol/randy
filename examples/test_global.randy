@@ -1,5 +1,5 @@
 
-extern printf fmt, ...;
+extern printf: (cstr, ... -> int);
 
 global string = "hello world";
 global foo = 42;

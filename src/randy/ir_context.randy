@@ -1090,7 +1090,7 @@ def _comptime_scope_resolve_val self, ast, st, tt, depth in
             end
             i += 1;
         end
-        assert(false, "Error should have been reported in type checker\n");
+        assert(false, "Error should have been reported in type checker, type Enum::Value doesn't exist\n");
     end
 end
 
@@ -1263,7 +1263,7 @@ def ir_emit_body self, body, st, tt in
         i += 1;
     end
 end
-        
+
 def ir_emit_ident self, ast, st, tt in
     check_ast_kind(AstK_Ident, ast);
 
@@ -1690,9 +1690,12 @@ end
 def ir_emit_extern self, ast, st, tt in
     check_ast_kind(AstK_Extern, ast);
     var ident = ast_ident(ast);
-    var params = ast_params(ast);
-    var is_varargs = ast_varargs(ast);
-    ir_add_extern(self, ident, params, is_varargs);
+    var type = ast_type(ast);
+    var is_varargs = false;
+    if type_is_def(type) then
+        is_varargs = type_def_varargs(type);
+    end
+    ir_add_extern(self, ident, NULL, is_varargs);
 end
 
 def ir_emit_inline_asm self, ast, st, tt in

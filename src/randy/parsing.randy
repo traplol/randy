@@ -367,7 +367,7 @@ def parse_assert ts, st, tt in
                         make_ast_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
     vector_push(body, make_ast_call(assert_,
-                        make_ast_ident(assert_, symbol_name(abort_symbol)), make_vector(0))); 
+                        make_ast_ident(assert_, symbol_name(abort_symbol)), make_vector(0)));
 
     test = make_ast_prefix(assert_, TK::KW_not, test);
     var ast = make_ast_if_else(assert_, test, body, make_vector(0));
@@ -759,7 +759,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
     end
     return stmt;
 end
-    
+
 def parse_statements_until ts, st, tt, into, kind in
     if ts_peekk(ts, kind) then
         return;
@@ -895,92 +895,25 @@ end
 def parse_extern ts, st, tt in
     var extern_ = ts_expect(ts, TK::KW_extern);
     var ident = ts_expect(ts, TK::Ident);
+    ts_expect(ts, TK::Colon);
+    var type = parse_type(ts, st, tt, true);
     var is_varargs = false;
-    var def_symbol = st_get_symbol_here(st, ident.value);
-    if def_symbol then
-        if symbol_is_undef(def_symbol) then
-            symbol_set_kind(def_symbol, SymbolKind::Extern);
+    var extern_symbol = st_get_symbol_here(st, ident.value);
+    if extern_symbol then
+        if symbol_is_undef(extern_symbol) then
+            symbol_set_kind(extern_symbol, SymbolKind::Extern);
         else
             printf("ERROR: extern `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(def_symbol));
+            print_token_loc(symbol_token(extern_symbol));
             exit(1);
         end
     else
-        def_symbol = st_make_extern(st, ident.value, ident);
+        extern_symbol = st_make_extern(st, ident.value, ident);
     end
-    st_push_scope(st);
-    var body = make_vector(0);
-    var params = make_vector(0);
-    var param_symbols = make_vector(0);
-    var any_type = tt_any_type(tt);
-    var return_type = NULL;
-    while ts_peekk(ts, TK::Ident) do
-        var param_id = ts_next(ts);
-        var param_symbol = st_get_symbol_here(st, param_id.value);
-        if param_symbol then
-            printf("ERROR: param `%s` already defined.\n", param_id.value);
-            print_token_loc(param_id);
-            exit(1);
-        end
-        param_symbol = st_make_param(st, param_id.value, param_id);
-        vector_push(params, symbol_name(param_symbol));
-        vector_push(param_symbols, param_symbol);
-        if ts_peekk(ts, TK::Semicolon) then
-            symbol_set_type(param_symbol, any_type);
-            break;
-        elif ts_accept(ts, TK::Colon) then
-            var peek = ts_peek(ts);
-            var type = parse_type(ts, st, tt, false);
-            var ty_params = type_params(type);
-            if ty_params and ty_params.length != 0 then
-                printf("ERROR: 'extern' does not support generics.\n");
-                print_token_loc(peek);
-                exit(1);
-            end
-            symbol_set_type(param_symbol, type);
-            if ts_accept(ts, TK::RightArrow) then
-                return_type = parse_type(ts, st, tt, false);
-                break;
-            end
-            ts_expect(ts, TK::Comma);
-        elif ts_peekk(ts, TK::RightArrow) then
-            symbol_set_type(param_symbol, any_type);
-            break;
-        else
-            symbol_set_type(param_symbol, any_type);
-            ts_expect(ts, TK::Comma);
-        end
-    end
-    st_pop_scope(st);
-    if not return_type then
-        if ts_accept(ts, TK::Ellipsis) then
-            is_varargs = true;
-        end
-        if ts_accept(ts, TK::RightArrow) then
-            return_type = parse_type(ts, st, tt, true);
-        else
-            return_type = any_type;
-        end
-    end
-    var rty_params = type_params(return_type);
-    if rty_params and rty_params.length != 0 then
-        printf("ERROR: 'extern' does not support generics.\n");
-        print_token_loc(extern_);
-        exit(1);
-    end
-
-    var param_types = make_vector(param_symbols.length);
-    var i = 0; var len = param_symbols.length;
-    while i < len do
-        vector_push(param_types, symbol_type(vector_get(param_symbols, i)));
-        i += 1;
-    end
-    free_vector(param_symbols);
-    var def_type = tt_make_anon_def(tt, return_type, param_types, is_varargs);
-    symbol_set_type(def_symbol, def_type);
-    return make_ast_extern(extern_, symbol_name(def_symbol), params, is_varargs);
+    symbol_set_type(extern_symbol, type);
+    return make_ast_extern(extern_, symbol_name(extern_symbol), type);
 end
 
 def parse_asm ts, st, tt in

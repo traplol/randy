@@ -1,10 +1,10 @@
 #include core
 
-extern malloc size: int -> ptr;
-extern calloc num: int, size: int -> ptr;
-extern free ptr: ptr -> void;
-extern memcpy dest: ptr, src: ptr, n: int -> ptr;
-extern memset s: ptr, c: char, n: int -> ptr;
+extern malloc: (int -> ptr);
+extern calloc: (int, int -> ptr);
+extern free: (ptr -> void);
+extern memcpy: (ptr, ptr, int -> ptr);
+extern memset: (ptr, char, int -> ptr);
 
 // def _malloc_logger pointer in
 //     printf("malloc'd %p\n", pointer);
