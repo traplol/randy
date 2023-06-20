@@ -101,11 +101,15 @@ def string_back self: String& -> char in
 end
 
 def string_append_string self: String&, string: String& in
-    var i = 0; var len = string.length;
-    while i < len do
-        string_push(self, string_get(string, i));
-        i += 1;
-    end
+    string_resize(self, self.length + string.length);
+    memcpy(self.buffer + self.length, string.buffer, string.length);
+    self.length += string.length;
+
+    // var i = 0; var len = string.length;
+    // while i < len do
+    //     string_push(self, string_get(string, i));
+    //     i += 1;
+    // end
 end
 
 extern strlen str: cstr -> int;
@@ -116,7 +120,6 @@ def string_append_cstr self: String&, cstr: cstr in
     memcpy(str_end, cstr, n);
     self.length += n;
 
-    // slow pure-randy impl
     // var i = 0;
     // while u8@(cstr) do
     //     string_push(self, u8@(cstr));
@@ -126,12 +129,18 @@ def string_append_cstr self: String&, cstr: cstr in
 end
 
 def string_from_cstr cstr: cstr -> String& in
-    var string = make_string(2);
-    while u8@(cstr) do
-        string_push(string, u8@(cstr));
-        cstr += 1;
-    end
+    var n = strlen(cstr);
+    var string = make_string(n);
+    memcpy(string.buffer, cstr, n);
+    string.length = n;
     return string;
+
+    // var string = make_string(2);
+    // while u8@(cstr) do
+    //     string_push(string, u8@(cstr));
+    //     cstr += 1;
+    // end
+    // return string;
 end
 
 def string_eq string_a: String&, string_b: String& -> bool in
