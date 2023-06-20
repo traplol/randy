@@ -68,42 +68,45 @@ def parse_type ts, st, tt, is_instance in
         return parse_def_type(ts, st, tt, is_instance);
     end
     var type_ident = ts_expect(ts, TK::Ident);
-    var inst_params = NULL;
+    var type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
     var generic_params = NULL;
     if ts_accept(ts, TK::LSquare) then
-        if is_instance then
-            inst_params = make_vector(0);
-            while ts_peekk(ts, TK::Ident) do
-                var inst_type = parse_type(ts, st, tt, true);
-                vector_push(inst_params, inst_type);
-                if ts_peekk(ts, TK::RSquare) then
-                    break;
-                end
-                ts_expect(ts, TK::Comma);
+        if not is_instance and tt.type_scope.length <= 1 then
+            printf("type_ident = %s\n", token_value(type_ident));
+            print_token_loc(type_ident);
+            assert(false, "Compiler bug? type_scope depth should probably be >1 when parsing a generic.");
+        end
+        generic_params = make_vector(0);
+        while ts_peekk(ts, TK::Ident) do
+            var type = parse_type(ts, st, tt, true);
+            vector_push(generic_params, type);
+            if ts_peekk(ts, TK::RSquare) then
+                break;
             end
-        else
-            generic_params = make_vector(0);
-            while ts_peekk(ts, TK::Ident) do
-                vector_push(generic_params, token_value(ts_next(ts)));
-                if ts_peekk(ts, TK::RSquare) then
-                    break;
-                end
-                ts_expect(ts, TK::Comma);
-            end
+            ts_expect(ts, TK::Comma);
         end
         ts_expect(ts, TK::RSquare);
     end
 
-    if generic_params then
-        return tt_make_generic_undefined(tt, token_value(type_ident), generic_params);
+    if type_is_generic(type) and not generic_params then
+        assert(type_params(type));
+        printf("ERROR: type `%s` expects %d type parameters.\n",
+               token_value(type_ident), type_params(type).length);
+        print_token_loc(type_ident);
+        exit(1);
     end
 
-    var type;
-    if inst_params then
-        type = tt_make_generic_instance(tt, token_value(type_ident), inst_params);
-    else
-        type = tt_get_type_or_make_undefined(tt, token_value(type_ident));
+    if generic_params then
+        if is_instance then
+            type = tt_create_type_instance_of(tt, type, generic_params);
+        else
+            type_set_is_generic(type, true);
+            type_set_params(type, generic_params);
+        end
     end
+
+    assert(type);
+
     if ts_accept(ts, TK::Amper) then
         type = tt_get_reference_to_type(tt, type);
     end
@@ -1039,7 +1042,7 @@ def parse_global ts, st, tt in
 end
 
 def parse_struct ts, st, tt in
-    // TODO need to push/pop a "type" scope for generics.
+    tt_push_scope(tt);
     var struct_ = ts_expect(ts, TK::KW_struct);
     var struct_type = NULL;
     if not ts_accept(ts, TK::KW_in) then
@@ -1095,6 +1098,8 @@ def parse_struct ts, st, tt in
 
     var ast = make_ast_struct(struct_, struct_type, fields, defs);
     type_set_ast(struct_type, ast);
+    tt_pop_scope(tt);
+    tt_set_local_type(tt, struct_type);
     return ast;
 end
 

@@ -96,7 +96,7 @@ def main argc: int, argv: ptr in
         var do_print_ast = false;
         var will_compile = true;
         var ld_flags = make_vector(0);
-        
+
         i = 1; var p: cstr;
         while i < argc do
             var arg = cast(u64@(argv + i*sizeof_PTR), cstr);
@@ -185,7 +185,22 @@ def main argc: int, argv: ptr in
         var starttime = make_empty_timespec();
         var endtime = make_empty_timespec();
 
+        // Compilation phases are as follows:
+        // 1) lex source code into tokens and resolve directives
+        // 2) parse source code into Abstract Syntax Tree (AST)
+        // 3) instantiate generic types
+        // 4) calculate struct sizes
+        // 5) type infer the entire AST
+        // 6) calculate all code reachable from `main`
+        // 7) type check only reachable code
+        // 8) AST rewriting: inlining, defer generation, etc.
+        // 9) lower AST into Intermediate Representation (IR)
+        // 10) optimizations
+        // 11) emit target architecture from final IR
+
         time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 1) lex source code
         var tokens = lex_file(string_cstr(abspath), include_paths);
         if not tokens then
             return 1;
@@ -197,6 +212,8 @@ def main argc: int, argv: ptr in
         end
 
         time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 2) parse tokens into AST
         var type_table = make_type_table();
         g_TypeTable = type_table;
         var symbol_table = make_symbol_table();
@@ -210,25 +227,42 @@ def main argc: int, argv: ptr in
             print_timespan("Parsing took: ", starttime, endtime);
         end
 
+        time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 3) instantiate types
+        tt_instantiate_types(type_table);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 4) calculate struct size
+        tt_calculate_structs(type_table);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 5) type inference
+
+        // FIXME: This runs type inference on the entire AST, then gathers all of the code reachable
+        // from main then runs type inference AGAIN on that.
+        // I believe the main reason we want type inference before calculating the reachable code
+        // is for resolving method calls with the dot operator in code with no explicit typing.
+        type_infer(type_table, symbol_table, roots);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 6) calculate code reachable from "main"
         var compile_order = compile_order_main(roots, type_table, symbol_table);
         if not compile_order then
             printf("ERROR: no `main` procedure.\n");
             return 1;
         end
-
-        time(starttime);
-        tt_calculate_structs(type_table);
         type_infer(type_table, symbol_table, compile_order);
         time(endtime);
         if verbosity > 0 then
             print_timespan("Type inference took: ", starttime, endtime);
         end
 
+
         if do_print_ast then
             print_compile_ast(compile_order);
         end
 
         time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 7) type checking
         type_check(type_table, symbol_table, compile_order);
         time(endtime);
         if verbosity > 0 then
@@ -240,7 +274,12 @@ def main argc: int, argv: ptr in
             return 1;
         end
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 8) TODO: AST rewriting
+
         time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 9) low AST into IR
         var irctx = make_ir_context();
         ir_compile_roots(irctx, roots, symbol_table, type_table, compile_order);
         time(endtime);
@@ -268,7 +307,12 @@ def main argc: int, argv: ptr in
             exit_def = "_def_exit";
         end
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 10) TODO optimizations
+
         time(starttime);
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // 11) Generate target arch from IR
         var cctx = make_compiler_context(debug);
         cc_out(cctx, ".text");
         cc_out_files(irctx, cctx);

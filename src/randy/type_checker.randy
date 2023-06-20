@@ -455,9 +455,9 @@ def tc_check_assign_member self, tt, st, ast in
 
     printf("ERROR: the type of `%s` is `", ast_member(lhs));
     tt_print_type_name(tt, lhs_type);
-    printf("` which is not assignable by `");
+    printf("` (%d) which is not assignable by `", type_id(lhs_type));
     tt_print_type_name(tt, rhs_type);
-    printf(".`\n");
+    printf(".` (%d)\n", type_id(rhs_type));
     print_ast_src_loc(ast);
     g_Errors += 1;
 end

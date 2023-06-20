@@ -468,7 +468,7 @@ def ti_infer_member_access self, tt, st, ast in
         if not type_is_struct(ref_type) then
             printf("ERROR: type `");
             tt_print_type_name(tt, ref_type);
-            printf("` is not a struct. did you forget a cast?\n");
+            printf("` is not a struct; it's a (%d). did you forget a cast?\n", type_kind(ref_type));
             printf("NOTE: the expression was: ");
             print_ast(ast);
             print_ast_src_loc(ast);
