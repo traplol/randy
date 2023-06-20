@@ -101,9 +101,12 @@ def string_back self: String& -> char in
 end
 
 def string_append_string self: String&, string: String& in
-    string_resize(self, self.length + string.length);
+    var new_len = self.length + string.length;
+    if new_len > self.capacity then
+        string_resize(self, new_len);
+    end
     memcpy(self.buffer + self.length, string.buffer, string.length);
-    self.length += string.length;
+    self.length = new_len;
 
     // var i = 0; var len = string.length;
     // while i < len do
@@ -115,7 +118,9 @@ end
 extern strlen str: cstr -> int;
 def string_append_cstr self: String&, cstr: cstr in
     var n = strlen(cstr);
-    string_resize(self, self.length + n);
+    if n + self.length > self.capacity then
+        string_resize(self, self.length + n);
+    end
     var str_end = self.buffer + self.length;
     memcpy(str_end, cstr, n);
     self.length += n;
