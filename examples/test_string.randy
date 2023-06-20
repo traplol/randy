@@ -13,7 +13,7 @@ def test_strings in
     printf("Testing strings.\n");
     var empty = string_from_cstr("");
     test("empty len is 0", 0 == string_len(empty));
-    
+
     var str = make_string(0);
     test("str len is 0", 0 == string_len(str));
     test("str cap is 0", 0 == string_cap(str));
@@ -39,7 +39,7 @@ def test_strings in
     test("str is equal to str", string_eq(str, str));
     test("str is equal to other", string_eq(str, other));
     test("other is equal to str", string_eq(other, str));
-    
+
     string_append_cstr(other, "1234");
     test("appended cstr \"1234\" to other", cstr_eq("abcd1234", string_cstr(other)));
     test("other new len is 8", 8 == string_len(other));
