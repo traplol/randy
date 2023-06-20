@@ -713,10 +713,10 @@ def _print_ast_struct ast, indent in
     var fields = ast_fields(ast);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = vector_get(fields, i);
+        var field = cast(vector_get(fields, i), Field&);
         _print_indent(indent+1);
-        printf("%s: ", field_name(field));
-        tt_print_type_name(g_TypeTable, field_type(field));
+        printf("%s: ", field.name);
+        tt_print_type_name(g_TypeTable, field.type);
         printf("\n");
         i += 1;
     end

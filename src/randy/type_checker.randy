@@ -27,7 +27,7 @@ def _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
-        
+
     if not types_assignable(tt, sym_type, rhs_type) then
         printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
         tt_print_type_name(tt, sym_type);
@@ -398,8 +398,8 @@ def tc_check_member_access self, tt, st, ast in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = vector_get(fields, i);
-        if cstr_eq(field_name(field), member) then
+        var field = cast(vector_get(fields, i), Field&);
+        if cstr_eq(field.name, member) then
             found = true;
             break;
         end

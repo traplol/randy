@@ -5,7 +5,7 @@ def read_file_to_string path: cstr -> String& in
         printf("error reading file: (%d) %s\n", fd, path);
         return cast(NULL, String&);
     end
-    
+
     var buf = malloc(1024);
     var running = 1;
     var result = 0;
@@ -116,7 +116,7 @@ def string_append_int string: String&, n: int in
         k *= 10;
     end
     k /= 10;
-        
+
     while k != 0 do
         string_push(string, '0' + (n / k));
         n %= k;

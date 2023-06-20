@@ -1776,11 +1776,11 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         end
         assert(type_is_struct(struct_type), "Error should have been reported in type checker\n");
         var fields = type_struct_fields(struct_type);
-        var field = NULL;
+        var field: Field& = NULL;
         var i = 0; var len = fields.length;
         while i < len do
             field = vector_get(fields, i);
-            if cstr_eq(field_name(field), member) then
+            if cstr_eq(field.name, member) then
                 break;
             end
             i += 1;
@@ -1791,7 +1791,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         // isn't implemented yet.
         assert(i < len, "TODO: update ir_emit_member_access for defs\n");
         assert(field, "Compiler bug: field should not be NULL\n");
-        var offs = field_bit_offset(field);
+        var offs = field.bit_offset;
         assert(offs >= 0, "Compiler bug: field offset should be >= 0\n");
         offset += offs;
         if type_is_reference(type) then
@@ -1801,7 +1801,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         //assert(not type_is_reference(type), "TODO: implement auto-deref reference types\n");
         head = ast_expr(head);
     end
-    
+
     var head_type = tt_get_ast_type(tt, head);
     assert(head_type);
     if type_is_struct(head_type) and ast_kind(head) == AstK_Ident then
@@ -1844,15 +1844,15 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         var fields = type_struct_fields(type);
         var i = 0; var len = fields.length;
         var member = ast_member(ast);
-        var field;
+        var field: Field&;
         while i < len do
             field = vector_get(fields, i);
-            if cstr_eq(field_name(field), member) then
+            if cstr_eq(field.name, member) then
                 break;
             end
             i += 1;
         end
-        var size = type_size(field_type(field));
+        var size = type_size(field.type);
         assert(size > 0, "Compiler bug: size cannot be zero for auto-deref\n");
         assert(size <= PTR_BITS, "TODO: support larger than memory read: %d\n", size);
         ir_append(self, make_ir_ptr_read(size));

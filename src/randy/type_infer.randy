@@ -1,50 +1,38 @@
 // handle a minimal amount of errors here, defer most type errors to the type checker.
 
-const TTYPE_INFER_cur_defs   = 0;  // stack of defs
-const TTYPE_INFER_did_returns = 8;  // stack of bools
-const TTYPE_INFER_again       = 16; // set of def symbols
-const sizeof_TTYPE_INFER = 24;
-
-def make_type_infer -> type_infer in
-    var self = malloc(sizeof_TTYPE_INFER);
-    u64!(self + TTYPE_INFER_cur_defs, make_vector(0));
-    u64!(self + TTYPE_INFER_did_returns, make_string(0));
-    u64!(self + TTYPE_INFER_again, make_set(0, NULL, NULL));
-    return cast(self, type_infer);
+struct TypeInfer in
+    cur_defs: Vector&;
+    did_returns: String&;
+    again: set;
 end
 
-def type_infer_cur_defs self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_cur_defs), Vector&);
-end
-def type_infer_did_returns self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_did_returns), String&);
-end
-def type_infer_again self: type_infer in
-    return cast(u64@(self + TTYPE_INFER_again), set);
-end
-def type_infer_set_again self: type_infer, set: set in
-    u64!(self + TTYPE_INFER_again, set);
+def make_type_infer -> TypeInfer& in
+    var self: TypeInfer& = malloc(__sizeof(TypeInfer));
+    self.cur_defs = make_vector(0);
+    self.did_returns = make_string(0);
+    self.again = make_set(0, NULL, NULL);
+    return self;
 end
 
-def free_type_infer self: type_infer in
+def free_type_infer self: TypeInfer& in
     if self then
-        free_vector(type_infer_cur_defs(self));
-        free_string(type_infer_did_returns(self));
-        free_set(type_infer_again(self));
+        free_vector(self.cur_defs);
+        free_string(self.did_returns);
+        free_set(self.again);
         free(self);
     end
 end
 
 def ti_current_def self in
-    return vector_back(type_infer_cur_defs(self));
+    return vector_back(self.cur_defs);
 end
 
 def ti_did_return self in
-    return string_back(type_infer_did_returns(self));
+    return string_back(self.did_returns);
 end
 
 def ti_set_did_return self, val in
-    var str = type_infer_did_returns(self);
+    var str = self.did_returns;
     var len = str.length;
     if len > 0 then
         string_set(str, len - 1, val);
@@ -52,13 +40,13 @@ def ti_set_did_return self, val in
 end
 
 def ti_push_def self, def_symbol in
-    vector_push(type_infer_cur_defs(self), def_symbol);
-    string_push(type_infer_did_returns(self), 0);
+    vector_push(self.cur_defs, def_symbol);
+    string_push(self.did_returns, 0);
 end
 
 def ti_pop_def self in
-    vector_pop(type_infer_cur_defs(self));
-    string_pop(type_infer_did_returns(self));
+    vector_pop(self.cur_defs);
+    string_pop(self.did_returns);
 end
 
 def ti_infer_vector self, tt, st, vector in
@@ -158,8 +146,8 @@ def ti_infer_call self, tt, st, ast -> type in
     end
     if changed then
         var def_ast = type_ast(call_type);
-        if def_ast and not set_contains(type_infer_again(self), call_symbol) then
-            set_add(type_infer_again(self), call_symbol);
+        if def_ast and not set_contains(self.again, call_symbol) then
+            set_add(self.again, call_symbol);
             // FIXME: is there a better way to do this without recursion?
             ti_infer_def(self, tt, st, def_ast);
         end
@@ -303,7 +291,6 @@ def ti_infer_assign_op self, tt, st, ast -> type in
         printf(".`\nNOTE: The expression is: ");
         print_ast(ast);
         print_token_loc(ast_token(ast));
-        //exit(1);
         return tt_void_type(tt);
     end
 
@@ -339,7 +326,6 @@ end
 
 def ti_infer_if_else self, tt, st, ast -> type in
     check_ast_kind(AstK_IfElse, ast);
-    // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
     ti_infer_vector(self, tt, st, ast_consequence(ast));
     ti_infer_vector(self, tt, st, ast_alternative(ast));
@@ -348,7 +334,6 @@ end
 
 def ti_infer_while self, tt, st, ast -> type in
     check_ast_kind(AstK_While, ast);
-    // TODO: check test is bool compatible
     ti_infer(self, tt, st, ast_test(ast));
     ti_infer_vector(self, tt, st, ast_body(ast));
     return tt_void_type(tt);
@@ -437,9 +422,9 @@ def _ti_get_field_type type, member in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = vector_get(fields, i);
-        if cstr_eq(field_name(field), member) then
-            return field_type(field);
+        var field = cast(vector_get(fields, i), Field&);
+        if cstr_eq(field.name, member) then
+            return field.type;
         end
         i += 1;
     end
@@ -576,11 +561,11 @@ def type_infer type_table, symbol_table, compile_order: Vector& in
 
     // TODO: prove this terminates or design an alternate solution.
     while true do
-        var again = type_infer_again(self);
+        var again = self.again;
         if set_len(again) == 0 then
             break;
         end
-        type_infer_set_again(self, make_set(0, NULL, NULL));
+        self.again = make_set(0, NULL, NULL);
         var cur = set_begin(again);
         while cur != set_end(again) do
             var sym = cast(u64@(cur), Symbol&);

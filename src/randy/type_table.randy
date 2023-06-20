@@ -1,26 +1,18 @@
 
-const TFIELD_type       = 0;  // type
-const TFIELD_name       = 8;  // cstr
-const TFIELD_bit_offset = 16; // int
-const TFIELD_token      = 24; // Token&
-const sizeof_TFIELD = 32;
-
-def make_field type, name, bit_offset, token -> field in
-    var self = malloc(sizeof_TFIELD);
-    u64!(self + TFIELD_type, type);
-    u64!(self + TFIELD_name, name);
-    u64!(self + TFIELD_bit_offset, bit_offset);
-    u64!(self + TFIELD_token, token);
-    return cast(self, field);
+struct Field in
+    type: type;
+    name: cstr;
+    bit_offset: int;
+    token: Token&;
 end
 
-def field_type self: field -> type in return cast(u64@(self + TFIELD_type), type); end
-def field_name self: field -> cstr in return cast(u64@(self + TFIELD_name), cstr); end
-def field_bit_offset self: field -> int in return cast(u64@(self + TFIELD_bit_offset), int); end
-def field_token self: field -> Token& in return cast(u64@(self + TFIELD_token), Token&); end
-
-def field_set_bit_offset self: field, bit_offset: int in
-    u64!(self + TFIELD_bit_offset, bit_offset);
+def make_field type, name, bit_offset, token -> Field& in
+    var self: Field& = malloc(__sizeof(Field));
+    self.type = type;
+    self.name = name;
+    self.bit_offset = bit_offset;
+    self.token = token;
+    return self;
 end
 
 struct EnumValue in
@@ -64,7 +56,7 @@ const TTYPE_def_return_type = 48; // type
 const TTYPE_def_parameters  = 56; // symbol Vector&
 const TTYPE_def_varargs     = 64; // bool
 // struct
-const TTYPE_struct_fields = 48; // field Vector&
+const TTYPE_struct_fields = 48; // Field& Vector&
 const TTYPE_struct_defs   = 56; // def_symbol Vector&
 // enum
 const TTYPE_enum_values = 48; // EnumValue& Vector&
@@ -624,9 +616,9 @@ def tt_calculate_struct self, stype, again_q in
     var i = 0; var len = fields.length;
     var ptr_align = false;
     while i < len do
-        var field = vector_get(fields, i);
-        var fname = field_name(field);
-        var ftype = field_type(field);
+        var field = cast(vector_get(fields, i), Field&);
+        var fname = field.name;
+        var ftype = field.type;
 
         if type_is_reference(ftype) and not ptr_align then
             ptr_align = true;
@@ -640,7 +632,7 @@ def tt_calculate_struct self, stype, again_q in
         if not type_is_struct(ftype) then
             bit_offs = (bit_offs + (size - 1)) & -size; // align to nearest boundary
         end
-        field_set_bit_offset(field, bit_offs);
+        field.bit_offset = bit_offs;
         bit_offs += size;
         i += 1;
     end
@@ -659,8 +651,8 @@ def tt_detect_cycles self, stype in
     var fields = type_struct_fields(stype);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = vector_get(fields, i);
-        var ftype = field_type(field);
+        var field = cast(vector_get(fields, i), Field&);
+        var ftype = field.type;
         if ftype == stype then // immediate self-reference
             return true;
         end
@@ -679,8 +671,8 @@ def tt_detect_cycles self, stype in
         fields = type_struct_fields(v);
         i = 0; len = fields.length;
         while i < len do
-            var field = vector_get(fields, i);
-            var ftype = field_type(field);
+            var field = cast(vector_get(fields, i), Field&);
+            var ftype = field.type;
             if ftype == stype then
                 return true;
             end
@@ -701,9 +693,9 @@ def tt_check_struct_for_field_name_collisions self, type in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), field);
-        var fname = field_name(field);
-        var ftoke = field_token(field);
+        var field = cast(vector_get(fields, i), Field&);
+        var fname = field.name;
+        var ftoke = field.token;
         var found = map_find(member_name_map, fname);
         if found then
             printf("ERROR: struct `");
