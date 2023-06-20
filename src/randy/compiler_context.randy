@@ -52,12 +52,14 @@ end
 
 def cc_out self: compiler_context, cstr: cstr in
     var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
-    vector_push(lines, string_from_cstr(cstr));
+    var string = make_string(128);
+    string_append_cstr(string, cstr);
+    vector_push(lines, string);
     //printf("%s\n", cstr);
 end
 
 def cc_out_global self: compiler_context, cstr: cstr in
-    var str = make_string(20);
+    var str = make_string(128);
     string_append_cstr(str, "    .global ");
     string_append_cstr(str, cstr);
     cc_out(self, string_cstr(str));
@@ -65,7 +67,7 @@ def cc_out_global self: compiler_context, cstr: cstr in
 end
 
 def cc_out_extern self: compiler_context, cstr: cstr in
-    var str = make_string(20);
+    var str = make_string(128);
     string_append_cstr(str, ".extern ");
     string_append_cstr(str, cstr);
     cc_out(self, string_cstr(str));
@@ -73,7 +75,7 @@ def cc_out_extern self: compiler_context, cstr: cstr in
 end
 
 def cc_out_label self: compiler_context, cstr: cstr in
-    var str = make_string(20);
+    var str = make_string(128);
     string_append_cstr(str, cstr);
     string_push(str, ':');
     cc_out(self, string_cstr(str));
@@ -81,7 +83,14 @@ def cc_out_label self: compiler_context, cstr: cstr in
 end
 
 def cc_out_string self: compiler_context, string: String& in
-    var str = make_string(20);
+    // strings are represented in the format:
+    // .byte NNN, NNN, NNN, 0
+    // we can then assume the maximum length the string be is
+    //   6 + 5*length + 1
+    // where 6 is the ".byte " prefix,
+    //       5 is the "NNN, " representing a byte in the string
+    //       1 is the final nul-byte
+    var str = make_string(6 + 5*string.length + 1);
     string_append_cstr(str, ".byte ");
     var i = 0;
     var len = string.length;
@@ -108,7 +117,7 @@ def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
     if compiler_context_nodebug(self) then
         return;
     end
-    var str = make_string(20);
+    var str = make_string(32);
     var id = compiler_context_get_file_id(self, src_loc.filename);
     string_append_cstr(str, "    .loc ");
     string_append_int(str, id);
@@ -119,7 +128,7 @@ def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
 end
 
 def cc_out_file self: compiler_context, idx: int, filename: cstr in
-    var str = make_string(20);
+    var str = make_string(128);
     string_append_cstr(str, "    .file ");
     string_append_int(str, idx);
     string_append_cstr(str, " \"");
