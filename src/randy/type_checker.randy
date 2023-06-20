@@ -94,7 +94,11 @@ def tc_check_call self, tt, st, ast in
     var call_type = tt_get_ast_type(tt, ast_expr(ast));
     assert(call_type);
     if not type_is_def(call_type) then
-        printf("ERROR: type `");
+        if ast_kind(ast_expr(ast)) == AstK_Ident then
+            printf("ERROR: `%s` which has type `", ast_ident(ast_expr(ast)));
+        else
+            printf("ERROR: type `");
+        end
         tt_print_type_name(tt, call_type);
         printf("` is not a callable object.\n");
         printf("NOTE: The expression is: ");
