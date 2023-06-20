@@ -259,7 +259,7 @@ def parse_pointer_op ts, st, tt in
         size = 64;
         op = PointerOp_Read;
     else
-        printf("ERROR: Unexpected token: %s\n", token_kind_cstr(token_kind(token)));
+        printf("ERROR: Unexpected token: %s\n", token_kind_cstr(token.kind));
         print_token_loc(token);
         exit(1);
     end
@@ -390,7 +390,7 @@ def parse_primary ts, st, tt in
         ts_expect(ts, TK::RParen);
         return expr;
     end
-    var k = token_kind(peek);
+    var k = peek.kind;
     if k == TK::Ident then
         var idx = ts_idx(ts);
         var ident = ts_next(ts);
@@ -481,7 +481,7 @@ def parse_postfix ts, st, tt in
 
     while ts_peekk_one_of_2(ts, TK::LParen, TK::Dot) do
         var tk = ts_next(ts);
-        var k = token_kind(tk);
+        var k = tk.kind;
         if k == TK::LParen then
             var args = make_vector(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
@@ -505,7 +505,7 @@ def parse_prefix ts, st, tt in
     if ts_peekk_one_of_3(ts, TK::Tilde, TK::KW_not, TK::Minus) then
         var tok = ts_next(ts);
         var expr = parse_prefix(ts, st, tt);
-        return make_ast_prefix(tok, token_kind(tok), expr);
+        return make_ast_prefix(tok, tok.kind, expr);
     end
     return NULL;
 end

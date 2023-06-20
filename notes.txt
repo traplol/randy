@@ -26,6 +26,7 @@ maybe we should do:
   types are unified into a single type
 - then type checking can verify that every expression has resolved into a concrete type
 
+====================================================================================================
 
 core:
   - [x] string
@@ -126,11 +127,6 @@ features:
      -> full manual with analysis for and warnings about dangling references.
   - [ ] basic `match` syntax, similar to switch in other languages with extra features.
         no intention to have ML-style full pattern matching.
-
-====================================================================================================
-gripes:
-Currently, assignment ops require an identifier on the left side but I want to allow qualified
-names, field accessors, and maybe '[i]' subscript to utilize them.
 
 ====================================================================================================
 extra ideas:

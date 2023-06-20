@@ -1,78 +1,25 @@
 
-This struct parses, there are no parametric types so it is instantiated as-is, ready to use.
-struct bar in
-    key: int;
-    val: string;
-end
-
-This struct parses, then realize it's a parametric type so we declare a type `foo` as parametric
-with a reference to the entire struct AST.
-struct foo[K, V] in
-    key: K;
-    val: V;
-end
-
-
-At this point when parsing the type of `x` we lookup the type `foo` and see it's parametric.
-Now we search all instances of `foo` for one that matches foo[int, string] and if there's already an
-instance, we use that. Otherwise, we create a copy of the AST and replace all instances of the `K`
-type with `int` and all instances of the `V` type with `string`. Then we insert this type into the
-`foo` instances set and use that instance.
-var x: foo[int, string] = ...
+parsing the `struct Array[T] in`...
+0) push type scope
+1) get or create the type named 'Array'
+ - if Array is not undefined: error
+ - if Array has params then assert that first param is NULL and free any old params, 
+2) get or create the type named 'T'
+ - if T is not undefined: error: means duplicate type name in params
+3) give Array one parameter with type named 'T'
+3) set Array type kind to 'struct'
+4) parse body of struct
+5) pop type scope
+6) add this type named 'Array' to current type scope.
 
 
-Problems:
-Q) How do we hash the type `foo[int, string]`?
-A) probably should map all type names (cstr "foo", "int", "string", etc.) to unique IDs and then 
-   combine them into the hash.
+parsing the instance
+`var arr: Array[int]& = ...`
+0) get or create the type named 'Array'
+ - if Array is undefined: get or create 'Array[int]' and add to type table to be instantiated later
+ - else Array is defined: get or create 'Array[int]'
 
-Q) Is `foo[int, foo[int, string]]` a legal type?
-A) most likely; this doesn't recursively expand infinitely
+instantiating types
+0) deep copy the AST of the generic type
+1) walk the AST of the generic type and replace every instance of a parameter type with the instance type
 
-
-...
-var x: baz = ...     // at this point we haven't seen baz yet and it doesn't refer to a parametric
-                     // type so we just declare it as an undefined type.
-...
-
-struct baz in        // then we get to this point and see if a baz exists, if it does, we check
-                     // check if it's defined. If it is defined we display an error, otherwise,
-                     // we define it.
-    ...
-end
-
-
-var z: qux[int] = ... // again, we haven't seen this type yet but it is a parametric type so we
-                      // declare it undefined and parametric taking one parameter. Then we need
-                      // to keep a reference to `z` for setting the type later.
-
-struct qux[A, B] in   // here we see that `qux` is declared undefined with one parameter, so we
-                      // display an error message at `z`, above, because the struct definition
-                      // says 2 params. In the case of no error, we define the type and search for
-                      // any references that want an instance of this type and instantiate it and
-                      // set the references.
-    ...
-end
-
-
-struct foo[K, Y] in
-    ...
-end
-
-All of the below are illegal because we already declared a type called `foo`
-
-struct foo[X, Y, Z] in
-    ...
-end
-
-struct foo[A, B] in  // this type would actually resolve to the same type as foo[K, Y]
-    ...
-end
-
-struct foo[N] in
-    ...
-end
-
-struct foo in
-    ...
-end
