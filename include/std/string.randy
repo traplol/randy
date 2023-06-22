@@ -20,8 +20,10 @@ def make_string init: int -> String& in
 end
 
 def free_string self: String& in
-    free(cast(u64@(self), ptr));
-    free(self);
+    if self then
+        free(self.buffer);
+        free(self);
+    end
 end
 
 def string_buf self: String& -> char& in
