@@ -307,7 +307,6 @@ end
 def ti_infer_def self, tt, st, ast -> type in
     check_ast_kind(AstK_Def, ast);
     var ident = ast_ident(ast);
-    //printf("infer: %s\n", ident);
     var symbol = st_get_symbol(st, ident);
     ti_push_def(self, symbol);
     ti_infer_vector(self, tt, st, ast_body(ast));

@@ -1,6 +1,8 @@
 
-const PointerOp_Read  = 0;
-const PointerOp_Write = 1;
+enum PointerOp in
+    Read;
+    Write;
+end
 
 const AstK_Ident        = 0;
 const AstK_Integer      = 1;
@@ -106,7 +108,7 @@ const TAST_test        = 16; // ast
 const TAST_body        = 24; // ast Vector&
 // PointerRead, PointerWrite
 const TAST_size        = 16; // int
-const TAST_op          = 24; // int
+const TAST_pop         = 24; // PointerOp
 const TAST_pop_args    = 32; // ast Vector&
 // VarDecl
 const TAST_ident       = 16; // cstr
@@ -253,9 +255,9 @@ def make_ast_while token: Token&, test: ast, body: Vector& -> ast in
     return self;
 end
 
-def make_ast_pointer_op token: Token&, size: int, op: int, args: Vector& -> ast in
+def make_ast_pointer_op token: Token&, size: int, op: PointerOp, args: Vector& -> ast in
     var astk; var is_expr;
-    if op == PointerOp_Read then
+    if op == PointerOp::Read then
         astk = AstK_PointerRead;
         is_expr = true;
     else
@@ -347,6 +349,9 @@ def make_ast_assign_member token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
 end
 
 def make_ast_sizeof_expr token: Token&, expr: ast -> ast in
+    if ast_kind(expr) == AstK_Type then
+        return make_ast_sizeof_type(token, ast_type(expr));
+    end
     var self = _make_ast(AstK_SizeofExpr, true, token);
     u64!(self + TAST_expr, expr);
     return self;
@@ -398,7 +403,8 @@ def ast_consequence self: ast in return cast(u64@(self + TAST_consequence), Vect
 def ast_expr self: ast in return cast(u64@(self + TAST_expr), ast); end
 def ast_ident self: ast in return cast(u64@(self + TAST_ident), cstr); end
 def ast_lhs self: ast in return cast(u64@(self + TAST_lhs), ast); end
-def ast_op self: ast in return cast(u64@(self + TAST_op), int); end
+def ast_op self: ast in return cast(u64@(self + TAST_op), TK); end
+def ast_pop self: ast in return cast(u64@(self + TAST_op), PointerOp); end
 def ast_params self: ast in return cast(u64@(self + TAST_params), Vector&); end
 def ast_pop_args self: ast in return cast(u64@(self + TAST_pop_args), Vector&); end
 def ast_rhs self: ast in return cast(u64@(self + TAST_rhs), ast); end
@@ -412,6 +418,11 @@ def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector&); end
 def ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 def ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
 def ast_values self: ast in return cast(u64@(self + TAST_values), Vector&); end
+
+def ast_set_struct self: ast, struct_: type in
+    assert(ast_kind(self) == AstK_Struct);
+    u64!(self + TAST_struct, struct_);
+end
 
 def ast_src_loc self: ast in
     var token = ast_token(self);
@@ -700,22 +711,9 @@ def _print_ast_struct ast, indent in
         _print_indent(indent+1);
         printf("%s: ", field.name);
         tt_print_type_name(g_TypeTable, field.type);
-        printf("\n");
+        printf(";\n");
         i += 1;
     end
-    // var defs = ast_defs(ast);
-    // if i != 0 and defs.length != 0 then
-    //     printf("\n");
-    // end
-    // i = 0; len = defs.length;
-    // while i < len do
-    //     _print_indent(indent+1);
-    //     _print_ast_def(cast(vector_get(def, i), ast), indent+1);
-    //     i += 1;
-    //     if i < len then
-    //         printf("\n");
-    //     end
-    // end
     _print_indent(indent); printf("end\n");
 end
 
@@ -773,7 +771,6 @@ def _print_ast_enum ast, indent in
     end
     _print_indent(indent);
     printf("end\n");
-    
 end
 
 def _print_ast_type ast, indent in
@@ -857,5 +854,285 @@ def print_compile_ast compile_order: Vector& in
     while i < len do
         print_ast(vector_get(compile_order, i));
         i += 1;
+    end
+end
+
+def _ast_deep_copy_vector vector, tt, st in
+    var i = 0; var len = vector.length;
+    var copy = make_vector(len);
+    while i < len do
+        vector_push(copy, _ast_deep_copy(cast(vector_get(vector, i), ast), tt, st));
+        i += 1;
+    end
+    return copy;
+end
+
+
+// these copy functions don't create copies of the tokens
+
+def _ast_deep_copy_ident ast, tt, st in
+    var sym = st_get_symbol(st, ast_ident(ast));
+    return make_ast_ident(ast_token(ast), symbol_name(sym));
+end
+
+def _ast_deep_copy_integer ast, tt, st in
+    return make_ast_integer(ast_token(ast), cast(ast_value(ast), int));
+end
+
+def _ast_deep_copy_string ast, tt, st in
+    return make_ast_string(ast_token(ast), string_duplicate(ast_value(ast)));
+end
+
+def _ast_deep_copy_call ast, tt, st in
+    var copy_expr = _ast_deep_copy(ast_expr(ast), tt, st);
+    var copy_args = _ast_deep_copy_vector(ast_args(ast), tt, st);
+    return make_ast_call(ast_token(ast), copy_expr, copy_args);
+end
+
+def _ast_deep_copy_binop ast, tt, st in
+    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
+    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
+    return make_ast_binop(ast_token(ast), lhs_copy, ast_op(ast), rhs_copy);
+end
+
+def _ast_deep_copy_return ast, tt, st in
+    if ast_expr(ast) then
+        return make_ast_return(ast_token(ast), _ast_deep_copy(ast_expr(ast), tt, st));
+    else
+        return make_ast_return(ast_token(ast), NULL);
+    end
+end
+
+def _ast_deep_copy_var_decl ast, tt, st in
+    // here is a place to types would be replaced
+    assert(false, "need to copy the identifier and create symbol?\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_var_assign ast, tt, st in
+    var ident = ast_ident(ast);
+    var ident_sym = st_get_symbol(st, ident);
+    assert(ident_sym);
+    var copy_ident = strdup(ident);
+    var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
+    copy_sym.type = tt_substitute_type(tt, ident_sym.type);
+    var assign_expr_copy = _ast_deep_copy(ast_assign_expr(ast), tt, st);
+    return make_ast_var_assign(ast_token(ast), symbol_name(copy_sym), assign_expr_copy);
+end
+
+def _ast_deep_copy_def ast, tt, st in
+    var def_ident = ast_ident(ast);
+    var def_sym = st_get_symbol(st, def_ident);
+    var def_params = ast_params(ast);
+    var def_copy_ident = strdup(def_ident);
+    var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);
+    st_push_scope(st);
+    var def_copy_params = make_vector(def_params.length);
+    var def_copy_params_types = make_vector(def_params.length);
+    var i = 0; var len = def_params.length;
+    while i < len do
+        var param = vector_get(def_params, i);
+        var param_sym = st_get_symbol(st, param);
+        var param_copy = strdup(param);
+        var param_copy_sym = st_make_param(st, param_copy, param_sym.token);
+        param_copy_sym.type = tt_substitute_type(tt, param_sym.type);
+        vector_push(def_copy_params_types, param_copy_sym.type);
+        vector_push(def_copy_params, param_copy); // push the cstr not the symbol!
+        i += 1;
+    end
+
+    var return_type = tt_substitute_type(tt, type_def_return_type(def_sym.type));
+    def_copy_sym.type = tt_make_anon_def(tt,
+                            return_type, def_copy_params_types, type_def_varargs(def_sym.type));
+    var def_copy_body = _ast_deep_copy_vector(ast_body(ast), tt, st);
+    st_pop_scope(st);
+    var copy_ast = make_ast_def(ast_token(ast), def_copy_ident, def_copy_params, def_copy_body);
+    type_set_ast(def_copy_sym.type, copy_ast);
+    return copy_ast;
+end
+
+def _ast_deep_copy_if_else ast, tt, st in
+    var test_copy = _ast_deep_copy(ast_test(ast), tt, st);
+    var conseq_copy = _ast_deep_copy_vector(ast_consequence(ast), tt, st);
+    var altern_copy = _ast_deep_copy_vector(ast_alternative(ast), tt, st);
+    return make_ast_if_else(ast_token(ast), test_copy, conseq_copy, altern_copy);
+end
+
+def _ast_deep_copy_while ast, tt, st in
+    var test_copy = _ast_deep_copy(ast_test(ast), tt, st);
+    var body_copy = _ast_deep_copy_vector(ast_body(ast), tt, st);
+    return make_ast_while(ast_token(ast), test_copy, body_copy);
+end
+
+def _ast_deep_copy_pointer_op ast, tt, st in
+    var args_copy = _ast_deep_copy_vector(ast_pop_args(ast), tt, st);
+    return make_ast_pointer_op(ast_token(ast), ast_size(ast), ast_pop(ast), args_copy);
+end
+
+def _ast_deep_copy_prefix ast, tt, st in
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    return make_ast_prefix(ast_token(ast), ast_op(ast), expr_copy);
+end
+
+def _ast_deep_copy_const ast, tt, st in
+    // here is a place where types would be replaced
+    assert(false, "TODO: deep copy const\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_extern ast, tt, st in
+    assert(false, "TODO: deep copy extern\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_inline_asm ast, tt, st in
+    assert(false, "TODO: deep copy inline asm\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_global ast, tt, st in
+    assert(false, "TODO: deep copy global\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_break ast, tt, st in
+    return make_ast_break(ast_token(ast));
+end
+
+def _ast_deep_copy_continue ast, tt, st in
+    return make_ast_continue(ast_token(ast));
+end
+
+def _ast_deep_copy_assign_op ast, tt, st in
+    assert(false, "TODO: deep copy assign op\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_cast ast, tt, st in
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    var type = tt_substitute_type(tt, ast_type(ast));
+    return make_ast_cast(ast_token(ast), expr_copy, type);
+end
+
+def _ast_deep_copy_struct ast, tt, st in
+    var fields = ast_fields(ast);
+    var fields_copy = make_vector(fields.length);
+    var i = 0; var len = fields.length;
+    while i < len do
+        // fields aren't actually resolved with symbols so no need to create a copy of those
+        var field_copy = field_make_copy(cast(vector_get(fields, i), Field&));
+        field_copy.type = tt_substitute_type(tt, field_copy.type);
+        vector_push(fields_copy, field_copy);
+        i += 1;
+    end
+    var struct_type = tt_substitute_type(tt, ast_struct(ast));
+    var struct_changed = struct_type != ast_struct(ast);
+    var defs = ast_defs(ast);
+    var defs_copy = make_vector(defs.length);
+    var defs_copy_symbols = make_vector(defs.length);
+    i = 0; len = defs.length;
+    while i < len do
+        var def_ = vector_get(defs, i);
+        assert(ast_kind(def_) == AstK_Def);
+        var def_copy = _ast_deep_copy_def(def_, tt, st);
+        var def_copy_sym = st_get_symbol(st, ast_ident(def_copy));
+        assert(def_copy_sym);
+        def_copy_sym.owned_by = struct_type;
+        vector_push(defs_copy, def_copy);
+        vector_push(defs_copy_symbols, def_copy_sym);
+        i += 1;
+    end
+    var struct_copy = make_ast_struct(ast_token(ast), struct_type, fields_copy, defs_copy);
+    if struct_changed then
+        type_set_ast(struct_type, struct_copy);
+        type_set_struct_fields(struct_type, fields_copy);
+        type_set_struct_defs(struct_type, defs_copy_symbols);
+    end
+    return struct_copy;
+end
+
+def _ast_deep_copy_member_access ast, tt, st in
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    return make_ast_member_access(ast_token(ast), expr_copy, ast_member(ast));
+end
+
+def _ast_deep_copy_assign_member ast, tt, st in
+    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
+    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
+    return make_ast_assign_member(ast_token(ast), lhs_copy, ast_op(ast), rhs_copy);
+end
+
+def _ast_deep_copy_sizeof_expr ast, tt, st in
+    var expr = ast_expr(ast);
+    if ast_kind(expr) == AstK_Ident then
+        var type = tt_get_type_or_null(tt, ast_ident(expr));
+        if type then
+            type = tt_substitute_type(tt, type);
+            return make_ast_sizeof_type(ast_token(ast), type);
+        end
+        printf("not a type\n");
+        tt_dump_cur_scope(tt);
+    end
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    return make_ast_sizeof_expr(ast_token(ast), expr_copy);
+end
+
+def _ast_deep_copy_sizeof_type ast, tt, st in
+    var type = tt_substitute_type(tt, ast_type(ast));
+    return make_ast_sizeof_type(ast_token(ast), type);
+end
+
+def _ast_deep_copy_enum ast, tt, st in
+    assert(false, "TODO: deep copy enum\n");
+    return cast(NULL, ast);
+end
+
+def _ast_deep_copy_type ast, tt, st in
+    var type = tt_substitute_type(tt, ast_type(ast));
+    return make_ast_type(ast_token(ast), type);
+end
+
+def _ast_deep_copy_scope_resolve ast, tt, st in
+    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
+    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
+    return make_ast_scope_resolve(ast_token(ast), lhs_copy, rhs_copy);
+end
+
+def _ast_deep_copy ast, tt, st in
+    var k = ast_kind(ast);
+    if k == AstK_Ident then return _ast_deep_copy_ident(ast, tt, st);
+    elif k == AstK_Integer then return _ast_deep_copy_integer(ast, tt, st);
+    elif k == AstK_String then return _ast_deep_copy_string(ast, tt, st);
+    elif k == AstK_Call then return _ast_deep_copy_call(ast, tt, st);
+    elif k == AstK_BinOp then return _ast_deep_copy_binop(ast, tt, st);
+    elif k == AstK_Return then return _ast_deep_copy_return(ast, tt, st);
+    elif k == AstK_VarDecl then return _ast_deep_copy_var_decl(ast, tt, st);
+    elif k == AstK_VarAssign then return _ast_deep_copy_var_assign(ast, tt, st);
+    elif k == AstK_Def then return _ast_deep_copy_def(ast, tt, st);
+    elif k == AstK_IfElse then return _ast_deep_copy_if_else(ast, tt, st);
+    elif k == AstK_While then return _ast_deep_copy_while(ast, tt, st);
+    elif k == AstK_PointerRead then return _ast_deep_copy_pointer_op(ast, tt, st);
+    elif k == AstK_PointerWrite then return _ast_deep_copy_pointer_op(ast, tt, st);
+    elif k == AstK_Prefix then return _ast_deep_copy_prefix(ast, tt, st);
+    elif k == AstK_Const then return _ast_deep_copy_const(ast, tt, st);
+    elif k == AstK_Extern then return _ast_deep_copy_extern(ast, tt, st);
+    elif k == AstK_InlineAsm then return _ast_deep_copy_inline_asm(ast, tt, st);
+    elif k == AstK_Global then return _ast_deep_copy_global(ast, tt, st);
+    elif k == AstK_Break then return _ast_deep_copy_break(ast, tt, st);
+    elif k == AstK_Continue then return _ast_deep_copy_continue(ast, tt, st);
+    elif k == AstK_AssignOp then return _ast_deep_copy_assign_op(ast, tt, st);
+    elif k == AstK_Cast then return _ast_deep_copy_cast(ast, tt, st);
+    elif k == AstK_Struct then return _ast_deep_copy_struct(ast, tt, st);
+    elif k == AstK_MemberAccess then return _ast_deep_copy_member_access(ast, tt, st);
+    elif k == AstK_AssignMember then return _ast_deep_copy_assign_member(ast, tt, st);
+    elif k == AstK_SizeofExpr then return _ast_deep_copy_sizeof_expr(ast, tt, st);
+    elif k == AstK_SizeofType then return _ast_deep_copy_sizeof_type(ast, tt, st);
+    elif k == AstK_Enum then return _ast_deep_copy_enum(ast, tt, st);
+    elif k == AstK_Type then return _ast_deep_copy_type(ast, tt, st);
+    elif k == AstK_ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
+    else
+        printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
+        printf("Unhandled AstK: %d\n", k);
+        exit(1);
     end
 end

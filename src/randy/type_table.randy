@@ -15,6 +15,10 @@ def make_field type, name, bit_offset, token -> Field& in
     return self;
 end
 
+def field_make_copy self: Field& in
+    return make_field(self.type, self.name, self.bit_offset, self.token);
+end
+
 struct EnumValue in
     token: Token&;
     name: cstr;
@@ -48,7 +52,7 @@ const TTYPE_size        = 12; // uint32
 const TTYPE_params      = 16; // type Vector&
 const TTYPE_ast         = 24; // ast
 const TTYPE_ref_to_this = 32; // type
-const TTYPE_instances = 40; // type Vector& : generic instances of this type
+const TTYPE_instances   = 40; // type Vector& : generic instances of this type
 // reference
 const TTYPE_deref_type  = 48; // type
 // def
@@ -126,6 +130,7 @@ def type_is_generic self: type in return cast(u8@(self + TTYPE_is_generic), bool
 def type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 def type_id self: type in return cast(u64@(self + TTYPE_id), int); end
 def type_params self: type in return cast(u64@(self + TTYPE_params), Vector&); end
+def type_instances self: type in return cast(u64@(self + TTYPE_instances), Vector&); end
 def type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
 def type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
 def type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
@@ -152,6 +157,9 @@ def type_set_kind self: type, kind: int in u8!(self + TTYPE_kind, kind); end
 def type_set_is_generic self: type, val: bool in u8!(self + TTYPE_is_generic, val); end
 def type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
 def type_set_params self: type, params: Vector& in u64!(self + TTYPE_params, params); end
+def type_set_instances self: type, instances: Vector& in
+    u64!(self + TTYPE_instances, instances);
+end
 def type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
 def type_set_deref_type self: type, type: type in u64!(self + TTYPE_deref_type, type); end
 def type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this, type); end
@@ -200,28 +208,6 @@ def types_eq a: type, b: type in
     end
     if type_is_reference(a) and type_is_reference(b) then
         return types_eq(type_deref_type(a), type_deref_type(b));
-    end
-    if type_is_def(a) and type_is_def(b) then
-        var a_ret = type_def_return_type(a);
-        var b_ret = type_def_return_type(b);
-        if not types_eq(a_ret, b_ret) then
-            return false;
-        end
-        var a_params = type_def_parameters(a);
-        var b_params = type_def_parameters(b);
-        if a_params.length != b_params.length then
-            return false;
-        end
-        var i = 0; var len = a_params.length;
-        while i < len do
-            var ap = vector_get(a_params, i);
-            var bp = vector_get(b_params, i);
-            if not types_eq(ap, bp) then
-                return false;
-            end
-            i += 1;
-        end
-        return true;
     end
     return false;
 end
@@ -291,11 +277,37 @@ def types_assignable tt: TypeTable&, lhs: type, rhs: type in
     return false;
 end
 
+struct TypeScope in
+    types: map; // (cstr, int) : the types within the current scope
+    parent: TypeScope&;
+end
+
+def make_type_scope parent: TypeScope& -> TypeScope& in
+    var self = cast(malloc(__sizeof(TypeScope)), TypeScope&);
+    self.types = make_map(0, cstr_eq, cstr_hash);
+    self.parent = parent;
+    return self;
+end
+
+def type_scope_find self, name -> type in
+    var cur = self;
+    while cur do
+        var found = map_find(cur.types, name);
+        if found then
+            return map_pair_val(found);
+        end
+        cur = cur.parent;
+    end
+    return NULL;
+end
+
 struct TypeTable in
-    type_scope: Vector&; // (cstr, int) map Vector& : stack of name -> type_id
+    type_scope: TypeScope&;
+    top_type_scope: map; // fast reference to the top-level type scope.
     all_types: Vector&;  // type Vector& : all types; type_id is index into this Vector&
     names: Vector&;  // cstr Vector& : type_id is index into this Vector&, may have NULLs
     ast_types: map;  // (ast, type) map : ast -> type
+    type_substitutes: map; // (type, type) map : replace the key type with val type
     void_type: type; // fast ref to `void` type
     any_type: type;  // fast ref to `any` type
     int_type: type;  // fast ref to `int` type
@@ -337,14 +349,15 @@ end
 
 def make_type_table -> TypeTable& in
     var self: TypeTable& = malloc(__sizeof(TypeTable));
-    var type_ids = make_map(0, cstr_eq, cstr_hash);
     var types = make_vector(0);
     var names = make_vector(0);
-    self.type_scope = make_vector(8);
-    vector_push(self.type_scope, type_ids);
+    self.type_scope = make_type_scope(NULL);
+    var type_ids = self.type_scope.types;
+    self.top_type_scope = type_ids;
     self.all_types = types;
     self.names = names;
     self.ast_types = make_map(0, NULL, NULL);
+    self.type_substitutes = NULL;
 
     var void_t = _tt_make_type(TyK_void, "void", 0, type_ids, types, names);
     self.void_type = void_t;
@@ -385,22 +398,21 @@ def tt_bool_type self: TypeTable& in return self.bool_type; end
 def tt_char_type self: TypeTable& in return self.char_type; end
 
 def tt_push_scope self in
-    vector_push(self.type_scope, make_map(0, cstr_eq, cstr_hash));
+    self.type_scope = make_type_scope(self.type_scope);
 end
 
 def tt_pop_scope self in
-    assert(self.type_scope.length >= 1);
-    var map = cast(vector_back(self.type_scope), map);
-    vector_pop(self.type_scope);
-    free_map(map);
+    assert(self.type_scope.parent);
+    // don't free the map because places that push a type scope will hold onto that reference.
+    self.type_scope = self.type_scope.parent;
 end
 
 def tt_cur_scope self -> map in
-    return cast(vector_back(self.type_scope), map);
+    return self.type_scope.types;
 end
 
 def tt_top_scope self -> map in
-    return cast(vector_front(self.type_scope), map);
+    return self.top_type_scope;
 end
 
 def tt_get_ast_type self, ast -> type in
@@ -422,14 +434,25 @@ def tt_get_type_name self, type -> cstr in
     return vector_get(self.names, type_id(type));
 end
 
+def tt_dump_cur_scope self in
+    var types = tt_cur_scope(self);
+    var cur = map_begin(types);
+    while cur != map_end(types) do
+        var key = map_pair_key(cur);
+        var val = map_pair_val(cur);
+        printf("key = %s, val = %d\n", key, val);
+        cur = map_next(types, cur);
+    end
+end
+
 def tt_get_type_or_null self, name -> type in
-    var i = self.type_scope.length - 1;
-    while i >= 0 do
-        var found = map_find(vector_get(self.type_scope, i), name);
+    var cur = self.type_scope;
+    while cur do
+        var found = map_find(cur.types, name);
         if found then
             return vector_get(self.all_types, cast(map_pair_val(found), int));
         end
-        i -= 1;
+        cur = cur.parent;
     end
     return NULL;
 end
@@ -470,7 +493,6 @@ def tt_get_type_or_make_undefined self, name -> type in
     // Bar local to Foo hasn't been defined yet. How do we fix this?
     // The current solution is to "catch" the local 'Bar' type in Fig 2 as being undefined
     // and overwrite the type "act" as the outer 'Bar' type
-
     map_set(tt_cur_scope(self), name, type_idx);
     vector_push(self.all_types, type);
     vector_push(self.names, name);
@@ -480,10 +502,7 @@ end
 def tt_get_reference_to_type self, type -> type in
     var ref = type_ref_to_this(type);
     if not ref then
-        ref = _tt_make_ref_type(type, NULL,
-                    tt_cur_scope(self),
-                    self.all_types,
-                    self.names);
+        ref = _tt_make_ref_type(type, NULL, NULL, self.all_types, self.names);
     end
     return ref;
 end
@@ -495,48 +514,146 @@ def tt_set_local_type self, type in
     end
 end
 
-def _tt_copy_ast_replacing_types self, ast, src_params, dst_params in
-    // TODO: will also need a way of flagging all of the src_types as ignored when calculating below
-    print_ast(ast);
-    var i = 0; var len = src_params.length;
-    while i < len do
-        printf("src type: ");
-        tt_print_type_name(self, vector_get(src_params, i));
-        printf(" -> dst type: ");
-        tt_print_type_name(self, vector_get(dst_params, i));
-        printf("\n");
-        i += 1;
+def tt_substitute_type self, type -> type in
+    if not type then
+        return NULL;
     end
-    assert(false, "nyi\n");
-    return cast(NULL, ast);
+    if not self.type_substitutes then
+        return type;
+    end
+    var deref_type = type;
+    var is_ref_type = false;
+    if type_is_reference(deref_type) then
+        is_ref_type = true;
+        deref_type = type_deref_type(type);
+        assert(deref_type);
+        assert(not type_is_reference(deref_type), "TODO: support substituting multiple dereferences\n");
+    end
+
+    var found = map_find(self.type_substitutes, deref_type);
+    if found then
+        type = map_pair_val(found);
+        if is_ref_type then
+            type = tt_get_reference_to_type(self, type);
+        end
+        return type;
+    end
+
+    if type_is_generic(deref_type) then
+        var params = type_params(deref_type);
+        var i = 0; var len = params.length;
+        var new_params = make_vector(len);
+        var made_subst = false;
+        while i < len do
+            var orig = vector_get(params, i);
+            var subst = tt_substitute_type(self, orig);
+            if subst != orig then
+                made_subst = true;
+            end
+            vector_push(new_params, subst);
+            i += 1;
+        end
+        if made_subst then
+            type = tt_get_type_instance_of(self, g_SymbolTable, deref_type, new_params);
+            if is_ref_type then
+                type = tt_get_reference_to_type(self, type);
+            end
+            return type;
+        else
+            free_vector(new_params);
+        end
+    end
+
+    return type;
 end
 
-def _tt_instantiate_generic_type_impl self, type, params in
+def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, instance in
+    // TODO: will also need a way of flagging all of the src_types as ignored when calculating below
+    tt_push_scope(self);
+    var type_sub_map = make_map(src_params.length, NULL, NULL);
+    var i = 0; var len = src_params.length;
+    while i < len do
+        var src = vector_get(src_params, i);
+        map_set(type_sub_map, src, vector_get(dst_params, i));
+        tt_set_local_type(self, src);
+        i += 1;
+    end
+    map_set(type_sub_map, type, instance);
+    self.type_substitutes = type_sub_map;
+    var ast_copy = _ast_deep_copy(ast, self, st);
+    self.type_substitutes = NULL;
+    free_map(type_sub_map);
+    tt_pop_scope(self);
+    return ast_copy;
+end
+
+def _tt_instantiate_generic_type_impl self, st, type, params, instance_type in
     assert(type_is_generic(type), "forgot to verify type is generic before creating type instance\n");
     assert(type_params(type));
     assert(params);
     assert(type_params(type).length == params.length, "forgot to verify type_params lengths match\n");
     assert(type_ast(type), "forgot to set type ast\n");
-    var id = self.all_types.length;
-    var type_name = tt_get_type_name(self, type);
-    var instance_ast = _tt_copy_ast_replacing_types(self, type_ast(type), type_params(type), params);
-    var instance_type = copy_type_with_id(type, id);
-    vector_push(self.all_types, instance_type);
-    vector_push(self.names, type_name);
-    type_set_is_generic(instance_type, false);
-    type_set_params(instance_type, params); // used for pretty printing type params
-    var ref_type = tt_get_reference_to_type(self, instance_type);
-    type_set_ref_to_this(instance_type, ref_type);
-    type_set_ast(instance_type, instance_ast);
+    var instance_ast = _tt_copy_ast_replacing_types(self, st, type_ast(type), type_params(type), params, type, instance_type);
+    //type_set_ast(instance_type, instance_ast);
     return instance_type;
 end
 
-def tt_create_type_instance_of self, type, params in
+def tt_get_type_instance_of self, st, type, params in
     if type_is_undefined(type) then
         // need to register for later instantiation.
+        assert(type_is_generic(type));
+        var generic_params = type_params(type);
+        assert(params.length == generic_params.length, "forgot to verify params length\n");
+        var same = true;
+        var i = 0; var len = params.length;
+        while i < len do
+            var src_type = cast(vector_get(generic_params, i), type);
+            var dst_type = cast(vector_get(params, i), type);
+            if not types_eq(src_type, dst_type) then
+                same = false;
+                break;
+            end
+            i += 1;
+        end
+        if same then
+            return type;
+        end
         assert(false, "not implemented: need to register type instance for later instantiation\n");
     else
-        return _tt_instantiate_generic_type_impl(self, type, params);
+        var instances = type_instances(type);
+        if not instances then
+            instances = make_vector(8);
+            type_set_instances(type, instances);
+        else
+            var i = 0; var len = instances.length;
+            while i < len do
+                var inst = cast(vector_get(instances, i), type);
+                var inst_params = type_params(inst);
+                assert(params.length == inst_params.length, "forgot to verify params.length\n");
+                var j = 0; var jlen = inst_params.length;
+                while j < jlen do
+                    if types_eq(vector_get(params, j), vector_get(inst_params, j)) then
+                        return inst;
+                    end
+                    j += 1;
+                end
+                i += 1;
+            end
+        end
+
+        var id = self.all_types.length;
+        var instance_type = copy_type_with_id(type, id);
+        vector_push(self.all_types, instance_type);
+        var type_name = tt_get_type_name(self, type);
+        vector_push(self.names, type_name);
+        type_set_is_generic(instance_type, false);
+        type_set_params(instance_type, params); // used for looking up existing instances.
+        type_set_ref_to_this(instance_type, NULL); // clear the old ref type
+        var ref_type = tt_get_reference_to_type(self, instance_type);
+        type_set_ref_to_this(instance_type, ref_type);
+        vector_push(instances, instance_type);
+        _tt_instantiate_generic_type_impl(self, st, type, params, instance_type);
+        return instance_type;
     end
 end
 
@@ -565,15 +682,42 @@ def _tt_append_def_type_repr self, string, type in
     if not type then
         string_append_cstr(string, "{null}");
     elif type_is_def(type) then
-        var ptn = tt_get_def_type_name(self, type);
-        string_append_string(string, ptn);
-        free_string(ptn);
+        var name = tt_get_def_type_name(self, type);
+        string_append_string(string, name);
+        free_string(name);
     else
-        var tn = tt_get_type_name(self, type);
-        if tn then
-            string_append_cstr(string, tn);
+        var refs = 0;
+        var deref_type = type;
+        while type_is_reference(deref_type) do
+            refs += 1;
+            deref_type = type_deref_type(deref_type);
+        end
+
+        var name = tt_get_type_name(self, deref_type);
+        if name then
+            string_append_cstr(string, name);
         else
-            string_append_cstr(string, "{no type}");
+            string_append_cstr(string, "<type id ");
+            string_append_int(string, type_id(deref_type));
+            string_push(string, '>');
+        end
+
+        var params = type_params(deref_type);
+        if params and params.length > 0 then
+            string_push(string, '[');
+            var i = 0; var len = params.length;
+            while i < len do
+                _tt_append_def_type_repr(self, string, vector_get(params, i));
+                i += 1;
+                if i < len then
+                    string_append_cstr(string, ", ");
+                end
+            end
+            string_push(string, ']');
+        end
+        while refs > 0 do
+            string_push(string, '&');
+            refs -= 1;
         end
     end
 end
@@ -753,7 +897,7 @@ def tt_check_enum_for_field_name_collisions self, type in
 end
 
 def tt_calculate_structs self in
-    assert(self.type_scope.length == 1, "Compiler bug: calculating stucts but not at top scope\n");
+    assert(self.type_scope.parent == NULL, "Compiler bug: calculating stucts but not at top scope\n");
     var to_calc = make_queue(0);
     var i = 0; var len = self.all_types.length;
     var void = tt_void_type(self);
@@ -769,7 +913,7 @@ def tt_calculate_structs self in
             if name then
                 // HACK this is a bit of a hack to allow the FIXME in tt_get_type_or_make_undefined to work.
                 var outer = tt_get_type_or_null(self, name);
-                if not type_is_undefined(outer) then
+                if outer and not type_is_undefined(outer) then
                     memcpy(type, outer, sizeof_TTYPE);
                     continue;
                 end
@@ -805,44 +949,12 @@ end
 
 def tt_print_type_name self, type in
     if type then
-        if type_is_def(type) then
-            var string = tt_get_def_type_name(self, type);
-            printf("%s", string_cstr(string));
-            free_string(string);
-        else
-            var name = tt_get_type_name(self, type);
-            if name then
-                printf("%s", name);
-            else
-                printf("<type id %d>", type_id(type));
-            end
-            var refs = 0;
-            while type_is_reference(type) and type_deref_type(type) do
-                type = type_deref_type(type);
-                refs += 1;
-            end
-
-            var params = type_params(type);
-            if params then
-                printf("[");
-                var i = 0; var len = params.length;
-                while i < len do
-                    tt_print_type_name(self, vector_get(params, i));
-                    i += 1;
-                    if i < len then
-                        printf(", ");
-                    end
-                end
-                printf("]");
-            end
-
-            while refs > 0 do
-                printf("&");
-                refs -= 1;
-            end
-        end
+        var name = make_string(32);
+        _tt_append_def_type_repr(self, name, type);
+        printf("%s", string_cstr(name));
+        free_string(name);
     else
-        printf("{no type}");
+        printf("{null}");
     end
 end
 

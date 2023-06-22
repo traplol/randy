@@ -1622,11 +1622,11 @@ def ir_emit_pointer_op self, ast, st, tt in
     //check_ast_kind(AstK_PointerOp, ast);
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
-    var op = ast_op(ast);
-    if op == PointerOp_Read then
+    var op = ast_pop(ast);
+    if op == PointerOp::Read then
         ir_compile(self, vector_get(args, 0), st, tt);
         ir_append(self, make_ir_ptr_read(size));
-    elif op == PointerOp_Write then
+    elif op == PointerOp::Write then
         // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
         ir_compile(self, vector_get(args, 1), st, tt);
         ir_compile(self, vector_get(args, 0), st, tt);

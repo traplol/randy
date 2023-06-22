@@ -1,4 +1,6 @@
 
+extern strdup: (cstr -> cstr);
+
 def read_file_to_string path: cstr -> String& in
     var fd = open_for_read(path);
     if fd < 0 then
