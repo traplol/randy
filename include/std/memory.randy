@@ -5,6 +5,7 @@ extern calloc: (int, int -> ptr);
 extern free: (ptr -> void);
 extern memcpy: (ptr, ptr, int -> ptr);
 extern memset: (ptr, char, int -> ptr);
+extern memmove: (ptr, ptr, int -> ptr);
 
 // def _malloc_logger pointer in
 //     printf("malloc'd %p\n", pointer);
