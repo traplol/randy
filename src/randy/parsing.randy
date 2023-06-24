@@ -1015,17 +1015,32 @@ def parse_struct ts, st, tt in
         struct_type = tt_make_anon_struct(tt, fields, def_symbols);
     elif not type_is_undefined(struct_type) then
         printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
-    else
-        type_set_kind(struct_type, TyK_struct);
-        type_set_struct_fields(struct_type, fields);
-        type_set_struct_defs(struct_type, def_symbols);
     end
+
+    type_set_kind(struct_type, TyK_struct);
+    type_set_struct_fields(struct_type, fields);
+    type_set_struct_defs(struct_type, def_symbols);
 
     var i = 0; var len = def_symbols.length;
     while i < len do
         var def_sym = cast(vector_get(def_symbols, i), Symbol&);
         assert(not def_sym.owned_by);
         def_sym.owned_by = struct_type;
+
+        var def_ = vector_get(defs, i);
+        var def_type = def_sym.type;
+        var def_params = ast_params(def_);
+        if def_params.length > 0 and cstr_eq("self", vector_front(def_params)) then
+            var first_param = vector_front(def_params);
+            var param_types = type_def_parameters(def_type);
+            var first_param_type = vector_front(param_types);
+            if first_param_type == tt.any_type then
+                var ref_type = type_ref_to_this(struct_type);
+                vector_set(param_types, 0, ref_type);
+                var sym = st_get_symbol(st, first_param);
+                sym.type = ref_type;
+            end
+        end
         i += 1;
     end
 

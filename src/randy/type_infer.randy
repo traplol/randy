@@ -131,8 +131,9 @@ def ti_infer_call self, tt, st, ast -> type in
 
     if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
         if param_types.length != 0 then
-            assert(object != NULL);
-            vector_insert_front(args, object);
+            if tt_get_ast_type(tt, object) == vector_front(param_types) then
+                vector_insert_front(args, object);
+            end
         end
     end
 
