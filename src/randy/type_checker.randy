@@ -409,23 +409,24 @@ def tc_check_member_access self, tt, st, ast in
         end
         i += 1;
     end
-    if not found then
-        var defs = type_struct_defs(type);
-        i = 0; len = defs.length;
-        while i < len do
-            var def_ = vector_get(defs, i);
-            if cstr_eq(symbol_name(def_), member) then
-                found = true;
-                break;
-            end
-            i += 1;
-        end
-    end
+
+    // if not found then
+    //     var defs = type_struct_defs(type);
+    //     i = 0; len = defs.length;
+    //     while i < len do
+    //         var def_ = vector_get(defs, i);
+    //         if cstr_eq(symbol_name(def_), member) then
+    //             found = true;
+    //             break;
+    //         end
+    //         i += 1;
+    //     end
+    // end
 
     if not found then
         printf("ERROR: type `");
         tt_print_type_name(tt, type);
-        printf("` has no type named `%s`.\n", member);
+        printf("` has no member named `%s`.\n", member);
         printf("NOTE: the expression is:");
         print_ast(ast);
         print_ast_src_loc(ast);

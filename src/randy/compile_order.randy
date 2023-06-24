@@ -51,17 +51,23 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
     elif k == AstK_ScopeResolve then
-        var sym = scope_resolve_def(tt, stmt, false);
-        if sym and symbol_is_def(sym) then
-            if set_contains(seen, sym) then
-                return;
+        assert(ast_kind(ast_lhs(stmt)) == AstK_Type, "Nested resolution not supported yet.\n");
+        assert(ast_kind(ast_rhs(stmt)) == AstK_Ident, "Nested resolution not supported yet.\n");
+        var type = ast_type(ast_lhs(stmt));
+        if type_is_struct(type) then
+            var defs = type_struct_defs(type);
+            var i = 0; var len = defs.length;
+            while i < len do
+                var sym = cast(vector_get(defs, i), Symbol&);
+                if not set_contains(seen, sym) then
+                    set_add(seen, sym);
+                    assert(sym.type, "Type for %s was null.\n", sym.name);
+                    var def_ = type_ast(sym.type);
+                    assert(def_, "AST for symbol %s was null\n", sym.name);
+                    _compile_order_def(tt, st, def_, seen, order);
+                end
+                i += 1;
             end
-            set_add(seen, sym);
-            var type = symbol_type(sym);
-            assert(type, "Type for %s was null.\n", symbol_name(sym));
-            var def_ = type_ast(type);
-            assert(def_, "AST for symbol %s was null\n", symbol_name(sym));
-            _compile_order_def(tt, st, def_, seen, order);
         end
     // elif k == AstK_SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);

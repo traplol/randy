@@ -390,6 +390,16 @@ def make_ast_scope_resolve token: Token&, lhs: ast, rhs: ast -> ast in
     return self;
 end
 
+def ast_change_member_access_to_scope_access self: ast, type: type, member: Symbol& in
+    assert(ast_kind(self) == AstK_MemberAccess);
+    u32!(self + TAST_kind, AstK_ScopeResolve);
+
+    var lhs = make_ast_type(ast_token(self), type);
+    var rhs = make_ast_ident(ast_token(self), member.name);
+
+    u64!(self + TAST_lhs, lhs);
+    u64!(self + TAST_rhs, rhs);
+end
 
 def ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
 def ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end

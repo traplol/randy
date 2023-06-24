@@ -1091,6 +1091,8 @@ def _comptime_scope_resolve_val self, ast, st, tt, depth in
             i += 1;
         end
         assert(false, "Error should have been reported in type checker, type Enum::Value doesn't exist\n");
+    else
+        return ast;
     end
 end
 
@@ -1584,20 +1586,31 @@ end
 
 def ir_emit_if_else self, ast, st, tt in
     check_ast_kind(AstK_IfElse, ast);
-    var l_else = ir_new_label(self, NULL);
-    var l_out = ir_new_label(self, NULL);
-    ir_compile(self, ast_test(ast), st, tt);
-    ir_append(self, make_ir_goto_false(l_else));
-    ir_push_scope(self);
-    ir_emit_body(self, ast_consequence(ast), st, tt);
-    ir_pop_scope(self);
-    ir_append(self, make_ir_goto(l_out));
+    var test = ir_comptime_eval(self, ast_test(ast), st, tt, false, 0);
+    if _comptime_eval_is_n(1, test) then
+        ir_push_scope(self);
+        ir_emit_body(self, ast_consequence(ast), st, tt);
+        ir_pop_scope(self);
+    elif _comptime_eval_is_n(0, test) then
+        ir_push_scope(self);
+        ir_emit_body(self, ast_alternative(ast), st, tt);
+        ir_pop_scope(self);
+    else
+        var l_else = ir_new_label(self, NULL);
+        var l_out = ir_new_label(self, NULL);
+        ir_compile(self, test, st, tt);
+        ir_append(self, make_ir_goto_false(l_else));
+        ir_push_scope(self);
+        ir_emit_body(self, ast_consequence(ast), st, tt);
+        ir_pop_scope(self);
+        ir_append(self, make_ir_goto(l_out));
 
-    ir_append(self, make_ir_label(l_else));
-    ir_push_scope(self);
-    ir_emit_body(self, ast_alternative(ast), st, tt);
-    ir_pop_scope(self);
-    ir_append(self, make_ir_label(l_out));
+        ir_append(self, make_ir_label(l_else));
+        ir_push_scope(self);
+        ir_emit_body(self, ast_alternative(ast), st, tt);
+        ir_pop_scope(self);
+        ir_append(self, make_ir_label(l_out));
+    end
 end
 
 def ir_emit_while self, ast, st, tt in
@@ -1864,45 +1877,72 @@ end
 
 def ir_emit_scope_resolve self, ast, st, tt in
     var val = _comptime_scope_resolve_val(self, ast, st, tt, 0);
-    ir_compile(self, val, st, tt);
+    if val != ast then
+        ir_compile(self, val, st, tt);
+        return;
+    end
+
+    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+    var type = ast_type(ast_lhs(ast));
+    var member = ast_ident(ast_rhs(ast));
+    if type_is_struct(type) then
+        var defs = type_struct_defs(type);
+        var i = 0; var len = defs.length;
+        while i < len do
+            var def_ = cast(vector_get(defs, i), Symbol&);
+            if cstr_eq(def_.name, member) then
+                var def_info = ir_get_def(self, def_.name);
+                assert(def_info, "def_info for %s not found.\n", def_.name);
+                ir_append(self, make_ir_push_label(def_info_label(def_info)));
+                return;
+            end
+            i += 1;
+        end
+        assert(false, "Error should have been reported in type checker, type Struct::Value doesn't exist\n");
+    end
+
+    assert(false, "not implemented\n");
 end
 
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
-    ast = ir_comptime_eval(self, ast, st, tt, false, 0);
-    var k = ast_kind(ast);
-    ir_push_src_loc(self, ast_token(ast).src_loc);
-    if k == AstK_Ident then ir_emit_ident(self, ast, st, tt);
-    elif k == AstK_Integer then ir_emit_integer(self, ast, st, tt);
-    elif k == AstK_String then ir_emit_string(self, ast, st, tt);
-    elif k == AstK_Call then ir_emit_call(self, ast, st, tt);
-    elif k == AstK_BinOp then ir_emit_binop(self, ast, st, tt);
-    elif k == AstK_Return then ir_emit_return(self, ast, st, tt);
-    elif k == AstK_VarDecl then ir_emit_var_decl(self, ast, st, tt);
-    elif k == AstK_VarAssign then ir_emit_var_assign(self, ast, st, tt);
-    elif k == AstK_Def then ir_emit_def(self, ast, st, tt);
-    elif k == AstK_IfElse then ir_emit_if_else(self, ast, st, tt);
-    elif k == AstK_While then ir_emit_while(self, ast, st, tt);
-    elif k == AstK_PointerRead then ir_emit_pointer_op(self, ast, st, tt);
-    elif k == AstK_PointerWrite then ir_emit_pointer_op(self, ast, st, tt);
-    elif k == AstK_Prefix then ir_emit_prefix_op(self, ast, st, tt);
-    elif k == AstK_Const then ir_emit_const(self, ast, st, tt);
-    elif k == AstK_Extern then ir_emit_extern(self, ast, st, tt);
-    elif k == AstK_InlineAsm then ir_emit_inline_asm(self, ast, st, tt);
-    elif k == AstK_Global then ir_emit_global(self, ast, st, tt);
-    elif k == AstK_Break then ir_emit_break(self, ast, st, tt);
-    elif k == AstK_Continue then ir_emit_continue(self, ast, st, tt);
-    elif k == AstK_AssignOp then ir_emit_assign_op(self, ast, st, tt);
-    elif k == AstK_Struct then ir_emit_struct(self, ast, st, tt);
-    elif k == AstK_MemberAccess then ir_emit_member_access(self, ast, st, tt, true);
-    elif k == AstK_AssignMember then ir_emit_assign_member(self, ast, st, tt);
-    elif k == AstK_Enum then ir_emit_enum(self, ast, st, tt);
-    elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ast, st, tt);
+    assert(ast);
+    var ev_ast = ir_comptime_eval(self, ast, st, tt, false, 0);
+    assert(ev_ast, "ir_comptime_eval returned null, original ast kind was %s\n",
+                   ast_kind_cstr(ast_kind(ast)));
+    var k = ast_kind(ev_ast);
+    ir_push_src_loc(self, ast_token(ev_ast).src_loc);
+    if k == AstK_Ident then ir_emit_ident(self, ev_ast, st, tt);
+    elif k == AstK_Integer then ir_emit_integer(self, ev_ast, st, tt);
+    elif k == AstK_String then ir_emit_string(self, ev_ast, st, tt);
+    elif k == AstK_Call then ir_emit_call(self, ev_ast, st, tt);
+    elif k == AstK_BinOp then ir_emit_binop(self, ev_ast, st, tt);
+    elif k == AstK_Return then ir_emit_return(self, ev_ast, st, tt);
+    elif k == AstK_VarDecl then ir_emit_var_decl(self, ev_ast, st, tt);
+    elif k == AstK_VarAssign then ir_emit_var_assign(self, ev_ast, st, tt);
+    elif k == AstK_Def then ir_emit_def(self, ev_ast, st, tt);
+    elif k == AstK_IfElse then ir_emit_if_else(self, ev_ast, st, tt);
+    elif k == AstK_While then ir_emit_while(self, ev_ast, st, tt);
+    elif k == AstK_PointerRead then ir_emit_pointer_op(self, ev_ast, st, tt);
+    elif k == AstK_PointerWrite then ir_emit_pointer_op(self, ev_ast, st, tt);
+    elif k == AstK_Prefix then ir_emit_prefix_op(self, ev_ast, st, tt);
+    elif k == AstK_Const then ir_emit_const(self, ev_ast, st, tt);
+    elif k == AstK_Extern then ir_emit_extern(self, ev_ast, st, tt);
+    elif k == AstK_InlineAsm then ir_emit_inline_asm(self, ev_ast, st, tt);
+    elif k == AstK_Global then ir_emit_global(self, ev_ast, st, tt);
+    elif k == AstK_Break then ir_emit_break(self, ev_ast, st, tt);
+    elif k == AstK_Continue then ir_emit_continue(self, ev_ast, st, tt);
+    elif k == AstK_AssignOp then ir_emit_assign_op(self, ev_ast, st, tt);
+    elif k == AstK_Struct then ir_emit_struct(self, ev_ast, st, tt);
+    elif k == AstK_MemberAccess then ir_emit_member_access(self, ev_ast, st, tt, true);
+    elif k == AstK_AssignMember then ir_emit_assign_member(self, ev_ast, st, tt);
+    elif k == AstK_Enum then ir_emit_enum(self, ev_ast, st, tt);
+    elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
-        print_token(ast_token(ast));
-        print_token_loc(ast_token(ast));
+        print_ast_src_loc(ast);
         exit(1);
     end
     ir_pop_src_loc(self);

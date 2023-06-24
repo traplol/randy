@@ -84,7 +84,13 @@ end
 def ti_infer_call self, tt, st, ast -> type in
     check_ast_kind(AstK_Call, ast);
     var expr = ast_expr(ast);
+    var before_kind = ast_kind(expr);
+    var object = NULL;
+    if before_kind == AstK_MemberAccess then
+        object = ast_expr(expr);
+    end
     var call_type = ti_infer(self, tt, st, expr);
+    var after_kind = ast_kind(expr);
     var any = tt_any_type(tt);
     // TODO: put this check in type checker
     if not type_is_def(call_type) then
@@ -122,6 +128,14 @@ def ti_infer_call self, tt, st, ast -> type in
     // TODO: need to handle varargs at some point
     var param_types = type_def_parameters(call_type);
     var args = ast_args(ast);
+
+    if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
+        if param_types.length != 0 then
+            assert(object != NULL);
+            vector_insert_front(args, object);
+        end
+    end
+
     var i = 0; var len = min(param_types.length, args.length);
     var changed = false;
     while i < len do
@@ -417,7 +431,8 @@ def ti_infer_cast self, tt, st, ast -> type in
     return ast_type(ast);
 end
 
-def _ti_get_field_type type, member in
+def _ti_get_field_type_rewrite_if_def type, member, ast in
+    assert(type_is_struct(type));
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
@@ -432,6 +447,7 @@ def _ti_get_field_type type, member in
     while i < len do
         var def_ = vector_get(defs, i);
         if cstr_eq(symbol_name(def_), member) then
+            ast_change_member_access_to_scope_access(ast, type, def_);
             return symbol_type(def_);
         end
         i += 1;
@@ -445,7 +461,7 @@ def ti_infer_member_access self, tt, st, ast in
     var member = ast_member(ast);
     var ftype = NULL;
     if type_is_struct(type) then
-        ftype = _ti_get_field_type(type, member);
+        ftype = _ti_get_field_type_rewrite_if_def(type, member, ast);
     elif type_is_reference(type) then
         var ref_type = type_deref_type(type);
         assert(ref_type, "reference type has no deref type");
@@ -458,7 +474,7 @@ def ti_infer_member_access self, tt, st, ast in
             print_ast_src_loc(ast);
             exit(1);
         end
-        ftype = _ti_get_field_type(ref_type, member);
+        ftype = _ti_get_field_type_rewrite_if_def(ref_type, member, ast);
     elif type_is_enum(type) then
         assert(false, "TODO: FIXME enum's don't use . operator for access\n");
     elif type_is_union(type) then
