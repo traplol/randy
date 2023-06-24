@@ -91,7 +91,7 @@ def vector_front self: Vector& -> ptr in
     if self.length > 0 then
         return cast(u64@(self.buffer), ptr);
     end
-    printf("ERROR: vector_back out of bounds.\n");
+    printf("ERROR: vector_front out of bounds.\n");
     abort();
 end
 
