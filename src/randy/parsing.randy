@@ -1034,11 +1034,18 @@ def parse_struct ts, st, tt in
             var first_param = vector_front(def_params);
             var param_types = type_def_parameters(def_type);
             var first_param_type = vector_front(param_types);
+            var ref_type = type_ref_to_this(struct_type);
             if first_param_type == tt.any_type then
-                var ref_type = type_ref_to_this(struct_type);
                 vector_set(param_types, 0, ref_type);
                 var sym = st_get_symbol(st, first_param);
                 sym.type = ref_type;
+            elif first_param_type != ref_type then
+                printf("WARN: type of `self` is `");
+                tt_print_type_name(tt, first_param_type);
+                printf("`, but it usually `");
+                tt_print_type_name(tt, ref_type);
+                printf(".`\n");
+                print_token_loc(def_sym.token);
             end
         end
         i += 1;
