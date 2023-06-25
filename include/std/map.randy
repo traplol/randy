@@ -95,7 +95,7 @@ def map_find self: map, key: ptr in
         return cache;
     end
     var cap = map_cap(self);
-    var hasher = map_hasher(self); 
+    var hasher = map_hasher(self);
     var idx = hasher(key) % cap;
     if idx < 0 then idx = 0 - idx; end
     var cur = _map_at(self, idx);
@@ -122,7 +122,7 @@ def map_set self: map, key: ptr, value: ptr in
         _map_expand(self);
         cap = map_cap(self);
     end
-    
+
     var hasher = map_hasher(self);
     var idx = hasher(key) % cap;
     if idx < 0 then idx = 0 - idx; end
