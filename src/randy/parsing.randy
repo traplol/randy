@@ -80,6 +80,9 @@ def parse_type ts, st, tt, is_instance in
         while ts_peekk(ts, TK::Ident) do
             var type = parse_type(ts, st, tt, true);
             vector_push(generic_params, type);
+            if not is_instance and type_is_undefined(type) then
+                type_set_kind(type, TyK_generic_param);
+            end
             if ts_peekk(ts, TK::RSquare) then
                 break;
             end

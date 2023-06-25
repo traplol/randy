@@ -44,6 +44,7 @@ const TyK_def       = 5;
 const TyK_struct    = 6;
 const TyK_enum      = 7;
 const TyK_union     = 8; // NYI
+const TyK_generic_param = 9;
 
 const TTYPE_id          = 0;  // int
 const TTYPE_kind        = 8;  // TyK
@@ -187,6 +188,7 @@ def type_is_struct self: type in return type_kind(self) == TyK_struct; end
 def type_is_def self: type in return type_kind(self) == TyK_def; end
 def type_is_enum self: type in return type_kind(self) == TyK_enum; end
 def type_is_union self: type in return type_kind(self) == TyK_union; end
+def type_is_generic_param self: type in return type_kind(self) == TyK_generic_param; end
 
 def type_is_scalar self: type in
     if type_is_int_like(self) then
@@ -604,7 +606,6 @@ def _tt_instantiate_generic_type_impl self, st, type, params, instance_type in
     assert(type_params(type).length == params.length, "forgot to verify type_params lengths match\n");
     assert(type_ast(type), "forgot to set type ast\n");
     var instance_ast = _tt_copy_ast_replacing_types(self, st, type_ast(type), type_params(type), params, type, instance_type);
-    return instance_type;
 end
 
 def tt_get_type_instance_of self, st, type, params in
@@ -772,6 +773,11 @@ def tt_calculate_struct self, stype, again_q in
         var field = cast(vector_get(fields, i), Field&);
         var fname = field.name;
         var ftype = field.type;
+        if type_is_generic_param(ftype) then
+            // FIXME: this shouldn't happen but it does...
+            type_set_is_generic(stype, true);
+            return;
+        end
 
         if type_is_reference(ftype) and not ptr_align then
             ptr_align = true;
@@ -912,7 +918,7 @@ def tt_calculate_structs self in
     var void = tt_void_type(self);
     while i < len do
         var type = vector_get(self.all_types, i);
-        if type_is_generic(type) then
+        if type_is_generic(type) or type_is_generic_param(type) then
             // skip generics because they aren't concrete types and their concrete instances
             // should also be in this list.
             i += 1;
