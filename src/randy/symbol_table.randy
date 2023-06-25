@@ -155,6 +155,14 @@ def st_get_symbol_here self, ident -> Symbol& in
     return NULL;
 end
 
+def st_get_exact_symbol self, ident -> Symbol& in
+    var found = map_find(self.all_symbols, ident);
+    if found then
+        return map_pair_val(found);
+    end
+    return NULL;
+end
+
 def st_push_scope self in
     vector_push(self.scope, make_map(0, cstr_eq, cstr_hash));
 end
