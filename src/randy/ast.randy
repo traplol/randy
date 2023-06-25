@@ -915,13 +915,18 @@ end
 
 def _ast_deep_copy_var_decl ast, tt, st in
     // here is a place to types would be replaced
-    assert(false, "need to copy the identifier and create symbol?\n");
-    return cast(NULL, ast);
+    var ident = ast_ident(ast);
+    var ident_sym = st_get_exact_symbol(st, ident);
+    assert(ident_sym);
+    var copy_ident = strdup(ident);
+    var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
+    copy_sym.type = tt_substitute_type(tt, ident_sym.type);
+    return make_ast_var_decl(ast_token(ast), symbol_name(copy_sym));
 end
 
 def _ast_deep_copy_var_assign ast, tt, st in
     var ident = ast_ident(ast);
-    var ident_sym = st_get_symbol(st, ident);
+    var ident_sym = st_get_exact_symbol(st, ident);
     assert(ident_sym);
     var copy_ident = strdup(ident);
     var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
@@ -942,7 +947,8 @@ def _ast_deep_copy_def ast, tt, st in
     var i = 0; var len = def_params.length;
     while i < len do
         var param = vector_get(def_params, i);
-        var param_sym = st_get_symbol(st, param);
+        var param_sym = st_get_exact_symbol(st, param);
+        assert(param_sym);
         var param_copy = strdup(param);
         var param_copy_sym = st_make_param(st, param_copy, param_sym.token);
         param_copy_sym.type = tt_substitute_type(tt, param_sym.type);
@@ -950,7 +956,6 @@ def _ast_deep_copy_def ast, tt, st in
         vector_push(def_copy_params, param_copy); // push the cstr not the symbol!
         i += 1;
     end
-
     var return_type = tt_substitute_type(tt, type_def_return_type(def_sym.type));
     def_copy_sym.type = tt_make_anon_def(tt,
                             return_type, def_copy_params_types, type_def_varargs(def_sym.type));
@@ -1014,8 +1019,9 @@ def _ast_deep_copy_continue ast, tt, st in
 end
 
 def _ast_deep_copy_assign_op ast, tt, st in
-    assert(false, "TODO: deep copy assign op\n");
-    return cast(NULL, ast);
+    var sym = st_get_symbol(st, ast_ident(ast));
+    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
+    return make_ast_assign_op(ast_token(ast), sym.name, ast_op(ast), rhs_copy);
 end
 
 def _ast_deep_copy_cast ast, tt, st in
@@ -1025,6 +1031,7 @@ def _ast_deep_copy_cast ast, tt, st in
 end
 
 def _ast_deep_copy_struct ast, tt, st in
+    st_push_scope(st);
     var fields = ast_fields(ast);
     var fields_copy = make_vector(fields.length);
     var i = 0; var len = fields.length;
@@ -1058,6 +1065,7 @@ def _ast_deep_copy_struct ast, tt, st in
         type_set_struct_fields(struct_type, fields_copy);
         type_set_struct_defs(struct_type, defs_copy_symbols);
     end
+    st_pop_scope(st);
     return struct_copy;
 end
 
