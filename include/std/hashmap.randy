@@ -1,0 +1,189 @@
+#include memory
+
+struct HashmapPair[K, V] in
+    key: K;
+    val: V;
+end
+
+struct HashmapIterator[K, V] in
+    _cur: HashmapPair[K, V]&;
+    _end: HashmapPair[K, V]&;
+
+    def new begin: HashmapPair[K, V]&, end_: HashmapPair[K, V]& in
+        var self = cast(malloc(__sizeof(HashmapIterator[K, V])), HashmapIterator[K, V]&);
+        self._cur = begin;
+        self._end = end_;
+        return self;
+    end
+
+    def next self in
+        if self._cur == self._end then
+            return NULL;
+        else
+            var cur = self._cur;
+            cur += __sizeof(HashmapPair[K, V]);
+            var end_ = self._end;
+            while cur != end_ and not cur.key do
+                cur += __sizeof(HashmapPair[K, V]);
+            end
+            self._cur = cur;
+            if cur == end_ then
+                return NULL;
+            end
+            return self;
+        end
+    end
+
+    def key self in
+        return self._cur.key;
+    end
+
+    def val self in
+        return self._cur.val;
+    end
+end
+
+const Hashmap_Load_Factor = 2;
+struct Hashmap[K, V, KHash, KCompare] in
+    _length: int;
+    _capacity: int;
+    _cache: HashmapPair[K, V]&;
+    _buffer: HashmapPair[K, V]&;
+
+    def new starting_capacity: int in
+        if starting_capacity == 0 then
+            starting_capacity = 17;
+        end
+
+        var self = cast(malloc(__sizeof(Hashmap[K, V, KHash, KCompare])),
+                        Hashmap[K, V, KHash, KCompare]&);
+        self._length = 0;
+        self._capacity = starting_capacity;
+        self._cache = NULL;
+        self._buffer = calloc(starting_capacity, __sizeof(HashmapPair[K, V]));
+        return self;
+    end
+
+    def _expand self in
+        self._cache = NULL;
+        var old_cap = self._capacity;
+        var old_buf = self._buffer;
+        var new_cap = (old_cap * 2) + 1;
+        self._length = 0;
+        self._capacity = new_cap;
+        var new_buf = calloc(new_cap, __sizeof(HashmapPair[K, V]));
+        self._buffer = new_buf;
+        var i = 0; var elt;
+        while i < old_cap do
+            elt = cast(old_buf + i * __sizeof(HashmapPair[K, V]), HashmapPair[K, V]&);
+            if elt.key then
+                self.insert(elt.key, elt.val);
+            end
+            i += 1;
+        end
+        free(old_buf);
+    end
+
+    def _at self, idx: int in
+        return cast(self._buffer + idx * __sizeof(HashmapPair[K, V]), HashmapPair[K, V]&);
+    end
+
+    def insert self, key: K, val: V in
+        if self._cache and KCompare::equal(key, self._cache.key) then
+            self._cache.val = val;
+            return;
+        end
+        if self._length >= self._capacity / Hashmap_Load_Factor then
+            self._expand();
+        end
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and cur.key do
+            if KCompare::equal(cur.key, key) then
+                break;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+        if not cur.key then
+            self._length += 1;
+        end
+        cur.key = key;
+        cur.val = val;
+        self._cache = cur;
+    end
+
+    def remove self, key: K in
+        if self._cache and KCompare::equal(key, self._cache.key) then
+            self._cache.key = cast(0, K); // TODO: default values...
+            self._cache = NULL;
+            self._length -= 1;
+            return;
+        end
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and cur.key do
+            if KCompare::equal(cur.key, key) then
+                break;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+        if cur.key then
+            self._length -= 1;
+        end
+        cur.key = cast(0, K); // TODO: default values...
+    end
+
+    def find self, key: K in
+        if self._cache and KCompare::equal(key, self._cache.key) then
+            return self._cache;
+        end
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and cur.key do
+            if KCompare::equal(cur.key, key) then
+                self._cache = cur;
+                return cur;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+        return NULL;
+    end
+
+    def _begin self in
+        var end_ = self._end();
+        if self._length == 0 then
+            return end_;
+        end
+        var cur = self._buffer;
+        while cur != end_ do
+            if cur.key then
+                return cur;
+            end
+            cur += __sizeof(HashmapPair[K, V]);
+        end
+        return end_;
+    end
+
+    def _end self in
+        return self._at(self._capacity);
+    end
+
+    def iter self in
+        return HashmapIterator[K, V]::new(self._begin(), self._end());
+    end
+end

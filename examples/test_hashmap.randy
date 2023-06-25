@@ -1,0 +1,70 @@
+#include std/core
+#include std/hashmap
+#include std/string
+
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+struct CstrHash in
+    def hash cstr: cstr -> int in
+        var hash = 5381;
+        var c = cast(u8@(cstr), char);
+        while c do
+            hash = hash * 33 + c;
+            c = cast(u8@(cstr), char);
+            cstr += 1;
+        end
+        return hash;
+    end
+end
+
+struct CstrCompare in
+    def equal a: cstr, b: cstr in
+        return cstr_eq(a, b);
+    end
+end
+
+def test_cstr_map in
+    printf("Testing set with cstrings.\n");
+    var map = Hashmap[cstr, int, CstrHash, CstrCompare]::new(17);
+
+    test("map is empty", 0 == map._length);
+
+    map.insert("hello world", 42);
+    test("map length is 1", 1 == map._length);
+    test("map contains \"hello world\"", map.find("hello world") != NULL);
+    var pair = map.find("hello world");
+    if pair != NULL then
+        test("map maps \"hello world\" to 42", 42 == pair.val);
+    end
+
+    map.insert("hello world", 123);
+    test("map length is 1", 1 == map._length);
+    pair = map.find("hello world");
+    if pair != NULL then
+        test("map maps \"hello world\" to 123", 123 == pair.val);
+    end
+
+    map.insert("helloworld", 456);
+    test("map length is 2", 2 == map._length);
+    test("map contains \"helloworld\"", map.find("helloworld") != NULL);
+    pair = map.find("helloworld");
+    if pair != NULL then
+        test("map maps \"helloworld\" to 456", 456 == pair.val);
+    end
+
+    map.remove("hello world");
+    test("map supports removal", 1 == map._length);
+    test("map no longer contains \"hello world\"", map.find("hello world") == NULL);
+end
+
+def main in
+    test_cstr_map();
+    return 0;
+end
