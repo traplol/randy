@@ -20,8 +20,9 @@ end
 struct Player in
     name: cstr;
     health: int;
-    // Point is a struct by reference
-    pos: Point&;
+    // Point is a struct by value
+    // Point& would be a reference to a Point struct
+    pos: Point;
 
     def move self, dx, dy in
         self.pos.x += dx;
@@ -37,13 +38,13 @@ def make_player name, health, x, y -> Player& in
     var player = cast(malloc(__sizeof(Player)), Player&);
     player.name = name;
     player.health = health;
-    player.pos = make_point(x, y);
+    player.pos.x = x;
+    player.pos.y = y;
     return player;
 end
 
 def free_player self: Player& in
     if self then
-        free_point(self.pos);
         free(self);
     end
 end
