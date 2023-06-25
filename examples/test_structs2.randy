@@ -1,0 +1,86 @@
+extern malloc: (int -> ptr);
+extern printf: (cstr, ... -> int);
+
+struct Foo in
+    x: int;
+    y: int;
+    z: int;
+    bar: Bar;
+
+    def ctor self, x, y, z in
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        self.print();
+        self.bar.ctor(x * 10, y * 10, z * 10);
+    end
+
+    def print self in
+        printf("Foo\n");
+        printf("    %d, %d, %d\n", self.x, self.y, self.z);
+    end
+
+    def new x: int, y: int, z: int in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.ctor(x, y, z);
+        return self;
+    end
+end
+
+struct Bar in
+    x: int;
+    y: int;
+    z: int;
+    baz: Baz;
+
+    def ctor self, x, y, z in
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        self.print();
+        self.baz.ctor(x * 10, y * 10, z * 10);
+    end
+
+    def print self in
+        printf("Bar\n");
+        printf("    %d, %d, %d\n", self.x, self.y, self.z);
+    end
+
+    def new x: int, y: int, z: int in
+        var self = cast(malloc(__sizeof(Bar)), Bar&);
+        self.ctor(x, y, z);
+        return self;
+    end
+end
+
+struct Baz in
+    x: int;
+    y: int;
+    z: int;
+
+    def ctor self, x, y, z in
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        self.print();
+    end
+
+    def print self in
+        printf("Baz\n");
+        printf("    %d, %d, %d\n", self.x, self.y, self.z);
+    end
+
+    def new x: int, y: int, z: int in
+        var self = cast(malloc(__sizeof(Baz)), Baz&);
+        self.ctor(x, y, z);
+        return self;
+    end
+end
+
+def main in
+    var foo = Foo::new(10, 20, 30);
+    foo.print();
+    foo.bar.print();
+    foo.bar.baz.print();
+    return 0;
+end
