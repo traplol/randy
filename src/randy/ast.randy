@@ -34,6 +34,7 @@ const AstK_SizeofType   = 26;
 const AstK_Enum         = 27;
 const AstK_Type         = 28;
 const AstK_ScopeResolve = 29;
+const AstK_GetReference = 30; // unavailable from source code
 
 def ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -66,6 +67,7 @@ def ast_kind_cstr k: int in
     if k == AstK_Enum then return "AstK_Enum"; end
     if k == AstK_Type then return "AstK_Type"; end
     if k == AstK_ScopeResolve then return "AstK_ScopeResolve"; end
+    if k == AstK_GetReference then return "AstK_GetReference"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -161,6 +163,8 @@ const TAST_type        = 24; // type
 // ScopeResolve
 const TAST_lhs         = 16; // Union(type_ast, scope_resolve_ast)
 const TAST_rhs         = 32; // Union(type_ast, ident_ast)
+// GetReference
+const TAST_object      = 16; // ast
 
 const sizeof_TAST      = 40;
 
@@ -399,6 +403,12 @@ def ast_change_member_access_to_scope_access self: ast, type: type, member: Symb
 
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_rhs, rhs);
+end
+
+def make_ast_get_reference token: Token&, expr: ast -> ast in
+    var self = _make_ast(AstK_GetReference, true, token);
+    u64!(self + TAST_expr, expr);
+    return self;
 end
 
 def ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
@@ -793,6 +803,12 @@ def _print_ast_scope_resolve ast, indent in
     _print_ast(ast_rhs(ast), indent);
 end
 
+def _print_ast_get_reference ast, indent in
+    printf("#REF(");
+    _print_ast(ast_expr(ast), indent);
+    printf(")");
+end
+
 def _print_ast ast, indent in
     var k = ast_kind(ast);
     if k == AstK_Ident then _print_ast_ident(ast, indent);
@@ -825,6 +841,7 @@ def _print_ast ast, indent in
     elif k == AstK_Enum then _print_ast_enum(ast, indent);
     elif k == AstK_Type then _print_ast_type(ast, indent);
     elif k == AstK_ScopeResolve then _print_ast_scope_resolve(ast, indent);
+    elif k == AstK_GetReference then _print_ast_get_reference(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -1116,6 +1133,11 @@ def _ast_deep_copy_scope_resolve ast, tt, st in
     return make_ast_scope_resolve(ast_token(ast), lhs_copy, rhs_copy);
 end
 
+def _ast_deep_copy_get_reference ast, tt, st in
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    return make_ast_get_reference(ast_token(ast), expr_copy);
+end
+
 def _ast_deep_copy ast, tt, st in
     var k = ast_kind(ast);
     if k == AstK_Ident then return _ast_deep_copy_ident(ast, tt, st);
@@ -1148,6 +1170,7 @@ def _ast_deep_copy ast, tt, st in
     elif k == AstK_Enum then return _ast_deep_copy_enum(ast, tt, st);
     elif k == AstK_Type then return _ast_deep_copy_type(ast, tt, st);
     elif k == AstK_ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
+    elif k == AstK_GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

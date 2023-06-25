@@ -54,23 +54,43 @@ def _compile_order_visit tt, st, stmt, seen, order in
         assert(ast_kind(ast_lhs(stmt)) == AstK_Type, "Nested resolution not supported yet.\n");
         assert(ast_kind(ast_rhs(stmt)) == AstK_Ident, "Nested resolution not supported yet.\n");
         var type = ast_type(ast_lhs(stmt));
-        if type_is_struct(type) then
-            var defs = type_struct_defs(type);
-            var i = 0; var len = defs.length;
-            while i < len do
-                var sym = cast(vector_get(defs, i), Symbol&);
-                if not set_contains(seen, sym) then
-                    set_add(seen, sym);
-                    assert(sym.type, "Type for %s was null.\n", sym.name);
-                    var def_ = type_ast(sym.type);
-                    assert(def_, "AST for symbol %s was null\n", sym.name);
-                    _compile_order_def(tt, st, def_, seen, order);
-                end
-                i += 1;
-            end
-        end
+        _compile_order_visit_type(tt, st, type, seen, order);
     // elif k == AstK_SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+    end
+end
+
+def _compile_order_visit_type tt, st, type, seen, order in
+    if set_contains(seen, type) then
+        return;
+    end
+    set_add(seen, type);
+    if type_is_struct(type) then
+        var defs = type_struct_defs(type);
+        var i = 0; var len = defs.length;
+        while i < len do
+            var sym = cast(vector_get(defs, i), Symbol&);
+            if not set_contains(seen, sym) then
+                set_add(seen, sym);
+                assert(sym.type, "Type for %s was null.\n", sym.name);
+                var def_ = type_ast(sym.type);
+                assert(def_, "AST for symbol %s was null\n", sym.name);
+                _compile_order_def(tt, st, def_, seen, order);
+            end
+            i += 1;
+        end
+
+        var fields = type_struct_fields(type);
+        i = 0; len = fields.length;
+        while i < len do
+            var field = cast(vector_get(fields, i), Field&);
+            _compile_order_visit_type(tt, st, field.type, seen, order);
+            i += 1;
+        end
+    elif type_is_enum(type) then
+        // nothing
+    elif type_is_union(type) then
+        assert(false, "TODO: _compile_order_visit_type for unions\n");
     end
 end
 

@@ -131,10 +131,13 @@ def ti_infer_call self, tt, st, ast -> type in
 
     if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
         if param_types.length != 0 then
-            var left = tt_get_ast_type(tt, object);
-            var right = vector_front(param_types);
-            if types_eq(left, right) then
+            var obj_type = tt_get_ast_type(tt, object);
+            var param_type = vector_front(param_types);
+            if types_eq(obj_type, param_type) then
                 vector_insert_front(args, object);
+            elif type_is_reference(param_type) and types_eq(tt_reference_to_type(tt, obj_type), param_type) then
+                var obj_ref = make_ast_get_reference(ast_token(object), object);
+                vector_insert_front(args, obj_ref);
             end
         end
     end
@@ -471,6 +474,7 @@ def ti_infer_member_access self, tt, st, ast in
         var ref_type = type_deref_type(type);
         assert(ref_type, "reference type has no deref type");
         if not type_is_struct(ref_type) then
+            printf("FIXME: this error message sucks! File \"%s\", line %d\n", __FILE__, __LINE__);
             printf("ERROR: type `");
             tt_print_type_name(tt, ref_type);
             printf("` is not a struct; it's a (%d). did you forget a cast?\n", type_kind(ref_type));
@@ -526,6 +530,12 @@ def ti_infer_scope_resolve self, tt, st, ast in
     return scope_resolve_type(tt, ast, false);
 end
 
+def ti_infer_get_reference self, tt, st, ast in
+    check_ast_kind(AstK_GetReference, ast);
+    var type = ti_infer(self, tt, st, ast_expr(ast));
+    return tt_reference_to_type(tt, type);
+end
+
 def ti_infer self, tt, st, ast -> type in
     var k = ast_kind(ast);
     var type: type;
@@ -560,12 +570,12 @@ def ti_infer self, tt, st, ast -> type in
     elif k == AstK_Enum then type = tt_void_type(tt);
     elif k == AstK_Type then type = tt_void_type(tt);
     elif k == AstK_ScopeResolve then type = ti_infer_scope_resolve(self, tt, st, ast);
+    elif k == AstK_GetReference then type = ti_infer_get_reference(self, tt, st, ast);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
-        print_token(ast_token(ast));
-        print_token_loc(ast_token(ast));
         print_ast(ast);
+        print_ast_src_loc(ast);
         exit(1);
     end
     tt_set_ast_type(tt, ast, type);

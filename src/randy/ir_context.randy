@@ -1880,6 +1880,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 end
 
 def ir_emit_scope_resolve self, ast, st, tt in
+    check_ast_kind(AstK_ScopeResolve, ast);
     var val = _comptime_scope_resolve_val(self, ast, st, tt, 0);
     if val != ast then
         ir_compile(self, val, st, tt);
@@ -1907,6 +1908,28 @@ def ir_emit_scope_resolve self, ast, st, tt in
     end
 
     assert(false, "not implemented\n");
+end
+
+def ir_emit_get_reference self, ast, st, tt in
+    check_ast_kind(AstK_GetReference, ast);
+    var expr = ast_expr(ast);
+    if ast_kind(expr) == AstK_MemberAccess then
+        ir_emit_member_access(self, expr, st, tt, false);
+    elif ast_kind(expr) == AstK_Ident then
+        var ident = ast_ident(expr);
+        if ir_is_local(self, ident) then
+            var n = ir_get_local(self, ident);
+            var offs = ir_get_local_offset(self, ident);
+            ir_append(self, make_ir_ref_local(ident, n, offs));
+        elif ir_is_global(self, ident) then
+            var gi = ir_get_global(self, ident);
+            ir_append(self, make_ir_ref_global(ident, global_info_label(gi)));
+        else
+            assert(false, "TODO: `%s` is not a local nor global, how to get reference?\n", ident);
+        end
+    else
+        assert(false, "ir_emit_get_reference not implemented for %s\n", ast_kind_cstr(ast_kind(expr)));
+    end
 end
 
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
@@ -1943,6 +1966,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK_AssignMember then ir_emit_assign_member(self, ev_ast, st, tt);
     elif k == AstK_Enum then ir_emit_enum(self, ev_ast, st, tt);
     elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
+    elif k == AstK_GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

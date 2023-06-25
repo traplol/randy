@@ -512,10 +512,11 @@ def tt_get_type_or_make_undefined self, name -> type in
     return type;
 end
 
-def tt_get_reference_to_type self, type -> type in
+def tt_reference_to_type self, type -> type in
     var ref = type_ref_to_this(type);
     if not ref then
         ref = _tt_make_ref_type(type, NULL, NULL, self.all_types, self.names);
+        type_set_ref_to_this(type, ref);
     end
     return ref;
 end
@@ -547,7 +548,7 @@ def tt_substitute_type self, type -> type in
     if found then
         type = map_pair_val(found);
         if is_ref_type then
-            type = tt_get_reference_to_type(self, type);
+            type = tt_reference_to_type(self, type);
         end
         return type;
     end
@@ -569,7 +570,7 @@ def tt_substitute_type self, type -> type in
         if made_subst then
             type = tt_get_type_instance_of(self, g_SymbolTable, deref_type, new_params);
             if is_ref_type then
-                type = tt_get_reference_to_type(self, type);
+                type = tt_reference_to_type(self, type);
             end
             return type;
         else
@@ -659,8 +660,7 @@ def tt_get_type_instance_of self, st, type, params in
         type_set_is_generic(instance_type, false);
         type_set_params(instance_type, params); // used for looking up existing instances.
         type_set_ref_to_this(instance_type, NULL); // clear the old ref type
-        var ref_type = tt_get_reference_to_type(self, instance_type);
-        type_set_ref_to_this(instance_type, ref_type);
+        var ref_type = tt_reference_to_type(self, instance_type);
         vector_push(instances, instance_type);
         _tt_instantiate_generic_type_impl(self, st, type, params, instance_type);
         return instance_type;

@@ -557,11 +557,12 @@ def tc_check self, tt, st, ast in
     elif k == AstK_Enum then // nothing
     elif k == AstK_Type then // nothing
     elif k == AstK_ScopeResolve then tc_check_scope_resolve(self, tt, st, ast);
+    elif k == AstK_GetReference then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
-        print_token(ast_token(ast));
-        print_token_loc(ast_token(ast));
+        print_ast(ast);
+        print_ast_src_loc(ast);
         exit(1);
     end
 end
