@@ -831,7 +831,7 @@ def ir_new_def self, ident, params, ast, symbol in
         print_ast_src_loc(ast);
         exit(1);
     end
-    
+
     var label = make_string(20); // @LEAK
     string_append_cstr(label, "_def_");
     if symbol.owned_by then
@@ -1354,8 +1354,12 @@ def ir_emit_call self, ast, st, tt in
         end
     elif ast_kind(expr) == AstK_ScopeResolve then
         var def_ = scope_resolve_def(tt, expr, true);
-        assert(def_.label != NULL);
-        ir_append(self, make_ir_call(def_.label, def_.is_varargs));
+        assert(def_);
+        if def_.label then
+            ir_append(self, make_ir_call(def_.label, def_.is_varargs));
+        else
+            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), def_, len));
+        end
     else
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_pop_call());
