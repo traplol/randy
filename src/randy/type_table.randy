@@ -315,6 +315,7 @@ struct TypeTable in
     ptr_type: type;  // fast ref to `ptr` type
     cstr_type: type; // fast ref to `cstr` type
     bool_type: type; // fast ref to `bool` type
+    made_change: bool;
 end
 
 def _tt_make_type tyk, name, size, type_ids, types, names in
@@ -348,7 +349,7 @@ def _tt_make_type_alias type, name, type_ids, types, names in
 end
 
 def make_type_table -> TypeTable& in
-    var self: TypeTable& = malloc(__sizeof(TypeTable));
+    var self: TypeTable& = calloc(1, __sizeof(TypeTable));
     var types = make_vector(0);
     var names = make_vector(0);
     self.type_scope = make_type_scope(NULL);
@@ -424,7 +425,17 @@ def tt_get_ast_type self, ast -> type in
 end
 
 def tt_set_ast_type self, ast, type in
-    map_set(self.ast_types, ast, type);
+    var found = map_find(self.ast_types, ast);
+    if not found then
+        map_set(self.ast_types, ast, type);
+        self.made_change = true;
+    else
+        var old_type = map_pair_val(found);
+        if type != old_type then
+            self.made_change = true;
+            map_set(self.ast_types, ast, type);
+        end
+    end
 end
 
 def tt_get_type_name self, type -> cstr in
@@ -539,8 +550,8 @@ def tt_substitute_type self, type -> type in
         return type;
     end
 
-    if type_is_generic(deref_type) then
-        var params = type_params(deref_type);
+    var params = type_params(deref_type);
+    if params and params.length > 0 then
         var i = 0; var len = params.length;
         var new_params = make_vector(len);
         var made_subst = false;
@@ -563,7 +574,6 @@ def tt_substitute_type self, type -> type in
             free_vector(new_params);
         end
     end
-
     return type;
 end
 
@@ -579,22 +589,21 @@ def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, in
         i += 1;
     end
     map_set(type_sub_map, type, instance);
+    var prev = self.type_substitutes;
     self.type_substitutes = type_sub_map;
     var ast_copy = _ast_deep_copy(ast, self, st);
-    self.type_substitutes = NULL;
+    self.type_substitutes = prev;
     free_map(type_sub_map);
     tt_pop_scope(self);
     return ast_copy;
 end
 
 def _tt_instantiate_generic_type_impl self, st, type, params, instance_type in
-    assert(type_is_generic(type), "forgot to verify type is generic before creating type instance\n");
     assert(type_params(type));
     assert(params);
     assert(type_params(type).length == params.length, "forgot to verify type_params lengths match\n");
     assert(type_ast(type), "forgot to set type ast\n");
     var instance_ast = _tt_copy_ast_replacing_types(self, st, type_ast(type), type_params(type), params, type, instance_type);
-    //type_set_ast(instance_type, instance_ast);
     return instance_type;
 end
 

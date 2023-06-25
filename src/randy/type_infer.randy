@@ -131,7 +131,9 @@ def ti_infer_call self, tt, st, ast -> type in
 
     if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
         if param_types.length != 0 then
-            if tt_get_ast_type(tt, object) == vector_front(param_types) then
+            var left = tt_get_ast_type(tt, object);
+            var right = vector_front(param_types);
+            if types_eq(left, right) then
                 vector_insert_front(args, object);
             end
         end
@@ -143,7 +145,9 @@ def ti_infer_call self, tt, st, ast -> type in
         var arg_type = ti_infer(self, tt, st, vector_get(args, i));
         assert(arg_type);
         var par_type = vector_get(param_types, i);
-        assert(par_type);
+        if not par_type then
+            par_type = any;
+        end
         if arg_type != any and par_type == any then
             vector_set(param_types, i, arg_type);
             if def_params then
@@ -518,6 +522,7 @@ def ti_infer_sizeof_expr self, tt, st, ast in
 end
 
 def ti_infer_scope_resolve self, tt, st, ast in
+    check_ast_kind(AstK_ScopeResolve, ast);
     return scope_resolve_type(tt, ast, false);
 end
 
@@ -567,11 +572,10 @@ def ti_infer self, tt, st, ast -> type in
     return type;
 end
 
-def type_infer type_table, symbol_table, compile_order: Vector& in
-    var self = make_type_infer();
-    var i = 0; var len = compile_order.length;
+def _type_infer_impl self, type_table, symbol_table, ast_nodes in
+    var i = 0; var len = ast_nodes.length;
     while i < len do
-        ti_infer(self, type_table, symbol_table, vector_get(compile_order, i));
+        ti_infer(self, type_table, symbol_table, vector_get(ast_nodes, i));
         i += 1;
     end
 
@@ -592,6 +596,18 @@ def type_infer type_table, symbol_table, compile_order: Vector& in
             cur = set_next(again, cur);
         end
         free_set(again);
+    end
+end
+
+def type_infer type_table, symbol_table, ast_nodes, repeat in
+    var self = make_type_infer();
+
+    _type_infer_impl(self, type_table, symbol_table, ast_nodes);
+
+    // there has got to be a better way to do type inference than this...
+    while repeat and type_table.made_change do
+        type_table.made_change = false;
+        _type_infer_impl(self, type_table, symbol_table, ast_nodes);
     end
 
     free_type_infer(self);

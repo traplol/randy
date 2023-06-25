@@ -238,6 +238,7 @@ def main argc: int, argv: ptr in
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 5) calculate code reachable from "main"
+        type_infer(type_table, symbol_table, roots, false);
         var compile_order = compile_order_main(roots, type_table, symbol_table);
         if not compile_order then
             printf("ERROR: no `main` procedure.\n");
@@ -246,7 +247,7 @@ def main argc: int, argv: ptr in
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 6) type inference
-        type_infer(type_table, symbol_table, compile_order);
+        type_infer(type_table, symbol_table, compile_order, true);
         time(endtime);
         if verbosity > 0 then
             print_timespan("Type inference took: ", starttime, endtime);
