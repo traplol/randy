@@ -108,6 +108,7 @@ def vector_insert_front self: Vector&, val: ptr in
 
     if len == 0 then
         u64!(self.buffer, val);
+        self.length = 1;
         return;
     end
 
