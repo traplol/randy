@@ -987,19 +987,16 @@ def parse_struct ts, st, tt in
     var def_symbols = make_vector(0);
     st_push_scope(st);
     while not ts_peekk(ts, TK::KW_end) do
-        var field_name;
         if ts_peekk(ts, TK::KW_def) then
             var def_ = parse_def(ts, st, tt);
             vector_push(defs, def_);
             vector_push(def_symbols, st_get_symbol(st, ast_ident(def_)));
-            field_name = ast_ident(def_);
         elif ts_peekk(ts, TK::Ident) then
             var field_ident = ts_next(ts);
             ts_expect(ts, TK::Colon);
             var field_type = parse_type(ts, st, tt, true);
             ts_expect(ts, TK::Semicolon);
             vector_push(fields, make_field(field_type, field_ident.value, -1, field_ident));
-            field_name = field_ident.value;
         else
             var tk = ts_peek(ts);
             printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(tk.kind));
