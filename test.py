@@ -104,6 +104,7 @@ def record(path_to_file):
         print(f"{WARN}   {color_path(path_to_file)}: did not compile.")
 
 def run1(output_file, print_diff):
+    passed = False
     # create out directory if it doesn"t exist
     if not os.path.exists("out/"):
         os.mkdir("out/")
@@ -128,6 +129,7 @@ def run1(output_file, print_diff):
         diff = list(difflib.unified_diff(expected_output.splitlines(), generated_output.splitlines(), lineterm=""))
         if len(diff) == 0:
             print(f"{PASSED} {color_path(randy_file)}")
+            passed = True
         else:
             print(f"{FAILED} {color_path(randy_file)}")
             if print_diff:
@@ -135,16 +137,23 @@ def run1(output_file, print_diff):
                     print(color_diff_line(line))
     except FileNotFoundError:
         print(f"{WARN}   {color_path(randy_file)}: did not compile.")
+    return passed
 
 def run_all():
     # create test directory if it doesn"t exist
     if not os.path.exists("test/"):
         os.mkdir("test/")
     files = sorted(os.listdir("test/"))
-    for i, output_file in enumerate(files):
-        if output_file.endswith(".output"):
-            print(f"[{i+1}/{len(files)}] ", end="")
-            run1(output_file, False)
+    passed = 0
+    tests = []
+    for f in files:
+        if f.endswith(".output"):
+            tests.append(f)
+    for i, test in enumerate(tests):
+        print(f"[{i+1}/{len(tests)}] ", end="")
+        if run1(test, False):
+            passed += 1
+    print(f"[{passed}/{len(tests)}] tests passed.")
 
 def usage():
     print("Usage: python script.py [record/run] [.randy file / No argument needed]")
