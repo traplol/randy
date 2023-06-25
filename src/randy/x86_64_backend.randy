@@ -148,6 +148,14 @@ def x86_64_emit_call cc, ir in
     check_ir_kind(IRK_Call, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
+
+    if cstr_eq("__builtin_trap", ir_instr_label(ir)) then
+        cc_out(cc, "    int3");
+        // needed to satisfy the DropTop that gets emitted after this "call"
+        cc_out(cc, "    subq $8, %rsp");
+        return;
+    end
+
     if ir_instr_varargs(ir) then
         cc_out(cc, "    xor %al, %al");
     end
