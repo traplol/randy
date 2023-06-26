@@ -26,9 +26,25 @@ enum TK in
     KW_u16!;
     KW_u32!;
     KW_u64!;
+    KW_u@;
+    KW_u!;
     KW_const;
     KW_extern;
     KW_asm;
+    KW_global;
+    KW_break;
+    KW_continue;
+    KW_cast;
+    KW_struct;
+    KW_union;
+    KW_enum;
+    KW_inline;
+    KW_assert;
+    KW_elif;
+    KW__FILE__;
+    KW__LINE__;
+    KW__sizeof;
+    KW__offsetof;
     Plus;
     Minus;
     Star;
@@ -50,9 +66,6 @@ enum TK in
     Amper;
     Caret;
     Ellipsis;
-    KW_global;
-    KW_break;
-    KW_continue;
     LShift;
     RShift;
     Colon;
@@ -69,18 +82,7 @@ enum TK in
     BarEq;
     LSquare;
     RSquare;
-    KW_cast;
-    KW_struct;
-    KW_union;
-    KW_enum;
-    KW_inline;
     Dot;
-    KW_assert;
-    KW_elif;
-    KW__FILE__;
-    KW__LINE__;
-    KW__sizeof;
-    KW__offsetof;
     ColonColon;
 end
 
@@ -166,6 +168,8 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::KW__sizeof then return "TK::KW__sizeof";
     elif k == TK::KW__offsetof then return "TK::KW__offsetof";
     elif k == TK::ColonColon then return "TK::ColonColon";
+    elif k == TK::KW_u! then return "TK::KW_u!";
+    elif k == TK::KW_u@ then return "TK::KW_u@";
     else return "TK_OUT_OF_RANGE"; end
 end
 

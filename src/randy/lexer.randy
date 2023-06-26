@@ -69,11 +69,13 @@ def get_ident_kind string: String& in
     elif 't' == first then
         if cstr_eq("then", cstr) then return TK::KW_then; end
     elif 'u' == first then
+        if cstr_eq("u@", cstr) then return TK::KW_u@; end
         if cstr_eq("u8@", cstr) then return TK::KW_u8@; end
         if cstr_eq("u16@", cstr) then return TK::KW_u16@; end
         if cstr_eq("u32@", cstr) then return TK::KW_u32@; end
         if cstr_eq("u64@", cstr) then return TK::KW_u64@; end
 
+        if cstr_eq("u!", cstr) then return TK::KW_u!; end
         if cstr_eq("u8!", cstr) then return TK::KW_u8!; end
         if cstr_eq("u16!", cstr) then return TK::KW_u16!; end
         if cstr_eq("u32!", cstr) then return TK::KW_u32!; end

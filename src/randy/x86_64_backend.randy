@@ -505,7 +505,7 @@ def x86_64_emit_ptr_read cc, ir in
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    xorl %edx, %edx");
     var str = make_string(20);
-    var reg; 
+    var reg;
     string_append_cstr(str, "    mov");
     if size == 8 then
         string_push(str, 'b');
@@ -519,6 +519,10 @@ def x86_64_emit_ptr_read cc, ir in
     elif size == 64 then
         string_push(str, 'q');
         reg = "%rdx";
+    else
+        assert(false,
+            "x86_64_emit_ptr_read does not work with sizes outside of 8, 16, 32, 64, size is %d\n",
+            size);
     end
     string_append_cstr(str, " (%rax), ");
     string_append_cstr(str, reg);
@@ -536,7 +540,7 @@ def x86_64_emit_ptr_write cc, ir in
     cc_out(cc, "    popq %rax"); // -- ptr
     cc_out(cc, "    popq %rdx"); // -- value
     var str = make_string(20);
-    var reg; 
+    var reg;
     string_append_cstr(str, "    mov");
     if size == 8 then
         string_push(str, 'b');
@@ -550,6 +554,10 @@ def x86_64_emit_ptr_write cc, ir in
     elif size == 64 then
         string_push(str, 'q');
         reg = "%rdx";
+    else
+        assert(false,
+            "x86_64_emit_ptr_write does not work with sizes outside of 8, 16, 32, 64, size is %d\n",
+            size);
     end
     string_push(str, ' ');
     string_append_cstr(str, reg);

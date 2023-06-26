@@ -237,7 +237,10 @@ def parse_pointer_op ts, st, tt in
     var token = ts_peek(ts);
     var size;
     var op;
-    if ts_accept(ts, TK::KW_u8!) then
+    if ts_accept(ts, TK::KW_u!) then
+        size = 0;
+        op = PointerOp::Write;
+    elif ts_accept(ts, TK::KW_u8!) then
         size = 8;
         op = PointerOp::Write;
     elif ts_accept(ts, TK::KW_u16!) then
@@ -249,6 +252,9 @@ def parse_pointer_op ts, st, tt in
     elif ts_accept(ts, TK::KW_u64!) then
         size = 64;
         op = PointerOp::Write;
+    elif ts_accept(ts, TK::KW_u@) then
+        size = 0;
+        op = PointerOp::Read;
     elif ts_accept(ts, TK::KW_u8@) then
         size = 8;
         op = PointerOp::Read;
@@ -269,21 +275,29 @@ def parse_pointer_op ts, st, tt in
 
     ts_expect(ts, TK::LParen);
     var args = make_vector(0);
-    parse_args_until(ts, st, tt, args, TK::RParen);
-    ts_expect(ts, TK::RParen);
-
-    if op == PointerOp::Read and args.length != 1 then
-        printf("ERROR: Expected pointer read (%s) to have exactly one argument but got %d\n",
-                token.cstr, args.length);
-        print_token_loc(token);
-        exit(1);
-    elif op == PointerOp::Write and args.length != 2 then
-        printf("ERROR: Expected pointer write (%s) to have exactly two arguments but got %d\n",
-                token.cstr, args.length);
-        print_token_loc(token);
-        exit(1);
+    if op == PointerOp::Read then
+        var arg = parse_expression(ts, st, tt);
+        vector_push(args, arg);
+        if size == 0 then
+            ts_expect(ts, TK::Comma);
+            var peek = ts_peek(ts);
+            var type = parse_type(ts, st, tt, true);
+            vector_push(args, make_ast_type(peek, type));
+        end
+    else
+        var arg = parse_expression(ts, st, tt);
+        vector_push(args, arg);
+        ts_expect(ts, TK::Comma);
+        arg = parse_expression(ts, st, tt);
+        vector_push(args, arg);
+        if size == 0 then
+            ts_expect(ts, TK::Comma);
+            var peek = ts_peek(ts);
+            var type = parse_type(ts, st, tt, true);
+            vector_push(args, make_ast_type(peek, type));
+        end
     end
-
+    ts_expect(ts, TK::RParen);
     return make_ast_pointer_op(token, size, op, args);
 end
 
@@ -415,7 +429,8 @@ def parse_primary ts, st, tt in
         return make_ast_string(peek, string_from_cstr(ts_next(ts).src_loc.filename));
     elif k == TK::KW__LINE__ then
         return make_ast_integer(peek, ts_next(ts).src_loc.line);
-    elif k == TK::KW_u8@ or k == TK::KW_u16@ or k == TK::KW_u32@ or k == TK::KW_u64@ then
+    elif k == TK::KW_u@ or
+        k == TK::KW_u8@ or k == TK::KW_u16@ or k == TK::KW_u32@ or k == TK::KW_u64@ then
         return parse_pointer_op(ts, st, tt);
     elif k == TK::KW_cast then
         return parse_cast(ts, st, tt);
@@ -721,7 +736,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
     elif ts_peekk(ts, TK::KW_assert) then
         stmt = parse_assert(ts, st, tt);
         expect_semi = true;
-    elif ts_peekk_one_of_4(ts, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
+    elif ts_peekk_one_of_5(ts, TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
         expect_semi = true;
     else

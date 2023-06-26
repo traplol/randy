@@ -1639,6 +1639,12 @@ def ir_emit_pointer_op self, ast, st, tt in
     //check_ast_kind(AstK_PointerOp, ast);
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
+    if size == 0 then
+        var type_ast = vector_back(args);
+        assert(ast_kind(type_ast) == AstK_Type);
+        var type = ast_type(type_ast);
+        size = type_size(type);
+    end
     var op = ast_pop(ast);
     if op == PointerOp::Read then
         ir_compile(self, vector_get(args, 0), st, tt);

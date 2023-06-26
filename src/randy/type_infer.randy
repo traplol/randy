@@ -365,7 +365,7 @@ def ti_infer_pointer_read self, tt, st, ast -> type in
     var args = ast_pop_args(ast);
     ti_infer(self, tt, st, vector_get(args, 0));
     var size = ast_size(ast);
-    var type;
+    var type = NULL;
     if size == 64 then
         type = tt_get_type_or_null(tt, "int64");
     elif size == 32 then
@@ -374,6 +374,10 @@ def ti_infer_pointer_read self, tt, st, ast -> type in
         type = tt_get_type_or_null(tt, "int16");
     elif size == 8 then
         type = tt_get_type_or_null(tt, "int8");
+    elif size == 0 then
+        var type_ast = vector_back(args);
+        assert(ast_kind(type_ast) == AstK_Type);
+        type = ast_type(type_ast);
     else
         assert(false, "Compiler bug: pointer read where size outside valid range; size was %d\n", size);
     end
