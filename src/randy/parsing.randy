@@ -1040,7 +1040,7 @@ def parse_struct ts, st, tt in
 
     var i = 0; var len = def_symbols.length;
     while i < len do
-        var def_sym = cast(def_symbols.get(i), Symbol&);
+        var def_sym = def_symbols.get(i);
         assert(not def_sym.owned_by);
         def_sym.owned_by = struct_type;
 

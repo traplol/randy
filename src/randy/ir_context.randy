@@ -1079,7 +1079,7 @@ def _comptime_scope_resolve_val self, ast, st, tt, depth in
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
         while i < len do
-            var ev = cast(enum_vals.get(i), EnumValue&);
+            var ev = enum_vals.get(i);
             if cstr_eq(ev.name, member) then
                 if not ev.cache_value then
                     ev.cache_value = ir_comptime_eval(self, ev.value, st, tt, true, depth + 1);
@@ -1899,7 +1899,7 @@ def ir_emit_scope_resolve self, ast, st, tt in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(defs.get(i), Symbol&);
+            var def_ = defs.get(i);
             if cstr_eq(def_.name, member) then
                 var def_info = ir_get_def(self, def_.name);
                 assert(def_info, "def_info for %s not found.\n", def_.name);

@@ -448,7 +448,7 @@ def _ti_get_field_type_rewrite_if_def type, member, ast in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         if cstr_eq(field.name, member) then
             return field.type;
         end

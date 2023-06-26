@@ -403,7 +403,7 @@ def tc_check_member_access self, tt, st, ast in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         if cstr_eq(field.name, member) then
             found = true;
             break;
@@ -478,7 +478,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
         while i < len do
-            var ev = cast(enum_vals.get(i), EnumValue&);
+            var ev = enum_vals.get(i);
             if cstr_eq(ev.name, member) then
                 return; // OK. found enum value
             end
@@ -493,7 +493,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var fields = type_struct_fields(type);
         var i = 0; var len = fields.length;
         while i < len do
-            var field = cast(fields.get(i), Field&);
+            var field = fields.get(i);
             if cstr_eq(field.name, member) then
                 return; // OK. found field
             end
@@ -503,7 +503,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var defs = type_struct_defs(type);
         i = 0; len = defs.length;
         while i < len do
-            var def_sym = cast(defs.get(i), Symbol&);
+            var def_sym = defs.get(i);
             if cstr_eq(def_sym.name, member) then
                 return; // OK. found def
             end

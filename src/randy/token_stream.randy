@@ -14,7 +14,7 @@ struct TokenStream in
         if self.idx >= self.tokens.length then
             return cast(NULL, Token&);
         end
-        return cast(self.tokens.get(self.idx), Token&);
+        return self.tokens.get(self.idx);
     end
 
     def peekk self: TokenStream&, kind: TK -> bool in

@@ -437,7 +437,7 @@ def ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector[Field&]
 def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector[ast]&); end
 def ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 def ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
-def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[ast]&); end
+def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[EnumValue&]&); end
 
 def ast_set_struct self: ast, struct_: type in
     assert(ast_kind(self) == AstK_Struct);
@@ -465,7 +465,7 @@ def _print_args args: Vector[ast]&, indent: int in
     var i = 0;
     var len = args.length;
     while i < len do
-        _print_ast(cast(args.get(i), ast), indent);
+        _print_ast(args.get(i), indent);
         i += 1;
         if i < len then
             printf(", ");
@@ -577,7 +577,7 @@ def _print_ast_body body, indent in
     var len = body.length;
     var stmt;
     while i < len do
-        stmt = cast(body.get(i), ast);
+        stmt = body.get(i);
         _print_indent(indent);
         _print_ast(stmt, indent);
         if ast_requires_semi(ast_kind(stmt)) then
@@ -641,7 +641,7 @@ def _print_ast_if_else ast, indent, print_if in
     if altern.length > 0 then
         if altern.length == 1 and AstK_IfElse == ast_kind(altern.get(0)) then
             _print_indent(indent); printf("elif ");
-            _print_ast_if_else(cast(altern.get(0), ast), indent, false);
+            _print_ast_if_else(altern.get(0), indent, false);
             return;
         else
             _print_indent(indent); printf("else\n");
@@ -727,7 +727,7 @@ def _print_ast_struct ast, indent in
     var fields = ast_fields(ast);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         _print_indent(indent+1);
         printf("%s: ", field.name);
         tt_print_type_name(g_TypeTable, field.type);
@@ -785,7 +785,7 @@ def _print_ast_enum ast, indent in
     var i = 0; var len = enum_vals.length;
     while i < len do
         _print_indent(indent + 1);
-        var ev = cast(enum_vals.get(i), EnumValue&);
+        var ev = enum_vals.get(i);
         printf("%s = %d;\n", ev.name, ev.value);
         i += 1;
     end
@@ -1054,7 +1054,7 @@ def _ast_deep_copy_struct ast, tt, st in
     var i = 0; var len = fields.length;
     while i < len do
         // fields aren't actually resolved with symbols so no need to create a copy of those
-        var field_copy = field_make_copy(cast(fields.get(i), Field&));
+        var field_copy = field_make_copy(fields.get(i));
         field_copy.type = tt_substitute_type(tt, field_copy.type);
         fields_copy.push(field_copy);
         i += 1;

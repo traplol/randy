@@ -226,7 +226,7 @@ def cc_lines_to_file cctx: compiler_context, path: cstr in
     var num_lines = lines.length;
     var line; var line_len;
     while i < num_lines do
-        line = cast(lines.get(i), String&);
+        line = lines.get(i);
         j = 0; line_len = line.length;
         while j < line_len do
             if p == buffer_end then

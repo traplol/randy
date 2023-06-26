@@ -618,8 +618,8 @@ def tt_get_type_instance_of self, st, type, params in
         var same = true;
         var i = 0; var len = params.length;
         while i < len do
-            var src_type = cast(generic_params.get(i), type);
-            var dst_type = cast(params.get(i), type);
+            var src_type = generic_params.get(i);
+            var dst_type = params.get(i);
             if not types_eq(src_type, dst_type) then
                 same = false;
                 break;
@@ -638,7 +638,7 @@ def tt_get_type_instance_of self, st, type, params in
         else
             var i = 0; var len = instances.length;
             while i < len do
-                var inst = cast(instances.get(i), type);
+                var inst = instances.get(i);
                 var inst_params = type_params(inst);
                 assert(params.length == inst_params.length, "forgot to verify params.length\n");
                 var j = 0; var jlen = inst_params.length;
@@ -770,7 +770,7 @@ def tt_calculate_struct self, stype, again_q in
     var i = 0; var len = fields.length;
     var ptr_align = false;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         var fname = field.name;
         var ftype = field.type;
         if type_is_generic_param(ftype) then
@@ -810,7 +810,7 @@ def tt_detect_cycles self, stype in
     var fields = type_struct_fields(stype);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         var ftype = field.type;
         if ftype == stype then // immediate self-reference
             return true;
@@ -830,7 +830,7 @@ def tt_detect_cycles self, stype in
         fields = type_struct_fields(v);
         i = 0; len = fields.length;
         while i < len do
-            var field = cast(fields.get(i), Field&);
+            var field = fields.get(i);
             var ftype = field.type;
             if ftype == stype then
                 return true;
@@ -852,7 +852,7 @@ def tt_check_struct_for_field_name_collisions self, type in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(fields.get(i), Field&);
+        var field = fields.get(i);
         var fname = field.name;
         var ftoke = field.token;
         var found = map_find(member_name_map, fname);
@@ -872,7 +872,7 @@ def tt_check_struct_for_field_name_collisions self, type in
     var defs = type_struct_defs(type);
     i = 0; len = defs.length;
     while i < len do
-        var def_ = cast(defs.get(i), Symbol&);
+        var def_ = defs.get(i);
         var found = map_find(member_name_map, def_.name);
         if found then
             printf("ERROR: struct `");
@@ -894,7 +894,7 @@ def tt_check_enum_for_field_name_collisions self, type in
     var enum_vals = type_enum_values(type);
     var i = 0; var len = enum_vals.length;
     while i < len do
-        var ev = cast(enum_vals.get(i), EnumValue&);
+        var ev = enum_vals.get(i);
         var found = map_find(member_name_map, ev.name);
         if found then
             printf("ERROR: enum `");
@@ -984,7 +984,7 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(defs.get(i), Symbol&);
+            var def_ = defs.get(i);
             var def_name = symbol_name(def_);
             if cstr_eq(member, def_name) then
                 var def_type = symbol_type(def_);
@@ -1027,7 +1027,7 @@ def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(defs.get(i), Symbol&);
+            var def_ = defs.get(i);
             var def_name = symbol_name(def_);
             if cstr_eq(member, def_name) then
                 var def_type = symbol_type(def_);
