@@ -2,7 +2,7 @@
 def parse_args_until ts, st, tt, into, until in
     var arg;
     while true do
-        if ts_peekk(ts, until) then
+        if ts.peekk(until) then
             return;
         end
         arg = parse_expression(ts, st, tt);
@@ -10,13 +10,13 @@ def parse_args_until ts, st, tt, into, until in
             return;
         end
         vector_push(into, arg);
-        if ts_peekk(ts, until) then
+        if ts.peekk(until) then
             return;
         end
-        if ts_expect(ts, TK::Comma) then
-            if ts_peekk(ts, until) then
+        if ts.expect(TK::Comma) then
+            if ts.peekk(until) then
                 printf("ERROR: Unexpected token after ','\n");
-                print_token_loc(ts_peek(ts));
+                print_token_loc(ts.peek());
                 exit(1);
             end
         end
@@ -24,71 +24,71 @@ def parse_args_until ts, st, tt, into, until in
 end
 
 def parse_def_type ts, st, tt, is_instance in
-    ts_expect(ts, TK::LParen);
+    ts.expect(TK::LParen);
     var param_types = make_vector(0);
     var ret_type = tt_void_type(tt);
     var varargs = false;
     while true do
-        if ts_peekk(ts, TK::RParen) then
+        if ts.peekk(TK::RParen) then
             break;
         end
-        if ts_peekk(ts, TK::Ellipsis) then
+        if ts.peekk(TK::Ellipsis) then
             break;
         end
         var type = parse_type(ts, st, tt, is_instance);
         assert(type);
         vector_push(param_types, type);
-        if ts_peekk(ts, TK::RightArrow) then
+        if ts.peekk(TK::RightArrow) then
             break;
         end
-        if ts_accept(ts, TK::Comma) then
-            if ts_peekk(ts, TK::RParen) then
+        if ts.accept(TK::Comma) then
+            if ts.peekk(TK::RParen) then
                 printf("ERROR: Unexpected token after ','\n");
-                print_token_loc(ts_peek(ts));
+                print_token_loc(ts.peek());
                 exit(1);
-            elif ts_peekk(ts, TK::RightArrow) then
+            elif ts.peekk(TK::RightArrow) then
                 printf("ERROR: Unexpected token after ','\n");
-                print_token_loc(ts_peek(ts));
+                print_token_loc(ts.peek());
                 exit(1);
             end
         end
     end
-    if ts_accept(ts, TK::Ellipsis) then
+    if ts.accept(TK::Ellipsis) then
         varargs = true;
     end
-    if ts_accept(ts, TK::RightArrow) then
+    if ts.accept(TK::RightArrow) then
         ret_type = parse_type(ts, st, tt, is_instance);
     end
-    ts_expect(ts, TK::RParen);
+    ts.expect(TK::RParen);
     return tt_make_anon_def(tt, ret_type, param_types, varargs);
 end
 
 def parse_type ts, st, tt, is_instance in
-    if ts_peekk(ts, TK::LParen) then
+    if ts.peekk(TK::LParen) then
         return parse_def_type(ts, st, tt, is_instance);
     end
-    var type_ident = ts_expect(ts, TK::Ident);
+    var type_ident = ts.expect(TK::Ident);
     var type = tt_get_type_or_make_undefined(tt, type_ident.value);
     var generic_params = NULL;
-    if ts_accept(ts, TK::LSquare) then
+    if ts.accept(TK::LSquare) then
         if not is_instance and tt.type_scope.parent == NULL then
             printf("type_ident = %s\n", type_ident.value);
             print_token_loc(type_ident);
             assert(false, "Compiler bug? type_scope depth should probably be >1 when parsing a generic.");
         end
         generic_params = make_vector(0);
-        while ts_peekk(ts, TK::Ident) do
+        while ts.peekk(TK::Ident) do
             var type = parse_type(ts, st, tt, true);
             vector_push(generic_params, type);
             if not is_instance and type_is_undefined(type) then
                 type_set_kind(type, TyK_generic_param);
             end
-            if ts_peekk(ts, TK::RSquare) then
+            if ts.peekk(TK::RSquare) then
                 break;
             end
-            ts_expect(ts, TK::Comma);
+            ts.expect(TK::Comma);
         end
-        ts_expect(ts, TK::RSquare);
+        ts.expect(TK::RSquare);
     end
 
     if type_is_generic(type) and not generic_params then
@@ -110,21 +110,21 @@ def parse_type ts, st, tt, is_instance in
 
     assert(type);
 
-    if ts_accept(ts, TK::Amper) then
+    if ts.accept(TK::Amper) then
         type = tt_reference_to_type(tt, type);
     end
     return type;
 end
 
 def parse_var ts, st, tt in
-    var var_ = ts_expect(ts, TK::KW_var);
-    var ident = ts_expect(ts, TK::Ident);
+    var var_ = ts.expect(TK::KW_var);
+    var ident = ts.expect(TK::Ident);
     var type = NULL;
     var expr = NULL;
-    if ts_accept(ts, TK::Colon) then
+    if ts.accept(TK::Colon) then
         type = parse_type(ts, st, tt, true);
     end
-    if ts_accept(ts, TK::Assign) then
+    if ts.accept(TK::Assign) then
         expr = parse_expression(ts, st, tt);
         if not expr then
             printf("ERROR: Expected expression after '='\n");
@@ -149,7 +149,7 @@ def parse_var ts, st, tt in
 end
 
 def parse_if_else ts, st, tt, expect in
-    var if_ = ts_expect(ts, expect);
+    var if_ = ts.expect(expect);
     st_push_scope(st);
     var test = parse_expression(ts, st, tt);
     if not test then
@@ -157,34 +157,34 @@ def parse_if_else ts, st, tt, expect in
         print_token_loc(if_);
         exit(1);
     end
-    ts_expect(ts, TK::KW_then);
+    ts.expect(TK::KW_then);
     var conseq = make_vector(0);
     var altern = make_vector(0);
     parse_statements_until_one_of(ts, st, tt, conseq, TK::KW_elif, TK::KW_end, TK::KW_elif);
     // early end
-    if ts_accept(ts, TK::KW_end) then
+    if ts.accept(TK::KW_end) then
         st_pop_scope(st);
         return make_ast_if_else(if_, test, conseq, altern);
     end
     // elif ... then
-    if ts_peekk(ts, TK::KW_elif) then
+    if ts.peekk(TK::KW_elif) then
         st_pop_scope(st);
         vector_push(altern, parse_if_else(ts, st, tt, TK::KW_elif));
         return make_ast_if_else(if_, test, conseq, altern);
     end
     // else
-    ts_expect(ts, TK::KW_else);
+    ts.expect(TK::KW_else);
     st_pop_scope(st); // discard the scope of the previous if/elif
     st_push_scope(st);
     parse_statements_until(ts, st, tt, altern, TK::KW_end);
     // end
-    ts_next(ts);
+    ts.next();
     st_pop_scope(st);
     return make_ast_if_else(if_, test, conseq, altern);
 end
 
 def parse_while ts, st, tt in
-    var while_ = ts_expect(ts, TK::KW_while);
+    var while_ = ts.expect(TK::KW_while);
     st_push_scope(st);
     var test = parse_expression(ts, st, tt);
     if not test then
@@ -193,16 +193,16 @@ def parse_while ts, st, tt in
         exit(1);
     end
     var body = make_vector(0);
-    ts_expect(ts, TK::KW_do);
+    ts.expect(TK::KW_do);
     parse_statements_until(ts, st, tt, body, TK::KW_end);
-    ts_expect(ts, TK::KW_end);
+    ts.expect(TK::KW_end);
     st_pop_scope(st);
     return make_ast_while(while_, test, body);
 end
 
 def parse_return ts, st, tt in
-    var return_ = ts_expect(ts, TK::KW_return);
-    if ts_peekk(ts, TK::Semicolon) then
+    var return_ = ts.expect(TK::KW_return);
+    if ts.peekk(TK::Semicolon) then
         return make_ast_return(return_, NULL);
     end
     // no need to handle NULL here because return with null expr is a void return.
@@ -211,7 +211,7 @@ def parse_return ts, st, tt in
 end
 
 def parse_assign_op ts, st, tt, lhs, op in
-    var op_tk = ts_expect(ts, op);
+    var op_tk = ts.expect(op);
     var expr = parse_expression(ts, st, tt);
     if not expr then
         printf("ERROR: Expected expression after '%s'\n", op_tk.value);
@@ -234,37 +234,37 @@ def parse_assign_op ts, st, tt, lhs, op in
 end
 
 def parse_pointer_op ts, st, tt in
-    var token = ts_peek(ts);
+    var token = ts.peek();
     var size;
     var op;
-    if ts_accept(ts, TK::KW_u!) then
+    if ts.accept(TK::KW_u!) then
         size = 0;
         op = PointerOp::Write;
-    elif ts_accept(ts, TK::KW_u8!) then
+    elif ts.accept(TK::KW_u8!) then
         size = 8;
         op = PointerOp::Write;
-    elif ts_accept(ts, TK::KW_u16!) then
+    elif ts.accept(TK::KW_u16!) then
         size = 16;
         op = PointerOp::Write;
-    elif ts_accept(ts, TK::KW_u32!) then
+    elif ts.accept(TK::KW_u32!) then
         size = 32;
         op = PointerOp::Write;
-    elif ts_accept(ts, TK::KW_u64!) then
+    elif ts.accept(TK::KW_u64!) then
         size = 64;
         op = PointerOp::Write;
-    elif ts_accept(ts, TK::KW_u@) then
+    elif ts.accept(TK::KW_u@) then
         size = 0;
         op = PointerOp::Read;
-    elif ts_accept(ts, TK::KW_u8@) then
+    elif ts.accept(TK::KW_u8@) then
         size = 8;
         op = PointerOp::Read;
-    elif ts_accept(ts, TK::KW_u16@) then
+    elif ts.accept(TK::KW_u16@) then
         size = 16;
         op = PointerOp::Read;
-    elif ts_accept(ts, TK::KW_u32@) then
+    elif ts.accept(TK::KW_u32@) then
         size = 32;
         op = PointerOp::Read;
-    elif ts_accept(ts, TK::KW_u64@) then
+    elif ts.accept(TK::KW_u64@) then
         size = 64;
         op = PointerOp::Read;
     else
@@ -273,61 +273,61 @@ def parse_pointer_op ts, st, tt in
         exit(1);
     end
 
-    ts_expect(ts, TK::LParen);
+    ts.expect(TK::LParen);
     var args = make_vector(0);
     if op == PointerOp::Read then
         var arg = parse_expression(ts, st, tt);
         vector_push(args, arg);
         if size == 0 then
-            ts_expect(ts, TK::Comma);
-            var peek = ts_peek(ts);
+            ts.expect(TK::Comma);
+            var peek = ts.peek();
             var type = parse_type(ts, st, tt, true);
             vector_push(args, make_ast_type(peek, type));
         end
     else
         var arg = parse_expression(ts, st, tt);
         vector_push(args, arg);
-        ts_expect(ts, TK::Comma);
+        ts.expect(TK::Comma);
         arg = parse_expression(ts, st, tt);
         vector_push(args, arg);
         if size == 0 then
-            ts_expect(ts, TK::Comma);
-            var peek = ts_peek(ts);
+            ts.expect(TK::Comma);
+            var peek = ts.peek();
             var type = parse_type(ts, st, tt, true);
             vector_push(args, make_ast_type(peek, type));
         end
     end
-    ts_expect(ts, TK::RParen);
+    ts.expect(TK::RParen);
     return make_ast_pointer_op(token, size, op, args);
 end
 
 def parse_cast ts, st, tt in
-    var cast_ = ts_expect(ts, TK::KW_cast);
-    ts_expect(ts, TK::LParen);
+    var cast_ = ts.expect(TK::KW_cast);
+    ts.expect(TK::LParen);
     var expr = parse_expression(ts, st, tt);
     if not expr then
         printf("ERROR: Expected expression after '('\n");
         print_token_loc(cast_);
         exit(1);
     end
-    ts_expect(ts, TK::Comma);
+    ts.expect(TK::Comma);
     var type = parse_type(ts, st, tt, true);
-    ts_expect(ts, TK::RParen);
+    ts.expect(TK::RParen);
     return make_ast_cast(cast_, expr, type);
 end
 
 def parse_sizeof ts, st, tt in
-    var sizeof_ = ts_expect(ts, TK::KW__sizeof);
-    ts_expect(ts, TK::LParen);
-    var idx = ts_idx(ts);
+    var sizeof_ = ts.expect(TK::KW__sizeof);
+    ts.expect(TK::LParen);
+    var idx = ts.idx;
     var expr = parse_expression(ts, st, tt);
     if not expr then
-        ts_revert(ts, idx);
+        ts.idx = idx;
         var type = parse_type(ts, st, tt, true);
-        ts_expect(ts, TK::RParen);
+        ts.expect(TK::RParen);
         return make_ast_sizeof_type(sizeof_, type);
     end
-    ts_expect(ts, TK::RParen);
+    ts.expect(TK::RParen);
     return make_ast_sizeof_expr(sizeof_, expr);
 end
 
@@ -337,11 +337,11 @@ def parse_offsetof ts, st, tt in
 end
 
 def parse_assert ts, st, tt in
-    var assert_ = ts_expect(ts, TK::KW_assert);
-    ts_expect(ts, TK::LParen);
+    var assert_ = ts.expect(TK::KW_assert);
+    ts.expect(TK::LParen);
     var assert_args = make_vector(0);
     parse_args_until(ts, st, tt, assert_args, TK::RParen);
-    ts_expect(ts, TK::RParen);
+    ts.expect(TK::RParen);
     if assert_args.length == 0 then
         printf("ERROR: Expected expression to test in 'assert'\n");
         print_token_loc(assert_);
@@ -393,26 +393,26 @@ def parse_assert ts, st, tt in
 end
 
 def parse_primary ts, st, tt in
-    var peek = ts_peek(ts);
+    var peek = ts.peek();
     if not peek then
         return NULL;
     end
-    if ts_accept(ts, TK::LParen) then
+    if ts.accept(TK::LParen) then
         var expr = parse_expression(ts, st, tt);
         if not expr then
             printf("ERROR: Expected expression after '('\n");
             print_token_loc(peek);
             exit(1);
         end
-        ts_expect(ts, TK::RParen);
+        ts.expect(TK::RParen);
         return expr;
     end
     var k = peek.kind;
     if k == TK::Ident then
-        var idx = ts_idx(ts);
-        var ident = ts_next(ts);
-        if ts_peekk(ts, TK::LSquare) then
-            ts_revert(ts, idx);
+        var idx = ts.idx;
+        var ident = ts.next();
+        if ts.peekk(TK::LSquare) then
+            ts.idx = idx;
             var type = parse_type(ts, st, tt, true);
             return make_ast_type(ident, type);
         end
@@ -422,13 +422,13 @@ def parse_primary ts, st, tt in
         end
         return make_ast_ident(peek, symbol_name(symbol));
     elif k == TK::Integer or k == TK::Char then
-        return make_ast_integer(peek, cast(ts_next(ts).value, int));
+        return make_ast_integer(peek, cast(ts.next().value, int));
     elif k == TK::String then
-        return make_ast_string(peek, cast(ts_next(ts).value, String&));
+        return make_ast_string(peek, cast(ts.next().value, String&));
     elif k == TK::KW__FILE__ then
-        return make_ast_string(peek, string_from_cstr(ts_next(ts).src_loc.filename));
+        return make_ast_string(peek, string_from_cstr(ts.next().src_loc.filename));
     elif k == TK::KW__LINE__ then
-        return make_ast_integer(peek, ts_next(ts).src_loc.line);
+        return make_ast_integer(peek, ts.next().src_loc.line);
     elif k == TK::KW_u@ or
         k == TK::KW_u8@ or k == TK::KW_u16@ or k == TK::KW_u32@ or k == TK::KW_u64@ then
         return parse_pointer_op(ts, st, tt);
@@ -443,7 +443,7 @@ def parse_primary ts, st, tt in
 end
 
 def parse_scope_resolve ts, st, tt, lhs in
-    var tk = ts_expect(ts, TK::ColonColon);
+    var tk = ts.expect(TK::ColonColon);
     if ast_kind(lhs) == AstK_Ident then
         var type = tt_get_type_or_make_undefined(tt, ast_ident(lhs));
         lhs = make_ast_type(ast_token(lhs), type);
@@ -460,16 +460,16 @@ def parse_scope_resolve ts, st, tt, lhs in
         exit(1);
     end
 
-    if ts_accept(ts, TK::LParen) then
+    if ts.accept(TK::LParen) then
         var args = make_vector(0);
         parse_args_until(ts, st, tt, args, TK::RParen);
-        ts_expect(ts, TK::RParen);
+        ts.expect(TK::RParen);
         lhs = make_ast_scope_resolve(tk, lhs, rhs);
         return make_ast_call(tk, lhs, args);
     end
 
     lhs = make_ast_scope_resolve(tk, lhs, rhs);
-    while ts_accept(ts, TK::ColonColon) do
+    while ts.accept(TK::ColonColon) do
         var rhs = parse_primary(ts, st, tt);
         if not rhs or (ast_kind(rhs) != AstK_Ident and ast_kind(rhs) != AstK_Type) then
             printf("ERROR: expected identifier on rhs of '::'\n");
@@ -477,10 +477,10 @@ def parse_scope_resolve ts, st, tt, lhs in
             exit(1);
         end
         lhs = make_ast_scope_resolve(tk, lhs, rhs);
-        if ts_accept(ts, TK::LParen) then
+        if ts.accept(TK::LParen) then
             var args = make_vector(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
-            ts_expect(ts, TK::RParen);
+            ts.expect(TK::RParen);
             return make_ast_call(tk, lhs, args);
         end
     end
@@ -493,20 +493,20 @@ def parse_postfix ts, st, tt in
         return NULL;
     end
 
-    if ts_peekk(ts, TK::ColonColon) then
+    if ts.peekk(TK::ColonColon) then
         return parse_scope_resolve(ts, st, tt, expr);
     end
 
-    while ts_peekk_one_of_2(ts, TK::LParen, TK::Dot) do
-        var tk = ts_next(ts);
+    while ts.peekk_one_of_2(TK::LParen, TK::Dot) do
+        var tk = ts.next();
         var k = tk.kind;
         if k == TK::LParen then
             var args = make_vector(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
-            ts_expect(ts, TK::RParen);
+            ts.expect(TK::RParen);
             expr = make_ast_call(tk, expr, args);
         elif k == TK::Dot then
-            var member = ts_expect(ts, TK::Ident);
+            var member = ts.expect(TK::Ident);
             expr = make_ast_member_access(tk, expr, member.value);
         end
     end
@@ -520,8 +520,8 @@ def parse_prefix ts, st, tt in
         return postfix;
     end
 
-    if ts_peekk_one_of_3(ts, TK::Tilde, TK::KW_not, TK::Minus) then
-        var tok = ts_next(ts);
+    if ts.peekk_one_of_3(TK::Tilde, TK::KW_not, TK::Minus) then
+        var tok = ts.next();
         var expr = parse_prefix(ts, st, tt);
         return make_ast_prefix(tok, tok.kind, expr);
     end
@@ -535,8 +535,8 @@ def parse_binary_multiplicative ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk_one_of_3(ts, TK::Star, TK::Slash, TK::Percent) do
-        tok = ts_next(ts);
+    while ts.peekk_one_of_3(TK::Star, TK::Slash, TK::Percent) do
+        tok = ts.next();
         rhs = parse_prefix(ts, st, tt);
         if not rhs then
             return NULL;
@@ -553,8 +553,8 @@ def parse_binary_additive ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk_one_of_2(ts, TK::Plus, TK::Minus) do
-        tok = ts_next(ts);
+    while ts.peekk_one_of_2(TK::Plus, TK::Minus) do
+        tok = ts.next();
         rhs = parse_binary_multiplicative(ts, st, tt);
         if not rhs then
             return NULL;
@@ -571,8 +571,8 @@ def parse_binary_shift ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk_one_of_2(ts, TK::LShift, TK::RShift) do
-        tok = ts_next(ts);
+    while ts.peekk_one_of_2(TK::LShift, TK::RShift) do
+        tok = ts.next();
         rhs = parse_binary_additive(ts, st, tt);
         if not rhs then
             return NULL;
@@ -589,8 +589,8 @@ def parse_binary_relational ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk_one_of_4(ts, TK::Less, TK::Greater, TK::LessEq, TK::GreaterEq) do
-        tok = ts_next(ts);
+    while ts.peekk_one_of_4(TK::Less, TK::Greater, TK::LessEq, TK::GreaterEq) do
+        tok = ts.next();
         rhs = parse_binary_shift(ts, st, tt);
         if not rhs then
             return NULL;
@@ -607,8 +607,8 @@ def parse_binary_equality ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk_one_of_2(ts, TK::EqEq, TK::NotEq) do
-        tok = ts_next(ts);
+    while ts.peekk_one_of_2(TK::EqEq, TK::NotEq) do
+        tok = ts.next();
         rhs = parse_binary_relational(ts, st, tt);
         if not rhs then
             return NULL;
@@ -625,8 +625,8 @@ def parse_binary_bit_and ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk(ts, TK::Amper) do
-        tok = ts_next(ts);
+    while ts.peekk(TK::Amper) do
+        tok = ts.next();
         rhs = parse_binary_equality(ts, st, tt);
         if not rhs then
             return NULL;
@@ -643,8 +643,8 @@ def parse_binary_bit_xor ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk(ts, TK::Caret) do
-        tok = ts_next(ts);
+    while ts.peekk(TK::Caret) do
+        tok = ts.next();
         rhs = parse_binary_bit_and(ts, st, tt);
         if not rhs then
             return NULL;
@@ -661,8 +661,8 @@ def parse_binary_bit_or ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk(ts, TK::Bar) do
-        tok = ts_next(ts);
+    while ts.peekk(TK::Bar) do
+        tok = ts.next();
         rhs = parse_binary_bit_xor(ts, st, tt);
         if not rhs then
             return NULL;
@@ -679,8 +679,8 @@ def parse_binary_land ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk(ts, TK::KW_and) do
-        tok = ts_next(ts);
+    while ts.peekk(TK::KW_and) do
+        tok = ts.next();
         rhs = parse_binary_bit_or(ts, st, tt);
         if not rhs then
             return NULL;
@@ -697,8 +697,8 @@ def parse_binary_lor ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts_peekk(ts, TK::KW_or) do
-        tok = ts_next(ts);
+    while ts.peekk(TK::KW_or) do
+        tok = ts.next();
         rhs = parse_binary_land(ts, st, tt);
         if not rhs then
             return NULL;
@@ -715,55 +715,55 @@ end
 def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
     var stmt: ast;
     var expect_semi = true;
-    if ts_peekk(ts, TK::KW_var) then
+    if ts.peekk(TK::KW_var) then
         stmt = parse_var(ts, st, tt);
         expect_semi = true;
-    elif ts_peekk(ts, TK::KW_if) then
+    elif ts.peekk(TK::KW_if) then
         stmt = parse_if_else(ts, st, tt, TK::KW_if);
         expect_semi = false;
-    elif ts_peekk(ts, TK::KW_while) then
+    elif ts.peekk(TK::KW_while) then
         stmt = parse_while(ts, st, tt);
         expect_semi = false;
-    elif ts_peekk(ts, TK::KW_return) then
+    elif ts.peekk(TK::KW_return) then
         stmt = parse_return(ts, st, tt);
         expect_semi = true;
-    elif ts_peekk(ts, TK::KW_break) then
-        stmt = make_ast_break(ts_next(ts));
+    elif ts.peekk(TK::KW_break) then
+        stmt = make_ast_break(ts.next());
         expect_semi = true;
-    elif ts_peekk(ts, TK::KW_continue) then
-        stmt = make_ast_continue(ts_next(ts));
+    elif ts.peekk(TK::KW_continue) then
+        stmt = make_ast_continue(ts.next());
         expect_semi = true;
-    elif ts_peekk(ts, TK::KW_assert) then
+    elif ts.peekk(TK::KW_assert) then
         stmt = parse_assert(ts, st, tt);
         expect_semi = true;
-    elif ts_peekk_one_of_5(ts, TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
+    elif ts.peekk_one_of_5(TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
         expect_semi = true;
     else
         expect_semi = true;
         stmt = parse_expression(ts, st, tt);
         if stmt and (ast_kind(stmt) == AstK_Ident or ast_kind(stmt) == AstK_MemberAccess) then
-            if ts_peekk(ts, TK::Assign) then
+            if ts.peekk(TK::Assign) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::Assign);
-            elif ts_peekk(ts, TK::PlusEq) then
+            elif ts.peekk(TK::PlusEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::PlusEq);
-            elif ts_peekk(ts, TK::MinusEq) then
+            elif ts.peekk(TK::MinusEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::MinusEq);
-            elif ts_peekk(ts, TK::StarEq) then
+            elif ts.peekk(TK::StarEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::StarEq);
-            elif ts_peekk(ts, TK::SlashEq) then
+            elif ts.peekk(TK::SlashEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::SlashEq);
-            elif ts_peekk(ts, TK::PercentEq) then
+            elif ts.peekk(TK::PercentEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::PercentEq);
-            elif ts_peekk(ts, TK::LShiftEq) then
+            elif ts.peekk(TK::LShiftEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::LShiftEq);
-            elif ts_peekk(ts, TK::RShiftEq) then
+            elif ts.peekk(TK::RShiftEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::RShiftEq);
-            elif ts_peekk(ts, TK::AmperEq) then
+            elif ts.peekk(TK::AmperEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::AmperEq);
-            elif ts_peekk(ts, TK::CaretEq) then
+            elif ts.peekk(TK::CaretEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::CaretEq);
-            elif ts_peekk(ts, TK::BarEq) then
+            elif ts.peekk(TK::BarEq) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::BarEq);
             end
         end
@@ -773,19 +773,19 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
         return NULL;
     end
     if expect_semi then
-        ts_expect(ts, TK::Semicolon);
+        ts.expect(TK::Semicolon);
     end
     return stmt;
 end
 
 def parse_statements_until ts, st, tt, into, kind in
-    if ts_peekk(ts, kind) then
+    if ts.peekk(kind) then
         return;
     end
     var stmt = parse_statement(ts, st, tt);
     while stmt do
         vector_push(into, stmt);
-        if ts_peekk(ts, kind) then
+        if ts.peekk(kind) then
             stmt = NULL;
         else
             stmt = parse_statement(ts, st, tt);
@@ -794,13 +794,13 @@ def parse_statements_until ts, st, tt, into, kind in
 end
 
 def parse_statements_until_one_of ts, st, tt, into, k1, k2, k3 in
-    if ts_peekk_one_of_3(ts, k1, k2, k3) then
+    if ts.peekk_one_of_3(k1, k2, k3) then
         return;
     end
     var stmt = parse_statement(ts, st, tt);
     while stmt do
         vector_push(into, stmt);
-        if ts_peekk_one_of_3(ts, k1, k2, k3) then
+        if ts.peekk_one_of_3(k1, k2, k3) then
             stmt = NULL;
         else
             stmt = parse_statement(ts, st, tt);
@@ -809,8 +809,8 @@ def parse_statements_until_one_of ts, st, tt, into, k1, k2, k3 in
 end
 
 def parse_def ts, st, tt in
-    var def_ = ts_expect(ts, TK::KW_def);
-    var ident = ts_expect(ts, TK::Ident);
+    var def_ = ts.expect(TK::KW_def);
+    var ident = ts.expect(TK::Ident);
     var def_symbol = st_get_symbol_here(st, ident.value);
     if def_symbol then
         if symbol_is_undef(def_symbol) then
@@ -831,8 +831,8 @@ def parse_def ts, st, tt in
     var params = make_vector(0);
     var param_symbols = make_vector(0);
     var any_type = tt_any_type(tt);
-    while ts_peekk(ts, TK::Ident) do
-        var param_id = ts_next(ts);
+    while ts.peekk(TK::Ident) do
+        var param_id = ts.next();
         var param_symbol = st_get_symbol_here(st, param_id.value);
         if param_symbol then
             printf("ERROR: param `%s` already defined.\n", param_id.value);
@@ -842,31 +842,31 @@ def parse_def ts, st, tt in
         param_symbol = st_make_param(st, param_id.value, param_id);
         vector_push(params, symbol_name(param_symbol));
         vector_push(param_symbols, param_symbol);
-        if ts_peekk(ts, TK::KW_in) then
+        if ts.peekk(TK::KW_in) then
             symbol_set_type(param_symbol, any_type);
             break;
-        elif ts_accept(ts, TK::Colon) then
+        elif ts.accept(TK::Colon) then
             symbol_set_type(param_symbol, parse_type(ts, st, tt, true));
-            if ts_peekk(ts, TK::KW_in) then
+            if ts.peekk(TK::KW_in) then
                 break;
             end
-            if ts_peekk(ts, TK::RightArrow) then
+            if ts.peekk(TK::RightArrow) then
                 break;
             end
-            ts_expect(ts, TK::Comma);
-        elif ts_peekk(ts, TK::RightArrow) then
+            ts.expect(TK::Comma);
+        elif ts.peekk(TK::RightArrow) then
             symbol_set_type(param_symbol, any_type);
             break;
         else
             symbol_set_type(param_symbol, any_type);
-            ts_expect(ts, TK::Comma);
+            ts.expect(TK::Comma);
         end
     end
     var return_type = any_type;
-    if ts_accept(ts, TK::RightArrow) then
+    if ts.accept(TK::RightArrow) then
         return_type = parse_type(ts, st, tt, true);
     end
-    ts_expect(ts, TK::KW_in);
+    ts.expect(TK::KW_in);
 
     var param_types = make_vector(param_symbols.length);
     var i = 0; var len = param_symbols.length;
@@ -879,7 +879,7 @@ def parse_def ts, st, tt in
     symbol_set_type(def_symbol, def_type);
 
     parse_statements_until(ts, st, tt, body, TK::KW_end);
-    ts_expect(ts, TK::KW_end);
+    ts.expect(TK::KW_end);
     st_pop_scope(st);
     var ast = make_ast_def(def_, symbol_name(def_symbol), params, body);
     type_set_ast(def_type, ast);
@@ -887,13 +887,13 @@ def parse_def ts, st, tt in
 end
 
 def parse_const ts, st, tt in
-    var const_ = ts_expect(ts, TK::KW_const);
-    var ident = ts_expect(ts, TK::Ident);
+    var const_ = ts.expect(TK::KW_const);
+    var ident = ts.expect(TK::Ident);
     var type = NULL;
-    if ts_accept(ts, TK::Colon) then
+    if ts.accept(TK::Colon) then
         type = parse_type(ts, st, tt, true);
     end
-    ts_expect(ts, TK::Assign);
+    ts.expect(TK::Assign);
     var expr = parse_expression(ts, st, tt);
     if not expr then
         printf("ERROR: Expected expression after '='\n");
@@ -911,9 +911,9 @@ def parse_const ts, st, tt in
 end
 
 def parse_extern ts, st, tt in
-    var extern_ = ts_expect(ts, TK::KW_extern);
-    var ident = ts_expect(ts, TK::Ident);
-    ts_expect(ts, TK::Colon);
+    var extern_ = ts.expect(TK::KW_extern);
+    var ident = ts.expect(TK::Ident);
+    ts.expect(TK::Colon);
     var type = parse_type(ts, st, tt, true);
     var is_varargs = false;
     var extern_symbol = st_get_symbol_here(st, ident.value);
@@ -935,11 +935,11 @@ def parse_extern ts, st, tt in
 end
 
 def parse_asm ts, st, tt in
-    var asm_ = ts_expect(ts, TK::KW_asm);
-    var ident = ts_expect(ts, TK::Ident);
-    ts_expect(ts, TK::KW_in);
-    var asmcode = ts_expect(ts, TK::String);
-    ts_expect(ts, TK::KW_end);
+    var asm_ = ts.expect(TK::KW_asm);
+    var ident = ts.expect(TK::Ident);
+    ts.expect(TK::KW_in);
+    var asmcode = ts.expect(TK::String);
+    ts.expect(TK::KW_end);
     var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
         if symbol_is_undef(symbol) then
@@ -961,13 +961,13 @@ def parse_asm ts, st, tt in
 end
 
 def parse_global ts, st, tt in
-    var global_ = ts_expect(ts, TK::KW_global);
-    var ident = ts_expect(ts, TK::Ident);
+    var global_ = ts.expect(TK::KW_global);
+    var ident = ts.expect(TK::Ident);
     var type = NULL;
-    if ts_accept(ts, TK::Colon) then
+    if ts.accept(TK::Colon) then
         type = parse_type(ts, st, tt, true);
     end
-    ts_expect(ts, TK::Assign);
+    ts.expect(TK::Assign);
     var expr = parse_expression(ts, st, tt);
     if not expr then
         printf("ERROR: Expected expression after '='\n");
@@ -994,29 +994,29 @@ end
 
 def parse_struct ts, st, tt in
     tt_push_scope(tt);
-    var struct_ = ts_expect(ts, TK::KW_struct);
+    var struct_ = ts.expect(TK::KW_struct);
     var struct_type = NULL;
-    if not ts_accept(ts, TK::KW_in) then
+    if not ts.accept(TK::KW_in) then
         struct_type = parse_type(ts, st, tt, false);
-        ts_expect(ts, TK::KW_in);
+        ts.expect(TK::KW_in);
     end
     var fields = make_vector(0);
     var defs = make_vector(0);
     var def_symbols = make_vector(0);
     st_push_scope(st);
-    while not ts_peekk(ts, TK::KW_end) do
-        if ts_peekk(ts, TK::KW_def) then
+    while not ts.peekk(TK::KW_end) do
+        if ts.peekk(TK::KW_def) then
             var def_ = parse_def(ts, st, tt);
             vector_push(defs, def_);
             vector_push(def_symbols, st_get_symbol(st, ast_ident(def_)));
-        elif ts_peekk(ts, TK::Ident) then
-            var field_ident = ts_next(ts);
-            ts_expect(ts, TK::Colon);
+        elif ts.peekk(TK::Ident) then
+            var field_ident = ts.next();
+            ts.expect(TK::Colon);
             var field_type = parse_type(ts, st, tt, true);
-            ts_expect(ts, TK::Semicolon);
+            ts.expect(TK::Semicolon);
             vector_push(fields, make_field(field_type, field_ident.value, -1, field_ident));
         else
-            var tk = ts_peek(ts);
+            var tk = ts.peek();
             printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(tk.kind));
             print_token(tk);
             print_token_loc(tk);
@@ -1024,7 +1024,7 @@ def parse_struct ts, st, tt in
         end
     end
     st_pop_scope(st);
-    ts_expect(ts, TK::KW_end);
+    ts.expect(TK::KW_end);
 
     if not struct_type then
         struct_type = tt_make_anon_struct(tt, fields, def_symbols);
@@ -1074,9 +1074,9 @@ def parse_struct ts, st, tt in
 end
 
 def parse_enum ts, st, tt in
-    var enum_ = ts_expect(ts, TK::KW_enum);
-    var ident = ts_expect(ts, TK::Ident);
-    ts_expect(ts, TK::KW_in);
+    var enum_ = ts.expect(TK::KW_enum);
+    var ident = ts.expect(TK::Ident);
+    ts.expect(TK::KW_in);
     var enum_type = tt_get_type_or_make_undefined(tt, ident.value);
     if not type_is_undefined(enum_type) then
         printf("ERROR: type `%s` already defined.", ident.value);
@@ -1085,23 +1085,23 @@ def parse_enum ts, st, tt in
     end
     var values = make_vector(0);
     var cur_value = 0;
-    while not ts_peekk(ts, TK::KW_end) do
-        var val_id = ts_expect(ts, TK::Ident);
+    while not ts.peekk(TK::KW_end) do
+        var val_id = ts.expect(TK::Ident);
         var val = NULL;
-        if ts_accept(ts, TK::Assign) then
+        if ts.accept(TK::Assign) then
             val = parse_expression(ts, st, tt);
             if val and ast_kind(val) == AstK_Integer then
                 cur_value = cast(ast_value(val), int);
             end
         end
-        ts_expect(ts, TK::Semicolon);
+        ts.expect(TK::Semicolon);
         if not val then
             val = make_ast_integer(val_id, cur_value);
         end
         vector_push(values, make_enum_value(val_id, val_id.value, val));
         cur_value += 1;
     end
-    ts_expect(ts, TK::KW_end);
+    ts.expect(TK::KW_end);
 
     type_set_kind(enum_type, TyK_enum);
     type_set_enum_values(enum_type, values);
@@ -1115,27 +1115,27 @@ end
 def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
     var roots = make_vector(0);
     var parsed: ast = NULL; var tk: Token&;
-    while ts_peek(ts) do
-        tk = ts_peek(ts);
-        if ts_peekk(ts, TK::KW_def) then
+    while ts.peek() do
+        tk = ts.peek();
+        if ts.peekk(TK::KW_def) then
             parsed = parse_def(ts, st, tt);
-        elif ts_peekk(ts, TK::KW_const) then
+        elif ts.peekk(TK::KW_const) then
             parsed = parse_const(ts, st, tt);
-            ts_expect(ts, TK::Semicolon);
-        elif ts_peekk(ts, TK::KW_extern) then
+            ts.expect(TK::Semicolon);
+        elif ts.peekk(TK::KW_extern) then
             parsed = parse_extern(ts, st, tt);
-            ts_expect(ts, TK::Semicolon);
-        elif ts_peekk(ts, TK::KW_asm) then
+            ts.expect(TK::Semicolon);
+        elif ts.peekk(TK::KW_asm) then
             parsed = parse_asm(ts, st, tt);
-        elif ts_peekk(ts, TK::KW_global) then
+        elif ts.peekk(TK::KW_global) then
             parsed = parse_global(ts, st, tt);
-            ts_expect(ts, TK::Semicolon);
-        elif ts_peekk(ts, TK::KW_struct) then
+            ts.expect(TK::Semicolon);
+        elif ts.peekk(TK::KW_struct) then
             parsed = parse_struct(ts, st, tt);
-        elif ts_peekk(ts, TK::KW_enum) then
+        elif ts.peekk(TK::KW_enum) then
             parsed = parse_enum(ts, st, tt);
         else
-            tk = ts_peek(ts);
+            tk = ts.peek();
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(tk.kind));
             print_token(tk);
             print_token_loc(tk);

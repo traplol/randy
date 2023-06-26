@@ -2,119 +2,112 @@
 struct TokenStream in
     tokens: Vector&;
     idx: int;
-end
 
-def make_token_stream tokens: Vector& -> TokenStream& in
-    var self: TokenStream& = malloc(__sizeof(TokenStream));
-    self.tokens = tokens;
-    self.idx = 0;
-    return self;
-end
+    def new tokens: Vector& -> TokenStream& in
+        var self: TokenStream& = malloc(__sizeof(TokenStream));
+        self.tokens = tokens;
+        self.idx = 0;
+        return self;
+    end
 
-def ts_tokens self: TokenStream& in return self.tokens; end
-def ts_idx self: TokenStream& in return self.idx; end
-def ts_revert self: TokenStream&, idx: int in self.idx = idx; end
+    def peek self: TokenStream& -> Token& in
+        if self.idx >= self.tokens.length then
+            return cast(NULL, Token&);
+        end
+        return cast(vector_get(self.tokens, self.idx), Token&);
+    end
 
-def ts_peek self: TokenStream& -> Token& in
-    var tks = ts_tokens(self);
-    var idx = ts_idx(self);
-    if idx >= tks.length then
+    def peekk self: TokenStream&, kind: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+        return peek.kind == kind;
+    end
+
+    def peekk_one_of_2 self: TokenStream&, k1: TK, k2: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+        var tk = peek.kind;
+        return tk == k1 or tk == k2;
+    end
+
+    def peekk_one_of_3 self: TokenStream&, k1: TK, k2: TK, k3: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+        var tk = peek.kind;
+        return tk == k1 or tk == k2 or tk == k3;
+    end
+
+    def peekk_one_of_4 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+        var tk = peek.kind;
+        return tk == k1 or tk == k2 or tk == k3 or tk == k4;
+    end
+
+    def peekk_one_of_5 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK, k5: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+        var tk = peek.kind;
+        return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
+    end
+
+    def next self: TokenStream& -> Token& in
+        var peek = self.peek();
+        self.idx += 1;
+        return peek;
+    end
+
+    def accept self: TokenStream&, kind: TK -> Token& in
+        var tmp = self.peek();
+        if tmp and tmp.kind == kind then
+            return self.next();
+        end
         return cast(NULL, Token&);
     end
-    return cast(vector_get(tks, idx), Token&);
-end
 
-def ts_peekk self: TokenStream&, kind: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-
-    return peek.kind == kind;
-end
-
-def ts_peekk_one_of_2 self: TokenStream&, k1: TK, k2: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-    var tk = peek.kind;
-    return tk == k1 or tk == k2;
-end
-
-def ts_peekk_one_of_3 self: TokenStream&, k1: TK, k2: TK, k3: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-    var tk = peek.kind;
-    return tk == k1 or tk == k2 or tk == k3;
-end
-
-def ts_peekk_one_of_4 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-    var tk = peek.kind;
-    return tk == k1 or tk == k2 or tk == k3 or tk == k4;
-end
-
-def ts_peekk_one_of_5 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK, k5: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-    var tk = peek.kind;
-    return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
-end
-
-def ts_next self: TokenStream& -> Token& in
-    var peek = ts_peek(self);
-    self.idx += 1;
-    return peek;
-end
-
-def ts_accept self: TokenStream&, kind: TK -> Token& in
-    var tmp = ts_peek(self);
-    if tmp and tmp.kind == kind then
-        return ts_next(self);
-    end
-    return cast(NULL, Token&);
-end
-
-def ts_expect self: TokenStream&, kind: TK -> Token& in
-    var tmp = ts_peek(self);
-    if not tmp then
-        printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
-        exit(1);
-    end
-    var tmp_k = tmp.kind;
-    if tmp_k != kind then
-        printf("ERROR: Expected token kind %s (%d), got %s\n",
+    def expect self: TokenStream&, kind: TK -> Token& in
+        var tmp = self.peek();
+        if not tmp then
+            printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
+            exit(1);
+        end
+        var tmp_k = tmp.kind;
+        if tmp_k != kind then
+            printf("ERROR: Expected token kind %s (%d), got %s\n",
             token_kind_cstr(kind),
             kind,
             token_kind_cstr(tmp_k));
-        print_token_loc(tmp);
-        exit(1);
-    end
-    ts_next(self);
-    return tmp;
-end
-
-def ts_peekk2 self: TokenStream&, kind1: TK, kind2: TK -> bool in
-    var peek = ts_peek(self);
-    if not peek then
-        return false;
-    end
-
-    var idx = ts_idx(self);
-    var good = false;
-    if ts_accept(self, kind1) then
-        if ts_accept(self, kind2) then
-            good = true;
+            print_token_loc(tmp);
+            exit(1);
         end
+        self.next();
+        return tmp;
     end
-    ts_revert(self, idx);
-    return good;
+
+    def peekk2 self: TokenStream&, kind1: TK, kind2: TK -> bool in
+        var peek = self.peek();
+        if not peek then
+            return false;
+        end
+
+        var idx = self.idx;
+        var good = false;
+        if self.accept(kind1) then
+            if self.accept(kind2) then
+                good = true;
+            end
+        end
+        self.idx = idx;
+        return good;
+    end
 end
