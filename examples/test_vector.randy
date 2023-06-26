@@ -2,7 +2,7 @@
 #include std/vector
 
 def main in
-    var vector = Vector::new(10);
+    var vector = Vector[int]::new(10);
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
 
@@ -80,7 +80,7 @@ def main in
 
     vector.delete();
 
-    vector = Vector::new(5);
+    vector = Vector[int]::new(5);
 
     vector.push(10);
     vector.push(20);

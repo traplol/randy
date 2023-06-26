@@ -37,8 +37,8 @@ def merge_sort arr in
     end
 
     var mid = arr.length / 2;
-    var left = Vector::new(mid);
-    var right = Vector::new(arr.length - mid);
+    var left = Vector[int]::new(mid);
+    var right = Vector[int]::new(arr.length - mid);
 
     var i = 0;
     while i < mid do
@@ -69,7 +69,7 @@ def merge_sort arr in
 end
 
 def main in
-    var arr = Vector::new(10);
+    var arr = Vector[int]::new(10);
     arr.push(5);
     arr.push(2);
     arr.push(9);
