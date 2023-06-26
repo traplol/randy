@@ -10,6 +10,7 @@ struct Vector[T] in
     capacity: int;
 
     def new init: int in
+        assert(__sizeof(T) == 8, "vector of T where sizeof T is not 8 is not implemented.\n");
         var self = cast(malloc(__sizeof(Vector[T])), Vector[T]&);
         self.buffer = malloc(__sizeof(T) * init);
         self.length = 0;
@@ -24,12 +25,12 @@ struct Vector[T] in
         end
     end
 
-    def get self, idx: int -> ptr in
+    def get self, idx: int -> T in
         // TODO: Bounds check & abort
-        return cast(u64@(self.buffer + (idx * __sizeof(T))), ptr);
+        return cast(u64@(self.buffer + (idx * __sizeof(T))), T);
     end
 
-    def set self, idx: int, val: ptr in
+    def set self, idx: int, val: T in
         // TODO: Bounds check & abort
         u64!(self.buffer + (idx * __sizeof(T)), val);
     end
@@ -48,7 +49,7 @@ struct Vector[T] in
         self.capacity = new_cap;
     end
 
-    def push self, val: ptr in
+    def push self, val: T in
         var len = self.length;
         var cap = self.capacity;
         if len >= cap then
@@ -68,24 +69,24 @@ struct Vector[T] in
         end
     end
 
-    def back self -> ptr in
+    def back self -> T in
         var len = self.length;
         if len > 0 then
-            return cast(u64@(self.buffer + ((len - 1) * __sizeof(T))), ptr);
+            return cast(u64@(self.buffer + ((len - 1) * __sizeof(T))), T);
         end
         printf("ERROR: vector_back out of bounds.\n");
         abort();
     end
 
-    def front self -> ptr in
+    def front self -> T in
         if self.length > 0 then
-            return cast(u64@(self.buffer), ptr);
+            return cast(u64@(self.buffer), T);
         end
         printf("ERROR: vector_front out of bounds.\n");
         abort();
     end
 
-    def insert_front self, val: ptr in
+    def insert_front self, val: T in
         var len = self.length;
         var cap = self.capacity;
         if len >= cap then

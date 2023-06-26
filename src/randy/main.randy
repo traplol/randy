@@ -85,7 +85,7 @@ def main argc: int, argv: ptr in
         var true_endtime = make_empty_timespec();
         time(true_starttime);
 
-        var include_paths = Vector[cstr]::new(8);
+        var include_paths = Vector[String&]::new(8);
         include_paths.push(getcwd());
 
         var in_path: cstr = NULL;
@@ -154,7 +154,7 @@ def main argc: int, argv: ptr in
             elif cstr_eq("-ld", arg) then
                 i += 1;
                 while i < argc do
-                    ld_flags.push(u64@(argv + i*sizeof_PTR));
+                    ld_flags.push(cast(u64@(argv + i*sizeof_PTR), cstr));
                     i += 1;
                 end
             end

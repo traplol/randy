@@ -378,7 +378,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
     return tokens;
 end
 
-def _lex_file_aux path: cstr, include_paths: Vector[cstr]&, included_already: set -> Vector[Token&]& in
+def _lex_file_aux path: cstr, include_paths: Vector[String&]&, included_already: set -> Vector[Token&]& in
     var code = read_file_to_string(path);
     if not code then
         return cast(NULL, Vector[Token&]&);
@@ -386,14 +386,14 @@ def _lex_file_aux path: cstr, include_paths: Vector[cstr]&, included_already: se
     return _lex_code(path, code, include_paths, included_already);
 end
 
-def lex_file path: cstr, include_paths: Vector[cstr]& in
+def lex_file path: cstr, include_paths: Vector[String&]& in
     var included_already = make_set(0, string_eq, string_hash);
     var res = _lex_file_aux(path, include_paths, included_already);
     free_set(included_already);
     return res;
 end
 
-def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[cstr]&, included_already: set, arg: String& in
+def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[String&]&, included_already: set, arg: String& in
     string_append_cstr(arg, ".randy");
 
     var i = 0;

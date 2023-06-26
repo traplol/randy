@@ -139,7 +139,7 @@ def type_def_return_type self: type in
     return cast(u64@(self + TTYPE_def_return_type), type);
 end
 def type_def_parameters self: type in
-    return cast(u64@(self + TTYPE_def_parameters), Vector[Symbol&]&);
+    return cast(u64@(self + TTYPE_def_parameters), Vector[type]&);
 end
 def type_def_varargs self: type in
     return cast(u8@(self + TTYPE_def_varargs), bool);
