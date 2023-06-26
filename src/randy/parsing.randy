@@ -494,7 +494,7 @@ def parse_postfix ts, st, tt in
     end
 
     if ts.peekk(TK::ColonColon) then
-        return parse_scope_resolve(ts, st, tt, expr);
+        expr = parse_scope_resolve(ts, st, tt, expr);
     end
 
     while ts.peekk_one_of_2(TK::LParen, TK::Dot) do
