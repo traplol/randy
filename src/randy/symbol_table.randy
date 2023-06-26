@@ -64,7 +64,7 @@ end
 def make_symbol_table -> SymbolTable& in
     var self = cast(malloc(__sizeof(SymbolTable)), SymbolTable&);
     self.all_symbols = make_map(0, NULL, NULL);
-    self.scope = make_vector(0);
+    self.scope = Vector::new(0);
     return self;
 end
 
@@ -75,7 +75,7 @@ def st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: Tok
         assert(false, "Compiler bug: making a (%d) symbol that already exists: `%s`\n", kind, ident);
     end
 
-    var local_scope = vector_back(self.scope);
+    var local_scope = self.scope.back();
     found = map_find(local_scope, ident);
     if found then
         print_token_loc(token);
@@ -119,7 +119,7 @@ def st_prepare_undef self, ident, token in
         assert(false, "Compiler bug: making an undef symbol that already exists: `%s`\n", ident);
     end
 
-    var top_scope = vector_front(self.scope);
+    var top_scope = self.scope.front();
     found = map_find(top_scope, ident);
     if found then
         print_token_loc(token);
@@ -134,7 +134,7 @@ end
 def st_get_symbol self, ident -> Symbol& in
     var i = self.scope.length - 1;
     while i >= 0 do
-        var found = map_find(vector_get(self.scope, i), ident);
+        var found = map_find(self.scope.get(i), ident);
         if found then
             return map_pair_val(found);
         end
@@ -148,7 +148,7 @@ def st_get_symbol self, ident -> Symbol& in
 end
 
 def st_get_symbol_here self, ident -> Symbol& in
-    var found = map_find(vector_back(self.scope), ident);
+    var found = map_find(self.scope.back(), ident);
     if found then
         return map_pair_val(found);
     end
@@ -164,12 +164,12 @@ def st_get_exact_symbol self, ident -> Symbol& in
 end
 
 def st_push_scope self in
-    vector_push(self.scope, make_map(0, cstr_eq, cstr_hash));
+    self.scope.push(make_map(0, cstr_eq, cstr_hash));
 end
 
 def st_pop_scope self in
-    var map = vector_back(self.scope);
-    vector_pop(self.scope);
+    var map = self.scope.back();
+    self.scope.pop();
     free_map(map);
 end
 

@@ -8,7 +8,7 @@ end
 
 def make_type_infer -> TypeInfer& in
     var self: TypeInfer& = malloc(__sizeof(TypeInfer));
-    self.cur_defs = make_vector(0);
+    self.cur_defs = Vector::new(0);
     self.did_returns = make_string(0);
     self.again = make_set(0, NULL, NULL);
     return self;
@@ -16,7 +16,7 @@ end
 
 def free_type_infer self: TypeInfer& in
     if self then
-        free_vector(self.cur_defs);
+        self.cur_defs.delete();
         free_string(self.did_returns);
         free_set(self.again);
         free(self);
@@ -24,7 +24,7 @@ def free_type_infer self: TypeInfer& in
 end
 
 def ti_current_def self in
-    return vector_back(self.cur_defs);
+    return self.cur_defs.back();
 end
 
 def ti_did_return self in
@@ -40,19 +40,19 @@ def ti_set_did_return self, val in
 end
 
 def ti_push_def self, def_symbol in
-    vector_push(self.cur_defs, def_symbol);
+    self.cur_defs.push(def_symbol);
     string_push(self.did_returns, 0);
 end
 
 def ti_pop_def self in
-    vector_pop(self.cur_defs);
+    self.cur_defs.pop();
     string_pop(self.did_returns);
 end
 
 def ti_infer_vector self, tt, st, vector in
     var i = 0; var len = vector.length;
     while i < len do
-        var ast = vector_get(vector, i);
+        var ast = vector.get(i);
         ti_infer(self, tt, st, ast);
         i += 1;
     end
@@ -132,12 +132,12 @@ def ti_infer_call self, tt, st, ast -> type in
     if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
         if param_types.length != 0 then
             var obj_type = tt_get_ast_type(tt, object);
-            var param_type = vector_front(param_types);
+            var param_type = param_types.front();
             if types_eq(obj_type, param_type) then
-                vector_insert_front(args, object);
+                args.insert_front(object);
             elif type_is_reference(param_type) and types_eq(tt_reference_to_type(tt, obj_type), param_type) then
                 var obj_ref = make_ast_get_reference(ast_token(object), object);
-                vector_insert_front(args, obj_ref);
+                args.insert_front(obj_ref);
             end
         end
     end
@@ -145,16 +145,16 @@ def ti_infer_call self, tt, st, ast -> type in
     var i = 0; var len = min(param_types.length, args.length);
     var changed = false;
     while i < len do
-        var arg_type = ti_infer(self, tt, st, vector_get(args, i));
+        var arg_type = ti_infer(self, tt, st, args.get(i));
         assert(arg_type);
-        var par_type = vector_get(param_types, i);
+        var par_type = param_types.get(i);
         if not par_type then
             par_type = any;
         end
         if arg_type != any and par_type == any then
-            vector_set(param_types, i, arg_type);
+            param_types.set(i, arg_type);
             if def_params then
-                var par_sym = st_get_symbol(st, vector_get(def_params, i));
+                var par_sym = st_get_symbol(st, def_params.get(i));
                 symbol_set_type(par_sym, arg_type);
             end
             changed = true;
@@ -163,7 +163,7 @@ def ti_infer_call self, tt, st, ast -> type in
     end
     len = args.length;
     while i < len do
-        ti_infer(self, tt, st, vector_get(args, i));
+        ti_infer(self, tt, st, args.get(i));
         i += 1;
     end
     if changed then
@@ -287,7 +287,7 @@ def _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> type in
     elif type_is_reference(sym_type) and rhs_type == any then
         // nothing
     elif sym_type == tt_ptr_type(tt) and rhs_type != any then
-        // this handles the case of `var x = NULL; x = make_vector(0);`
+        // this handles the case of `var x = NULL; x = Vector::new(0);`
         symbol_set_type(symbol, rhs_type);
     end
 end
@@ -363,7 +363,7 @@ end
 def ti_infer_pointer_read self, tt, st, ast -> type in
     check_ast_kind(AstK_PointerRead, ast);
     var args = ast_pop_args(ast);
-    ti_infer(self, tt, st, vector_get(args, 0));
+    ti_infer(self, tt, st, args.get(0));
     var size = ast_size(ast);
     var type = NULL;
     if size == 64 then
@@ -375,7 +375,7 @@ def ti_infer_pointer_read self, tt, st, ast -> type in
     elif size == 8 then
         type = tt_get_type_or_null(tt, "int8");
     elif size == 0 then
-        var type_ast = vector_back(args);
+        var type_ast = args.back();
         assert(ast_kind(type_ast) == AstK_Type);
         type = ast_type(type_ast);
     else
@@ -390,7 +390,7 @@ def ti_infer_pointer_write self, tt, st, ast -> type in
     var args = ast_pop_args(ast);
     var i = 0; var len = args.length;
     while i < len do
-        ti_infer(self, tt, st, vector_get(args, i));
+        ti_infer(self, tt, st, args.get(i));
         i += 1;
     end
     return tt_void_type(tt);
@@ -448,7 +448,7 @@ def _ti_get_field_type_rewrite_if_def type, member, ast in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         if cstr_eq(field.name, member) then
             return field.type;
         end
@@ -457,7 +457,7 @@ def _ti_get_field_type_rewrite_if_def type, member, ast in
     var defs = type_struct_defs(type);
     i = 0; len = defs.length;
     while i < len do
-        var def_ = vector_get(defs, i);
+        var def_ = defs.get(i);
         if cstr_eq(symbol_name(def_), member) then
             ast_change_member_access_to_scope_access(ast, type, def_);
             return symbol_type(def_);
@@ -589,7 +589,7 @@ end
 def _type_infer_impl self, type_table, symbol_table, ast_nodes in
     var i = 0; var len = ast_nodes.length;
     while i < len do
-        ti_infer(self, type_table, symbol_table, vector_get(ast_nodes, i));
+        ti_infer(self, type_table, symbol_table, ast_nodes.get(i));
         i += 1;
     end
 

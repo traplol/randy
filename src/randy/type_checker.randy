@@ -74,7 +74,7 @@ end
 def tc_check_body self, tt, st, body in
     var i = 0; var len = body.length;
     while i < len do
-        var ast = vector_get(body, i);
+        var ast = body.get(i);
         tc_check(self, tt, st, ast);
         if ast_kind(ast) == AstK_Return then
             break;
@@ -112,9 +112,9 @@ def tc_check_call self, tt, st, ast in
     var args = ast_args(ast);
     var i = 0; var len = min(param_types.length, args.length);
     while i < len do
-        var arg = vector_get(args, i);
+        var arg = args.get(i);
         tc_check(self, tt, st, arg);
-        var param_type = vector_get(param_types, i);
+        var param_type = param_types.get(i);
         assert(param_type);
         var arg_type = tt_get_ast_type(tt, arg);
         if not arg_type then
@@ -138,7 +138,7 @@ def tc_check_call self, tt, st, ast in
 
     len = args.length;
     while i < len do
-        tc_check(self, tt, st, vector_get(args, i));
+        tc_check(self, tt, st, args.get(i));
         i += 1;
     end
 
@@ -261,14 +261,14 @@ def tc_check_def self, tt, st, ast in
     var params = ast_params(ast);
     var i = 0; var len = params.length;
     var any = tt_any_type(tt);
-    var errors = make_vector(0);
+    var errors = Vector::new(0);
     while i < len do
-        var param = vector_get(params, i);
+        var param = params.get(i);
         var param_sym = st_get_symbol(st, param);
         assert(param_sym);
         var param_type = symbol_type(param_sym);
         if not param_type or type_size(param_type) == 0 then
-            vector_push(errors, param_sym);
+            errors.push(param_sym);
         end
         i += 1;
     end
@@ -276,7 +276,7 @@ def tc_check_def self, tt, st, ast in
         printf("ERROR: in def `%s`: \n", ast_ident(ast));
         i = 0; len = errors.length;
         while i < len do
-            var sym = vector_get(errors, i);
+            var sym = errors.get(i);
             var type = symbol_type(sym);
             printf("ERROR: `%s` has type `", symbol_name(sym));
             tt_print_type_name(tt, type);
@@ -321,14 +321,15 @@ end
 
 def tc_check_pointer_read self, tt, st, ast in
     check_ast_kind(AstK_PointerRead, ast);
-    tc_check(self, tt, st, vector_get(ast_pop_args(ast), 0));
+    var pop_args = ast_pop_args(ast);
+    tc_check(self, tt, st, pop_args.get(0));
 end
 
 def tc_check_pointer_write self, tt, st, ast in
     check_ast_kind(AstK_PointerWrite, ast);
     var pop_args = ast_pop_args(ast);
-    tc_check(self, tt, st, vector_get(pop_args, 0));
-    tc_check(self, tt, st, vector_get(pop_args, 1));
+    tc_check(self, tt, st, pop_args.get(0));
+    tc_check(self, tt, st, pop_args.get(1));
 end
 
 def tc_check_prefix_op self, tt, st, ast in
@@ -402,7 +403,7 @@ def tc_check_member_access self, tt, st, ast in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         if cstr_eq(field.name, member) then
             found = true;
             break;
@@ -414,7 +415,7 @@ def tc_check_member_access self, tt, st, ast in
     //     var defs = type_struct_defs(type);
     //     i = 0; len = defs.length;
     //     while i < len do
-    //         var def_ = vector_get(defs, i);
+    //         var def_ = defs.get(i);
     //         if cstr_eq(symbol_name(def_), member) then
     //             found = true;
     //             break;
@@ -477,7 +478,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
         while i < len do
-            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            var ev = cast(enum_vals.get(i), EnumValue&);
             if cstr_eq(ev.name, member) then
                 return; // OK. found enum value
             end
@@ -492,7 +493,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var fields = type_struct_fields(type);
         var i = 0; var len = fields.length;
         while i < len do
-            var field = cast(vector_get(fields, i), Field&);
+            var field = cast(fields.get(i), Field&);
             if cstr_eq(field.name, member) then
                 return; // OK. found field
             end
@@ -502,7 +503,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         var defs = type_struct_defs(type);
         i = 0; len = defs.length;
         while i < len do
-            var def_sym = cast(vector_get(defs, i), Symbol&);
+            var def_sym = cast(defs.get(i), Symbol&);
             if cstr_eq(def_sym.name, member) then
                 return; // OK. found def
             end
@@ -571,7 +572,7 @@ def type_check type_table, symbol_table, compile_order: Vector& in
     var type_checker = make_type_check();
     var i = 0; var len = compile_order.length;
     while i < len do
-        tc_check(type_checker, type_table, symbol_table, vector_get(compile_order, i));
+        tc_check(type_checker, type_table, symbol_table, compile_order.get(i));
         i += 1;
     end
     free_type_check(type_checker);

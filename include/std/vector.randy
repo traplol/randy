@@ -8,135 +8,108 @@ struct Vector in
     buffer: ptr;
     length: int;
     capacity: int;
-end
 
-def make_vector init: int -> Vector& in
-    var self = cast(malloc(__sizeof(Vector)), Vector&);
-    self.buffer = malloc(sizeof_TVECTOR_ELEMENT * init);
-    self.length = 0;
-    self.capacity = init;
-    return self;
-end
-
-def free_vector self: Vector& in
-    free_string(cast(self, String&));
-end
-
-def vector_buf self: Vector& -> ptr in
-    return self.buffer;
-end
-
-def vector_len self: Vector& -> int in
-    return self.length;
-end
-
-def vector_cap self: Vector& -> int in
-    return self.capacity;
-end
-
-def vector_get self: Vector&, idx: int -> ptr in
-    // TODO: Bounds check & abort
-    return cast(u64@(self.buffer + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
-end
-
-def vector_set self: Vector&, idx: int, val: ptr in
-    // TODO: Bounds check & abort
-    u64!(self.buffer + (idx * sizeof_TVECTOR_ELEMENT), val);
-end
-
-def vector_resize self: Vector&, new_cap: int in
-    var new = malloc(new_cap * sizeof_TVECTOR_ELEMENT);
-    var old = self.buffer;
-    var len = self.length;
-    if new_cap < len then
-        len = new_cap;
+    def new init: int -> Vector& in
+        var self = cast(malloc(__sizeof(Vector)), Vector&);
+        self.buffer = malloc(sizeof_TVECTOR_ELEMENT * init);
+        self.length = 0;
+        self.capacity = init;
+        return self;
     end
-    memcpy(new, old, len * sizeof_TVECTOR_ELEMENT);
-    free(old);
-    self.buffer = new;
-    self.length = len;
-    self.capacity = new_cap;
-end
 
-def vector_push self: Vector&, val: ptr in
-    var len = self.length;
-    var cap = self.capacity;
-    if len >= cap then
-        vector_resize(self, 2 * cap + 1);
+    def delete self: Vector& in
+        if self then
+            free(self.buffer);
+            free(self);
+        end
     end
-    u64!(self.buffer + len * sizeof_TVECTOR_ELEMENT, val);
-    self.length = len + 1;
-end
 
-def vector_pop self: Vector& in
-    var len = self.length;
-    if len > 0 then
-        self.length = len - 1;
-    else
-        printf("ERROR: vector_pop out of bounds.\n");
+    def get self: Vector&, idx: int -> ptr in
+        // TODO: Bounds check & abort
+        return cast(u64@(self.buffer + (idx * sizeof_TVECTOR_ELEMENT)), ptr);
+    end
+
+    def set self: Vector&, idx: int, val: ptr in
+        // TODO: Bounds check & abort
+        u64!(self.buffer + (idx * sizeof_TVECTOR_ELEMENT), val);
+    end
+
+    def resize self: Vector&, new_cap: int in
+        var new = malloc(new_cap * sizeof_TVECTOR_ELEMENT);
+        var old = self.buffer;
+        var len = self.length;
+        if new_cap < len then
+            len = new_cap;
+        end
+        memcpy(new, old, len * sizeof_TVECTOR_ELEMENT);
+        free(old);
+        self.buffer = new;
+        self.length = len;
+        self.capacity = new_cap;
+    end
+
+    def push self: Vector&, val: ptr in
+        var len = self.length;
+        var cap = self.capacity;
+        if len >= cap then
+            self.resize(2 * cap + 1);
+        end
+        u64!(self.buffer + len * sizeof_TVECTOR_ELEMENT, val);
+        self.length = len + 1;
+    end
+
+    def pop self: Vector& in
+        var len = self.length;
+        if len > 0 then
+            self.length = len - 1;
+        else
+            printf("ERROR: vector_pop out of bounds.\n");
+            abort();
+        end
+    end
+
+    def back self: Vector& -> ptr in
+        var len = self.length;
+        if len > 0 then
+            return cast(u64@(self.buffer + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
+        end
+        printf("ERROR: vector_back out of bounds.\n");
         abort();
     end
-end
 
-def vector_back self: Vector& -> ptr in
-    var len = self.length;
-    if len > 0 then
-        return cast(u64@(self.buffer + ((len - 1) * sizeof_TVECTOR_ELEMENT)), ptr);
-    end
-    printf("ERROR: vector_back out of bounds.\n");
-    abort();
-end
-
-def vector_front self: Vector& -> ptr in
-    if self.length > 0 then
-        return cast(u64@(self.buffer), ptr);
-    end
-    printf("ERROR: vector_front out of bounds.\n");
-    abort();
-end
-
-def vector_set_len self: Vector&, len: int in
-    self.length = len;
-end
-
-def vector_insert_front self: Vector&, val: ptr in
-    var len = self.length;
-    var cap = self.capacity;
-    if len >= cap then
-        vector_resize(self, 2 * cap + 1);
+    def front self: Vector& -> ptr in
+        if self.length > 0 then
+            return cast(u64@(self.buffer), ptr);
+        end
+        printf("ERROR: vector_front out of bounds.\n");
+        abort();
     end
 
-    if len == 0 then
-        u64!(self.buffer, val);
-        self.length = 1;
-        return;
-    end
+    def insert_front self: Vector&, val: ptr in
+        var len = self.length;
+        var cap = self.capacity;
+        if len >= cap then
+            self.resize(2 * cap + 1);
+        end
 
-    var buf = self.buffer;
-    var tmp = u64@(buf + sizeof_TVECTOR_ELEMENT);
-    var x = u64@(buf);
-    u64!(buf + sizeof_TVECTOR_ELEMENT, x);
-    while len > 1 do
-        buf += sizeof_TVECTOR_ELEMENT;
-        x = tmp;
-        tmp = u64@(buf + sizeof_TVECTOR_ELEMENT);
+        if len == 0 then
+            u64!(self.buffer, val);
+            self.length = 1;
+            return;
+        end
+
+        var buf = self.buffer;
+        var tmp = u64@(buf + sizeof_TVECTOR_ELEMENT);
+        var x = u64@(buf);
         u64!(buf + sizeof_TVECTOR_ELEMENT, x);
-        len -= 1;
+        while len > 1 do
+            buf += sizeof_TVECTOR_ELEMENT;
+            x = tmp;
+            tmp = u64@(buf + sizeof_TVECTOR_ELEMENT);
+            u64!(buf + sizeof_TVECTOR_ELEMENT, x);
+            len -= 1;
+        end
+        u64!(self.buffer, val);
+        self.length += 1;
     end
-    u64!(self.buffer, val);
-    self.length += 1;
 end
-
-//   0  1  2  3  4
-// |10|10|30|40|50|
-//
-// buf = @0
-// tmp = @(buf+1)
-// x   = @(buf)
-// !(buf+1, x)
-// loop:
-//    buf += 1
-//    x = tmp
-//    tmp = @(buf+1)
-//    !(buf+1, x)
-//    goto loop

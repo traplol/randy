@@ -465,7 +465,7 @@ def _print_args args: Vector&, indent: int in
     var i = 0;
     var len = args.length;
     while i < len do
-        _print_ast(cast(vector_get(args, i), ast), indent);
+        _print_ast(cast(args.get(i), ast), indent);
         i += 1;
         if i < len then
             printf(", ");
@@ -577,7 +577,7 @@ def _print_ast_body body, indent in
     var len = body.length;
     var stmt;
     while i < len do
-        stmt = cast(vector_get(body, i), ast);
+        stmt = cast(body.get(i), ast);
         _print_indent(indent);
         _print_ast(stmt, indent);
         if ast_requires_semi(ast_kind(stmt)) then
@@ -603,7 +603,7 @@ def _print_ast_def ast, indent in
     var params = ast_params(ast);
     var len = params.length;
     while i < len do
-        var param_name = vector_get(params, i);
+        var param_name = params.get(i);
         printf(" %s", param_name);
         var param_sym = st_get_symbol(g_SymbolTable, param_name);
         assert(param_sym, "psym is NULL");
@@ -639,9 +639,9 @@ def _print_ast_if_else ast, indent, print_if in
     var altern = ast_alternative(ast);
     _print_ast_body(conseq, indent+1);
     if altern.length > 0 then
-        if altern.length == 1 and AstK_IfElse == ast_kind(vector_get(altern, 0)) then
+        if altern.length == 1 and AstK_IfElse == ast_kind(altern.get(0)) then
             _print_indent(indent); printf("elif ");
-            _print_ast_if_else(cast(vector_get(altern, 0), ast), indent, false);
+            _print_ast_if_else(cast(altern.get(0), ast), indent, false);
             return;
         else
             _print_indent(indent); printf("else\n");
@@ -727,7 +727,7 @@ def _print_ast_struct ast, indent in
     var fields = ast_fields(ast);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         _print_indent(indent+1);
         printf("%s: ", field.name);
         tt_print_type_name(g_TypeTable, field.type);
@@ -785,7 +785,7 @@ def _print_ast_enum ast, indent in
     var i = 0; var len = enum_vals.length;
     while i < len do
         _print_indent(indent + 1);
-        var ev = cast(vector_get(enum_vals, i), EnumValue&);
+        var ev = cast(enum_vals.get(i), EnumValue&);
         printf("%s = %d;\n", ev.name, ev.value);
         i += 1;
     end
@@ -871,7 +871,7 @@ end
 def print_whole_ast roots in
     var i = 0; var len = roots.length;
     while i < len do
-        print_ast(vector_get(roots, i));
+        print_ast(roots.get(i));
         i += 1;
     end
 end
@@ -879,16 +879,16 @@ end
 def print_compile_ast compile_order: Vector& in
     var i = 0; var len = compile_order.length;
     while i < len do
-        print_ast(vector_get(compile_order, i));
+        print_ast(compile_order.get(i));
         i += 1;
     end
 end
 
 def _ast_deep_copy_vector vector, tt, st in
     var i = 0; var len = vector.length;
-    var copy = make_vector(len);
+    var copy = Vector::new(len);
     while i < len do
-        vector_push(copy, _ast_deep_copy(cast(vector_get(vector, i), ast), tt, st));
+        copy.push(_ast_deep_copy(cast(vector.get(i), ast), tt, st));
         i += 1;
     end
     return copy;
@@ -959,18 +959,18 @@ def _ast_deep_copy_def ast, tt, st in
     var def_copy_ident = strdup(def_ident);
     var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);
     st_push_scope(st);
-    var def_copy_params = make_vector(def_params.length);
-    var def_copy_params_types = make_vector(def_params.length);
+    var def_copy_params = Vector::new(def_params.length);
+    var def_copy_params_types = Vector::new(def_params.length);
     var i = 0; var len = def_params.length;
     while i < len do
-        var param = vector_get(def_params, i);
+        var param = def_params.get(i);
         var param_sym = st_get_exact_symbol(st, param);
         assert(param_sym);
         var param_copy = strdup(param);
         var param_copy_sym = st_make_param(st, param_copy, param_sym.token);
         param_copy_sym.type = tt_substitute_type(tt, param_sym.type);
-        vector_push(def_copy_params_types, param_copy_sym.type);
-        vector_push(def_copy_params, param_copy); // push the cstr not the symbol!
+        def_copy_params_types.push(param_copy_sym.type);
+        def_copy_params.push(param_copy); // push the cstr not the symbol!
         i += 1;
     end
     var return_type = tt_substitute_type(tt, type_def_return_type(def_sym.type));
@@ -1050,30 +1050,30 @@ end
 def _ast_deep_copy_struct ast, tt, st in
     st_push_scope(st);
     var fields = ast_fields(ast);
-    var fields_copy = make_vector(fields.length);
+    var fields_copy = Vector::new(fields.length);
     var i = 0; var len = fields.length;
     while i < len do
         // fields aren't actually resolved with symbols so no need to create a copy of those
-        var field_copy = field_make_copy(cast(vector_get(fields, i), Field&));
+        var field_copy = field_make_copy(cast(fields.get(i), Field&));
         field_copy.type = tt_substitute_type(tt, field_copy.type);
-        vector_push(fields_copy, field_copy);
+        fields_copy.push(field_copy);
         i += 1;
     end
     var struct_type = tt_substitute_type(tt, ast_struct(ast));
     var struct_changed = struct_type != ast_struct(ast);
     var defs = ast_defs(ast);
-    var defs_copy = make_vector(defs.length);
-    var defs_copy_symbols = make_vector(defs.length);
+    var defs_copy = Vector::new(defs.length);
+    var defs_copy_symbols = Vector::new(defs.length);
     i = 0; len = defs.length;
     while i < len do
-        var def_ = vector_get(defs, i);
+        var def_ = defs.get(i);
         assert(ast_kind(def_) == AstK_Def);
         var def_copy = _ast_deep_copy_def(def_, tt, st);
         var def_copy_sym = st_get_symbol(st, ast_ident(def_copy));
         assert(def_copy_sym);
         def_copy_sym.owned_by = struct_type;
-        vector_push(defs_copy, def_copy);
-        vector_push(defs_copy_symbols, def_copy_sym);
+        defs_copy.push(def_copy);
+        defs_copy_symbols.push(def_copy_sym);
         i += 1;
     end
     var struct_copy = make_ast_struct(ast_token(ast), struct_type, fields_copy, defs_copy);

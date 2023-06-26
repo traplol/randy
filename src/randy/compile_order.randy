@@ -35,10 +35,10 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_test(stmt), seen, order);
         _compile_order_visit_vector(tt, st, ast_body(stmt), seen, order);
     elif k == AstK_PointerRead then
-        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 0), seen, order);
+        _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
     elif k == AstK_PointerWrite then
-        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 0), seen, order);
-        _compile_order_visit(tt, st, vector_get(ast_pop_args(stmt), 1), seen, order);
+        _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
+        _compile_order_visit(tt, st, ast_pop_args(stmt).get(1), seen, order);
     elif k == AstK_Prefix then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     elif k == AstK_AssignOp then
@@ -69,7 +69,7 @@ def _compile_order_visit_type tt, st, type, seen, order in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var sym = cast(vector_get(defs, i), Symbol&);
+            var sym = cast(defs.get(i), Symbol&);
             if not set_contains(seen, sym) then
                 set_add(seen, sym);
                 assert(sym.type, "Type for %s was null.\n", sym.name);
@@ -83,7 +83,7 @@ def _compile_order_visit_type tt, st, type, seen, order in
         var fields = type_struct_fields(type);
         i = 0; len = fields.length;
         while i < len do
-            var field = cast(vector_get(fields, i), Field&);
+            var field = cast(fields.get(i), Field&);
             _compile_order_visit_type(tt, st, field.type, seen, order);
             i += 1;
         end
@@ -97,7 +97,7 @@ end
 def _compile_order_visit_vector tt, st, vector, seen, order in
     var i = 0; var len = vector.length;
     while i < len do
-        var stmt = vector_get(vector, i);
+        var stmt = vector.get(i);
         _compile_order_visit(tt, st, stmt, seen, order);
         i += 1;
     end
@@ -105,16 +105,16 @@ end
 
 def _compile_order_def tt, st, def_, seen, order in
     _compile_order_visit_vector(tt, st, ast_body(def_), seen, order);
-    vector_push(order, def_);
+    order.push(def_);
 end
 
 def compile_order_main roots, type_table, symbol_table -> Vector& in
     var main_def = NULL;
     var exit_def = NULL;
-    var compile_order = make_vector(128);
+    var compile_order = Vector::new(128);
     var i = 0; var len = roots.length;
     while i < len do
-        var ast = vector_get(roots, i);
+        var ast = roots.get(i);
         if ast_kind(ast) == AstK_Def then
             if cstr_eq("main", ast_ident(ast)) then
                 main_def = ast;
@@ -122,12 +122,12 @@ def compile_order_main roots, type_table, symbol_table -> Vector& in
                 exit_def = ast;
             end
         else
-            vector_push(compile_order, ast);
+            compile_order.push(ast);
         end
         i += 1;
     end
     if not main_def then
-        free_vector(compile_order);
+        compile_order.delete();
         return NULL;
     end
     var seen = make_set(0, NULL, NULL);

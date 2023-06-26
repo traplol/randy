@@ -10,7 +10,7 @@ const sizeof_TCOMPILER_CONTEXT        = 56;
 
 def make_compiler_context debug: bool -> compiler_context in
     var self = malloc(sizeof_TCOMPILER_CONTEXT);
-    var lines = make_vector(0);
+    var lines = Vector::new(0);
     u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
     u64!(self + TCOMPILER_CONTEXT_def_src_name, NULL);
     u64!(self + TCOMPILER_CONTEXT_def_name, NULL);
@@ -45,7 +45,7 @@ def cc_print_lines self: compiler_context in
     var len = lines.length;
     var i = 0;
     while i < len do
-        printf("%s\n", string_cstr(vector_get(lines, i)));
+        printf("%s\n", string_cstr(lines.get(i)));
         i += 1;
     end
 end
@@ -54,7 +54,7 @@ def cc_out self: compiler_context, cstr: cstr in
     var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
     var string = make_string(128);
     string_append_cstr(string, cstr);
-    vector_push(lines, string);
+    lines.push(string);
     //printf("%s\n", cstr);
 end
 
@@ -142,8 +142,8 @@ def cc_out_files irctx: ir_context, cctx: compiler_context in
     var files = ir_files(irctx);
     var i = 0;
     while i < files.length do
-        cc_out_file(cctx, i, vector_get(files, i));
-        compiler_context_add_file(cctx, vector_get(files, i), i);
+        cc_out_file(cctx, i, files.get(i));
+        compiler_context_add_file(cctx, files.get(i), i);
         i += 1;
     end
 end
@@ -152,7 +152,7 @@ def cc_out_instructions irctx: ir_context, cctx: compiler_context in
     var instructions = ir_instructions(irctx);
     var i = 0;
     while i < instructions.length do
-        x86_64_emit_instruction(cctx, vector_get(instructions, i));
+        x86_64_emit_instruction(cctx, instructions.get(i));
         i += 1;
     end
 end
@@ -178,7 +178,7 @@ def cc_out_data_section irctx: ir_context, cctx: compiler_context in
     var str = make_string(0);
     while i < len do
         string_reset(str);
-        var gi = vector_get(globals, i);
+        var gi = globals.get(i);
         var kind = global_info_kind(gi);
         var label = global_info_label(gi);
         var value = global_info_value(gi);
@@ -226,7 +226,7 @@ def cc_lines_to_file cctx: compiler_context, path: cstr in
     var num_lines = lines.length;
     var line; var line_len;
     while i < num_lines do
-        line = cast(vector_get(lines, i), String&);
+        line = cast(lines.get(i), String&);
         j = 0; line_len = line.length;
         while j < line_len do
             if p == buffer_end then

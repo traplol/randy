@@ -49,30 +49,30 @@ def print_usage in
 end
 
 def assemble_and_link asm_path, obj_path, exe_path, ld_flags in
-    var as_args = make_vector(0);
-    vector_push(as_args, "as");
-    vector_push(as_args, "-c");
-    vector_push(as_args, asm_path);
-    vector_push(as_args, "-o");
-    vector_push(as_args, obj_path);
-    vector_push(as_args, NULL); // argv is required to be null terminated.
-    subprocess_blocking("/usr/bin/as", vector_buf(as_args), NULL);
+    var as_args = Vector::new(0);
+    as_args.push("as");
+    as_args.push("-c");
+    as_args.push(asm_path);
+    as_args.push("-o");
+    as_args.push(obj_path);
+    as_args.push(NULL); // argv is required to be null terminated.
+    subprocess_blocking("/usr/bin/as", as_args.buffer, NULL);
 
-    var ld_args = make_vector(0);
-    vector_push(ld_args, "ld");
-    vector_push(ld_args, "-o");
-    vector_push(ld_args, exe_path);
-    vector_push(ld_args, obj_path);
+    var ld_args = Vector::new(0);
+    ld_args.push("ld");
+    ld_args.push("-o");
+    ld_args.push(exe_path);
+    ld_args.push(obj_path);
     var i = 0; var len = ld_flags.length;
     while i < len do
-        vector_push(ld_args, vector_get(ld_flags, i));
+        ld_args.push(ld_flags.get(i));
         i += 1;
     end
-    vector_push(ld_args, NULL);
-    subprocess_blocking("/usr/bin/ld", vector_buf(ld_args), NULL);
+    ld_args.push(NULL);
+    subprocess_blocking("/usr/bin/ld", ld_args.buffer, NULL);
 
-    free_vector(as_args);
-    free_vector(ld_args);
+    as_args.delete();
+    ld_args.delete();
 end
 
 def main argc: int, argv: ptr in
@@ -85,8 +85,8 @@ def main argc: int, argv: ptr in
         var true_endtime = make_empty_timespec();
         time(true_starttime);
 
-        var include_paths = make_vector(8);
-        vector_push(include_paths, getcwd());
+        var include_paths = Vector::new(8);
+        include_paths.push(getcwd());
 
         var in_path: cstr = NULL;
         var out_path: cstr = NULL;
@@ -95,7 +95,7 @@ def main argc: int, argv: ptr in
         var do_print_ir = false;
         var do_print_ast = false;
         var will_compile = true;
-        var ld_flags = make_vector(0);
+        var ld_flags = Vector::new(0);
 
         i = 1; var p: cstr;
         while i < argc do
@@ -134,7 +134,7 @@ def main argc: int, argv: ptr in
                     printf("No path supplied with -I flag.\n");
                     return 1;
                 end
-                vector_push(include_paths, string_from_cstr(p));
+                include_paths.push(string_from_cstr(p));
             elif cstr_eq("-v", arg) then
                 verbosity = 1;
             elif cstr_eq("-vv", arg) then
@@ -154,7 +154,7 @@ def main argc: int, argv: ptr in
             elif cstr_eq("-ld", arg) then
                 i += 1;
                 while i < argc do
-                    vector_push(ld_flags, u64@(argv + i*sizeof_PTR));
+                    ld_flags.push(u64@(argv + i*sizeof_PTR));
                     i += 1;
                 end
             end
@@ -180,7 +180,7 @@ def main argc: int, argv: ptr in
         if source_dir.length > 1 then
             string_pop(source_dir);
         end
-        vector_push(include_paths, source_dir);
+        include_paths.push(source_dir);
 
         var starttime = make_empty_timespec();
         var endtime = make_empty_timespec();

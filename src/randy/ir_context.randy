@@ -483,7 +483,7 @@ def print_ir_new_def self in
     var params = cast(u64@(self + TIR_INSTR_params), Vector&);
     var i = 0; var len = params.length;
     while i < len do
-        printf("'%s'", vector_get(params, i));
+        printf("'%s'", params.get(i));
         i += 1;
         if i < len then
             printf(", ");
@@ -742,21 +742,21 @@ const sizeof_TIR_CONTEXT       = 136;
 
 def make_ir_context -> ir_context in
     var self = calloc(1, sizeof_TIR_CONTEXT);
-    u64!(self + TIR_CONTEXT_instructions, make_vector(0));
+    u64!(self + TIR_CONTEXT_instructions, Vector::new(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
     u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
     u64!(self + TIR_CONTEXT_externs, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_labels, make_set(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_constants, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_src_locs, make_vector(0));
+    u64!(self + TIR_CONTEXT_src_locs, Vector::new(0));
     u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_files, make_vector(0));
+    u64!(self + TIR_CONTEXT_files, Vector::new(0));
     u64!(self + TIR_CONTEXT_defs, make_map(0, NULL, NULL));
-    u64!(self + TIR_CONTEXT_def_locals, make_vector(0));
+    u64!(self + TIR_CONTEXT_def_locals, Vector::new(0));
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_globals, make_vector(0));
-    u64!(self + TIR_CONTEXT_break_dests, make_vector(0));
-    u64!(self + TIR_CONTEXT_conti_dests, make_vector(0));
+    u64!(self + TIR_CONTEXT_globals, Vector::new(0));
+    u64!(self + TIR_CONTEXT_break_dests, Vector::new(0));
+    u64!(self + TIR_CONTEXT_conti_dests, Vector::new(0));
     return cast(self, ir_context);
 end
 
@@ -780,47 +780,45 @@ def ir_locals_size self: ir_context in return cast(u64@(self + TIR_CONTEXT_local
 def ir_append self, insn in
     u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
     var vec = ir_instructions(self);
-    vector_push(vec, insn);
+    vec.push(insn);
 end
 
 def ir_push_src_loc self, src_loc in
     var src_locs = ir_src_locs(self);
-    vector_push(src_locs, src_loc);
+    src_locs.push(src_loc);
 
     var filename = src_loc.filename;
     var fileset = ir_file_set(self);
     if not set_contains(fileset, filename) then
         set_add(fileset, filename);
         var files = ir_files(self);
-        vector_push(files, filename);
+        files.push(filename);
     end
 end
 
 def ir_pop_src_loc self in
-    var src_locs = ir_src_locs(self);
-    vector_pop(src_locs);
+    ir_src_locs(self).pop();
 end
 
 def ir_current_src_loc self in
-    var src_locs = ir_src_locs(self);
-    return vector_back(src_locs);
+    ir_src_locs(self).back();
 end
 
 def ir_push_scope self in
-    vector_push(ir_def_locals(self), make_map(0, cstr_eq, cstr_hash));
+    ir_def_locals(self).push(make_map(0, cstr_eq, cstr_hash));
     ir_append(self, make_ir_scope_open());
 end
 
 def ir_pop_scope self in
     var vec = ir_def_locals(self);
-    var map = vector_back(vec);
-    vector_pop(vec);
+    var map = vec.back();
+    vec.pop();
     ir_append(self, make_ir_scope_close());
     free_map(map);
 end
 
 def ir_cur_scope self in
-    return vector_back(ir_def_locals(self));
+    return ir_def_locals(self).back();
 end
 
 def ir_new_def self, ident, params, ast, symbol in
@@ -860,7 +858,7 @@ def ir_new_local self, ident, st in
     var offset = 0;
     var i = 0; var len = def_locals.length;
     while i < len do
-        var map = vector_get(def_locals, i);
+        var map = def_locals.get(i);
         local_idx += map_len(map);
         var cur = map_begin(map);
         while cur != map_end(map) do
@@ -955,7 +953,7 @@ def ir_is_local self, ident in
     var def_locals = ir_def_locals(self);
     var i = 0; var len = def_locals.length;
     while i < len do
-        if map_find(vector_get(def_locals, i), ident) then
+        if map_find(def_locals.get(i), ident) then
             return true;
         end
         i += 1;
@@ -975,7 +973,7 @@ def ir_get_local self, ident in
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
-        found = map_find(vector_get(def_locals, i), ident);
+        found = map_find(def_locals.get(i), ident);
         if found then
             return local_info_n(map_pair_val(found));
         end
@@ -989,7 +987,7 @@ def ir_get_local_offset self, ident in
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
-        found = map_find(vector_get(def_locals, i), ident);
+        found = map_find(def_locals.get(i), ident);
         if found then
             return local_info_offs(map_pair_val(found));
         end
@@ -1025,22 +1023,22 @@ def ir_add_global_string self, ident, value in
     var val_label = ir_string_label(self, value);
     var gi = make_global_info(GIK_String, label, val_label);
     map_set(ir_globals_map(self), ident, gi);
-    vector_push(ir_globals(self), gi);
+    ir_globals(self).push(gi);
 end
 
 def ir_add_global_int self, ident, value in
     var label = ir_new_label(self, "G");
     var gi = make_global_info(GIK_Integer, label, value);
     map_set(ir_globals_map(self), ident, gi);
-    vector_push(ir_globals(self), gi);
+    ir_globals(self).push(gi);
 end
 
 def ir_push_break_dest self, dest in
-    vector_push(ir_break_dests(self), dest);
+    ir_break_dests(self).push(dest);
 end
 
 def ir_pop_break_dest self in
-    vector_pop(ir_break_dests(self));
+    ir_break_dests(self).pop();
 end
 
 def ir_get_break_dest self in
@@ -1048,15 +1046,15 @@ def ir_get_break_dest self in
     if dests.length == 0 then
         return NULL;
     end
-    return vector_back(dests);
+    return dests.back();
 end
 
 def ir_push_continue_dest self, dest in
-    vector_push(ir_continue_dests(self), dest);
+    ir_continue_dests(self).push(dest);
 end
 
 def ir_pop_continue_dest self in
-    vector_pop(ir_continue_dests(self));
+    ir_continue_dests(self).pop();
 end
 
 def ir_get_continue_dest self in
@@ -1064,7 +1062,7 @@ def ir_get_continue_dest self in
     if dests.length == 0 then
         return NULL;
     end
-    return vector_back(dests);
+    return dests.back();
 end
 
 def _comptime_eval_is_n n, ast in
@@ -1081,7 +1079,7 @@ def _comptime_scope_resolve_val self, ast, st, tt, depth in
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
         while i < len do
-            var ev = cast(vector_get(enum_vals, i), EnumValue&);
+            var ev = cast(enum_vals.get(i), EnumValue&);
             if cstr_eq(ev.name, member) then
                 if not ev.cache_value then
                     ev.cache_value = ir_comptime_eval(self, ev.value, st, tt, true, depth + 1);
@@ -1257,7 +1255,7 @@ def ir_emit_body self, body, st, tt in
     var i = 0;
     var len = body.length;
     while i < len do
-        var ast = vector_get(body, i);
+        var ast = body.get(i);
         ir_compile(self, ast, st, tt);
         if ast_is_expr(ast) then
             ir_append(self, make_ir_drop_top());
@@ -1320,7 +1318,7 @@ def ir_emit_call self, ast, st, tt in
     end
     var i = 0;
     while i < len do
-        ir_compile(self, vector_get(args, i), st, tt);
+        ir_compile(self, args.get(i), st, tt);
         ir_append(self, make_ir_store_temp(i));
         i += 1;
     end
@@ -1575,7 +1573,7 @@ def ir_emit_def self, ast, st, tt in
 
     var i = 0; var len = params.length;
     while i < len do
-        var param = vector_get(params, i);
+        var param = params.get(i);
         var n = ir_new_local(self, param, st);
         var offs = ir_get_local_offset(self, param);
         ir_append(self, make_ir_set_local_arg(param, n, i, offs));
@@ -1640,19 +1638,19 @@ def ir_emit_pointer_op self, ast, st, tt in
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
     if size == 0 then
-        var type_ast = vector_back(args);
+        var type_ast = args.back();
         assert(ast_kind(type_ast) == AstK_Type);
         var type = ast_type(type_ast);
         size = type_size(type);
     end
     var op = ast_pop(ast);
     if op == PointerOp::Read then
-        ir_compile(self, vector_get(args, 0), st, tt);
+        ir_compile(self, args.get(0), st, tt);
         ir_append(self, make_ir_ptr_read(size));
     elif op == PointerOp::Write then
         // Pointer ops expect the pointer to be at top of stack so we compile in reverse order.
-        ir_compile(self, vector_get(args, 1), st, tt);
-        ir_compile(self, vector_get(args, 0), st, tt);
+        ir_compile(self, args.get(1), st, tt);
+        ir_compile(self, args.get(0), st, tt);
         ir_append(self, make_ir_ptr_write(size));
     else
         NYI_ERR(__FILE__, __LINE__, "unhandled ir_emit_pointer_op");
@@ -1792,7 +1790,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 
     var offset = 0;
     var head = ast;
-    var deref_stack = make_vector(0);
+    var deref_stack = Vector::new(0);
     while ast_kind(head) == AstK_MemberAccess do
         var member = ast_member(head);
         var type = tt_get_ast_type(tt, ast_expr(head));
@@ -1805,7 +1803,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         var field: Field& = NULL;
         var i = 0; var len = fields.length;
         while i < len do
-            field = vector_get(fields, i);
+            field = fields.get(i);
             if cstr_eq(field.name, member) then
                 break;
             end
@@ -1821,7 +1819,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         assert(offs >= 0, "Compiler bug: field offset should be >= 0\n");
         offset += offs;
         if type_is_reference(type) then
-            vector_push(deref_stack, offset);
+            deref_stack.push(offset);
             offset = 0;
         end
         //assert(not type_is_reference(type), "TODO: implement auto-deref reference types\n");
@@ -1848,17 +1846,17 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     end
 
     if offset != 0 then
-        vector_push(deref_stack, offset);
+        deref_stack.push(offset);
     end
     var i = deref_stack.length - 1;
     while i >= 0 do
-        ir_append(self, make_ir_ptr_offs(vector_get(deref_stack, i)));
+        ir_append(self, make_ir_ptr_offs(deref_stack.get(i)));
         if i > 0 then
             ir_append(self, make_ir_ptr_read(PTR_BITS));
         end
         i -= 1;
     end
-    free_vector(deref_stack);
+    deref_stack.delete();
 
     if deref then
         var type = tt_get_ast_type(tt, ast_expr(ast));
@@ -1872,7 +1870,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         var member = ast_member(ast);
         var field: Field&;
         while i < len do
-            field = vector_get(fields, i);
+            field = fields.get(i);
             if cstr_eq(field.name, member) then
                 break;
             end
@@ -1901,7 +1899,7 @@ def ir_emit_scope_resolve self, ast, st, tt in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(vector_get(defs, i), Symbol&);
+            var def_ = cast(defs.get(i), Symbol&);
             if cstr_eq(def_.name, member) then
                 var def_info = ir_get_def(self, def_.name);
                 assert(def_info, "def_info for %s not found.\n", def_.name);
@@ -1988,7 +1986,7 @@ def ir_resolve_lazy_idents self in
     var k; var ir; var token;
     var info = NULL;
     while i < len do
-        ir = vector_get(instrs, i);
+        ir = instrs.get(i);
         k = ir_instr_kind(ir);
         if k == IRK_LazyIdent then
             token = ir_instr_ident(ir);
@@ -2016,7 +2014,7 @@ def ir_resolve_lazy_idents self in
                 exit(1);
             end
             u64!(new_ir + TIR_INSTR_src_loc, token.src_loc);
-            vector_set(instrs, i, new_ir);
+            instrs.set(i, new_ir);
         elif k == IRK_CallLazyIdent then
             token = ir_instr_ident(ir);
             var symbol = ir_instr_symbol(ir);
@@ -2036,7 +2034,7 @@ def ir_resolve_lazy_idents self in
                 exit(1);
             end
             u64!(call + TIR_INSTR_src_loc, token.src_loc);
-            vector_set(instrs, i, call);
+            instrs.set(i, call);
         end
         i += 1;
     end
@@ -2048,14 +2046,14 @@ def ir_compile_roots self: ir_context, roots: Vector&, symbol_table: SymbolTable
         // compile everything in order
         var i = 0; var len = roots.length;
         while i < len do
-            ir_compile(self, vector_get(roots, i), symbol_table, type_table);
+            ir_compile(self, roots.get(i), symbol_table, type_table);
             i += 1;
         end
     else
         // or only compile the call/reference graph
         var i = 0; var len = compile_order.length;
         while i < len do
-            ir_compile(self, vector_get(compile_order, i), symbol_table, type_table);
+            ir_compile(self, compile_order.get(i), symbol_table, type_table);
             i += 1;
         end
     end
@@ -2077,7 +2075,7 @@ def ir_print_whole_ir self: ir_context in
     var instrs = ir_instructions(self);
     var i = 0; var len = instrs.length;
     while i < len do
-        print_ir(vector_get(instrs, i));
+        print_ir(instrs.get(i));
         i += 1;
     end
 end

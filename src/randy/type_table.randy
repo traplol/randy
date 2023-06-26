@@ -228,8 +228,8 @@ def _basic_def_type_match tt, lhs, rhs in
 
     var i = 0; var len = lhs_params.length;
     while i < len do
-        var a = vector_get(lhs_params, i);
-        var b = vector_get(rhs_params, i);
+        var a = lhs_params.get(i);
+        var b = rhs_params.get(i);
         if not types_assignable(tt, a, b) then
             return false;
         end
@@ -325,8 +325,8 @@ def _tt_make_type tyk, name, size, type_ids, types, names in
     var t = make_type(tyk, type_idx);
     type_set_size(t, size);
     map_set(type_ids, name, type_idx);
-    vector_push(types, t);
-    vector_push(names, name);
+    types.push(t);
+    names.push(name);
     return t;
 end
 
@@ -339,21 +339,21 @@ def _tt_make_ref_type type, name, type_ids, types, names in
     if name then
         map_set(type_ids, name, type_idx);
     end
-    vector_push(types, t);
-    vector_push(names, name);
+    types.push(t);
+    names.push(name);
     return t;
 end
 
 def _tt_make_type_alias type, name, type_ids, types, names in
     map_set(type_ids, name, types.length);
-    vector_push(types, type);
-    vector_push(names, name);
+    types.push(type);
+    names.push(name);
 end
 
 def make_type_table -> TypeTable& in
     var self: TypeTable& = calloc(1, __sizeof(TypeTable));
-    var types = make_vector(0);
-    var names = make_vector(0);
+    var types = Vector::new(0);
+    var names = Vector::new(0);
     self.type_scope = make_type_scope(NULL);
     var type_ids = self.type_scope.types;
     self.top_type_scope = type_ids;
@@ -444,7 +444,7 @@ def tt_get_type_name self, type -> cstr in
     while type_is_reference(type) and type_deref_type(type) do
         type = type_deref_type(type);
     end
-    return vector_get(self.names, type_id(type));
+    return self.names.get(type_id(type));
 end
 
 def tt_dump_cur_scope self in
@@ -463,7 +463,7 @@ def tt_get_type_or_null self, name -> type in
     while cur do
         var found = map_find(cur.types, name);
         if found then
-            return vector_get(self.all_types, cast(map_pair_val(found), int));
+            return self.all_types.get(cast(map_pair_val(found), int));
         end
         cur = cur.parent;
     end
@@ -507,8 +507,8 @@ def tt_get_type_or_make_undefined self, name -> type in
     // The current solution is to "catch" the local 'Bar' type in Fig 2 as being undefined
     // and overwrite the type "act" as the outer 'Bar' type
     map_set(tt_cur_scope(self), name, type_idx);
-    vector_push(self.all_types, type);
-    vector_push(self.names, name);
+    self.all_types.push(type);
+    self.names.push(name);
     return type;
 end
 
@@ -556,15 +556,15 @@ def tt_substitute_type self, type -> type in
     var params = type_params(deref_type);
     if params and params.length > 0 then
         var i = 0; var len = params.length;
-        var new_params = make_vector(len);
+        var new_params = Vector::new(len);
         var made_subst = false;
         while i < len do
-            var orig = vector_get(params, i);
+            var orig = params.get(i);
             var subst = tt_substitute_type(self, orig);
             if subst != orig then
                 made_subst = true;
             end
-            vector_push(new_params, subst);
+            new_params.push(subst);
             i += 1;
         end
         if made_subst then
@@ -574,7 +574,7 @@ def tt_substitute_type self, type -> type in
             end
             return type;
         else
-            free_vector(new_params);
+            new_params.delete();
         end
     end
     return type;
@@ -586,8 +586,8 @@ def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, in
     var type_sub_map = make_map(src_params.length, NULL, NULL);
     var i = 0; var len = src_params.length;
     while i < len do
-        var src = vector_get(src_params, i);
-        map_set(type_sub_map, src, vector_get(dst_params, i));
+        var src = src_params.get(i);
+        map_set(type_sub_map, src, dst_params.get(i));
         tt_set_local_type(self, src);
         i += 1;
     end
@@ -618,8 +618,8 @@ def tt_get_type_instance_of self, st, type, params in
         var same = true;
         var i = 0; var len = params.length;
         while i < len do
-            var src_type = cast(vector_get(generic_params, i), type);
-            var dst_type = cast(vector_get(params, i), type);
+            var src_type = cast(generic_params.get(i), type);
+            var dst_type = cast(params.get(i), type);
             if not types_eq(src_type, dst_type) then
                 same = false;
                 break;
@@ -633,17 +633,17 @@ def tt_get_type_instance_of self, st, type, params in
     else
         var instances = type_instances(type);
         if not instances then
-            instances = make_vector(8);
+            instances = Vector::new(8);
             type_set_instances(type, instances);
         else
             var i = 0; var len = instances.length;
             while i < len do
-                var inst = cast(vector_get(instances, i), type);
+                var inst = cast(instances.get(i), type);
                 var inst_params = type_params(inst);
                 assert(params.length == inst_params.length, "forgot to verify params.length\n");
                 var j = 0; var jlen = inst_params.length;
                 while j < jlen do
-                    if types_eq(vector_get(params, j), vector_get(inst_params, j)) then
+                    if types_eq(params.get(j), inst_params.get(j)) then
                         return inst;
                     end
                     j += 1;
@@ -654,14 +654,14 @@ def tt_get_type_instance_of self, st, type, params in
 
         var id = self.all_types.length;
         var instance_type = copy_type_with_id(type, id);
-        vector_push(self.all_types, instance_type);
+        self.all_types.push(instance_type);
         var type_name = tt_get_type_name(self, type);
-        vector_push(self.names, type_name);
+        self.names.push(type_name);
         type_set_is_generic(instance_type, false);
         type_set_params(instance_type, params); // used for looking up existing instances.
         type_set_ref_to_this(instance_type, NULL); // clear the old ref type
         var ref_type = tt_reference_to_type(self, instance_type);
-        vector_push(instances, instance_type);
+        instances.push(instance_type);
         _tt_instantiate_generic_type_impl(self, st, type, params, instance_type);
         return instance_type;
     end
@@ -669,22 +669,22 @@ end
 
 def tt_make_anon_def self, return_type, param_types, varargs in
     var type = make_type_def(self.all_types.length, return_type, param_types, varargs);
-    vector_push(self.all_types, type);
-    vector_push(self.names, NULL);
+    self.all_types.push(type);
+    self.names.push(NULL);
     return type;
 end
 
 def tt_make_anon_struct self, fields, defs in
     var type = make_type_struct(self.all_types.length, fields, defs);
-    vector_push(self.all_types, type);
-    vector_push(self.names, NULL);
+    self.all_types.push(type);
+    self.names.push(NULL);
     return type;
 end
 
 def tt_make_anon_union self, field_names, field_types in
     var type = make_type_union(self.all_types.length, field_names, field_types);
-    vector_push(self.all_types, type);
-    vector_push(self.names, NULL);
+    self.all_types.push(type);
+    self.names.push(NULL);
     return type;
 end
 
@@ -717,7 +717,7 @@ def _tt_append_def_type_repr self, string, type in
             string_push(string, '[');
             var i = 0; var len = params.length;
             while i < len do
-                _tt_append_def_type_repr(self, string, vector_get(params, i));
+                _tt_append_def_type_repr(self, string, params.get(i));
                 i += 1;
                 if i < len then
                     string_append_cstr(string, ", ");
@@ -744,7 +744,7 @@ def tt_get_def_type_name self, type in
 
     var i = 0; var len = params.length;
     while i < len do
-        var param_type = vector_get(params, i);
+        var param_type = params.get(i);
         _tt_append_def_type_repr(self, string, param_type);
         i += 1;
         if i < len then
@@ -770,7 +770,7 @@ def tt_calculate_struct self, stype, again_q in
     var i = 0; var len = fields.length;
     var ptr_align = false;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         var fname = field.name;
         var ftype = field.type;
         if type_is_generic_param(ftype) then
@@ -810,7 +810,7 @@ def tt_detect_cycles self, stype in
     var fields = type_struct_fields(stype);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         var ftype = field.type;
         if ftype == stype then // immediate self-reference
             return true;
@@ -830,7 +830,7 @@ def tt_detect_cycles self, stype in
         fields = type_struct_fields(v);
         i = 0; len = fields.length;
         while i < len do
-            var field = cast(vector_get(fields, i), Field&);
+            var field = cast(fields.get(i), Field&);
             var ftype = field.type;
             if ftype == stype then
                 return true;
@@ -852,7 +852,7 @@ def tt_check_struct_for_field_name_collisions self, type in
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
-        var field = cast(vector_get(fields, i), Field&);
+        var field = cast(fields.get(i), Field&);
         var fname = field.name;
         var ftoke = field.token;
         var found = map_find(member_name_map, fname);
@@ -872,7 +872,7 @@ def tt_check_struct_for_field_name_collisions self, type in
     var defs = type_struct_defs(type);
     i = 0; len = defs.length;
     while i < len do
-        var def_ = cast(vector_get(defs, i), Symbol&);
+        var def_ = cast(defs.get(i), Symbol&);
         var found = map_find(member_name_map, def_.name);
         if found then
             printf("ERROR: struct `");
@@ -894,7 +894,7 @@ def tt_check_enum_for_field_name_collisions self, type in
     var enum_vals = type_enum_values(type);
     var i = 0; var len = enum_vals.length;
     while i < len do
-        var ev = cast(vector_get(enum_vals, i), EnumValue&);
+        var ev = cast(enum_vals.get(i), EnumValue&);
         var found = map_find(member_name_map, ev.name);
         if found then
             printf("ERROR: enum `");
@@ -917,7 +917,7 @@ def tt_calculate_structs self in
     var i = 0; var len = self.all_types.length;
     var void = tt_void_type(self);
     while i < len do
-        var type = vector_get(self.all_types, i);
+        var type = self.all_types.get(i);
         if type_is_generic(type) or type_is_generic_param(type) then
             // skip generics because they aren't concrete types and their concrete instances
             // should also be in this list.
@@ -984,7 +984,7 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(vector_get(defs, i), Symbol&);
+            var def_ = cast(defs.get(i), Symbol&);
             var def_name = symbol_name(def_);
             if cstr_eq(member, def_name) then
                 var def_type = symbol_type(def_);
@@ -1027,7 +1027,7 @@ def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
-            var def_ = cast(vector_get(defs, i), Symbol&);
+            var def_ = cast(defs.get(i), Symbol&);
             var def_name = symbol_name(def_);
             if cstr_eq(member, def_name) then
                 var def_type = symbol_type(def_);
