@@ -57,13 +57,13 @@ end
 const PLAYER_NAME = "abcdefghijklmnopqrstuvwxyz";
 
 def make_players n: int in
-    var players = make_vector(n);
+    var players = Vector::new(n);
     var i = 0;
     while i < n do
         var player = make_player(PLAYER_NAME, 100 + i, i * 11, i * i);
         Player::move(player, 10, 20);
         Player::take_damage(player, 30);
-        vector_push(players, player);
+        players.push(player);
         i += 1;
     end
     return players;
@@ -73,9 +73,9 @@ def test_many_players in
     printf("test_many_players: creating many `Player` objects.\n");
     var players = make_players(100000);
     printf("test_many_players: checking the player fields are correct.\n");
-    var i = 0; var len = vector_len(players);
+    var i = 0; var len = players.length;
     while i < len do
-        var player = cast(vector_get(players, i), Player&);
+        var player = cast(players.get(i), Player&);
         if player.name != PLAYER_NAME then
             printf("test_many_players:fail on player.name\n");
             return false;
@@ -98,10 +98,10 @@ def test_many_players in
     printf("test_many_players: freeing the `Player` objects.\n");
     i = 0;
     while i < len do
-        free_player(cast(vector_get(players, i), Player&));
+        free_player(cast(players.get(i), Player&));
         i += 1;
     end
-    free_vector(players);
+    players.delete();
     printf("test_many_players: pass\n");
     return true;
 end
@@ -135,16 +135,16 @@ end
 
 def test_many_foos in
     printf("test_many_foos: making many `Foo` objects.\n");
-    var foos = make_vector(100000);
-    var i = 0; var len = vector_cap(foos);
+    var foos = Vector::new(100000);
+    var i = 0; var len = foos.capacity;
     while i < len do
-        vector_push(foos, make_foo(i, i * i, i * i * i));
+        foos.push(make_foo(i, i * i, i * i * i));
         i += 1;
     end
     printf("test_many_foos: checking `Foo` objects fields are correct.\n");
     i = 0;
     while i < len do
-        var foo = cast(vector_get(foos, i), Foo&);
+        var foo = cast(foos.get(i), Foo&);
         if foo.a != i then
             printf("test_many_foos: fail on foo.a\n");
             return false;
@@ -163,17 +163,17 @@ def test_many_foos in
     printf("test_many_foos: freeing the `Foo` objects.\n");
     i = 0;
     while i < len do
-        free_foo(cast(vector_get(foos, i), Foo&));
+        free_foo(cast(foos.get(i), Foo&));
         i += 1;
     end
-    free_vector(foos);
+    foos.delete();
     printf("test_many_foos: pass\n");
     return true;
 end
 
 def test_member_access_from_return in
     printf("testing member access works with function calls\n");
-    if make_vector(12345).capacity != 12345 then
+    if Vector::new(12345).capacity != 12345 then
         printf("test_member_access_from_return: fail");
     end
     printf("test_member_access_from_return: pass\n");

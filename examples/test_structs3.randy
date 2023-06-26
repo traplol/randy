@@ -1,0 +1,32 @@
+
+
+
+extern printf: (cstr, ... -> int);
+
+def foo_fun x in
+    printf("global foo_fun: %d\n", x);
+end
+
+struct Foo in
+    def new in
+        return cast(0, Foo&);
+    end
+
+    def foo_fun x in
+        printf("Foo::foo_fun: %d\n", x);
+    end
+
+    def inner in
+        // this is a regression test for a bug that called Foo::foo_fun instead of the global foo_fun.
+        foo_fun(999);
+    end
+end
+
+
+def main in
+    var foo = Foo::new();
+    foo_fun(123);
+    foo.foo_fun(456);
+    foo.inner();
+    return 0;
+end

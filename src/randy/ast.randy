@@ -954,7 +954,7 @@ end
 
 def _ast_deep_copy_def ast, tt, st in
     var def_ident = ast_ident(ast);
-    var def_sym = st_get_symbol(st, def_ident);
+    var def_sym = st_get_exact_symbol(st, def_ident);
     var def_params = ast_params(ast);
     var def_copy_ident = strdup(def_ident);
     var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);

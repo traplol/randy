@@ -2,27 +2,27 @@
 #include std/vector
 
 def main in
-    var vector = make_vector(10);
+    var vector = Vector::new(10);
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
 
     var i = 0;
     printf("Set the vector\n");
     while i < 10 do
-        vector_push(vector, i * 10);
+        vector.push(i * 10);
         i += 1;
     end
 
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
-    vector_push(vector, 100 + i * 10);
+    vector.push(100 + i * 10);
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
 
     printf("Push to vector\n");
     i = 0;
     while i < 10 do
-        vector_push(vector, 100 + i * 10);
+        vector.push(100 + i * 10);
         i += 1;
     end
 
@@ -32,16 +32,16 @@ def main in
     printf("Enumerate the vector\n");
     i = 0;
     while i < vector.length do
-        printf("%d = %d\n", i, vector_get(vector, i));
+        printf("%d = %d\n", i, vector.get(i));
         i += 1;
     end
 
     printf("Pop 3\n");
     i = 0;
     while i < 3 do
-        printf("Vector back is %d\n", vector_back(vector));
+        printf("Vector back is %d\n", vector.back());
         printf("Pop from vector\n");
-        vector_pop(vector);
+        vector.pop();
         i += 1;
     end
 
@@ -51,54 +51,54 @@ def main in
     printf("Push 3\n");
     i = 0;
     while i < 3 do
-        vector_push(vector, i * 10);
+        vector.push(i * 10);
         i += 1;
     end
 
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
-    printf("Vector back is %d\n", vector_back(vector));
+    printf("Vector back is %d\n", vector.back());
 
-    vector_push(vector, 123);
+    vector.push(123);
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
-    printf("Vector back is %d\n", vector_back(vector));
+    printf("Vector back is %d\n", vector.back());
 
     i = 0;
     while i < vector.length do
-        printf("%d = %d\n", i, vector_get(vector, i));
+        printf("%d = %d\n", i, vector.get(i));
         i += 1;
     end
 
     printf("Popping entire vector\n");
     while vector.length != 0 do
-        printf("Vector back = %d\n", vector_back(vector));
-        vector_pop(vector);
+        printf("Vector back = %d\n", vector.back());
+        vector.pop();
     end
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
 
-    free_vector(vector);
+    vector.delete();
 
-    vector = make_vector(5);
+    vector = Vector::new(5);
 
-    vector_push(vector, 10);
-    vector_push(vector, 20);
-    vector_push(vector, 30);
-    vector_push(vector, 40);
-    vector_push(vector, 50);
+    vector.push(10);
+    vector.push(20);
+    vector.push(30);
+    vector.push(40);
+    vector.push(50);
 
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
-    printf("Vector front is %d\n", vector_front(vector));
-    printf("Vector back is %d\n", vector_back(vector));
-    vector_insert_front(vector, 42069);
+    printf("Vector front is %d\n", vector.front());
+    printf("Vector back is %d\n", vector.back());
+    vector.insert_front(42069);
     printf("Vector len = %d\n", vector.length);
     printf("Vector cap = %d\n", vector.capacity);
-    printf("Vector front is %d\n", vector_front(vector));
-    printf("Vector get 1 is %d\n", vector_get(vector, 1));
-    printf("Vector back is %d\n", vector_back(vector));
+    printf("Vector front is %d\n", vector.front());
+    printf("Vector get 1 is %d\n", vector.get(1));
+    printf("Vector back is %d\n", vector.back());
 
-    free_vector(vector);
+    vector.delete();
     return 0;
 end

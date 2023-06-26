@@ -5,50 +5,50 @@ def merge dest, left, right in
     var j = 0;
     var k = 0;
 
-    while i < vector_len(left) and j < vector_len(right) do
-        if vector_get(left, i) <= vector_get(right, j) then
-            vector_set(dest, k, vector_get(left, i));
+    while i < left.length and j < right.length do
+        if left.get(i) <= right.get(j) then
+            dest.set(k, left.get(i));
             i += 1;
         else
-            vector_set(dest, k, vector_get(right, j));
+            dest.set(k, right.get(j));
             j += 1;
         end
         k += 1;
     end
 
     // copy remaining elements from left
-    while i < vector_len(left) do
-        vector_set(dest, k, vector_get(left, i));
+    while i < left.length do
+        dest.set(k, left.get(i));
         i += 1;
         k += 1;
     end
 
     // copy remaining elements from right
-    while j < vector_len(right) do
-        vector_set(dest, k, vector_get(right, j));
+    while j < right.length do
+        dest.set(k, right.get(j));
         j += 1;
         k += 1;
     end
 end
 
 def merge_sort arr in
-    if vector_len(arr) <= 1 then
+    if arr.length <= 1 then
         return arr;
     end
 
-    var mid = vector_len(arr) / 2;
-    var left = make_vector(mid);
-    var right = make_vector(vector_len(arr) - mid);
+    var mid = arr.length / 2;
+    var left = Vector::new(mid);
+    var right = Vector::new(arr.length - mid);
 
     var i = 0;
     while i < mid do
-        vector_push(left, vector_get(arr, i));
+        left.push(arr.get(i));
         i += 1;
     end
 
     i = mid;
-    while i < vector_len(arr) do
-        vector_push(right, vector_get(arr, i));
+    while i < arr.length do
+        right.push(arr.get(i));
         i += 1;
     end
 
@@ -57,34 +57,34 @@ def merge_sort arr in
     merge(arr, new_left, new_right);
 
     if new_left != left then
-        free_vector(left);
+        left.delete();
     end
     if new_right != right then
-        free_vector(right);
+        right.delete();
     end
-    free_vector(new_left);
-    free_vector(new_right);
+    new_left.delete();
+    new_right.delete();
 
     return arr;
 end
 
 def main in
-    var arr = make_vector(10);
-    vector_push(arr, 5);
-    vector_push(arr, 2);
-    vector_push(arr, 9);
-    vector_push(arr, 1);
-    vector_push(arr, 7);
-    vector_push(arr, 8);
-    vector_push(arr, 3);
-    vector_push(arr, 6);
-    vector_push(arr, 4);
-    vector_push(arr, 0);
+    var arr = Vector::new(10);
+    arr.push(5);
+    arr.push(2);
+    arr.push(9);
+    arr.push(1);
+    arr.push(7);
+    arr.push(8);
+    arr.push(3);
+    arr.push(6);
+    arr.push(4);
+    arr.push(0);
 
     printf("Unsorted vector:\n");
     var i = 0;
-    while i < vector_len(arr) do
-        printf("%d ", vector_get(arr, i));
+    while i < arr.length do
+        printf("%d ", arr.get(i));
         i += 1;
     end
     putchar('\n');
@@ -93,12 +93,12 @@ def main in
 
     printf("Sorted vector:\n");
     i = 0;
-    while i < vector_len(arr) do
-        printf("%d ", vector_get(arr, i));
+    while i < arr.length do
+        printf("%d ", arr.get(i));
         i += 1;
     end
     putchar('\n');
 
-    free_vector(arr);
+    arr.delete();
     return 0;
 end
