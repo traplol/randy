@@ -261,7 +261,7 @@ def tc_check_def self, tt, st, ast in
     var params = ast_params(ast);
     var i = 0; var len = params.length;
     var any = tt_any_type(tt);
-    var errors = Vector::new(0);
+    var errors = Vector[Symbol&]::new(0);
     while i < len do
         var param = params.get(i);
         var param_sym = st_get_symbol(st, param);
@@ -568,7 +568,7 @@ def tc_check self, tt, st, ast in
     end
 end
 
-def type_check type_table, symbol_table, compile_order: Vector& in
+def type_check type_table, symbol_table, compile_order: Vector[ast]& in
     var type_checker = make_type_check();
     var i = 0; var len = compile_order.length;
     while i < len do

@@ -25,7 +25,7 @@ end
 
 def parse_def_type ts, st, tt, is_instance in
     ts.expect(TK::LParen);
-    var param_types = Vector::new(0);
+    var param_types = Vector[type]::new(0);
     var ret_type = tt_void_type(tt);
     var varargs = false;
     while true do
@@ -69,14 +69,14 @@ def parse_type ts, st, tt, is_instance in
     end
     var type_ident = ts.expect(TK::Ident);
     var type = tt_get_type_or_make_undefined(tt, type_ident.value);
-    var generic_params = NULL;
+    var generic_params: Vector[type]& = NULL;
     if ts.accept(TK::LSquare) then
         if not is_instance and tt.type_scope.parent == NULL then
             printf("type_ident = %s\n", type_ident.value);
             print_token_loc(type_ident);
             assert(false, "Compiler bug? type_scope depth should probably be >1 when parsing a generic.");
         end
-        generic_params = Vector::new(0);
+        generic_params = Vector[type]::new(0);
         while ts.peekk(TK::Ident) do
             var type = parse_type(ts, st, tt, true);
             generic_params.push(type);
@@ -158,8 +158,8 @@ def parse_if_else ts, st, tt, expect in
         exit(1);
     end
     ts.expect(TK::KW_then);
-    var conseq = Vector::new(0);
-    var altern = Vector::new(0);
+    var conseq = Vector[ast]::new(0);
+    var altern = Vector[ast]::new(0);
     parse_statements_until_one_of(ts, st, tt, conseq, TK::KW_elif, TK::KW_end, TK::KW_elif);
     // early end
     if ts.accept(TK::KW_end) then
@@ -192,7 +192,7 @@ def parse_while ts, st, tt in
         print_token_loc(while_);
         exit(1);
     end
-    var body = Vector::new(0);
+    var body = Vector[ast]::new(0);
     ts.expect(TK::KW_do);
     parse_statements_until(ts, st, tt, body, TK::KW_end);
     ts.expect(TK::KW_end);
@@ -274,7 +274,7 @@ def parse_pointer_op ts, st, tt in
     end
 
     ts.expect(TK::LParen);
-    var args = Vector::new(0);
+    var args = Vector[ast]::new(0);
     if op == PointerOp::Read then
         var arg = parse_expression(ts, st, tt);
         args.push(arg);
@@ -339,7 +339,7 @@ end
 def parse_assert ts, st, tt in
     var assert_ = ts.expect(TK::KW_assert);
     ts.expect(TK::LParen);
-    var assert_args = Vector::new(0);
+    var assert_args = Vector[ast]::new(0);
     parse_args_until(ts, st, tt, assert_args, TK::RParen);
     ts.expect(TK::RParen);
     if assert_args.length == 0 then
@@ -348,8 +348,8 @@ def parse_assert ts, st, tt in
         exit(1);
     end
     var test = assert_args.get(0);
-    var body = Vector::new(0);
-    var printf_args = Vector::new(0);
+    var body = Vector[ast]::new(0);
+    var printf_args = Vector[ast]::new(0);
     var printf_symbol = st_get_symbol(st, "printf");
     assert(printf_symbol, "`printf` not defined for assert.");
     var abort_symbol = st_get_symbol(st, "abort");
@@ -362,7 +362,7 @@ def parse_assert ts, st, tt in
 
     var len = assert_args.length;
     if len > 1 then
-        printf_args = Vector::new(0);
+        printf_args = Vector[ast]::new(0);
         var i = 1;
         while i < len do
             printf_args.push(assert_args.get(i));
@@ -373,7 +373,7 @@ def parse_assert ts, st, tt in
                             printf_args));
     end
 
-    printf_args = Vector::new(1);
+    printf_args = Vector[ast]::new(1);
     var string = string_from_cstr("  File \"");
     string_append_cstr(string, assert_.src_loc.filename);
     string_append_cstr(string, "\", line ");
@@ -384,10 +384,10 @@ def parse_assert ts, st, tt in
                         make_ast_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
     body.push(make_ast_call(assert_,
-                        make_ast_ident(assert_, symbol_name(abort_symbol)), Vector::new(0)));
+                        make_ast_ident(assert_, symbol_name(abort_symbol)), Vector[ast]::new(0)));
 
     test = make_ast_prefix(assert_, TK::KW_not, test);
-    var ast = make_ast_if_else(assert_, test, body, Vector::new(0));
+    var ast = make_ast_if_else(assert_, test, body, Vector[ast]::new(0));
     assert_args.delete();
     return ast;
 end
@@ -461,7 +461,7 @@ def parse_scope_resolve ts, st, tt, lhs in
     end
 
     if ts.accept(TK::LParen) then
-        var args = Vector::new(0);
+        var args = Vector[ast]::new(0);
         parse_args_until(ts, st, tt, args, TK::RParen);
         ts.expect(TK::RParen);
         lhs = make_ast_scope_resolve(tk, lhs, rhs);
@@ -478,7 +478,7 @@ def parse_scope_resolve ts, st, tt, lhs in
         end
         lhs = make_ast_scope_resolve(tk, lhs, rhs);
         if ts.accept(TK::LParen) then
-            var args = Vector::new(0);
+            var args = Vector[ast]::new(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
             ts.expect(TK::RParen);
             return make_ast_call(tk, lhs, args);
@@ -501,7 +501,7 @@ def parse_postfix ts, st, tt in
         var tk = ts.next();
         var k = tk.kind;
         if k == TK::LParen then
-            var args = Vector::new(0);
+            var args = Vector[ast]::new(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
             ts.expect(TK::RParen);
             expr = make_ast_call(tk, expr, args);
@@ -827,9 +827,9 @@ def parse_def ts, st, tt in
     end
 
     st_push_scope(st);
-    var body = Vector::new(0);
-    var params = Vector::new(0);
-    var param_symbols = Vector::new(0);
+    var body = Vector[ast]::new(0);
+    var params = Vector[cstr]::new(0);
+    var param_symbols = Vector[Symbol&]::new(0);
     var any_type = tt_any_type(tt);
     while ts.peekk(TK::Ident) do
         var param_id = ts.next();
@@ -868,7 +868,7 @@ def parse_def ts, st, tt in
     end
     ts.expect(TK::KW_in);
 
-    var param_types = Vector::new(param_symbols.length);
+    var param_types = Vector[type]::new(param_symbols.length);
     var i = 0; var len = param_symbols.length;
     while i < len do
         param_types.push(symbol_type(param_symbols.get(i)));
@@ -955,7 +955,7 @@ def parse_asm ts, st, tt in
         symbol = st_make_asm(st, ident.value, ident);
     end
 
-    var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector::new(0), true);
+    var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[type]::new(0), true);
     symbol_set_type(symbol, def_type);
     return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(asmcode.value));
 end
@@ -1000,9 +1000,9 @@ def parse_struct ts, st, tt in
         struct_type = parse_type(ts, st, tt, false);
         ts.expect(TK::KW_in);
     end
-    var fields = Vector::new(0);
-    var defs = Vector::new(0);
-    var def_symbols = Vector::new(0);
+    var fields = Vector[Field&]::new(0);
+    var defs = Vector[ast]::new(0);
+    var def_symbols = Vector[Symbol&]::new(0);
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
         if ts.peekk(TK::KW_def) then
@@ -1085,7 +1085,7 @@ def parse_enum ts, st, tt in
         print_token_loc(ident);
         exit(1);
     end
-    var values = Vector::new(0);
+    var values = Vector[EnumValue&]::new(0);
     var cur_value = 0;
     while not ts.peekk(TK::KW_end) do
         var val_id = ts.expect(TK::Ident);
@@ -1108,14 +1108,11 @@ def parse_enum ts, st, tt in
     type_set_kind(enum_type, TyK_enum);
     type_set_enum_values(enum_type, values);
     type_set_size(enum_type, PTR_BITS);
-    // var enum_symbol = st_make_enum(st, ident.value, ident);
-    // symbol_set_type(enum_symbol, enum_type);
-    //return make_ast_enum(enum_, symbol_name(enum_symbol), enum_type, values);
     return make_ast_enum(enum_, ident.value, enum_type, values);
 end
 
 def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
-    var roots = Vector::new(0);
+    var roots = Vector[ast]::new(0);
     var parsed: ast = NULL; var tk: Token&;
     while ts.peek() do
         tk = ts.peek();

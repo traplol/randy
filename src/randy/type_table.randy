@@ -91,7 +91,7 @@ def make_type_reference id: int, type: type in
     return self;
 end
 
-def make_type_def id: int, return_type: type, param_types: Vector&, varargs: bool in
+def make_type_def id: int, return_type: type, param_types: Vector[type]&, varargs: bool in
     var self = make_type(TyK_def, id);
     u64!(self + TTYPE_def_return_type, return_type);
     u64!(self + TTYPE_def_parameters, param_types);
@@ -99,20 +99,20 @@ def make_type_def id: int, return_type: type, param_types: Vector&, varargs: boo
     return self;
 end
 
-def make_type_struct id: int, fields: Vector&, defs: Vector& in
+def make_type_struct id: int, fields: Vector[Field&]&, defs: Vector[Symbol&]& in
     var self = make_type(TyK_struct, id);
     u64!(self + TTYPE_struct_fields, fields);
     u64!(self + TTYPE_struct_defs, defs);
     return self;
 end
 
-def make_type_enum id: int, enum_values: Vector& in
+def make_type_enum id: int, enum_values: Vector[EnumValue&]& in
     var self = make_type(TyK_enum, id);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
 
-def make_type_union id: int, union_names: Vector&, union_types: Vector& in
+def make_type_union id: int, union_names: Vector[cstr]&, union_types: Vector[type]& in
     var self = make_type(TyK_union, id);
     u64!(self + TTYPE_union_names, union_names);
     u64!(self + TTYPE_union_types, union_types);
@@ -130,8 +130,8 @@ def type_kind self: type in return cast(u8@(self + TTYPE_kind), int); end
 def type_is_generic self: type in return cast(u8@(self + TTYPE_is_generic), bool); end
 def type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 def type_id self: type in return cast(u64@(self + TTYPE_id), int); end
-def type_params self: type in return cast(u64@(self + TTYPE_params), Vector&); end
-def type_instances self: type in return cast(u64@(self + TTYPE_instances), Vector&); end
+def type_params self: type in return cast(u64@(self + TTYPE_params), Vector[type]&); end
+def type_instances self: type in return cast(u64@(self + TTYPE_instances), Vector[type]&); end
 def type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
 def type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
 def type_ref_to_this self: type in return cast(u64@(self + TTYPE_ref_to_this), type); end
@@ -139,26 +139,26 @@ def type_def_return_type self: type in
     return cast(u64@(self + TTYPE_def_return_type), type);
 end
 def type_def_parameters self: type in
-    return cast(u64@(self + TTYPE_def_parameters), Vector&);
+    return cast(u64@(self + TTYPE_def_parameters), Vector[Symbol&]&);
 end
 def type_def_varargs self: type in
     return cast(u8@(self + TTYPE_def_varargs), bool);
 end
 def type_struct_fields self: type in
-    return cast(u64@(self + TTYPE_struct_fields), Vector&);
+    return cast(u64@(self + TTYPE_struct_fields), Vector[Field&]&);
 end
 def type_struct_defs self: type in
-    return cast(u64@(self + TTYPE_struct_defs), Vector&);
+    return cast(u64@(self + TTYPE_struct_defs), Vector[Symbol&]&);
 end
-def type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector&); end
-def type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector&); end
-def type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector&); end
+def type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), Vector[EnumValue&]&); end
+def type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector[cstr]&); end
+def type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector[type]&); end
 
 def type_set_kind self: type, kind: int in u8!(self + TTYPE_kind, kind); end
 def type_set_is_generic self: type, val: bool in u8!(self + TTYPE_is_generic, val); end
 def type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
-def type_set_params self: type, params: Vector& in u64!(self + TTYPE_params, params); end
-def type_set_instances self: type, instances: Vector& in
+def type_set_params self: type, params: Vector[type]& in u64!(self + TTYPE_params, params); end
+def type_set_instances self: type, instances: Vector[type]& in
     u64!(self + TTYPE_instances, instances);
 end
 def type_set_ast self: type, ast: ast in u64!(self + TTYPE_ast, ast); end
@@ -167,17 +167,17 @@ def type_set_ref_to_this self: type, type: type in u64!(self + TTYPE_ref_to_this
 def type_set_def_return_type self: type, type: type in
     u64!(self + TTYPE_def_return_type, type);
 end
-def type_set_def_parameters self: type, params: Vector& in
+def type_set_def_parameters self: type, params: Vector[Symbol]& in
     u64!(self + TTYPE_def_parameters, params);
 end
 def type_set_def_varargs self: type, varargs: bool in
     u8!(self + TTYPE_def_varargs, varargs);
 end
-def type_set_struct_fields self: type, fields: Vector& in u64!(self + TTYPE_struct_fields, fields); end
-def type_set_struct_defs self: type, defs: Vector& in u64!(self + TTYPE_struct_defs, defs); end
-def type_set_enum_values self: type, values: Vector& in u64!(self + TTYPE_enum_values, values); end
-def type_set_union_names self: type, names: Vector& in u64!(self + TTYPE_union_names, names); end
-def type_set_union_types self: type, types: Vector& in u64!(self + TTYPE_union_types, types); end
+def type_set_struct_fields self: type, fields: Vector[Field&]& in u64!(self + TTYPE_struct_fields, fields); end
+def type_set_struct_defs self: type, defs: Vector[Symbol&]& in u64!(self + TTYPE_struct_defs, defs); end
+def type_set_enum_values self: type, values: Vector[EnumValue&]& in u64!(self + TTYPE_enum_values, values); end
+def type_set_union_names self: type, names: Vector[cstr]& in u64!(self + TTYPE_union_names, names); end
+def type_set_union_types self: type, types: Vector[type]& in u64!(self + TTYPE_union_types, types); end
 
 def type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
 def type_is_void self: type in return type_kind(self) == TyK_void; end
@@ -306,8 +306,8 @@ end
 struct TypeTable in
     type_scope: TypeScope&;
     top_type_scope: map; // fast reference to the top-level type scope.
-    all_types: Vector&;  // type Vector& : all types; type_id is index into this Vector&
-    names: Vector&;  // cstr Vector& : type_id is index into this Vector&, may have NULLs
+    all_types: Vector[type]&;  // type Vector& : all types; type_id is index into this Vector&
+    names: Vector[cstr]&;  // cstr Vector& : type_id is index into this Vector&, may have NULLs
     ast_types: map;  // (ast, type) map : ast -> type
     type_substitutes: map; // (type, type) map : replace the key type with val type
     void_type: type; // fast ref to `void` type
@@ -352,8 +352,8 @@ end
 
 def make_type_table -> TypeTable& in
     var self: TypeTable& = calloc(1, __sizeof(TypeTable));
-    var types = Vector::new(0);
-    var names = Vector::new(0);
+    var types = Vector[type]::new(0);
+    var names = Vector[cstr]::new(0);
     self.type_scope = make_type_scope(NULL);
     var type_ids = self.type_scope.types;
     self.top_type_scope = type_ids;
@@ -556,7 +556,7 @@ def tt_substitute_type self, type -> type in
     var params = type_params(deref_type);
     if params and params.length > 0 then
         var i = 0; var len = params.length;
-        var new_params = Vector::new(len);
+        var new_params = Vector[type]::new(len);
         var made_subst = false;
         while i < len do
             var orig = params.get(i);
@@ -633,7 +633,7 @@ def tt_get_type_instance_of self, st, type, params in
     else
         var instances = type_instances(type);
         if not instances then
-            instances = Vector::new(8);
+            instances = Vector[type]::new(8);
             type_set_instances(type, instances);
         else
             var i = 0; var len = instances.length;

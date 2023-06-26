@@ -148,7 +148,7 @@ def ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), i
 def ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
 def ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
 def ir_instr_nargs self: ir_instr in return cast(u64@(self + TIR_INSTR_nargs), int); end
-def ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), Vector&); end
+def ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), Vector[cstr]&); end
 def ir_instr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_size), int); end
 def ir_instr_value self: ir_instr in return cast(u64@(self + TIR_INSTR_value), int); end
 def ir_instr_varargs self: ir_instr in return cast(u64@(self + TIR_INSTR_varargs), bool); end
@@ -480,7 +480,7 @@ def print_ir_new_def self in
     printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
     printf("name='%s', ", u64@(self + TIR_INSTR_name));
     printf("params=[");
-    var params = cast(u64@(self + TIR_INSTR_params), Vector&);
+    var params = cast(u64@(self + TIR_INSTR_params), Vector[cstr]&);
     var i = 0; var len = params.length;
     while i < len do
         printf("'%s'", params.get(i));
@@ -654,7 +654,7 @@ const TDEF_INFO_label = 0;    // cstr
 const TDEF_INFO_varargs = 16; // bool
 const sizeof_TDEF_INFO = 24;
 
-def make_def_info label: cstr, params: Vector&, varargs: bool -> def_info in
+def make_def_info label: cstr, varargs: bool -> def_info in
     var self = malloc(sizeof_TDEF_INFO);
     u64!(self + TDEF_INFO_label, label);
     u64!(self + TDEF_INFO_varargs, varargs);
@@ -742,38 +742,38 @@ const sizeof_TIR_CONTEXT       = 136;
 
 def make_ir_context -> ir_context in
     var self = calloc(1, sizeof_TIR_CONTEXT);
-    u64!(self + TIR_CONTEXT_instructions, Vector::new(0));
+    u64!(self + TIR_CONTEXT_instructions, Vector[ir_instr]::new(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
     u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
     u64!(self + TIR_CONTEXT_externs, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_labels, make_set(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_constants, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_src_locs, Vector::new(0));
+    u64!(self + TIR_CONTEXT_src_locs, Vector[SrcLoc&]::new(0));
     u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_files, Vector::new(0));
+    u64!(self + TIR_CONTEXT_files, Vector[cstr]::new(0));
     u64!(self + TIR_CONTEXT_defs, make_map(0, NULL, NULL));
-    u64!(self + TIR_CONTEXT_def_locals, Vector::new(0));
+    u64!(self + TIR_CONTEXT_def_locals, Vector[map]::new(0));
     u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_globals, Vector::new(0));
-    u64!(self + TIR_CONTEXT_break_dests, Vector::new(0));
-    u64!(self + TIR_CONTEXT_conti_dests, Vector::new(0));
+    u64!(self + TIR_CONTEXT_globals, Vector[global_info]::new(0));
+    u64!(self + TIR_CONTEXT_break_dests, Vector[cstr]::new(0));
+    u64!(self + TIR_CONTEXT_conti_dests, Vector[cstr]::new(0));
     return cast(self, ir_context);
 end
 
-def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector&); end
+def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector[ir_instr]&); end
 def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
 def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
 def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), set); end
 def ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), map); end
-def ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector&); end
+def ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector[SrcLoc&]&); end
 def ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), set); end
-def ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector&); end
+def ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector[cstr]&); end
 def ir_defs self: ir_context in return cast(u64@(self + TIR_CONTEXT_defs), map); end
-def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector&); end
+def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector[map]&); end
 def ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), map); end
-def ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), Vector&); end
-def ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), Vector&); end
-def ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), Vector&); end
+def ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), Vector[global_info]&); end
+def ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), Vector[cstr]&); end
+def ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), Vector[cstr]&); end
 def ir_num_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_num_locals), int); end
 def ir_locals_size self: ir_context in return cast(u64@(self + TIR_CONTEXT_locals_size), int); end
 
@@ -841,7 +841,7 @@ def ir_new_def self, ident, params, ast, symbol in
 
     var label_cstr = string_cstr(label);
     set_add(ir_labels(self), label_cstr);
-    map_set(defs, symbol_name(symbol), make_def_info(label_cstr, params, false));
+    map_set(defs, symbol_name(symbol), make_def_info(label_cstr, false));
 
     assert(ir_def_locals(self).length == 0,
         "Compiler bug: def locals not empty when creating new def\n");
@@ -945,7 +945,7 @@ def ir_get_extern self, ident in
 end
 
 def ir_add_extern self, ident, params, is_varargs in
-    var def_info = make_def_info(ident, params, is_varargs);
+    var def_info = make_def_info(ident, is_varargs);
     map_set(ir_externs(self), ident, def_info);
 end
 
@@ -1790,7 +1790,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 
     var offset = 0;
     var head = ast;
-    var deref_stack = Vector::new(0);
+    var deref_stack = Vector[int]::new(0);
     while ast_kind(head) == AstK_MemberAccess do
         var member = ast_member(head);
         var type = tt_get_ast_type(tt, ast_expr(head));
@@ -2040,7 +2040,7 @@ def ir_resolve_lazy_idents self in
     end
 end
 
-def ir_compile_roots self: ir_context, roots: Vector&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector& in
+def ir_compile_roots self: ir_context, roots: Vector[ast]&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector[ast]& in
 
     if false then
         // compile everything in order

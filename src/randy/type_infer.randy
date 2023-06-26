@@ -1,14 +1,14 @@
 // handle a minimal amount of errors here, defer most type errors to the type checker.
 
 struct TypeInfer in
-    cur_defs: Vector&;
+    cur_defs: Vector[Symbol&]&;
     did_returns: String&;
     again: set;
 end
 
 def make_type_infer -> TypeInfer& in
     var self: TypeInfer& = malloc(__sizeof(TypeInfer));
-    self.cur_defs = Vector::new(0);
+    self.cur_defs = Vector[Symbol&]::new(0);
     self.did_returns = make_string(0);
     self.again = make_set(0, NULL, NULL);
     return self;

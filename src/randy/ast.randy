@@ -194,7 +194,7 @@ def make_ast_string token: Token&, value: String& -> ast in
     return self;
 end
 
-def make_ast_call token: Token&, expr: ast, args: Vector& -> ast in
+def make_ast_call token: Token&, expr: ast, args: Vector[ast]& -> ast in
     var self = _make_ast(AstK_Call, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_args, args);
@@ -236,7 +236,7 @@ def make_ast_assign_op token: Token&, ident: cstr, op: TK, expr: ast -> ast in
     return self;
 end
 
-def make_ast_def token: Token&, ident: cstr, params: Vector&, body: Vector& -> ast in
+def make_ast_def token: Token&, ident: cstr, params: Vector[cstr]&, body: Vector[ast]& -> ast in
     var self = _make_ast(AstK_Def, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_body, body);
@@ -244,7 +244,7 @@ def make_ast_def token: Token&, ident: cstr, params: Vector&, body: Vector& -> a
     return self;
 end
 
-def make_ast_if_else token: Token&, test: ast, conseq: Vector&, altern: Vector& -> ast in
+def make_ast_if_else token: Token&, test: ast, conseq: Vector[ast]&, altern: Vector[ast]& -> ast in
     var self = _make_ast(AstK_IfElse, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_consequence, conseq);
@@ -252,14 +252,14 @@ def make_ast_if_else token: Token&, test: ast, conseq: Vector&, altern: Vector& 
     return self;
 end
 
-def make_ast_while token: Token&, test: ast, body: Vector& -> ast in
+def make_ast_while token: Token&, test: ast, body: Vector[ast]& -> ast in
     var self = _make_ast(AstK_While, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_body, body);
     return self;
 end
 
-def make_ast_pointer_op token: Token&, size: int, op: PointerOp, args: Vector& -> ast in
+def make_ast_pointer_op token: Token&, size: int, op: PointerOp, args: Vector[ast]& -> ast in
     var astk; var is_expr;
     if op == PointerOp::Read then
         astk = AstK_PointerRead;
@@ -325,7 +325,7 @@ def make_ast_cast token: Token&, expr: ast, type: type -> ast in
     return self;
 end
 
-def make_ast_struct token: Token&, struct_: type, fields: Vector&, defs: Vector& -> ast in
+def make_ast_struct token: Token&, struct_: type, fields: Vector[Field&]&, defs: Vector[ast]& -> ast in
     var self = _make_ast(AstK_Struct, false, token);
     u64!(self + TAST_struct, struct_);
     u64!(self + TAST_fields, fields);
@@ -373,7 +373,7 @@ def ast_change_sizeof_expr_to_type self: ast, type: type in
     u64!(self + TAST_type, type);
 end
 
-def make_ast_enum token: Token&, ident: cstr, enum_: type, values: Vector& -> ast in
+def make_ast_enum token: Token&, ident: cstr, enum_: type, values: Vector[EnumValue&]& -> ast in
     var self = _make_ast(AstK_Enum, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_enum, enum_);
@@ -414,30 +414,30 @@ end
 def ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
 def ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end
 def ast_token self: ast in return cast(u64@(self + TAST_token), Token&); end
-def ast_alternative self: ast in return cast(u64@(self + TAST_alternative), Vector&); end
-def ast_args self: ast in return cast(u64@(self + TAST_args), Vector&); end
+def ast_alternative self: ast in return cast(u64@(self + TAST_alternative), Vector[ast]&); end
+def ast_args self: ast in return cast(u64@(self + TAST_args), Vector[ast]&); end
 def ast_asm self: ast in return cast(u64@(self + TAST_asm), cstr); end
 def ast_assign_expr self: ast in return cast(u64@(self + TAST_assign_expr), ast); end
-def ast_body self: ast in return cast(u64@(self + TAST_body), Vector&); end
-def ast_consequence self: ast in return cast(u64@(self + TAST_consequence), Vector&); end
+def ast_body self: ast in return cast(u64@(self + TAST_body), Vector[ast]&); end
+def ast_consequence self: ast in return cast(u64@(self + TAST_consequence), Vector[ast]&); end
 def ast_expr self: ast in return cast(u64@(self + TAST_expr), ast); end
 def ast_ident self: ast in return cast(u64@(self + TAST_ident), cstr); end
 def ast_lhs self: ast in return cast(u64@(self + TAST_lhs), ast); end
 def ast_op self: ast in return cast(u64@(self + TAST_op), TK); end
 def ast_pop self: ast in return cast(u64@(self + TAST_op), PointerOp); end
-def ast_params self: ast in return cast(u64@(self + TAST_params), Vector&); end
-def ast_pop_args self: ast in return cast(u64@(self + TAST_pop_args), Vector&); end
+def ast_params self: ast in return cast(u64@(self + TAST_params), Vector[cstr]&); end
+def ast_pop_args self: ast in return cast(u64@(self + TAST_pop_args), Vector[ast]&); end
 def ast_rhs self: ast in return cast(u64@(self + TAST_rhs), ast); end
 def ast_size self: ast in return cast(u64@(self + TAST_size), int); end
 def ast_test self: ast in return cast(u64@(self + TAST_test), ast); end
 def ast_value self: ast in return cast(u64@(self + TAST_value), ptr); end
 def ast_varargs self: ast in return cast(u64@(self + TAST_varargs), bool); end
 def ast_type self: ast in return cast(u64@(self + TAST_type), type); end
-def ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector&); end
-def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector&); end
+def ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector[Field&]&); end
+def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector[ast]&); end
 def ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 def ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
-def ast_values self: ast in return cast(u64@(self + TAST_values), Vector&); end
+def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[ast]&); end
 
 def ast_set_struct self: ast, struct_: type in
     assert(ast_kind(self) == AstK_Struct);
@@ -461,7 +461,7 @@ def _print_indent indent: int in
     end
 end
 
-def _print_args args: Vector&, indent: int in
+def _print_args args: Vector[ast]&, indent: int in
     var i = 0;
     var len = args.length;
     while i < len do
@@ -876,7 +876,7 @@ def print_whole_ast roots in
     end
 end
 
-def print_compile_ast compile_order: Vector& in
+def print_compile_ast compile_order: Vector[ast]& in
     var i = 0; var len = compile_order.length;
     while i < len do
         print_ast(compile_order.get(i));
@@ -886,9 +886,9 @@ end
 
 def _ast_deep_copy_vector vector, tt, st in
     var i = 0; var len = vector.length;
-    var copy = Vector::new(len);
+    var copy = Vector[ast]::new(len);
     while i < len do
-        copy.push(_ast_deep_copy(cast(vector.get(i), ast), tt, st));
+        copy.push(_ast_deep_copy(vector.get(i), tt, st));
         i += 1;
     end
     return copy;
@@ -959,8 +959,8 @@ def _ast_deep_copy_def ast, tt, st in
     var def_copy_ident = strdup(def_ident);
     var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);
     st_push_scope(st);
-    var def_copy_params = Vector::new(def_params.length);
-    var def_copy_params_types = Vector::new(def_params.length);
+    var def_copy_params = Vector[cstr]::new(def_params.length);
+    var def_copy_params_types = Vector[type]::new(def_params.length);
     var i = 0; var len = def_params.length;
     while i < len do
         var param = def_params.get(i);
@@ -1050,7 +1050,7 @@ end
 def _ast_deep_copy_struct ast, tt, st in
     st_push_scope(st);
     var fields = ast_fields(ast);
-    var fields_copy = Vector::new(fields.length);
+    var fields_copy = Vector[Field&]::new(fields.length);
     var i = 0; var len = fields.length;
     while i < len do
         // fields aren't actually resolved with symbols so no need to create a copy of those
@@ -1062,8 +1062,8 @@ def _ast_deep_copy_struct ast, tt, st in
     var struct_type = tt_substitute_type(tt, ast_struct(ast));
     var struct_changed = struct_type != ast_struct(ast);
     var defs = ast_defs(ast);
-    var defs_copy = Vector::new(defs.length);
-    var defs_copy_symbols = Vector::new(defs.length);
+    var defs_copy = Vector[ast]::new(defs.length);
+    var defs_copy_symbols = Vector[Symbol&]::new(defs.length);
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);

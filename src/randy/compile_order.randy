@@ -108,10 +108,10 @@ def _compile_order_def tt, st, def_, seen, order in
     order.push(def_);
 end
 
-def compile_order_main roots, type_table, symbol_table -> Vector& in
+def compile_order_main roots, type_table, symbol_table -> Vector[ast]& in
     var main_def = NULL;
     var exit_def = NULL;
-    var compile_order = Vector::new(128);
+    var compile_order = Vector[ast]::new(128);
     var i = 0; var len = roots.length;
     while i < len do
         var ast = roots.get(i);

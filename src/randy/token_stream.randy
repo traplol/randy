@@ -1,9 +1,9 @@
 
 struct TokenStream in
-    tokens: Vector&;
+    tokens: Vector[Token&]&;
     idx: int;
 
-    def new tokens: Vector& -> TokenStream& in
+    def new tokens: Vector[Token&]& -> TokenStream& in
         var self: TokenStream& = malloc(__sizeof(TokenStream));
         self.tokens = tokens;
         self.idx = 0;

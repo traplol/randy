@@ -100,9 +100,9 @@ def _unrecognized_char filename, line_no, c in
     exit(1);
 end
 
-def _lex_code filename, code, include_paths, included_already -> Vector& in
+def _lex_code filename, code, include_paths, included_already -> Vector[Token&]& in
     var i = 0;
-    var tokens = Vector::new(0);
+    var tokens = Vector[Token&]::new(0);
     var length = code.length;
     // pad the ending so we don't have to check that every memory access is valid.
     string_push(code, 0);
@@ -378,22 +378,22 @@ def _lex_code filename, code, include_paths, included_already -> Vector& in
     return tokens;
 end
 
-def _lex_file_aux path: cstr, include_paths: Vector&, included_already: set -> Vector& in
+def _lex_file_aux path: cstr, include_paths: Vector[cstr]&, included_already: set -> Vector[Token&]& in
     var code = read_file_to_string(path);
     if not code then
-        return cast(NULL, Vector&);
+        return cast(NULL, Vector[Token&]&);
     end
     return _lex_code(path, code, include_paths, included_already);
 end
 
-def lex_file path: cstr, include_paths: Vector& in
+def lex_file path: cstr, include_paths: Vector[cstr]& in
     var included_already = make_set(0, string_eq, string_hash);
     var res = _lex_file_aux(path, include_paths, included_already);
     free_set(included_already);
     return res;
 end
 
-def handle_include src_file: cstr, line_no: int, tokens: Vector&, include_paths: Vector&, included_already: set, arg: String& in
+def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[cstr]&, included_already: set, arg: String& in
     string_append_cstr(arg, ".randy");
 
     var i = 0;

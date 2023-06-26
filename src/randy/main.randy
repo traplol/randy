@@ -49,7 +49,7 @@ def print_usage in
 end
 
 def assemble_and_link asm_path, obj_path, exe_path, ld_flags in
-    var as_args = Vector::new(0);
+    var as_args = Vector[cstr]::new(0);
     as_args.push("as");
     as_args.push("-c");
     as_args.push(asm_path);
@@ -58,7 +58,7 @@ def assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     as_args.push(NULL); // argv is required to be null terminated.
     subprocess_blocking("/usr/bin/as", as_args.buffer, NULL);
 
-    var ld_args = Vector::new(0);
+    var ld_args = Vector[cstr]::new(0);
     ld_args.push("ld");
     ld_args.push("-o");
     ld_args.push(exe_path);
@@ -85,7 +85,7 @@ def main argc: int, argv: ptr in
         var true_endtime = make_empty_timespec();
         time(true_starttime);
 
-        var include_paths = Vector::new(8);
+        var include_paths = Vector[cstr]::new(8);
         include_paths.push(getcwd());
 
         var in_path: cstr = NULL;
@@ -95,7 +95,7 @@ def main argc: int, argv: ptr in
         var do_print_ir = false;
         var do_print_ast = false;
         var will_compile = true;
-        var ld_flags = Vector::new(0);
+        var ld_flags = Vector[cstr]::new(0);
 
         i = 1; var p: cstr;
         while i < argc do

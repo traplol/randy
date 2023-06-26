@@ -10,7 +10,7 @@ const sizeof_TCOMPILER_CONTEXT        = 56;
 
 def make_compiler_context debug: bool -> compiler_context in
     var self = malloc(sizeof_TCOMPILER_CONTEXT);
-    var lines = Vector::new(0);
+    var lines = Vector[String&]::new(0);
     u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
     u64!(self + TCOMPILER_CONTEXT_def_src_name, NULL);
     u64!(self + TCOMPILER_CONTEXT_def_name, NULL);
@@ -25,7 +25,7 @@ def compiler_context_file_map self: compiler_context in
     return cast(u64@(self + TCOMPILER_CONTEXT_file_map), map);
 end
 def compiler_context_lines self: compiler_context in
-    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
+    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector[String&]&);
 end
 def compiler_context_nodebug self: compiler_context in
     return cast(u64@(self + TCOMPILER_CONTEXT_nodebug), bool);
@@ -51,7 +51,7 @@ def cc_print_lines self: compiler_context in
 end
 
 def cc_out self: compiler_context, cstr: cstr in
-    var lines = cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector&);
+    var lines = compiler_context_lines(self);
     var string = make_string(128);
     string_append_cstr(string, cstr);
     lines.push(string);
