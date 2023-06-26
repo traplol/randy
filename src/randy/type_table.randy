@@ -433,9 +433,9 @@ def tt_set_ast_type self, ast, type in
         self.made_change = true;
     else
         var old_type = map_pair_val(found);
-        if type != old_type then
-            self.made_change = true;
+        if type != self.any_type and type != old_type then
             map_set(self.ast_types, ast, type);
+            self.made_change = true;
         end
     end
 end
