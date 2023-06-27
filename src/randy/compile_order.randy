@@ -51,10 +51,10 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
     elif k == AstK_ScopeResolve then
-        assert(ast_kind(ast_lhs(stmt)) == AstK_Type, "Nested resolution not supported yet.\n");
-        assert(ast_kind(ast_rhs(stmt)) == AstK_Ident, "Nested resolution not supported yet.\n");
-        var type = ast_type(ast_lhs(stmt));
-        _compile_order_visit_type(tt, st, type, seen, order);
+        var type = scope_resolve_lhs(tt, ast_lhs(stmt), false);
+        if type then
+            _compile_order_visit_type(tt, st, type, seen, order);
+        end
     // elif k == AstK_SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end

@@ -1,0 +1,38 @@
+extern printf: (cstr, ... -> int);
+
+struct Foo in
+    enum _Foo in
+        A; B; C; D;
+    end
+
+    struct Bar in
+        struct Baz in
+            struct Quz in
+                def quz in
+                    printf("Quz::quz\n");
+                end
+            end
+            def baz in
+                printf("Baz::baz\n");
+                Quz::quz();
+            end
+        end
+        def bar in
+            printf("Bar::bar\n");
+            Baz::baz();
+        end
+    end
+
+    def foo in
+        printf("foo\n");
+        Bar::bar();
+    end
+end
+
+def main in
+    Foo::foo();
+    Foo::Bar::Baz::Quz::quz();
+
+    printf("Foo::Foo::D = %d\n", Foo::_Foo::D);
+    return 0;
+end

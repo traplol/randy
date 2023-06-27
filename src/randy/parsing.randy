@@ -81,7 +81,7 @@ def parse_type ts, st, tt, is_instance in
             var type = parse_type(ts, st, tt, true);
             generic_params.push(type);
             if not is_instance and type_is_undefined(type) then
-                type_set_kind(type, TyK_generic_param);
+                type_set_kind(type, TypeKind::GenericParam);
             end
             if ts.peekk(TK::RSquare) then
                 break;
@@ -995,22 +995,39 @@ end
 def parse_struct ts, st, tt in
     tt_push_scope(tt);
     var struct_ = ts.expect(TK::KW_struct);
-    var struct_type = NULL;
+    var struct_type;
+    var fields = Vector[Field&]::new(0);
+    var inner_ast = Vector[ast]::new(0);
+    var def_symbols = Vector[Symbol&]::new(0);
+
     if not ts.accept(TK::KW_in) then
         struct_type = parse_type(ts, st, tt, false);
+        if not type_is_undefined(struct_type) then
+            printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
+        end
         ts.expect(TK::KW_in);
+    else
+        struct_type = tt_make_anon_struct(tt, fields, def_symbols);
     end
-    var fields = Vector[Field&]::new(0);
-    var defs = Vector[ast]::new(0);
-    var def_symbols = Vector[Symbol&]::new(0);
+
+    var inner_types = Vector[type]::new(0);
+
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
         if ts.peekk(TK::KW_def) then
             st_push_scope(st);
             var def_ = parse_def(ts, st, tt);
-            defs.push(def_);
+            inner_ast.push(def_);
             def_symbols.push(st_get_symbol(st, ast_ident(def_)));
             st_pop_scope(st);
+        elif ts.peekk(TK::KW_struct) then
+            var struct_ = parse_struct(ts, st, tt);
+            inner_ast.push(struct_);
+            inner_types.push(ast_struct(struct_));
+        elif ts.peekk(TK::KW_enum) then
+            var enum_ = parse_enum(ts, st, tt);
+            inner_ast.push(enum_);
+            inner_types.push(ast_enum(enum_));
         elif ts.peekk(TK::Ident) then
             var field_ident = ts.next();
             ts.expect(TK::Colon);
@@ -1028,13 +1045,7 @@ def parse_struct ts, st, tt in
     st_pop_scope(st);
     ts.expect(TK::KW_end);
 
-    if not struct_type then
-        struct_type = tt_make_anon_struct(tt, fields, def_symbols);
-    elif not type_is_undefined(struct_type) then
-        printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
-    end
-
-    type_set_kind(struct_type, TyK_struct);
+    type_set_kind(struct_type, TypeKind::Struct);
     type_set_struct_fields(struct_type, fields);
     type_set_struct_defs(struct_type, def_symbols);
 
@@ -1044,31 +1055,33 @@ def parse_struct ts, st, tt in
         assert(not def_sym.owned_by);
         def_sym.owned_by = struct_type;
 
-        var def_ = defs.get(i);
-        var def_type = def_sym.type;
-        var def_params = ast_params(def_);
-        if def_params.length > 0 and cstr_eq("self", def_params.front()) then
-            var first_param = def_params.front();
-            var param_types = type_def_parameters(def_type);
-            var first_param_type = param_types.front();
-            var ref_type = type_ref_to_this(struct_type);
-            if first_param_type == tt.any_type then
-                param_types.set(0, ref_type);
-                var sym = st_get_symbol(st, first_param);
-                sym.type = ref_type;
-            elif first_param_type != ref_type then
-                printf("WARN: type of `self` is `");
-                tt_print_type_name(tt, first_param_type);
-                printf("`, but it usually `");
-                tt_print_type_name(tt, ref_type);
-                printf(".`\n");
-                print_token_loc(def_sym.token);
+        var def_ = inner_ast.get(i);
+        if ast_kind(def_) == AstK_Def then
+            var def_type = def_sym.type;
+            var def_params = ast_params(def_);
+            if def_params.length > 0 and cstr_eq("self", def_params.front()) then
+                var first_param = def_params.front();
+                var param_types = type_def_parameters(def_type);
+                var first_param_type = param_types.front();
+                var ref_type = type_ref_to_this(struct_type);
+                if first_param_type == tt.any_type then
+                    param_types.set(0, ref_type);
+                    var sym = st_get_symbol(st, first_param);
+                    sym.type = ref_type;
+                elif first_param_type != ref_type then
+                    printf("WARN: type of `self` is `");
+                    tt_print_type_name(tt, first_param_type);
+                    printf("`, but it usually `");
+                    tt_print_type_name(tt, ref_type);
+                    printf(".`\n");
+                    print_token_loc(def_sym.token);
+                end
             end
         end
         i += 1;
     end
 
-    var ast = make_ast_struct(struct_, struct_type, fields, defs);
+    var ast = make_ast_struct(struct_, struct_type, fields, inner_ast);
     type_set_ast(struct_type, ast);
     tt_pop_scope(tt);
     tt_set_local_type(tt, struct_type);
@@ -1105,7 +1118,7 @@ def parse_enum ts, st, tt in
     end
     ts.expect(TK::KW_end);
 
-    type_set_kind(enum_type, TyK_enum);
+    type_set_kind(enum_type, TypeKind::Enum);
     type_set_enum_values(enum_type, values);
     type_set_size(enum_type, PTR_BITS);
     return make_ast_enum(enum_, ident.value, enum_type, values);

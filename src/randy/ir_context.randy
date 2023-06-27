@@ -1070,10 +1070,9 @@ def _comptime_eval_is_n n, ast in
 end
 
 def _comptime_scope_resolve_val self, ast, st, tt, depth in
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+    var type = scope_resolve_lhs(tt, ast_lhs(ast), false);
+    assert(type, "Compiler bug: should have caught this error in type checker.\n");
 
-    var type = ast_type(ast_lhs(ast));
     var member = ast_ident(ast_rhs(ast));
     if type_is_enum(type) then
         var enum_vals = type_enum_values(type);

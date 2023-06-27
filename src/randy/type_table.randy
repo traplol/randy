@@ -35,102 +35,109 @@ def make_enum_value token: Token&, name: cstr, value: ast -> EnumValue& in
     return self;
 end
 
-const TyK_undefined = 0;
-const TyK_void      = 1;
-const TyK_any       = 2;
-const TyK_int_like  = 3;
-const TyK_reference = 4;
-const TyK_def       = 5;
-const TyK_struct    = 6;
-const TyK_enum      = 7;
-const TyK_union     = 8; // NYI
-const TyK_generic_param = 9;
+enum TypeKind in
+    Undefined;
+    Void;
+    Any;
+    Int_like;
+    Reference;
+    Def;
+    Struct;
+    Enum;
+    Union; // NYI
+    GenericParam;
+end
 
 const TTYPE_id          = 0;  // int
-const TTYPE_kind        = 8;  // TyK
+const TTYPE_kind        = 8;  // TypeKind
 const TTYPE_is_generic  = 9;  // bool
 const TTYPE_size        = 12; // uint32
 const TTYPE_params      = 16; // type Vector&
 const TTYPE_ast         = 24; // ast
 const TTYPE_ref_to_this = 32; // type
 const TTYPE_instances   = 40; // type Vector& : generic instances of this type
+const TTYPE_scope       = 48; // TypeScope& : the current type scope when the type was created
 // reference
-const TTYPE_deref_type  = 48; // type
+const TTYPE_deref_type  = 56; // type
 // def
-const TTYPE_def_return_type = 48; // type
-const TTYPE_def_parameters  = 56; // symbol Vector&
-const TTYPE_def_varargs     = 64; // bool
+const TTYPE_def_return_type = 56; // type
+const TTYPE_def_parameters  = 64; // symbol Vector&
+const TTYPE_def_varargs     = 72; // bool
 // struct
-const TTYPE_struct_fields = 48; // Field& Vector&
-const TTYPE_struct_defs   = 56; // def_symbol Vector&
+const TTYPE_struct_fields = 56; // Field& Vector&
+const TTYPE_struct_defs   = 64; // def_symbol Vector&
 // enum
-const TTYPE_enum_values = 48; // EnumValue& Vector&
+const TTYPE_enum_values = 64; // EnumValue& Vector&
 // union
-const TTYPE_union_names = 48; // cstr Vector&
-const TTYPE_union_types = 56; // type Vector&
+const TTYPE_union_names = 56; // cstr Vector&
+const TTYPE_union_types = 64; // type Vector&
 
-const sizeof_TTYPE = 72;
+const sizeof_TTYPE = 80;
 const TYPE_NEEDS_SIZING = (1<<32)-1;
 
-def make_type kind: int, id: int -> type in
+def make_type kind: TypeKind, id: int, scope: TypeScope& -> type in
     var self = calloc(1, sizeof_TTYPE);
     u64!(self + TTYPE_id, id);
     u8!(self + TTYPE_kind, kind);
     u8!(self + TTYPE_is_generic, false);
     u32!(self + TTYPE_size, TYPE_NEEDS_SIZING);
+    assert(scope);
+    u64!(self + TTYPE_scope, scope);
     return cast(self, type);
 end
 
-def make_type_undefined id: int in
-    return make_type(TyK_undefined, id);
+def make_type_undefined id: int, scope: TypeScope& in
+    return make_type(TypeKind::Undefined, id, scope);
 end
 
 def make_type_reference id: int, type: type in
-    var self = make_type(TyK_reference, id);
+    var self = make_type(TypeKind::Reference, id, type_scope(type));
     u64!(self + TTYPE_deref_type, type);
     return self;
 end
 
-def make_type_def id: int, return_type: type, param_types: Vector[type]&, varargs: bool in
-    var self = make_type(TyK_def, id);
+def make_type_def id: int, scope: TypeScope&, return_type: type, param_types: Vector[type]&, varargs: bool in
+    var self = make_type(TypeKind::Def, id, scope);
     u64!(self + TTYPE_def_return_type, return_type);
     u64!(self + TTYPE_def_parameters, param_types);
     u8!(self + TTYPE_def_varargs, varargs);
     return self;
 end
 
-def make_type_struct id: int, fields: Vector[Field&]&, defs: Vector[Symbol&]& in
-    var self = make_type(TyK_struct, id);
+def make_type_struct id: int, scope: TypeScope&, fields: Vector[Field&]&, defs: Vector[Symbol&]& in
+    var self = make_type(TypeKind::Struct, id, scope);
     u64!(self + TTYPE_struct_fields, fields);
     u64!(self + TTYPE_struct_defs, defs);
     return self;
 end
 
-def make_type_enum id: int, enum_values: Vector[EnumValue&]& in
-    var self = make_type(TyK_enum, id);
+def make_type_enum id: int, scope: TypeScope&, enum_values: Vector[EnumValue&]& in
+    var self = make_type(TypeKind::Enum, id, scope);
     u64!(self + TTYPE_enum_values, enum_values);
     return self;
 end
 
-def make_type_union id: int, union_names: Vector[cstr]&, union_types: Vector[type]& in
-    var self = make_type(TyK_union, id);
+def make_type_union id: int, scope: TypeScope&, union_names: Vector[cstr]&, union_types: Vector[type]& in
+    var self = make_type(TypeKind::Union, id, scope);
     u64!(self + TTYPE_union_names, union_names);
     u64!(self + TTYPE_union_types, union_types);
     return self;
 end
 
-def copy_type_with_id type: type, id: int in
+def copy_type_with_id type: type, id: int, scope: TypeScope& in
     var copy = cast(malloc(sizeof_TTYPE), type);
     memcpy(copy, type, sizeof_TTYPE);
     u64!(copy + TTYPE_id, id);
+    u64!(copy + TTYPE_scope, scope);
     return copy;
 end
 
-def type_kind self: type in return cast(u8@(self + TTYPE_kind), int); end
+def type_kind self: type in return cast(u8@(self + TTYPE_kind), TypeKind); end
 def type_is_generic self: type in return cast(u8@(self + TTYPE_is_generic), bool); end
 def type_size self: type in return cast(u32@(self + TTYPE_size), int); end
 def type_id self: type in return cast(u64@(self + TTYPE_id), int); end
 def type_params self: type in return cast(u64@(self + TTYPE_params), Vector[type]&); end
+def type_scope self: type in return cast(u64@(self + TTYPE_scope), TypeScope&); end
 def type_instances self: type in return cast(u64@(self + TTYPE_instances), Vector[type]&); end
 def type_ast self: type in return cast(u64@(self + TTYPE_ast), ast); end
 def type_deref_type self: type in return cast(u64@(self + TTYPE_deref_type), type); end
@@ -154,7 +161,7 @@ def type_enum_values self: type in return cast(u64@(self + TTYPE_enum_values), V
 def type_union_names self: type in return cast(u64@(self + TTYPE_union_names), Vector[cstr]&); end
 def type_union_types self: type in return cast(u64@(self + TTYPE_union_types), Vector[type]&); end
 
-def type_set_kind self: type, kind: int in u8!(self + TTYPE_kind, kind); end
+def type_set_kind self: type, kind: TypeKind in u8!(self + TTYPE_kind, kind); end
 def type_set_is_generic self: type, val: bool in u8!(self + TTYPE_is_generic, val); end
 def type_set_size self: type, size: int in u32!(self + TTYPE_size, size); end
 def type_set_params self: type, params: Vector[type]& in u64!(self + TTYPE_params, params); end
@@ -179,16 +186,16 @@ def type_set_enum_values self: type, values: Vector[EnumValue&]& in u64!(self + 
 def type_set_union_names self: type, names: Vector[cstr]& in u64!(self + TTYPE_union_names, names); end
 def type_set_union_types self: type, types: Vector[type]& in u64!(self + TTYPE_union_types, types); end
 
-def type_is_undefined self: type in return type_kind(self) == TyK_undefined; end
-def type_is_void self: type in return type_kind(self) == TyK_void; end
-def type_is_any self: type in return type_kind(self) == TyK_any; end
-def type_is_int_like self: type in return type_kind(self) == TyK_int_like; end
-def type_is_reference self: type in return type_kind(self) == TyK_reference; end
-def type_is_struct self: type in return type_kind(self) == TyK_struct; end
-def type_is_def self: type in return type_kind(self) == TyK_def; end
-def type_is_enum self: type in return type_kind(self) == TyK_enum; end
-def type_is_union self: type in return type_kind(self) == TyK_union; end
-def type_is_generic_param self: type in return type_kind(self) == TyK_generic_param; end
+def type_is_undefined self: type in return type_kind(self) == TypeKind::Undefined; end
+def type_is_void self: type in return type_kind(self) == TypeKind::Void; end
+def type_is_any self: type in return type_kind(self) == TypeKind::Any; end
+def type_is_int_like self: type in return type_kind(self) == TypeKind::Int_like; end
+def type_is_reference self: type in return type_kind(self) == TypeKind::Reference; end
+def type_is_struct self: type in return type_kind(self) == TypeKind::Struct; end
+def type_is_def self: type in return type_kind(self) == TypeKind::Def; end
+def type_is_enum self: type in return type_kind(self) == TypeKind::Enum; end
+def type_is_union self: type in return type_kind(self) == TypeKind::Union; end
+def type_is_generic_param self: type in return type_kind(self) == TypeKind::GenericParam; end
 
 def type_is_scalar self: type in
     if type_is_int_like(self) then
@@ -320,9 +327,9 @@ struct TypeTable in
     made_change: bool;
 end
 
-def _tt_make_type tyk, name, size, type_ids, types, names in
+def _tt_make_type tyk, name, size, type_ids, types, names, scope in
     var type_idx = types.length;
-    var t = make_type(tyk, type_idx);
+    var t = make_type(tyk, type_idx, scope);
     type_set_size(t, size);
     map_set(type_ids, name, type_idx);
     types.push(t);
@@ -362,19 +369,19 @@ def make_type_table -> TypeTable& in
     self.ast_types = make_map(0, NULL, NULL);
     self.type_substitutes = NULL;
 
-    var void_t = _tt_make_type(TyK_void, "void", 0, type_ids, types, names);
+    var void_t = _tt_make_type(TypeKind::Void, "void", 0, type_ids, types, names, self.type_scope);
     self.void_type = void_t;
 
-    var any_t = _tt_make_type(TyK_any, "any", 0, type_ids, types, names);
+    var any_t = _tt_make_type(TypeKind::Any, "any", 0, type_ids, types, names, self.type_scope);
     self.any_type = any_t;
 
-    var bool_t = _tt_make_type(TyK_int_like, "bool", BOOL_BITS, type_ids, types, names);
+    var bool_t = _tt_make_type(TypeKind::Int_like, "bool", BOOL_BITS, type_ids, types, names, self.type_scope);
     self.bool_type = bool_t;
 
-    var int_t = _tt_make_type(TyK_int_like, "int", INT_BITS, type_ids, types, names);
+    var int_t = _tt_make_type(TypeKind::Int_like, "int", INT_BITS, type_ids, types, names, self.type_scope);
     self.int_type = int_t;
 
-    var char_t = _tt_make_type(TyK_int_like, "char", CHAR_BITS, type_ids, types, names);
+    var char_t = _tt_make_type(TypeKind::Int_like, "char", CHAR_BITS, type_ids, types, names, self.type_scope);
     self.char_type = char_t;
 
     var ptr_t = _tt_make_ref_type(void_t, "ptr", type_ids, types, names);
@@ -386,8 +393,8 @@ def make_type_table -> TypeTable& in
     _tt_make_type_alias(char_t, "int8", type_ids, types, names);
     _tt_make_type_alias(int_t, "int64", type_ids, types, names);
 
-    _tt_make_type(TyK_int_like, "int16", 16, type_ids, types, names);
-    _tt_make_type(TyK_int_like, "int32", 32, type_ids, types, names);
+    _tt_make_type(TypeKind::Int_like, "int16", 16, type_ids, types, names, self.type_scope);
+    _tt_make_type(TypeKind::Int_like, "int32", 32, type_ids, types, names, self.type_scope);
 
     return self;
 end
@@ -450,12 +457,17 @@ end
 def tt_dump_cur_scope self in
     var types = tt_cur_scope(self);
     var cur = map_begin(types);
+    printf("========= %p =========\n", self.type_scope);
     while cur != map_end(types) do
         var key = map_pair_key(cur);
         var val = map_pair_val(cur);
         printf("key = %s, val = %d\n", key, val);
         cur = map_next(types, cur);
     end
+end
+
+def tt_get_type_by_id self, id: int -> type in
+    return self.all_types.get(id);
 end
 
 def tt_get_type_or_null self, name -> type in
@@ -477,7 +489,7 @@ def tt_get_type_or_make_undefined self, name -> type in
     end
 
     var type_idx = self.all_types.length;
-    type = make_type_undefined(type_idx);
+    type = make_type_undefined(type_idx, self.type_scope);
 
     // FIXME: We want to remove the need for forward declarations and to allow types which
     // haven't been defined yet to be referenced. In most scenarios this is probably fine
@@ -653,7 +665,7 @@ def tt_get_type_instance_of self, st, type, params in
         end
 
         var id = self.all_types.length;
-        var instance_type = copy_type_with_id(type, id);
+        var instance_type = copy_type_with_id(type, id, self.type_scope);
         self.all_types.push(instance_type);
         var type_name = tt_get_type_name(self, type);
         self.names.push(type_name);
@@ -668,21 +680,21 @@ def tt_get_type_instance_of self, st, type, params in
 end
 
 def tt_make_anon_def self, return_type, param_types, varargs in
-    var type = make_type_def(self.all_types.length, return_type, param_types, varargs);
+    var type = make_type_def(self.all_types.length, self.type_scope, return_type, param_types, varargs);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
 end
 
 def tt_make_anon_struct self, fields, defs in
-    var type = make_type_struct(self.all_types.length, fields, defs);
+    var type = make_type_struct(self.all_types.length, self.type_scope, fields, defs);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
 end
 
 def tt_make_anon_union self, field_names, field_types in
-    var type = make_type_union(self.all_types.length, field_names, field_types);
+    var type = make_type_union(self.all_types.length, self.type_scope, field_names, field_types);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
@@ -935,7 +947,7 @@ def tt_calculate_structs self in
             end
             printf("WARN: type `%s` is still undefined!\n", tt_get_type_name(self, type));
             type_set_size(type, PTR_BITS);
-            type_set_kind(type, TyK_reference);
+            type_set_kind(type, TypeKind::Reference);
             type_set_deref_type(type, void);
         elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
             queue_enqueue(to_calc, type);
@@ -973,12 +985,53 @@ def tt_print_type_name self, type in
     end
 end
 
+def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> type in
+    if ast_kind(ast) == AstK_ScopeResolve then
+        var lhs_type = scope_resolve_lhs(tt, ast_lhs(ast), false);
+        if not lhs_type then
+            if error then
+                printf("FIXME: better error message for this: ");
+                printf("File \"%s\", line %d\n", __FILE__, __LINE__);
+                printf("ERROR: type scope resolution does not resolve.\n");
+                print_ast(ast);
+                print_ast_src_loc(ast);
+                g_Errors += 1;
+            end
+            return NULL;
+        end
+        assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+        var name = ast_ident(ast_rhs(ast));
+        var scope = type_scope(lhs_type);
+        assert(scope);
+
+        var found = map_find(scope.types, name);
+        if found then
+            return tt_get_type_by_id(tt, cast(map_pair_val(found), int));
+        end
+        return NULL;
+    elif ast_kind(ast) == AstK_Type then
+        return ast_type(ast);
+    else
+        assert(false, "Recursive scope lookup only supports Types or Scope Resolve\n");
+        return NULL;
+    end
+end
+
 def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
     assert(ast_kind(ast) == AstK_ScopeResolve);
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
-        ast_kind_cstr(ast_kind(ast_rhs(ast))));
-    var type = ast_type(ast_lhs(ast));
+    var type: type;
+    if ast_kind(ast_lhs(ast)) != AstK_Type then
+        assert(ast_kind(ast_lhs(ast)) == AstK_ScopeResolve);
+        type = scope_resolve_lhs(tt, ast_lhs(ast), error);
+        if not type then
+            return tt.any_type;
+        end
+    else
+        assert(ast_kind(ast_lhs(ast)) == AstK_Type);
+        type = ast_type(ast_lhs(ast));
+    end
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
         var defs = type_struct_defs(type);
@@ -1013,15 +1066,24 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> type in
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
-    return tt_any_type(tt);
+    return tt.any_type;
 end
 
 def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
     assert(ast_kind(ast) == AstK_ScopeResolve);
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet. %s\n",
-        ast_kind_cstr(ast_kind(ast_rhs(ast))));
-    var type = ast_type(ast_lhs(ast));
+    var type: type;
+    if ast_kind(ast_lhs(ast)) != AstK_Type then
+        assert(ast_kind(ast_lhs(ast)) == AstK_ScopeResolve);
+        type = scope_resolve_lhs(tt, ast_lhs(ast), error);
+        if not type then
+            return NULL;
+        end
+    else
+        assert(ast_kind(ast_lhs(ast)) == AstK_Type);
+        type = ast_type(ast_lhs(ast));
+    end
+    assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
         var defs = type_struct_defs(type);

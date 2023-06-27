@@ -469,10 +469,10 @@ def tc_check_assign_member self, tt, st, ast in
 end
 
 def tc_check_scope_resolve self, tt, st, ast in
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
-
-    var type = ast_type(ast_lhs(ast));
+    var type = scope_resolve_lhs(tt, ast_lhs(ast), true);
+    if not type then
+        return;
+    end
     var member = ast_ident(ast_rhs(ast));
     if type_is_enum(type) then
         var enum_vals = type_enum_values(type);

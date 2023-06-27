@@ -437,6 +437,7 @@ def ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector[Field&]
 def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector[ast]&); end
 def ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
 def ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
+def ast_enum self: ast in return cast(u64@(self + TAST_enum), type); end
 def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[EnumValue&]&); end
 
 def ast_set_struct self: ast, struct_: type in
