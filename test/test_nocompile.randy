@@ -1,0 +1,7 @@
+// -nocompile
+
+// fails to compile because no `main` function.
+
+def foo in
+    return 42;
+end

@@ -1,4 +1,4 @@
-arg0 = out/argv
+arg0 = out/test_argv
 arg1 = hello world
 arg2 = 1
 arg3 = 2

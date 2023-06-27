@@ -4,8 +4,8 @@ import pathlib
 import sys
 import difflib
 import shlex
-
-import os
+import threading
+from collections import defaultdict
 
 # Check if the terminal supports ANSI codes
 supports_color = sys.stdout.isatty() and (os.name != "nt" or
@@ -56,24 +56,20 @@ def try_remove(file_path):
         return False
         
 def get_extra_flags(path):
+    comment_lines = []
     with open(path, "r") as f:
-        line0 = f.readline()
-        line1 = f.readline()
-    test_flags = []
-    compile_flags = []
-    if line0.startswith("// -test "):
-        cmd = line0[9:]
-        test_flags = shlex.split(cmd)
-    elif line0.startswith("// -compile "):
-        cmd = line0[12:]
-        compile_flags = shlex.split(cmd)
-    if line1.startswith("// -test "):
-        cmd = line1[9:]
-        test_flags = shlex.split(cmd)
-    elif line1.startswith("// -compile "):
-        cmd = line1[12:]
-        compile_flags = shlex.split(cmd)
-    return compile_flags, test_flags
+        while True:
+            line = f.readline()
+            if line.startswith("//"):
+                comment_lines.append(line[2:].strip())
+            else:
+                break
+    opts = defaultdict(list)
+    for line in comment_lines:
+        flags = shlex.split(line)
+        if len(flags) > 0 and flags[0][0] == "-":
+            opts[flags[0]] = flags[1:]
+    return opts
 
 def make_compile_command(randy_file, out_file, extra_flags):
     return ["bin/randy", "-c", randy_file, "-o", out_file, "-I", "include"] + \
@@ -89,19 +85,20 @@ def record(path_to_file):
         os.mkdir("test/")
     # compile the randy file and create executable
     no_ext = os.path.splitext(os.path.basename(path_to_file))[0]
-    compile_flags, test_flags = get_extra_flags(path_to_file)
     try_remove(f"out/{no_ext}.s")
     try_remove(f"out/{no_ext}.o")
     try_remove(f"out/{no_ext}")
-    subprocess.run(make_compile_command(path_to_file, f"out/{no_ext}", compile_flags))
+    randy_file = f"test/{no_ext}.randy"
+    opts = get_extra_flags(randy_file)
+    subprocess.run(make_compile_command(randy_file, f"out/{no_ext}", opts["-compile"]))
     try:
         # run the executable and record output to file
         out_path = f"test/{no_ext}.output"
         with open(out_path, "wb") as output_file:
-            subprocess.run([f"out/{no_ext}"] + test_flags, stdout=output_file)
+            subprocess.run([f"out/{no_ext}"] + opts["-test"], stdout=output_file)
         print(f"Recorded test: {color_path(out_path)}")
     except FileNotFoundError:
-        print(f"{WARN}   {color_path(path_to_file)}: did not compile.")
+        print(f"{WARN}   {color_path(randy_file)}: did not compile.")
 
 def run1(output_file, print_diff):
     passed = False
@@ -109,22 +106,37 @@ def run1(output_file, print_diff):
     if not os.path.exists("out/"):
         os.mkdir("out/")
     no_ext = pathlib.Path(output_file).stem
-    randy_file = f"examples/{no_ext}.randy"
-    compile_flags, test_flags = get_extra_flags(randy_file)
+    randy_file = f"test/{no_ext}.randy"
+    opts = get_extra_flags(randy_file)
     # compile the randy file and create executable
     try_remove(f"out/{no_ext}.s")
     try_remove(f"out/{no_ext}.o")
     try_remove(f"out/{no_ext}")
-    subprocess.run(make_compile_command(randy_file, f"out/{no_ext}", compile_flags))
+    proc = subprocess.run(make_compile_command(randy_file, f"out/{no_ext}", opts["-compile"]),
+                          capture_output=True)
+    if proc.returncode < 0:
+        print(f"\r{FAILED} {color_path(randy_file)} : compiler terminated with signal {proc.returncode}")
+        return False
+    if "-nocompile" in opts:
+        if proc.returncode > 0:
+            print(f"\r{PASSED} {color_path(randy_file)}")
+            return True
+        else:
+            print(f"\r{FAILED} {color_path(randy_file)}")
+            return False
     # run the executable and capture output into a string
     with open(f"test/{no_ext}.output", "rb") as expected_output_file:
         expected_output = expected_output_file.read().decode("utf-8")
     try:
         if sys.stdout.isatty():
             print(f"{RUN} {color_path(randy_file)}", end="\r")
-        process = subprocess.Popen([f"out/{no_ext}"] + test_flags, stdout=subprocess.PIPE)
+        process = subprocess.Popen([f"out/{no_ext}"] + opts["-test"], stdout=subprocess.PIPE)
         generated_output, _ = process.communicate()
         generated_output = generated_output.decode("utf-8")
+        if process.returncode < 0:
+            print(f"{FAILED} {color_path(randy_file)} : test terminated with signal {process.returncode}")
+            return False
+            
         # display any differences between expected and generated output
         diff = list(difflib.unified_diff(expected_output.splitlines(), generated_output.splitlines(), lineterm=""))
         if len(diff) == 0:
@@ -147,7 +159,7 @@ def run_all():
     passed = 0
     tests = []
     for f in files:
-        if f.endswith(".output"):
+        if f.endswith(".randy"):
             tests.append(f)
     for i, test in enumerate(tests):
         print(f"[{i+1}/{len(tests)}] ", end="")
