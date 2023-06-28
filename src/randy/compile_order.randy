@@ -90,7 +90,13 @@ def _compile_order_visit_type tt, st, type, seen, order in
     elif type_is_enum(type) then
         // nothing
     elif type_is_union(type) then
-        assert(false, "TODO: _compile_order_visit_type for unions\n");
+        var fields = type_union_fields(type);
+        var i = 0; var len = fields.length;
+        while i < len do
+            var field = fields.get(i);
+            _compile_order_visit_type(tt, st, field.type, seen, order);
+            i += 1;
+        end
     end
 end
 

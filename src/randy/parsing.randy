@@ -25,7 +25,7 @@ end
 
 def parse_def_type ts, st, tt, is_instance in
     ts.expect(TK::LParen);
-    var param_types = Vector[type]::new(0);
+    var param_types = Vector[Type&]::new(0);
     var ret_type = tt_void_type(tt);
     var varargs = false;
     while true do
@@ -69,14 +69,14 @@ def parse_type ts, st, tt, is_instance in
     end
     var type_ident = ts.expect(TK::Ident);
     var type = tt_get_type_or_make_undefined(tt, type_ident.value);
-    var generic_params: Vector[type]& = NULL;
+    var generic_params: Vector[Type&]& = NULL;
     if ts.accept(TK::LSquare) then
         if not is_instance and tt.type_scope.parent == NULL then
             printf("type_ident = %s\n", type_ident.value);
             print_token_loc(type_ident);
             assert(false, "Compiler bug? type_scope depth should probably be >1 when parsing a generic.");
         end
-        generic_params = Vector[type]::new(0);
+        generic_params = Vector[Type&]::new(0);
         while ts.peekk(TK::Ident) do
             var type = parse_type(ts, st, tt, true);
             generic_params.push(type);
@@ -868,7 +868,7 @@ def parse_def ts, st, tt in
     end
     ts.expect(TK::KW_in);
 
-    var param_types = Vector[type]::new(param_symbols.length);
+    var param_types = Vector[Type&]::new(param_symbols.length);
     var i = 0; var len = param_symbols.length;
     while i < len do
         param_types.push(symbol_type(param_symbols.get(i)));
@@ -955,7 +955,7 @@ def parse_asm ts, st, tt in
         symbol = st_make_asm(st, ident.value, ident);
     end
 
-    var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[type]::new(0), true);
+    var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[Type&]::new(0), true);
     symbol_set_type(symbol, def_type);
     return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(asmcode.value));
 end
@@ -1010,8 +1010,6 @@ def parse_struct ts, st, tt in
         struct_type = tt_make_anon_struct(tt, fields, def_symbols);
     end
 
-    var inner_types = Vector[type]::new(0);
-
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
         if ts.peekk(TK::KW_def) then
@@ -1023,11 +1021,12 @@ def parse_struct ts, st, tt in
         elif ts.peekk(TK::KW_struct) then
             var struct_ = parse_struct(ts, st, tt);
             inner_ast.push(struct_);
-            inner_types.push(ast_struct(struct_));
         elif ts.peekk(TK::KW_enum) then
             var enum_ = parse_enum(ts, st, tt);
             inner_ast.push(enum_);
-            inner_types.push(ast_enum(enum_));
+        elif ts.peekk(TK::KW_union) then
+            var union_ = parse_union(ts, st, tt);
+            inner_ast.push(union_);
         elif ts.peekk(TK::Ident) then
             var field_ident = ts.next();
             ts.expect(TK::Colon);
@@ -1124,6 +1123,45 @@ def parse_enum ts, st, tt in
     return make_ast_enum(enum_, ident.value, enum_type, values);
 end
 
+def parse_union ts, st, tt in
+    tt_push_scope(tt);
+    var union_ = ts.expect(TK::KW_union);
+    var fields = Vector[Field&]::new(0);
+    var union_type = parse_type(ts, st, tt, false);
+    if not type_is_undefined(union_type) then
+        printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, union_type));
+    end
+    ts.expect(TK::KW_in);
+
+    st_push_scope(st);
+    while not ts.peekk(TK::KW_end) do
+        if ts.peekk(TK::Ident) then
+            var field_ident = ts.next();
+            ts.expect(TK::Colon);
+            var field_type = parse_type(ts, st, tt, true);
+            ts.expect(TK::Semicolon);
+            fields.push(make_field(field_type, field_ident.value, -1, field_ident));
+        else
+            var tk = ts.peek();
+            printf("ERROR: Unexpected token in union: %s\n", token_kind_cstr(tk.kind));
+            print_token(tk);
+            print_token_loc(tk);
+            exit(1);
+        end
+    end
+    st_pop_scope(st);
+    ts.expect(TK::KW_end);
+
+    type_set_kind(union_type, TypeKind::Union);
+    type_set_union_fields(union_type, fields);
+
+    var ast = make_ast_union(union_, union_type, fields);
+    type_set_ast(union_type, ast);
+    tt_pop_scope(tt);
+    tt_set_local_type(tt, union_type);
+    return ast;
+end
+
 def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
     var roots = Vector[ast]::new(0);
     var parsed: ast = NULL; var tk: Token&;
@@ -1146,6 +1184,8 @@ def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
             parsed = parse_struct(ts, st, tt);
         elif ts.peekk(TK::KW_enum) then
             parsed = parse_enum(ts, st, tt);
+        elif ts.peekk(TK::KW_union) then
+            parsed = parse_union(ts, st, tt);
         else
             tk = ts.peek();
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(tk.kind));

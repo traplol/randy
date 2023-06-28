@@ -35,6 +35,7 @@ const AstK_Enum         = 27;
 const AstK_Type         = 28;
 const AstK_ScopeResolve = 29;
 const AstK_GetReference = 30; // unavailable from source code
+const AstK_Union        = 31;
 
 def ast_kind_cstr k: int in
     if k == AstK_Ident then return "AstK_Ident"; end
@@ -68,6 +69,7 @@ def ast_kind_cstr k: int in
     if k == AstK_Type then return "AstK_Type"; end
     if k == AstK_ScopeResolve then return "AstK_ScopeResolve"; end
     if k == AstK_GetReference then return "AstK_GetReference"; end
+    if k == AstK_Union then return "AstK_Union"; end
     return "AstK_OUT_OF_RANGE";
 end
 
@@ -165,6 +167,9 @@ const TAST_lhs         = 16; // Union(type_ast, scope_resolve_ast)
 const TAST_rhs         = 32; // Union(type_ast, ident_ast)
 // GetReference
 const TAST_object      = 16; // ast
+// Union
+const TAST_union       = 16; // type
+const TAST_fields      = 24; // field Vector&
 
 const sizeof_TAST      = 40;
 
@@ -289,7 +294,7 @@ def make_ast_const token: Token&, ident: cstr, expr: ast -> ast in
     return self;
 end
 
-def make_ast_extern token: Token&, ident: cstr, type: type -> ast in
+def make_ast_extern token: Token&, ident: cstr, type: Type& -> ast in
     var self = _make_ast(AstK_Extern, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_type, type);
@@ -318,18 +323,25 @@ def make_ast_continue token: Token& -> ast in
     return _make_ast(AstK_Continue, false, token);
 end
 
-def make_ast_cast token: Token&, expr: ast, type: type -> ast in
+def make_ast_cast token: Token&, expr: ast, type: Type& -> ast in
     var self = _make_ast(AstK_Cast, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_type, type);
     return self;
 end
 
-def make_ast_struct token: Token&, struct_: type, fields: Vector[Field&]&, defs: Vector[ast]& -> ast in
+def make_ast_struct token: Token&, struct_type: Type&, fields: Vector[Field&]&, defs: Vector[ast]& -> ast in
     var self = _make_ast(AstK_Struct, false, token);
-    u64!(self + TAST_struct, struct_);
+    u64!(self + TAST_struct, struct_type);
     u64!(self + TAST_fields, fields);
     u64!(self + TAST_defs, defs);
+    return self;
+end
+
+def make_ast_union token: Token&, union_type: Type&, fields: Vector[Field&]& -> ast in
+    var self = _make_ast(AstK_Union, false, token);
+    u64!(self + TAST_union, union_type);
+    u64!(self + TAST_fields, fields);
     return self;
 end
 
@@ -361,19 +373,19 @@ def make_ast_sizeof_expr token: Token&, expr: ast -> ast in
     return self;
 end
 
-def make_ast_sizeof_type token: Token&, type: type -> ast in
+def make_ast_sizeof_type token: Token&, type: Type& -> ast in
     var self = _make_ast(AstK_SizeofType, true, token);
     u64!(self + TAST_type, type);
     return self;
 end
 
-def ast_change_sizeof_expr_to_type self: ast, type: type in
+def ast_change_sizeof_expr_to_type self: ast, type: Type& in
     assert(ast_kind(self) == AstK_SizeofExpr);
     u32!(self + TAST_kind, AstK_SizeofType);
     u64!(self + TAST_type, type);
 end
 
-def make_ast_enum token: Token&, ident: cstr, enum_: type, values: Vector[EnumValue&]& -> ast in
+def make_ast_enum token: Token&, ident: cstr, enum_: Type&, values: Vector[EnumValue&]& -> ast in
     var self = _make_ast(AstK_Enum, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_enum, enum_);
@@ -381,7 +393,7 @@ def make_ast_enum token: Token&, ident: cstr, enum_: type, values: Vector[EnumVa
     return self;
 end
 
-def make_ast_type token: Token&, type: type -> ast in
+def make_ast_type token: Token&, type: Type& -> ast in
     var self = _make_ast(AstK_Type, false, token);
     u64!(self + TAST_type, type);
     return self;
@@ -394,7 +406,7 @@ def make_ast_scope_resolve token: Token&, lhs: ast, rhs: ast -> ast in
     return self;
 end
 
-def ast_change_member_access_to_scope_access self: ast, type: type, member: Symbol& in
+def ast_change_member_access_to_scope_access self: ast, type: Type&, member: Symbol& in
     assert(ast_kind(self) == AstK_MemberAccess);
     u32!(self + TAST_kind, AstK_ScopeResolve);
 
@@ -432,15 +444,16 @@ def ast_size self: ast in return cast(u64@(self + TAST_size), int); end
 def ast_test self: ast in return cast(u64@(self + TAST_test), ast); end
 def ast_value self: ast in return cast(u64@(self + TAST_value), ptr); end
 def ast_varargs self: ast in return cast(u64@(self + TAST_varargs), bool); end
-def ast_type self: ast in return cast(u64@(self + TAST_type), type); end
+def ast_type self: ast in return cast(u64@(self + TAST_type), Type&); end
 def ast_fields self: ast in return cast(u64@(self + TAST_fields), Vector[Field&]&); end
 def ast_defs self: ast in return cast(u64@(self + TAST_defs), Vector[ast]&); end
 def ast_member self: ast in return cast(u64@(self + TAST_member), cstr); end
-def ast_struct self: ast in return cast(u64@(self + TAST_struct), type); end
-def ast_enum self: ast in return cast(u64@(self + TAST_enum), type); end
+def ast_struct self: ast in return cast(u64@(self + TAST_struct), Type&); end
+def ast_enum self: ast in return cast(u64@(self + TAST_enum), Type&); end
+def ast_union self: ast in return cast(u64@(self + TAST_union), Type&); end
 def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[EnumValue&]&); end
 
-def ast_set_struct self: ast, struct_: type in
+def ast_set_struct self: ast, struct_: Type& in
     assert(ast_kind(self) == AstK_Struct);
     u64!(self + TAST_struct, struct_);
 end
@@ -738,6 +751,23 @@ def _print_ast_struct ast, indent in
     _print_indent(indent); printf("end\n");
 end
 
+def _print_ast_union ast, indent in
+    printf("union ");
+    tt_print_type_name(g_TypeTable, ast_struct(ast));
+    printf(" in\n");
+    var fields = ast_fields(ast);
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field = fields.get(i);
+        _print_indent(indent+1);
+        printf("%s: ", field.name);
+        tt_print_type_name(g_TypeTable, field.type);
+        printf(";\n");
+        i += 1;
+    end
+    _print_indent(indent); printf("end\n");
+end
+
 def _print_ast_member_access ast, indent in
     var expr = ast_expr(ast);
     printf("(");
@@ -843,6 +873,7 @@ def _print_ast ast, indent in
     elif k == AstK_Type then _print_ast_type(ast, indent);
     elif k == AstK_ScopeResolve then _print_ast_scope_resolve(ast, indent);
     elif k == AstK_GetReference then _print_ast_get_reference(ast, indent);
+    elif k == AstK_Union then _print_ast_union(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -961,7 +992,7 @@ def _ast_deep_copy_def ast, tt, st in
     var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);
     st_push_scope(st);
     var def_copy_params = Vector[cstr]::new(def_params.length);
-    var def_copy_params_types = Vector[type]::new(def_params.length);
+    var def_copy_params_types = Vector[Type&]::new(def_params.length);
     var i = 0; var len = def_params.length;
     while i < len do
         var param = def_params.get(i);
@@ -1087,6 +1118,29 @@ def _ast_deep_copy_struct ast, tt, st in
     return struct_copy;
 end
 
+def _ast_deep_copy_union ast, tt, st in
+    st_push_scope(st);
+    var fields = ast_fields(ast);
+    var fields_copy = Vector[Field&]::new(fields.length);
+    var i = 0; var len = fields.length;
+    while i < len do
+        // fields aren't actually resolved with symbols so no need to create a copy of those
+        var field_copy = field_make_copy(fields.get(i));
+        field_copy.type = tt_substitute_type(tt, field_copy.type);
+        fields_copy.push(field_copy);
+        i += 1;
+    end
+    var union_type = tt_substitute_type(tt, ast_union(ast));
+    var union_changed = union_type != ast_union(ast);
+    var union_copy = make_ast_union(ast_token(ast), union_type, fields_copy);
+    if union_changed then
+        type_set_ast(union_type, union_copy);
+        type_set_union_fields(union_type, fields_copy);
+    end
+    st_pop_scope(st);
+    return union_copy;
+end
+
 def _ast_deep_copy_member_access ast, tt, st in
     var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
     return make_ast_member_access(ast_token(ast), expr_copy, ast_member(ast));
@@ -1172,6 +1226,7 @@ def _ast_deep_copy ast, tt, st in
     elif k == AstK_Type then return _ast_deep_copy_type(ast, tt, st);
     elif k == AstK_ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
     elif k == AstK_GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
+    elif k == AstK_Union then return _ast_deep_copy_union(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

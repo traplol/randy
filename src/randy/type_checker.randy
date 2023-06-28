@@ -1,7 +1,7 @@
 
 struct TypeCheck in
     current_def_name: cstr;
-    current_def_type: type;
+    current_def_type: Type&;
 end
 
 def make_type_check -> TypeCheck& in
@@ -390,7 +390,7 @@ def tc_check_member_access self, tt, st, ast in
         type = type_deref_type(type);
     end
 
-    if not type_is_struct(type) then
+    if not type_is_struct(type) and not type_is_union(type) then
         printf("ERROR: attempting to access member `%s` with '.' operator on non-struct type.\n", member);
         printf("NOTE: the expression is:");
         print_ast(ast);
@@ -400,7 +400,12 @@ def tc_check_member_access self, tt, st, ast in
     end
 
     var found = false;
-    var fields = type_struct_fields(type);
+    var fields;
+    if type_is_struct(type) then
+        fields = type_struct_fields(type);
+    elif type_is_union(type) then
+        fields = type_union_fields(type);
+    end
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -410,19 +415,6 @@ def tc_check_member_access self, tt, st, ast in
         end
         i += 1;
     end
-
-    // if not found then
-    //     var defs = type_struct_defs(type);
-    //     i = 0; len = defs.length;
-    //     while i < len do
-    //         var def_ = defs.get(i);
-    //         if cstr_eq(symbol_name(def_), member) then
-    //             found = true;
-    //             break;
-    //         end
-    //         i += 1;
-    //     end
-    // end
 
     if not found then
         printf("ERROR: type `");
@@ -559,6 +551,7 @@ def tc_check self, tt, st, ast in
     elif k == AstK_Type then // nothing
     elif k == AstK_ScopeResolve then tc_check_scope_resolve(self, tt, st, ast);
     elif k == AstK_GetReference then // nothing
+    elif k == AstK_Union then // nothing
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

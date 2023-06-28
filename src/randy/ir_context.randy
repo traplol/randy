@@ -878,7 +878,7 @@ def ir_new_local self, ident, st in
         if offset + size > ir_locals_size(self) then
             u64!(self + TIR_CONTEXT_locals_size, offset + size);
         end
-            
+
     end
     map_set(ir_cur_scope(self), ident, make_local_info(local_idx, offset, size));
     if local_idx + 1 > ir_num_locals(self) then
@@ -1063,6 +1063,15 @@ def ir_get_continue_dest self in
         return NULL;
     end
     return dests.back();
+end
+
+def _comptime_eval_is_n_out_of_range ast, min_inclusive, max_inclusive in
+    if ast_kind(ast) != AstK_Integer then
+        // assumed false because the value isn't known.
+        return false;
+    end
+    var val = cast(ast_value(ast), int);
+    return val < min_inclusive or val > max_inclusive;
 end
 
 def _comptime_eval_is_n n, ast in
@@ -1437,6 +1446,34 @@ def ir_emit_var_decl self, ast, st, tt in
     ir_new_local(self, ident, st);
 end
 
+def _check_integer_bounds val, tt, type, ast in
+    // FIXME: it would be nice to have this in done in the type checker but we don't
+    // do comptime eval until this phase of the compiler... can we easily change that?
+    var mini: int;
+    var maxi: int;
+    if types_eq(type, tt_get_type_or_null(tt, "int8")) then
+        mini = -(1 << 7);
+        maxi = (1 << 7) - 1;
+    elif types_eq(type, tt_get_type_or_null(tt, "int16")) then
+        mini = -(1 << 15);
+        maxi = (1 << 15) - 1;
+    elif types_eq(type, tt_get_type_or_null(tt, "int32")) then
+        mini = -(1 << 31);
+        maxi = (1 << 31) - 1;
+    else
+        return;
+    end
+
+    if _comptime_eval_is_n_out_of_range(val, mini, maxi) then
+        printf("WARN: type is `");
+        tt_print_type_name(tt, type);
+        printf("` which %ld is out of range\n", ast_value(val));
+        printf("NOTE: the expression is: ");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+    end
+end
+
 def ir_emit_var_assign self, ast, st, tt in
     check_ast_kind(AstK_VarAssign, ast);
     var ident = ast_ident(ast);
@@ -1447,7 +1484,11 @@ def ir_emit_var_assign self, ast, st, tt in
     var sym_type = symbol_type(sym);
     assert(sym_type and type_size(sym_type) != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
-    ir_compile(self, ast_assign_expr(ast), st, tt);
+    var val = ir_comptime_eval(self, ast_assign_expr(ast), st, tt, false, 0);
+    if ast_kind(val) == AstK_Integer and type_is_int_like(sym_type) then
+        _check_integer_bounds(val, tt, sym_type, ast);
+    end
+    ir_compile(self, val, st, tt);
     var n = ir_new_local(self, ident, st);
     var offs = ir_get_local_offset(self, ident);
     ir_append(self, make_ir_set_local(ident, n, offs));
@@ -1778,6 +1819,10 @@ def ir_emit_enum self, ast, st, tt in
     check_ast_kind(AstK_Enum, ast);
 end
 
+def ir_emit_union self, ast, st, tt in
+    check_ast_kind(AstK_Union, ast);
+end
+
 def ir_emit_member_access self, ast, st, tt, deref: bool in
     check_ast_kind(AstK_MemberAccess, ast);
 
@@ -1793,12 +1838,18 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     while ast_kind(head) == AstK_MemberAccess do
         var member = ast_member(head);
         var type = tt_get_ast_type(tt, ast_expr(head));
-        var struct_type = type;
-        while type_is_reference(struct_type) do
-            struct_type = type_deref_type(struct_type);
+        var _type = type;
+        while type_is_reference(_type) do
+            _type = type_deref_type(_type);
         end
-        assert(type_is_struct(struct_type), "Error should have been reported in type checker\n");
-        var fields = type_struct_fields(struct_type);
+        assert(type_is_struct(_type) or type_is_union(_type),
+               "Error should have been reported in type checker\n");
+        var fields;
+        if type_is_struct(_type) then
+            fields = type_struct_fields(_type);
+        elif type_is_union(_type) then
+            fields = type_union_fields(_type);
+        end
         var field: Field& = NULL;
         var i = 0; var len = fields.length;
         while i < len do
@@ -1863,8 +1914,14 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
             type = type_deref_type(type);
             assert(type, "TODO: Type is reference but has no ref type\n");
         end
-        assert(type_is_struct(type), "TODO: catch this bug in type checker.\n");
-        var fields = type_struct_fields(type);
+        assert(type_is_struct(type) or type_is_union(type),
+               "TODO: catch this bug in type checker.\n");
+        var fields;
+        if type_is_struct(type) then
+            fields = type_struct_fields(type);
+        elif type_is_union(type) then
+            fields = type_union_fields(type);
+        end
         var i = 0; var len = fields.length;
         var member = ast_member(ast);
         var field: Field&;
@@ -1970,6 +2027,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK_Enum then ir_emit_enum(self, ev_ast, st, tt);
     elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
     elif k == AstK_GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
+    elif k == AstK_Union then ir_emit_union(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

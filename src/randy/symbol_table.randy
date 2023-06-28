@@ -15,8 +15,8 @@ struct Symbol in
     kind: SymbolKind;
     name: cstr;
     token: Token&;
-    type: type;
-    owned_by: type;
+    type: Type&;
+    owned_by: Type&;
     // symbols don't necessarily need a label but this makes it easier to generate
     // and lookup globals/externs/functions
     label: cstr;
@@ -38,10 +38,10 @@ end
 def symbol_kind self: Symbol& -> SymbolKind in return self.kind; end
 def symbol_name self: Symbol& -> cstr in return self.name; end
 def symbol_token self: Symbol& -> Token& in return self.token; end
-def symbol_type self: Symbol& -> type in return self.type; end
+def symbol_type self: Symbol& -> Type& in return self.type; end
 
 def symbol_set_kind self: Symbol&, kind: SymbolKind in self.kind = kind; end
-def symbol_set_type self: Symbol&, type: type in self.type = type; end
+def symbol_set_type self: Symbol&, type: Type& in self.type = type; end
 
 def symbol_is_undef self: Symbol& in return self.kind == SymbolKind::Undef; end
 def symbol_is_const self: Symbol& in return self.kind == SymbolKind::Const; end
