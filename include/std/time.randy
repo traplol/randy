@@ -2,49 +2,34 @@
 #include syscall
 #include memory
 
-const TTIMESPEC_tv_sec  = 0;
-const TTIMESPEC_tv_nsec = 8;
-const sizeof_TTIMESPEC = 16;
+struct Timespec in
+    tv_sec: int;
+    tv_nsec: int;
+end
 
 def make_timespec sec, nsec in
-    var self = malloc(sizeof_TTIMESPEC);
-    u64!(self + TTIMESPEC_tv_sec, sec);
-    u64!(self + TTIMESPEC_tv_nsec, nsec);
+    var self = cast(malloc(__sizeof(Timespec)), Timespec&);
+    self.tv_sec = sec;
+    self.tv_nsec = nsec;
     return self;
 end
 
 def make_empty_timespec in
-    return malloc(sizeof_TTIMESPEC);
+    return make_timespec(0, 0);
 end
 
-def free_timespec self in
+def free_timespec self: Timespec& in
     free(self);
-end
-
-def timespec_sec self in
-    return cast(u64@(self + TTIMESPEC_tv_sec), int);
-end
-
-def timespec_set_sec self, val in
-    u64!(self + TTIMESPEC_tv_sec, val);
-end
-
-def timespec_nsec self in
-    return cast(u64@(self + TTIMESPEC_tv_nsec), int);
-end
-
-def timespec_set_nsec self, val in
-    u64!(self + TTIMESPEC_tv_nsec, val);
 end
 
 const CLOCK_REALTIME      = 0;
 const CLOCK_MONOTONIC_RAW = 4;
 
-def time timespec in
+def time timespec: Timespec& in
     return syscall(SYS_clock_gettime, CLOCK_MONOTONIC_RAW, timespec);
 end
 
-def clock timespec in
+def clock timespec: Timespec& in
     return syscall(SYS_clock_gettime, CLOCK_REALTIME, timespec);
 end
 
@@ -60,6 +45,7 @@ def usleep usec in
     end
     var sec = usec / CLOCK_S_PER_US;
     var rem = usec % CLOCK_S_PER_US;
+    // FIXME: when we allow stack allocations put these on the stack!
     var sleeptime = make_timespec(sec, rem * CLOCK_US_PER_NS);
     var remtime = make_empty_timespec();
     syscall(SYS_nanosleep, sleeptime, remtime);

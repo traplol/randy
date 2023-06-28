@@ -29,8 +29,8 @@ global g_Errors = 0;
 #include compile_order
 
 def print_timespan msg, starttime, endtime in
-    var elap_s = timespec_sec(endtime) - timespec_sec(starttime);
-    var elap_ns = timespec_nsec(endtime) - timespec_nsec(starttime);
+    var elap_s = endtime.tv_sec - starttime.tv_sec;
+    var elap_ns = endtime.tv_nsec - starttime.tv_nsec;
     var elap_ms = (elap_s * 1000) + (elap_ns / 1000000);
     printf("%s%dms\n", msg, elap_ms);
 end
