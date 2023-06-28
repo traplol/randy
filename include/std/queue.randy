@@ -2,20 +2,19 @@
 #include core
 #include memory
 
-const sizeof_TQUEUE_ELEM = sizeof_PTR;
-struct Queue in
-    buffer: ptr;
+struct Queue[T] in
+    buffer: T&;
     head: int;
     tail: int;
     capacity: int;
 
-    def new init: int -> Queue& in
+    def new init: int -> Queue[T]& in
         if init <= 0 then
             init = 16;
         end
 
-        var self = cast(malloc(__sizeof(Queue)), Queue&);
-        var buf = malloc(init * sizeof_TQUEUE_ELEM);
+        var self = cast(malloc(__sizeof(Queue[T])), Queue[T]&);
+        var buf = malloc(init * __sizeof(T));
         self.buffer = buf;
         self.head = 0;
         self.tail = 0;
@@ -23,14 +22,14 @@ struct Queue in
         return self;
     end
 
-    def delete self: Queue& in
+    def delete self in
         if self then
             free(self.buffer);
             free(self);
         end
     end
 
-    def resize self: Queue&, new_cap: int in
+    def resize self, new_cap: int in
         var old_buf = self.buffer;
         var old_cap = self.capacity;
         if new_cap == old_cap then
@@ -39,12 +38,12 @@ struct Queue in
             printf("queue:resize: shrinking queue unsupported.\n");
             abort();
         end
-        var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
+        var new_buf = malloc(new_cap * __sizeof(T));
         var head = self.head;
         var tail = self.tail;
 
         if tail - head > 0 then
-            memcpy(new_buf, old_buf + head, (tail - head) * sizeof_TQUEUE_ELEM);
+            memcpy(new_buf, cast(old_buf + head, ptr), (tail - head) * __sizeof(T));
         end
 
         self.head = 0;
@@ -54,7 +53,7 @@ struct Queue in
         free(old_buf);
     end
 
-    def enqueue self: Queue&, elem: ptr in
+    def enqueue self, elem: T in
         var tail = self.tail;
         var cap = self.capacity;
         if tail == cap then
@@ -62,11 +61,11 @@ struct Queue in
         end
 
         var buf = self.buffer;
-        u64!(buf + tail * sizeof_TQUEUE_ELEM, elem);
+        u64!(buf + tail * __sizeof(T), elem);
         self.tail += 1;
     end
 
-    def dequeue self: Queue& -> ptr in
+    def dequeue self -> T in
         var head = self.head;
         var tail = self.tail;
         if head == tail then
@@ -74,7 +73,7 @@ struct Queue in
             abort();
         end
 
-        var val = cast(u64@(self.buffer + head * sizeof_TQUEUE_ELEM), ptr);
+        var val = cast(u@(self.buffer + head * __sizeof(T), T), T);
         if head + 1 == tail then
             self.head = 0;
             self.tail = 0;
@@ -84,7 +83,7 @@ struct Queue in
         return val;
     end
 
-    def peek self: Queue& -> ptr in
+    def peek self -> T in
         var head = self.head;
         var tail = self.tail;
         if head == tail then
@@ -92,15 +91,15 @@ struct Queue in
             abort();
         end
 
-        return cast(u64@(self.buffer + head * sizeof_TQUEUE_ELEM), ptr);
+        return cast(u@(self.buffer + head * __sizeof(T), T), T);
     end
 
-    def reset self: Queue& in
+    def reset self in
         self.head = 0;
         self.tail = 0;
     end
 
-    def length self: Queue& -> int in
+    def length self -> int in
         return self.tail - self.head;
     end
 end

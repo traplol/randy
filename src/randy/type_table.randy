@@ -815,7 +815,7 @@ end
 
 def tt_detect_cycles self, stype in
     // Breadth-first search for cycles.
-    var q = Queue::new(0);
+    var q = Queue[type]::new(0);
     var explored = make_set(0, NULL, NULL);
 
     set_add(explored, stype);
@@ -925,7 +925,7 @@ end
 
 def tt_calculate_structs self in
     assert(self.type_scope.parent == NULL, "Compiler bug: calculating stucts but not at top scope\n");
-    var to_calc = Queue::new(0);
+    var to_calc = Queue[type]::new(0);
     var i = 0; var len = self.all_types.length;
     var void = tt_void_type(self);
     while i < len do

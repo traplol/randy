@@ -1,6 +1,6 @@
 #include std/queue
 
-def test msg, expect, actual: ptr in
+def test msg, expect, actual in
     if expect == actual then
         printf("pass: %s\n", msg);
     else
@@ -10,7 +10,7 @@ def test msg, expect, actual: ptr in
 end
 
 def main in
-    var q = Queue::new(0);
+    var q = Queue[int]::new(0);
     test("queue is empty", 0, q.length());
     q.enqueue(123);
     test("queue len is 1", 1, q.length());
