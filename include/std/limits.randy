@@ -1,0 +1,18 @@
+
+const CHAR_MIN = -(1 << 7);
+const CHAR_MAX = (1 << 7) - 1;
+
+const INT8_MIN = CHAR_MIN;
+const INT8_MAX = CHAR_MAX;
+
+const INT16_MIN = -(1 << 15);
+const INT16_MAX = (1 << 15) - 1;
+
+const INT32_MIN = -(1 << 31);
+const INT32_MAX = (1 << 31) - 1;
+
+const INT64_MIN = -(1 << 63);
+const INT64_MAX = (1 << 63) - 1;
+
+const INT_MIN = INT64_MIN;
+const INT_MAX = INT64_MAX;
