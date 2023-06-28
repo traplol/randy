@@ -10,44 +10,44 @@ def test msg, expect, actual: ptr in
 end
 
 def main in
-    var q = make_queue(0);
-    test("queue is empty", 0, queue_len(q));
-    queue_enqueue(q, 123);
-    test("queue len is 1", 1, queue_len(q));
-    queue_enqueue(q, 345);
-    test("queue len is 2", 2, queue_len(q));
-    test("queue dequeue is 123", 123, queue_dequeue(q));
-    test("queue len is 1", 1, queue_len(q));
-    test("queue dequeue is 345", 345, queue_dequeue(q));
-    test("queue len is 0", 0, queue_len(q));
+    var q = Queue::new(0);
+    test("queue is empty", 0, q.length());
+    q.enqueue(123);
+    test("queue len is 1", 1, q.length());
+    q.enqueue(345);
+    test("queue len is 2", 2, q.length());
+    test("queue dequeue is 123", 123, q.dequeue());
+    test("queue len is 1", 1, q.length());
+    test("queue dequeue is 345", 345, q.dequeue());
+    test("queue len is 0", 0, q.length());
 
-    queue_reset(q);
+    q.reset();
 
-    test("queue len is 0", 0, queue_len(q));
-    queue_enqueue(q, 1);
-    queue_enqueue(q, 2);
-    queue_enqueue(q, 3);
-    queue_enqueue(q, 4);
-    test("queue len is 4", 4, queue_len(q));
-    queue_reset(q);
-    test("queue len is 0", 0, queue_len(q));
+    test("queue len is 0", 0, q.length());
+    q.enqueue(1);
+    q.enqueue(2);
+    q.enqueue(3);
+    q.enqueue(4);
+    test("queue len is 4", 4, q.length());
+    q.reset();
+    test("queue len is 0", 0, q.length());
 
     var i = 1;
     while i < 65 do
-        queue_enqueue(q, i);
+        q.enqueue(i);
         i += 1;
     end
-    test("queue len is 64", 64, queue_len(q));
-    test("queue_peek is 1", 1, queue_peek(q));
+    test("queue len is 64", 64, q.length());
+    test("q.peek is 1", 1, q.peek());
 
     i = 1;
     while i < 65 do
-        test("queue_dequeue returns i", i, cast(queue_dequeue(q), int));
+        test("q.dequeue returns i", i, cast(q.dequeue(), int));
         i += 1;
     end
-    test("queue len is 0", 0, queue_len(q));
+    test("queue len is 0", 0, q.length());
 
-    test("queue head == tail", u64@(q + TQUEUE_head), u64@(q + TQUEUE_tail));
-    test("queue properly reset when empty", 0, u64@(q + TQUEUE_head));
-    //queue_dequeue(q); // test empty queue aborts.
+    test("queue head == tail", q.head, q.tail);
+    test("queue properly reset when empty", 0, q.head);
+    //q.dequeue(); // test empty queue aborts.
 end

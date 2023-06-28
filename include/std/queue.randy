@@ -2,109 +2,105 @@
 #include core
 #include memory
 
-const TQUEUE_buffer   = 0;
-const TQUEUE_head     = 8;
-const TQUEUE_tail     = 16;
-const TQUEUE_capacity = 24;
-const sizeof_TQUEUE   = 32;
 const sizeof_TQUEUE_ELEM = sizeof_PTR;
+struct Queue in
+    buffer: ptr;
+    head: int;
+    tail: int;
+    capacity: int;
 
-def make_queue init: int -> queue in
-    if init <= 0 then
-        init = 16;
+    def new init: int -> Queue& in
+        if init <= 0 then
+            init = 16;
+        end
+
+        var self = cast(malloc(__sizeof(Queue)), Queue&);
+        var buf = malloc(init * sizeof_TQUEUE_ELEM);
+        self.buffer = buf;
+        self.head = 0;
+        self.tail = 0;
+        self.capacity = init;
+        return self;
     end
 
-    var self = malloc(sizeof_TQUEUE);
-    var buf = malloc(init * sizeof_TQUEUE_ELEM);
-    u64!(self + TQUEUE_buffer, buf);
-    u64!(self + TQUEUE_head, 0);
-    u64!(self + TQUEUE_tail, 0);
-    u64!(self + TQUEUE_capacity, init);
-    return cast(self, queue);
-end
-
-def free_queue self: queue in
-    if self then
-        free(u64@(self + TQUEUE_buffer));
-        free(self);
-    end
-end
-
-def queue_len self: queue -> int in
-    return cast(u64@(self + TQUEUE_tail) - u64@(self + TQUEUE_head), int);
-end
-
-def queue_cap self: queue -> int in
-    return cast(u64@(self + TQUEUE_capacity), int);
-end
-
-def queue_resize self: queue, new_cap: int in
-    var old_buf = cast(u64@(self + TQUEUE_buffer), ptr);
-    var old_cap = cast(u64@(self + TQUEUE_capacity), int);
-    if new_cap == old_cap then
-        return;
-    elif new_cap < old_cap then
-        printf("queue:resize: shrinking queue unsupported.\n");
-        abort();
-    end
-    var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
-    var head = cast(u64@(self + TQUEUE_head), int);
-    var tail = cast(u64@(self + TQUEUE_tail), int);
-
-    if tail - head > 0 then
-        memcpy(new_buf, old_buf + head, (tail - head) * sizeof_TQUEUE_ELEM);
+    def delete self: Queue& in
+        if self then
+            free(self.buffer);
+            free(self);
+        end
     end
 
-    u64!(self + TQUEUE_head, 0);
-    u64!(self + TQUEUE_tail, tail - head);
+    def resize self: Queue&, new_cap: int in
+        var old_buf = self.buffer;
+        var old_cap = self.capacity;
+        if new_cap == old_cap then
+            return;
+        elif new_cap < old_cap then
+            printf("queue:resize: shrinking queue unsupported.\n");
+            abort();
+        end
+        var new_buf = malloc(new_cap * sizeof_TQUEUE_ELEM);
+        var head = self.head;
+        var tail = self.tail;
 
-    u64!(self + TQUEUE_buffer, new_buf);
-    u64!(self + TQUEUE_capacity, new_cap);
-    free(old_buf);
-end
+        if tail - head > 0 then
+            memcpy(new_buf, old_buf + head, (tail - head) * sizeof_TQUEUE_ELEM);
+        end
 
-def queue_enqueue self: queue, elem: ptr in
-    var tail = cast(u64@(self + TQUEUE_tail), int);
-    var cap = cast(u64@(self + TQUEUE_capacity), int);
-    if tail == cap then
-        queue_resize(self, cap * 2 + 1);
+        self.head = 0;
+        self.tail = tail - head;
+        self.buffer = new_buf;
+        self.capacity = new_cap;
+        free(old_buf);
     end
 
-    var buf = cast(u64@(self + TQUEUE_buffer), ptr);
-    u64!(buf + tail * sizeof_TQUEUE_ELEM, elem);
-    u64!(self + TQUEUE_tail, tail + 1);
-end
+    def enqueue self: Queue&, elem: ptr in
+        var tail = self.tail;
+        var cap = self.capacity;
+        if tail == cap then
+            self.resize(cap * 2 + 1);
+        end
 
-def queue_dequeue self: queue -> ptr in
-    var head = cast(u64@(self + TQUEUE_head), int);
-    var tail = cast(u64@(self + TQUEUE_tail), int);
-    if head == tail then
-        printf("queue_dequeue: queue empty!\n");
-        abort();
+        var buf = self.buffer;
+        u64!(buf + tail * sizeof_TQUEUE_ELEM, elem);
+        self.tail += 1;
     end
 
-    var val = cast(u64@(u64@(self + TQUEUE_buffer) + head * sizeof_TQUEUE_ELEM), ptr);
-    if head + 1 == tail then
-        u64!(self + TQUEUE_head, 0);
-        u64!(self + TQUEUE_tail, 0);
-    else
-        u64!(self + TQUEUE_head, head + 1);
+    def dequeue self: Queue& -> ptr in
+        var head = self.head;
+        var tail = self.tail;
+        if head == tail then
+            printf("queue_dequeue: queue empty!\n");
+            abort();
+        end
+
+        var val = cast(u64@(self.buffer + head * sizeof_TQUEUE_ELEM), ptr);
+        if head + 1 == tail then
+            self.head = 0;
+            self.tail = 0;
+        else
+            self.head += 1;
+        end
+        return val;
     end
-    return val;
-end
 
-def queue_peek self: queue -> ptr in
-    var head = cast(u64@(self + TQUEUE_head), int);
-    var tail = cast(u64@(self + TQUEUE_tail), int);
-    if head == tail then
-        printf("queue_peek: queue empty!\n");
-        abort();
+    def peek self: Queue& -> ptr in
+        var head = self.head;
+        var tail = self.tail;
+        if head == tail then
+            printf("peek: queue empty!\n");
+            abort();
+        end
+
+        return cast(u64@(self.buffer + head * sizeof_TQUEUE_ELEM), ptr);
     end
 
-    return cast(u64@(u64@(self + TQUEUE_buffer) + head * sizeof_TQUEUE_ELEM), ptr);
-end
+    def reset self: Queue& in
+        self.head = 0;
+        self.tail = 0;
+    end
 
-def queue_reset self: queue in
-    u64!(self + TQUEUE_head, 0);
-    u64!(self + TQUEUE_tail, 0);
+    def length self: Queue& -> int in
+        return self.tail - self.head;
+    end
 end

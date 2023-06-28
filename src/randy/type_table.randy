@@ -797,7 +797,7 @@ def tt_calculate_struct self, stype, again_q in
 
         var size = type_size(ftype);
         if size == TYPE_NEEDS_SIZING then
-            queue_enqueue(again_q, stype);
+            again_q.enqueue(stype);
             return;
         end
         if not type_is_struct(ftype) then
@@ -815,7 +815,7 @@ end
 
 def tt_detect_cycles self, stype in
     // Breadth-first search for cycles.
-    var q = make_queue(0);
+    var q = Queue::new(0);
     var explored = make_set(0, NULL, NULL);
 
     set_add(explored, stype);
@@ -829,13 +829,13 @@ def tt_detect_cycles self, stype in
         end
         if type_is_struct(ftype) and not set_contains(explored, ftype) then
             set_add(explored, ftype);
-            queue_enqueue(q, ftype);
+            q.enqueue(ftype);
         end
         i += 1;
     end
 
-    while queue_len(q) != 0 do
-        var v = queue_dequeue(q);
+    while q.length() != 0 do
+        var v = q.dequeue();
         if v == stype then
             return true;
         end
@@ -849,12 +849,12 @@ def tt_detect_cycles self, stype in
             end
             if type_is_struct(ftype) and not set_contains(explored, ftype) then
                 set_add(explored, ftype);
-                queue_enqueue(q, ftype);
+                q.enqueue(ftype);
             end
             i += 1;
         end
     end
-    free_queue(q);
+    q.delete();
     free_set(explored);
     return false;
 end
@@ -925,7 +925,7 @@ end
 
 def tt_calculate_structs self in
     assert(self.type_scope.parent == NULL, "Compiler bug: calculating stucts but not at top scope\n");
-    var to_calc = make_queue(0);
+    var to_calc = Queue::new(0);
     var i = 0; var len = self.all_types.length;
     var void = tt_void_type(self);
     while i < len do
@@ -950,7 +950,7 @@ def tt_calculate_structs self in
             type_set_kind(type, TypeKind::Reference);
             type_set_deref_type(type, void);
         elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
-            queue_enqueue(to_calc, type);
+            to_calc.enqueue(type);
         end
         if type_is_struct(type) then
             tt_check_struct_for_field_name_collisions(self, type);
@@ -960,15 +960,15 @@ def tt_calculate_structs self in
         i += 1;
     end
 
-    while queue_len(to_calc) != 0 do
-        var type = queue_dequeue(to_calc);
+    while to_calc.length() != 0 do
+        var type = to_calc.dequeue();
         if tt_detect_cycles(self, type) then
             printf("ERROR: Detected cycles in struct `%s`\n", tt_get_type_name(self, type));
             exit(1);
         end
         tt_calculate_struct(self, type, to_calc);
     end
-    free_queue(to_calc);
+    to_calc.delete();
 end
 
 def tt_instantiate_types self in

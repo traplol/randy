@@ -100,7 +100,7 @@ def record(path_to_file):
     except FileNotFoundError:
         print(f"{WARN}   {color_path(randy_file)}: did not compile.")
 
-def run1(output_file, print_diff):
+def run1(output_file, print_diff, just_one):
     passed = False
     # create out directory if it doesn"t exist
     if not os.path.exists("out/"):
@@ -113,7 +113,7 @@ def run1(output_file, print_diff):
     try_remove(f"out/{no_ext}.o")
     try_remove(f"out/{no_ext}")
     proc = subprocess.run(make_compile_command(randy_file, f"out/{no_ext}", opts["-compile"]),
-                          capture_output=True)
+                          capture_output=not just_one)
     if proc.returncode < 0:
         print(f"\r{FAILED} {color_path(randy_file)} : compiler terminated with signal {proc.returncode}")
         return False
@@ -163,7 +163,7 @@ def run_all():
             tests.append(f)
     for i, test in enumerate(tests):
         print(f"[{i+1}/{len(tests)}] ", end="")
-        if run1(test, False):
+        if run1(test, False, False):
             passed += 1
     print(f"[{passed}/{len(tests)}] tests passed.")
 
@@ -183,6 +183,6 @@ if __name__ == "__main__":
         if len(sys.argv) < 3:
             run_all()
         else:
-            run1(sys.argv[2], True)
+            run1(sys.argv[2], True, True)
     else:
         print("Invalid command. Use 'record' or 'run'")
