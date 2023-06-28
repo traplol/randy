@@ -11,26 +11,26 @@ end
 
 def test_strings in
     printf("Testing strings.\n");
-    var empty = string_from_cstr("");
-    test("empty len is 0", 0 == string_len(empty));
+    var empty = String::new_from_cstr("");
+    test("empty len is 0", 0 == empty.length);
 
-    var str = make_string(0);
-    test("str len is 0", 0 == string_len(str));
-    test("str cap is 0", 0 == string_cap(str));
-    string_push(str, 'a');
-    test("str len is 1", 1 == string_len(str));
-    test("str cap is 1", 1 == string_cap(str));
+    var str = String::new(0);
+    test("str len is 0", 0 == str.length);
+    test("str cap is 0", 0 == str.capacity);
+    str.push('a');
+    test("str len is 1", 1 == str.length);
+    test("str cap is 1", 1 == str.capacity);
 
-    string_push(str, 'b'); string_push(str, 'c'); string_push(str, 'd');
-    test("str len is 4", 4 == string_len(str));
+    str.push('b'); str.push('c'); str.push('d');
+    test("str len is 4", 4 == str.length);
 
-    var other = make_string(4);
-    test("other len is 0", 0 == string_len(other));
-    test("other cap is 4", 4 == string_cap(other));
+    var other = String::new(4);
+    test("other len is 0", 0 == other.length);
+    test("other cap is 4", 4 == other.capacity);
 
-    string_append_string(other, str);
-    test("other len is 4", 4 == string_len(other));
-    test("other cap is 4", 4 == string_cap(other));
+    other.append_string(str);
+    test("other len is 4", 4 == other.length);
+    test("other cap is 4", 4 == other.capacity);
 
     test("empty is equal to empty", string_eq(empty, empty));
     test("empty is not equal to str", not string_eq(empty, str));
@@ -40,9 +40,9 @@ def test_strings in
     test("str is equal to other", string_eq(str, other));
     test("other is equal to str", string_eq(other, str));
 
-    string_append_cstr(other, "1234");
-    test("appended cstr \"1234\" to other", cstr_eq("abcd1234", string_cstr(other)));
-    test("other new len is 8", 8 == string_len(other));
+    other.append_cstr("1234");
+    test("appended cstr \"1234\" to other", cstr_eq("abcd1234", other.cstr()));
+    test("other new len is 8", 8 == other.length);
 end
 
 def test_cstrings in
@@ -61,21 +61,21 @@ end
 
 def test_large_string in
     printf("Testing strings can be large.\n");
-    var str = make_string(0);
+    var str = String::new(0);
     var i = 0; var n = 500000000;
     while i < n do
-        string_push(str, 'a');
+        str.push('a');
         i += 1;
     end
     i = 0;
     while i < n do
-        if string_get(str, i) != 'a' then
+        if str.get(i) != 'a' then
             printf("string contents incorrect.\n");
             break;
         end
         i += 1;
     end
-    test("string len is correct", n == string_len(str));
+    test("string len is correct", n == str.length);
 end
 
 def main in

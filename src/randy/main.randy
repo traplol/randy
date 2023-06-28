@@ -134,7 +134,7 @@ def main argc: int, argv: ptr in
                     printf("No path supplied with -I flag.\n");
                     return 1;
                 end
-                include_paths.push(string_from_cstr(p));
+                include_paths.push(String::new_from_cstr(p));
             elif cstr_eq("-v", arg) then
                 verbosity = 1;
             elif cstr_eq("-vv", arg) then
@@ -171,14 +171,14 @@ def main argc: int, argv: ptr in
         end
 
         var source_dir = getcwd();
-        string_push(source_dir, '/');
-        string_append_cstr(source_dir, in_path);
-        var abspath = string_duplicate(source_dir);
-        while source_dir.length > 0 and string_back(source_dir) != '/' do
-            string_pop(source_dir);
+        source_dir.push('/');
+        source_dir.append_cstr(in_path);
+        var abspath = source_dir.duplicate();
+        while source_dir.length > 0 and source_dir.back() != '/' do
+            source_dir.pop();
         end
         if source_dir.length > 1 then
-            string_pop(source_dir);
+            source_dir.pop();
         end
         include_paths.push(source_dir);
 
@@ -201,7 +201,7 @@ def main argc: int, argv: ptr in
         time(starttime);
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 1) lex source code
-        var tokens = lex_file(string_cstr(abspath), include_paths);
+        var tokens = lex_file(abspath.cstr(), include_paths);
         if not tokens then
             return 1;
         end
@@ -323,14 +323,14 @@ def main argc: int, argv: ptr in
         end
 
         time(starttime);
-        var out_asm_path = string_from_cstr(out_path);
-        string_append_cstr(out_asm_path, ".s");
-        var out_obj_path = string_from_cstr(out_path);
-        string_append_cstr(out_obj_path, ".o");
-        cc_lines_to_file(cctx, string_cstr(out_asm_path));
-        assemble_and_link(string_cstr(out_asm_path), string_cstr(out_obj_path), out_path, ld_flags);
-        free_string(out_asm_path);
-        free_string(out_obj_path);
+        var out_asm_path = String::new_from_cstr(out_path);
+        out_asm_path.append_cstr(".s");
+        var out_obj_path = String::new_from_cstr(out_path);
+        out_obj_path.append_cstr(".o");
+        cc_lines_to_file(cctx, out_asm_path.cstr());
+        assemble_and_link(out_asm_path.cstr(), out_obj_path.cstr(), out_path, ld_flags);
+        out_asm_path.delete();
+        out_obj_path.delete();
         time(endtime);
         if verbosity > 0 then
             print_timespan("Assemble and Link took: ", starttime, endtime);

@@ -45,41 +45,41 @@ def cc_print_lines self: compiler_context in
     var len = lines.length;
     var i = 0;
     while i < len do
-        printf("%s\n", string_cstr(lines.get(i)));
+        printf("%s\n", lines.get(i).cstr());
         i += 1;
     end
 end
 
 def cc_out self: compiler_context, cstr: cstr in
     var lines = compiler_context_lines(self);
-    var string = make_string(128);
-    string_append_cstr(string, cstr);
+    var string = String::new(128);
+    string.append_cstr(cstr);
     lines.push(string);
     //printf("%s\n", cstr);
 end
 
 def cc_out_global self: compiler_context, cstr: cstr in
-    var str = make_string(128);
-    string_append_cstr(str, "    .global ");
-    string_append_cstr(str, cstr);
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    var str = String::new(128);
+    str.append_cstr("    .global ");
+    str.append_cstr(cstr);
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_extern self: compiler_context, cstr: cstr in
-    var str = make_string(128);
-    string_append_cstr(str, ".extern ");
-    string_append_cstr(str, cstr);
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    var str = String::new(128);
+    str.append_cstr(".extern ");
+    str.append_cstr(cstr);
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_label self: compiler_context, cstr: cstr in
-    var str = make_string(128);
-    string_append_cstr(str, cstr);
-    string_push(str, ':');
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    var str = String::new(128);
+    str.append_cstr(cstr);
+    str.push(':');
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_string self: compiler_context, string: String& in
@@ -90,24 +90,24 @@ def cc_out_string self: compiler_context, string: String& in
     // where 6 is the ".byte " prefix,
     //       5 is the "NNN, " representing a byte in the string
     //       1 is the final nul-byte
-    var str = make_string(6 + 5*string.length + 1);
-    string_append_cstr(str, ".byte ");
+    var str = String::new(6 + 5*string.length + 1);
+    str.append_cstr(".byte ");
     var i = 0;
     var len = string.length;
     while i < len do
-        string_append_int(str, string_get(string, i));
+        str.append_int(string.get(i));
         i += 1;
         if i < len then
-            string_append_cstr(str, ", ");
+            str.append_cstr(", ");
         end
     end
     if len > 0 then
-        string_append_cstr(str, ", 0");
+        str.append_cstr(", 0");
     else
-        string_append_cstr(str, "0");
+        str.append_cstr("0");
     end
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
@@ -117,25 +117,25 @@ def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
     if compiler_context_nodebug(self) then
         return;
     end
-    var str = make_string(32);
+    var str = String::new(32);
     var id = compiler_context_get_file_id(self, src_loc.filename);
-    string_append_cstr(str, "    .loc ");
-    string_append_int(str, id);
-    string_push(str, ' ');
-    string_append_int(str, src_loc.line);
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    str.append_cstr("    .loc ");
+    str.append_int(id);
+    str.push(' ');
+    str.append_int(src_loc.line);
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_file self: compiler_context, idx: int, filename: cstr in
-    var str = make_string(128);
-    string_append_cstr(str, "    .file ");
-    string_append_int(str, idx);
-    string_append_cstr(str, " \"");
-    string_append_cstr(str, filename);
-    string_push(str, '"');
-    cc_out(self, string_cstr(str));
-    free_string(str);
+    var str = String::new(128);
+    str.append_cstr("    .file ");
+    str.append_int(idx);
+    str.append_cstr(" \"");
+    str.append_cstr(filename);
+    str.push('"');
+    cc_out(self, str.cstr());
+    str.delete();
 end
 
 def cc_out_files irctx: ir_context, cctx: compiler_context in
@@ -175,23 +175,23 @@ def cc_out_data_section irctx: ir_context, cctx: compiler_context in
 
     var globals = ir_globals(irctx);
     var i = 0; var len = globals.length;
-    var str = make_string(0);
+    var str = String::new(0);
     while i < len do
-        string_reset(str);
+        str.reset();
         var gi = globals.get(i);
         var kind = global_info_kind(gi);
         var label = global_info_label(gi);
         var value = global_info_value(gi);
         if kind == GIK_String then
-            string_append_cstr(str, label);
-            string_append_cstr(str, ": .quad ");
-            string_append_cstr(str, value);
-            cc_out(cctx, string_cstr(str));
+            str.append_cstr(label);
+            str.append_cstr(": .quad ");
+            str.append_cstr(value);
+            cc_out(cctx, str.cstr());
         elif kind == GIK_Integer then
-            string_append_cstr(str, label);
-            string_append_cstr(str, ": .quad ");
-            string_append_int(str, cast(value, int));
-            cc_out(cctx, string_cstr(str));
+            str.append_cstr(label);
+            str.append_cstr(": .quad ");
+            str.append_int(cast(value, int));
+            cc_out(cctx, str.cstr());
         else
             NYI_ERR(__FILE__, __LINE__, "cc_out_data_section: unknown global kind");
         end
@@ -233,7 +233,7 @@ def cc_lines_to_file cctx: compiler_context, path: cstr in
                 write_file(fd, buffer, BUFLEN);
                 p = buffer;
             end
-            u8!(p, string_get(line, j));
+            u8!(p, line.get(j));
             p += 1;
             j += 1;
         end

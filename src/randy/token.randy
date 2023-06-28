@@ -210,7 +210,7 @@ def print_token self: Token& in
     if k == TK::Integer then
         printf("%d\n", v);
     elif k == TK::String then
-        printf("\"%s\"\n", string_cstr(v));
+        printf("\"%s\"\n", cast(v, String&).cstr());
     elif k == TK::Char then
         printf("'%c'\n", v);
     else

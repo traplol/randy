@@ -32,13 +32,13 @@ def write_file fd: fd, buf: ptr, count: int -> int in
 end
 
 def getcwd -> String& in
-    var str = make_string(1024);
-    while not syscall(SYS_getcwd, string_buf(str), string_cap(str)) do
-        var temp = make_string(string_cap(str) + 1024);
-        free_string(str);
+    var str = String::new(1024);
+    while not syscall(SYS_getcwd, str.buffer, str.capacity) do
+        var temp = String::new(str.capacity + 1024);
+        str.delete();
         str = temp;
     end
-    string_set_len(str, cstr_len(string_buf(str)));
+    str.length = cstr_len(str.buffer);
     return str;
 end
 

@@ -20,12 +20,12 @@ def x86_64_emit_get_local cc, ir in
     if g_Experimental then
         offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
     end
-    var str = make_string(20);
-    string_append_cstr(str, "    movq -");
-    string_append_int(str, offs);
-    string_append_cstr(str, "(%rbp), %rax");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    movq -");
+    str.append_int(offs);
+    str.append_cstr("(%rbp), %rax");
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    pushq %rax");
 end
 
@@ -37,12 +37,12 @@ def x86_64_emit_ref_local cc, ir in
     if g_Experimental then
         offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
     end
-    var str = make_string(20);
-    string_append_cstr(str, "    leaq -");
-    string_append_int(str, offs);
-    string_append_cstr(str, "(%rbp), %rax");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    leaq -");
+    str.append_int(offs);
+    str.append_cstr("(%rbp), %rax");
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    pushq %rax");
 end
 
@@ -50,12 +50,12 @@ def x86_64_emit_push_label cc, ir in
     check_ir_kind(IRK_PushLabel, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var str = make_string(20);
-    string_append_cstr(str, "    leaq ");
-    string_append_cstr(str, ir_instr_label(ir));
-    string_append_cstr(str, ", %rax");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    leaq ");
+    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(", %rax");
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    pushq %rax");
 end
 
@@ -63,18 +63,18 @@ def x86_64_emit_push_int cc, ir in
     check_ir_kind(IRK_PushInt, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var str = make_string(20);
+    var str = String::new(20);
     var val = ir_instr_value(ir);
     if (0-2147483649) < val and val < 4294967296 then
-        string_append_cstr(str, "    movq $");
+        str.append_cstr("    movq $");
     else
-        string_append_cstr(str, "    movabsq $");
+        str.append_cstr("    movabsq $");
     end
-    string_append_int(str, val);
-    string_append_cstr(str, ", %rax");
-    cc_out(cc, string_cstr(str));
+    str.append_int(val);
+    str.append_cstr(", %rax");
+    cc_out(cc, str.cstr());
     cc_out(cc, "    pushq %rax");
-    free_string(str);
+    str.delete();
 end
 
 def x86_64_emit_alloc_temps cc, ir in
@@ -84,12 +84,12 @@ def x86_64_emit_alloc_temps cc, ir in
     if n > 0 then
         cc_out_src_loc(cc, ir_instr_src_loc(ir));
         var offs = (n+1) * REG_SIZE;
-        var str = make_string(20);
-        string_append_cstr(str, "    subq $");
-        string_append_int(str, offs);
-        string_append_cstr(str, ", %rsp");
-        cc_out(cc, string_cstr(str));
-        free_string(str);
+        var str = String::new(20);
+        str.append_cstr("    subq $");
+        str.append_int(offs);
+        str.append_cstr(", %rsp");
+        cc_out(cc, str.cstr());
+        str.delete();
     end
 end
 
@@ -100,12 +100,12 @@ def x86_64_emit_free_temps cc, ir in
     if n > 0 then
         cc_out_src_loc(cc, ir_instr_src_loc(ir));
         var offs = (n+1) * REG_SIZE;
-        var str = make_string(20);
-        string_append_cstr(str, "    addq $");
-        string_append_int(str, offs);
-        string_append_cstr(str, ", %rsp");
-        cc_out(cc, string_cstr(str));
-        free_string(str);
+        var str = String::new(20);
+        str.append_cstr("    addq $");
+        str.append_int(offs);
+        str.append_cstr(", %rsp");
+        cc_out(cc, str.cstr());
+        str.delete();
     end
 end
 
@@ -115,12 +115,12 @@ def x86_64_emit_store_temp cc, ir in
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
     cc_out(cc, "    popq %rax");
-    var str = make_string(20);
-    string_append_cstr(str, "    movq %rax, ");
-    string_append_int(str, offs);
-    string_append_cstr(str, "(%rsp)");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    movq %rax, ");
+    str.append_int(offs);
+    str.append_cstr("(%rsp)");
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_set_arg_temp cc, ir in
@@ -129,19 +129,19 @@ def x86_64_emit_set_arg_temp cc, ir in
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var n = ir_instr_n(ir);
     var offs = (n + 1) * REG_SIZE;
-    var str = make_string(20);
+    var str = String::new(20);
     if n < SYSV_REGISTERS then
-        string_append_cstr(str, "    movq ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rsp), ");
-        string_append_cstr(str, systemv_arg(n));
+        str.append_cstr("    movq ");
+        str.append_int(offs);
+        str.append_cstr("(%rsp), ");
+        str.append_cstr(systemv_arg(n));
     else
-        string_append_cstr(str, "    pushq ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rsp)");
+        str.append_cstr("    pushq ");
+        str.append_int(offs);
+        str.append_cstr("(%rsp)");
     end
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_call cc, ir in
@@ -159,11 +159,11 @@ def x86_64_emit_call cc, ir in
     if ir_instr_varargs(ir) then
         cc_out(cc, "    xor %al, %al");
     end
-    var str = make_string(20);
-    string_append_cstr(str, "    call ");
-    string_append_cstr(str, ir_instr_label(ir));
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    call ");
+    str.append_cstr(ir_instr_label(ir));
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    pushq %rax");
 end
 
@@ -284,12 +284,12 @@ def _x86_64_emit_compare cc, op in
     cc_out(cc, "    popq %r11"); // -- a
     cc_out(cc, "    xorl %eax, %eax");
     cc_out(cc, "    cmpq %r10, %r11");
-    var str = make_string(20);
-    string_append_cstr(str, "    ");
-    string_append_cstr(str, op);
-    string_append_cstr(str, " %al");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    ");
+    str.append_cstr(op);
+    str.append_cstr(" %al");
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    pushq %rax");
 end
 
@@ -358,16 +358,16 @@ def x86_64_emit_set_local cc, ir in
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
-    var str = make_string(20);
+    var str = String::new(20);
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
     if g_Experimental then
         offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
     end
-    string_append_cstr(str, "    movq %rax, -");
-    string_append_int(str, offs);
-    string_append_cstr(str, "(%rbp)");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    str.append_cstr("    movq %rax, -");
+    str.append_int(offs);
+    str.append_cstr("(%rbp)");
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_new_def cc, ir in
@@ -385,12 +385,12 @@ def x86_64_emit_new_def cc, ir in
         n = ir_instr_expr_size(ir) / BYTE_BITS;
     end
     if n > 0 then
-        var str = make_string(20);
-        string_append_cstr(str, "    subq $");
-        string_append_int(str, n);
-        string_append_cstr(str, ", %rsp");
-        cc_out(cc, string_cstr(str));
-        free_string(str);
+        var str = String::new(20);
+        str.append_cstr("    subq $");
+        str.append_int(n);
+        str.append_cstr(", %rsp");
+        cc_out(cc, str.cstr());
+        str.delete();
     end
 end
 
@@ -404,30 +404,30 @@ def x86_64_emit_set_local_arg cc, ir in
         offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
     end
     var arg_n = ir_instr_arg(ir);
-    var str = make_string(20);
+    var str = String::new(20);
     if arg_n < SYSV_REGISTERS then
-        string_append_cstr(str, "    movq ");
-        string_append_cstr(str, systemv_arg(arg_n));
-        string_append_cstr(str, ", -");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rbp)");
-        cc_out(cc, string_cstr(str));
-        free_string(str);
+        str.append_cstr("    movq ");
+        str.append_cstr(systemv_arg(arg_n));
+        str.append_cstr(", -");
+        str.append_int(offs);
+        str.append_cstr("(%rbp)");
+        cc_out(cc, str.cstr());
+        str.delete();
     else
         var n = (local_n - SYSV_REGISTERS + 2) * REG_SIZE;
         if g_Experimental then
             assert(false, "todo: ran out of registers\n");
         end
-        string_append_cstr(str, "    movq ");
-        string_append_int(str, n);
-        string_append_cstr(str, "(%rbp), %rax");
-        cc_out(cc, string_cstr(str));
-        string_reset(str);
-        string_append_cstr(str, "    movq %rax, -");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rbp)");
-        cc_out(cc, string_cstr(str));
-        free_string(str);
+        str.append_cstr("    movq ");
+        str.append_int(n);
+        str.append_cstr("(%rbp), %rax");
+        cc_out(cc, str.cstr());
+        str.reset();
+        str.append_cstr("    movq %rax, -");
+        str.append_int(offs);
+        str.append_cstr("(%rbp)");
+        cc_out(cc, str.cstr());
+        str.delete();
     end
 end
 
@@ -445,11 +445,11 @@ def x86_64_emit_goto_top_false cc, ir in
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    cmpq $0, (%rsp)");
-    var str = make_string(20);
-    string_append_cstr(str, "    je ");
-    string_append_cstr(str, ir_instr_label(ir));
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    je ");
+    str.append_cstr(ir_instr_label(ir));
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    addq $8, %rsp");
 end
 
@@ -458,11 +458,11 @@ def x86_64_emit_goto_top_true cc, ir in
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    cmpq $0, (%rsp)");
-    var str = make_string(20);
-    string_append_cstr(str, "    jne ");
-    string_append_cstr(str, ir_instr_label(ir));
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    jne ");
+    str.append_cstr(ir_instr_label(ir));
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    addq $8, %rsp");
 end
 
@@ -472,22 +472,22 @@ def x86_64_emit_goto_false cc, ir in
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    cmpq $0, %rax");
-    var str = make_string(20);
-    string_append_cstr(str, "    je ");
-    string_append_cstr(str, ir_instr_label(ir));
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    je ");
+    str.append_cstr(ir_instr_label(ir));
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_goto cc, ir in
     check_ir_kind(IRK_Goto, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var str = make_string(20);
-    string_append_cstr(str, "    jmp ");
-    string_append_cstr(str, ir_instr_label(ir));
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    jmp ");
+    str.append_cstr(ir_instr_label(ir));
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_label cc, ir in
@@ -504,30 +504,30 @@ def x86_64_emit_ptr_read cc, ir in
     var size = ir_instr_size(ir);
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    xorl %edx, %edx");
-    var str = make_string(20);
+    var str = String::new(20);
     var reg;
-    string_append_cstr(str, "    mov");
+    str.append_cstr("    mov");
     if size == 8 then
-        string_push(str, 'b');
+        str.push('b');
         reg = "%dl";
     elif size == 16 then
-        string_push(str, 'w');
+        str.push('w');
         reg = "%dx";
     elif size == 32 then
-        string_push(str, 'l');
+        str.push('l');
         reg = "%edx";
     elif size == 64 then
-        string_push(str, 'q');
+        str.push('q');
         reg = "%rdx";
     else
         assert(false,
             "x86_64_emit_ptr_read does not work with sizes outside of 8, 16, 32, 64, size is %d\n",
             size);
     end
-    string_append_cstr(str, " (%rax), ");
-    string_append_cstr(str, reg);
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    str.append_cstr(" (%rax), ");
+    str.append_cstr(reg);
+    cc_out(cc, str.cstr());
+    str.delete();
     cc_out(cc, "    movq %rdx, %rax");
     cc_out(cc, "    pushq %rax");
 end
@@ -539,31 +539,31 @@ def x86_64_emit_ptr_write cc, ir in
     var size = ir_instr_size(ir);
     cc_out(cc, "    popq %rax"); // -- ptr
     cc_out(cc, "    popq %rdx"); // -- value
-    var str = make_string(20);
+    var str = String::new(20);
     var reg;
-    string_append_cstr(str, "    mov");
+    str.append_cstr("    mov");
     if size == 8 then
-        string_push(str, 'b');
+        str.push('b');
         reg = "%dl";
     elif size == 16 then
-        string_push(str, 'w');
+        str.push('w');
         reg = "%dx";
     elif size == 32 then
-        string_push(str, 'l');
+        str.push('l');
         reg = "%edx";
     elif size == 64 then
-        string_push(str, 'q');
+        str.push('q');
         reg = "%rdx";
     else
         assert(false,
             "x86_64_emit_ptr_write does not work with sizes outside of 8, 16, 32, 64, size is %d\n",
             size);
     end
-    string_push(str, ' ');
-    string_append_cstr(str, reg);
-    string_append_cstr(str, ", (%rax)");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    str.push(' ');
+    str.append_cstr(reg);
+    str.append_cstr(", (%rax)");
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_ptr_copy cc, ir in
@@ -591,21 +591,21 @@ def x86_64_emit_ptr_copy cc, ir in
     assert(size == 0, "x86_64_emit_ptr_copy: didn't resolve size to 0, it was %d\n", size);
 
     var i = 0; var offs = 0;
-    var str = make_string(20);
+    var str = String::new(20);
     while i < sse do
         // load src+offs into xmm0
-        string_reset(str);
-        string_append_cstr(str, "    movdqu ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rdx), %xmm0");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movdqu ");
+        str.append_int(offs);
+        str.append_cstr("(%rdx), %xmm0");
+        cc_out(cc, str.cstr());
 
         // store xmm0 into dest+offs
-        string_reset(str);
-        string_append_cstr(str, "    movups %xmm0, ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rax)");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movups %xmm0, ");
+        str.append_int(offs);
+        str.append_cstr("(%rax)");
+        cc_out(cc, str.cstr());
 
         i += 1;
         offs += 16;
@@ -613,18 +613,18 @@ def x86_64_emit_ptr_copy cc, ir in
 
     while i < movq do
         // load src+offs into rcx
-        string_reset(str);
-        string_append_cstr(str, "    movq ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rdx), %rcx");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movq ");
+        str.append_int(offs);
+        str.append_cstr("(%rdx), %rcx");
+        cc_out(cc, str.cstr());
 
         // store rcx into dest+offs
-        string_reset(str);
-        string_append_cstr(str, "    movq %rcx, ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rax)");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movq %rcx, ");
+        str.append_int(offs);
+        str.append_cstr("(%rax)");
+        cc_out(cc, str.cstr());
 
         i += 1;
         offs += 8;
@@ -633,18 +633,18 @@ def x86_64_emit_ptr_copy cc, ir in
     i = 0;
     while i < movl do
         // load src+offs into ecx
-        string_reset(str);
-        string_append_cstr(str, "    movl ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rdx), %ecx");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movl ");
+        str.append_int(offs);
+        str.append_cstr("(%rdx), %ecx");
+        cc_out(cc, str.cstr());
 
         // store ecx into dest+offs
-        string_reset(str);
-        string_append_cstr(str, "    movl %ecx, ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rax)");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movl %ecx, ");
+        str.append_int(offs);
+        str.append_cstr("(%rax)");
+        cc_out(cc, str.cstr());
 
         i += 1;
         offs += 4;
@@ -653,18 +653,18 @@ def x86_64_emit_ptr_copy cc, ir in
     i = 0;
     while i < movw do
         // load src+offs into cx
-        string_reset(str);
-        string_append_cstr(str, "    movw ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rdx), %cx");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movw ");
+        str.append_int(offs);
+        str.append_cstr("(%rdx), %cx");
+        cc_out(cc, str.cstr());
 
         // store cx into dest+offs
-        string_reset(str);
-        string_append_cstr(str, "    movw %cx, ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rax)");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movw %cx, ");
+        str.append_int(offs);
+        str.append_cstr("(%rax)");
+        cc_out(cc, str.cstr());
 
         i += 1;
         offs += 2;
@@ -673,23 +673,23 @@ def x86_64_emit_ptr_copy cc, ir in
     i = 0;
     while i < movb do
         // load src+offs into ecx
-        string_reset(str);
-        string_append_cstr(str, "    movzbl ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rdx), %ecx");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movzbl ");
+        str.append_int(offs);
+        str.append_cstr("(%rdx), %ecx");
+        cc_out(cc, str.cstr());
 
         // store cl into dest+offs
-        string_reset(str);
-        string_append_cstr(str, "    movb %cl, ");
-        string_append_int(str, offs);
-        string_append_cstr(str, "(%rax)");
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    movb %cl, ");
+        str.append_int(offs);
+        str.append_cstr("(%rax)");
+        cc_out(cc, str.cstr());
 
         i += 1;
         offs += 1;
     end
-    free_string(str);
+    str.delete();
 end
 
 def x86_64_emit_ptr_offset cc, ir in
@@ -702,12 +702,12 @@ def x86_64_emit_ptr_offset cc, ir in
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
 
-    var str = make_string(20);
-    string_append_cstr(str, "    leaq ");
-    string_append_int(str, offset);
-    string_append_cstr(str, "(%rax), %rax");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    leaq ");
+    str.append_int(offset);
+    str.append_cstr("(%rax), %rax");
+    cc_out(cc, str.cstr());
+    str.delete();
 
     cc_out(cc, "    pushq %rax");
 end
@@ -760,36 +760,36 @@ def x86_64_emit_set_global cc, ir in
     check_ir_kind(IRK_SetGlobal, ir);
     //print_ir(ir);
     cc_out(cc, "    popq %rax");
-    var str = make_string(20);
-    string_append_cstr(str, "    movq %rax, (");
-    string_append_cstr(str, ir_instr_label(ir));
-    string_append_cstr(str, ")");
-    cc_out(cc, string_cstr(str));
-    free_string(str);
+    var str = String::new(20);
+    str.append_cstr("    movq %rax, (");
+    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(")");
+    cc_out(cc, str.cstr());
+    str.delete();
 end
 
 def x86_64_emit_get_global cc, ir in
     check_ir_kind(IRK_GetGlobal, ir);
     //print_ir(ir);
-    var str = make_string(20);
-    string_append_cstr(str, "    movq (");
-    string_append_cstr(str, ir_instr_label(ir));
-    string_append_cstr(str, "), %rax");
-    cc_out(cc, string_cstr(str));
+    var str = String::new(20);
+    str.append_cstr("    movq (");
+    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr("), %rax");
+    cc_out(cc, str.cstr());
     cc_out(cc, "    pushq %rax");
-    free_string(str);
+    str.delete();
 end
 
 def x86_64_emit_ref_global cc, ir in
     check_ir_kind(IRK_RefGlobal, ir);
     //print_ir(ir);
-    var str = make_string(20);
-    string_append_cstr(str, "    leaq ");
-    string_append_cstr(str, ir_instr_label(ir));
-    string_append_cstr(str, ", %rax");
-    cc_out(cc, string_cstr(str));
+    var str = String::new(20);
+    str.append_cstr("    leaq ");
+    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(", %rax");
+    cc_out(cc, str.cstr());
     cc_out(cc, "    pushq %rax");
-    free_string(str);
+    str.delete();
 end
 
 def x86_64_emit_negative cc, ir in
@@ -872,16 +872,16 @@ def x86_64_emit_start cc: compiler_context, main_def: cstr, exit_def: cstr in
     cc_out(cc, "    addq $8, %rsi");
     cc_out(cc, "    movq %rdi, (__argc__)");
     cc_out(cc, "    movq %rsi, (__argv__)");
-    var str = make_string(0);
-    string_append_cstr(str, "    call ");
-    string_append_cstr(str, main_def);
-    cc_out(cc, string_cstr(str));
+    var str = String::new(0);
+    str.append_cstr("    call ");
+    str.append_cstr(main_def);
+    cc_out(cc, str.cstr());
     cc_out(cc, "    movq %rax, %rdi");
     if exit_def then
-        string_reset(str);
-        string_append_cstr(str, "    call ");
-        string_append_cstr(str, exit_def);
-        cc_out(cc, string_cstr(str));
+        str.reset();
+        str.append_cstr("    call ");
+        str.append_cstr(exit_def);
+        cc_out(cc, str.cstr());
     end
     cc_out(cc, "    movq $60, %rax");
     cc_out(cc, "    syscall");

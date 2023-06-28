@@ -9,7 +9,7 @@ end
 def make_type_infer -> TypeInfer& in
     var self: TypeInfer& = malloc(__sizeof(TypeInfer));
     self.cur_defs = Vector[Symbol&]::new(0);
-    self.did_returns = make_string(0);
+    self.did_returns = String::new(0);
     self.again = make_set(0, NULL, NULL);
     return self;
 end
@@ -17,7 +17,7 @@ end
 def free_type_infer self: TypeInfer& in
     if self then
         self.cur_defs.delete();
-        free_string(self.did_returns);
+        self.did_returns.delete();
         free_set(self.again);
         free(self);
     end
@@ -28,25 +28,25 @@ def ti_current_def self in
 end
 
 def ti_did_return self in
-    return string_back(self.did_returns);
+    return self.did_returns.back();
 end
 
 def ti_set_did_return self, val in
     var str = self.did_returns;
     var len = str.length;
     if len > 0 then
-        string_set(str, len - 1, val);
+        str.set(len - 1, val);
     end
 end
 
 def ti_push_def self, def_symbol in
     self.cur_defs.push(def_symbol);
-    string_push(self.did_returns, 0);
+    self.did_returns.push(0);
 end
 
 def ti_pop_def self in
     self.cur_defs.pop();
-    string_pop(self.did_returns);
+    self.did_returns.pop();
 end
 
 def ti_infer_vector self, tt, st, vector in

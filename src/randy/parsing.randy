@@ -355,7 +355,7 @@ def parse_assert ts, st, tt in
     var abort_symbol = st_get_symbol(st, "abort");
     assert(abort_symbol, "`abort` not defined for assert.");
 
-    printf_args.push(make_ast_string(assert_, string_from_cstr("Assertion failed:\n")));
+    printf_args.push(make_ast_string(assert_, String::new_from_cstr("Assertion failed:\n")));
     body.push(make_ast_call(assert_,
                         make_ast_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
@@ -374,11 +374,11 @@ def parse_assert ts, st, tt in
     end
 
     printf_args = Vector[ast]::new(1);
-    var string = string_from_cstr("  File \"");
-    string_append_cstr(string, assert_.src_loc.filename);
-    string_append_cstr(string, "\", line ");
-    string_append_int(string, assert_.src_loc.line);
-    string_push(string, '\n');
+    var string = String::new_from_cstr("  File \"");
+    string.append_cstr(assert_.src_loc.filename);
+    string.append_cstr("\", line ");
+    string.append_int(assert_.src_loc.line);
+    string.push('\n');
     printf_args.push(make_ast_string(assert_, string));
     body.push(make_ast_call(assert_,
                         make_ast_ident(assert_, symbol_name(printf_symbol)),
@@ -426,7 +426,7 @@ def parse_primary ts, st, tt in
     elif k == TK::String then
         return make_ast_string(peek, cast(ts.next().value, String&));
     elif k == TK::KW__FILE__ then
-        return make_ast_string(peek, string_from_cstr(ts.next().src_loc.filename));
+        return make_ast_string(peek, String::new_from_cstr(ts.next().src_loc.filename));
     elif k == TK::KW__LINE__ then
         return make_ast_integer(peek, ts.next().src_loc.line);
     elif k == TK::KW_u@ or
@@ -957,7 +957,7 @@ def parse_asm ts, st, tt in
 
     var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[Type&]::new(0), true);
     symbol_set_type(symbol, def_type);
-    return make_ast_inline_asm(asm_, symbol_name(symbol), string_cstr(asmcode.value));
+    return make_ast_inline_asm(asm_, symbol_name(symbol), cast(asmcode.value, String&).cstr());
 end
 
 def parse_global ts, st, tt in

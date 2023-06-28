@@ -2,152 +2,196 @@
 #include core
 #include memory
 
+extern strlen: (cstr -> int);
+
 struct String in
     buffer: char&;
     length: int;
     capacity: int;
-end
 
-def make_string init: int -> String& in
-    var self = cast(malloc(__sizeof(String)), String&);
-    var buf = malloc(init);
-
-    self.buffer = buf;
-    self.length = 0;
-    self.capacity = init;
-
-    return self;
-end
-
-def free_string self: String& in
-    if self then
-        free(self.buffer);
-        free(self);
+    def new init: int in
+        var self = cast(malloc(__sizeof(String)), String&);
+        self.buffer = malloc(init);
+        self.length = 0;
+        self.capacity = init;
+        return self;
     end
-end
 
-def string_buf self: String& -> char& in
-    return self.buffer;
-end
-
-def string_len self: String& -> int in
-    return self.length;
-end
-
-def string_set_len self: String&, n: int in
-    if n >= 0 and n <= self.capacity then
-        self.length = n;
+    def delete self in
+        if self then
+            free(self.buffer);
+            free(self);
+        end
     end
-end
 
-def string_reset self: String& in
-    self.length = 0;
-end
-
-def string_cap self: String& -> int in
-    return self.capacity;
-end
-
-def string_get self: String&, idx: int -> char in
-    return cast(u8@(self.buffer + idx), char);
-end
-
-def string_set self: String&, idx: int, val: char in
-    u8!(self.buffer + idx, val);
-end
-
-def string_resize self: String&, new_cap: int in
-    if new_cap < self.length or new_cap < self.capacity then
-        return;
+    def reset self in
+        self.length = 0;
     end
-    var new = malloc(new_cap);
-    var old = self.buffer;
-    var len = self.length;
-    if new_cap < len then
-        len = new_cap;
-    end
-    memcpy(new, old, len);
-    free(old);
-    self.buffer = new;
-    self.length = len;
-    self.capacity = new_cap;
-end
 
-def string_push self: String&, val: char in
-    var len = self.length;
-    var cap = self.capacity;
-    if len == cap then
-        string_resize(self, 2 * cap + 1);
+    def get self, idx: int -> char in
+        return cast(u8@(self.buffer + idx), char);
     end
-    string_set(self, len, val);
-    self.length = len + 1;
-end
 
-def string_pop self: String& in
-    var len = self.length;
-    if len > 0 then
-        self.length = len - 1;
-    else
-        printf("ERROR: string_pop out of bounds.\n");
+    def set self, idx: int, val: char in
+        u8!(self.buffer + idx, val);
+    end
+
+    def resize self, new_cap: int in
+        if new_cap < self.length or new_cap < self.capacity then
+            return;
+        end
+        var new = malloc(new_cap);
+        var old = self.buffer;
+        var len = self.length;
+        if new_cap < len then
+            len = new_cap;
+        end
+        memcpy(new, old, len);
+        free(old);
+        self.buffer = new;
+        self.length = len;
+        self.capacity = new_cap;
+    end
+
+    def push self, val: char in
+        var len = self.length;
+        var cap = self.capacity;
+        if len == cap then
+            self.resize(2 * cap + 1);
+        end
+        self.set(len, val);
+        self.length = len + 1;
+    end
+
+    def pop self in
+        var len = self.length;
+        if len > 0 then
+            self.length = len - 1;
+        else
+            printf("ERROR: String::pop out of bounds.\n");
+            abort();
+        end
+    end
+
+    def back self -> char in
+        var len = self.length;
+        if len > 0 then
+            return self.get(len-1);
+        end
+        printf("ERROR: String::back out of bounds.\n");
         abort();
     end
-end
 
-def string_back self: String& -> char in
-    var len = self.length;
-    if len > 0 then
-        return string_get(self, len-1);
+    def append_string self, string: String& in
+        var new_len = self.length + string.length;
+        if new_len > self.capacity then
+            self.resize(new_len);
+        end
+        memcpy(self.buffer + self.length, string.buffer, string.length);
+        self.length = new_len;
     end
-    printf("ERROR: string_back out of bounds.\n");
-    abort();
-end
 
-def string_append_string self: String&, string: String& in
-    var new_len = self.length + string.length;
-    if new_len > self.capacity then
-        string_resize(self, new_len);
+    def append_cstr self, cstr: cstr in
+        var n = strlen(cstr);
+        if n + self.length > self.capacity then
+            self.resize(self.length + n);
+        end
+        var str_end = self.buffer + self.length;
+        memcpy(str_end, cstr, n);
+        self.length += n;
     end
-    memcpy(self.buffer + self.length, string.buffer, string.length);
-    self.length = new_len;
 
-    // var i = 0; var len = string.length;
-    // while i < len do
-    //     string_push(self, string_get(string, i));
-    //     i += 1;
-    // end
-end
-
-extern strlen: (cstr -> int);
-def string_append_cstr self: String&, cstr: cstr in
-    var n = strlen(cstr);
-    if n + self.length > self.capacity then
-        string_resize(self, self.length + n);
+    def new_from_cstr cstr: cstr -> String& in
+        var n = strlen(cstr);
+        var string = String::new(n);
+        memcpy(string.buffer, cstr, n);
+        string.length = n;
+        return string;
     end
-    var str_end = self.buffer + self.length;
-    memcpy(str_end, cstr, n);
-    self.length += n;
 
-    // var i = 0;
-    // while u8@(cstr) do
-    //     string_push(self, u8@(cstr));
-    //     cstr += 1;
-    //     i += 1;
-    // end
-end
+    def cstr self: String& -> cstr in
+        var len = self.length;
+        if len == self.capacity then
+            self.resize(len + 1);
+        end
+        self.set(len, 0);
+        return self.buffer;
+    end
 
-def string_from_cstr cstr: cstr -> String& in
-    var n = strlen(cstr);
-    var string = make_string(n);
-    memcpy(string.buffer, cstr, n);
-    string.length = n;
-    return string;
+    def duplicate self: String& -> String& in
+        var copy = String::new(self.capacity);
+        memcpy(copy.buffer, self.buffer, self.length);
+        copy.length = self.length;
+        return copy;
+    end
 
-    // var string = make_string(2);
-    // while u8@(cstr) do
-    //     string_push(string, u8@(cstr));
-    //     cstr += 1;
-    // end
-    // return string;
+    def append_int_slow self, n: int in
+        // no zero check because this isn't called unless very positive or very negative number.
+        var temp = n;
+        var len = 0;
+        while temp != 0 do
+            len = len + 1;
+            temp = temp / 10;
+        end
+        if n < 0 then
+            len = len + 1;
+        end
+        var buf = malloc(len + 1);
+        var idx = 0;
+        var k = 0;
+        if n < 0 then
+            u8!(buf + idx, '-');
+            idx = idx + 1;
+            k = 1;
+            n = -n;
+        end
+        var DIGITS = "098765432101234567890" + 10;
+        while idx < len do
+            u8!(buf + (len - idx - (1 - k)), u8@(DIGITS + n % 10));
+            n /= 10;
+            idx = idx + 1;
+        end
+        u8!(buf + len, 0);
+        self.append_cstr(buf);
+        free(buf);
+    end
+
+    def append_int self, n: int in
+        // This will iteratively generate the characters for n -> str in left-to-right
+        // order but it will fail when we start to approach numbers that will overflow.
+        // We consider the alternative method "slow" because it does the same length
+        // calculation and but it also does a malloc/free for the intermediate result
+        // while this procedure does not.
+        if n < -100000000000000000 or n > 100000000000000000 then
+            self.append_int_slow(n);
+            return;
+        end
+        if n < 0 then
+            self.push('-');
+        end
+
+        if n < 0 then
+            n = -n;
+        end
+
+        if n < 10 then
+            self.push('0' + n);
+            return;
+        end
+
+        var k = 1;
+        while (n / k) != 0 do
+            k *= 10;
+        end
+        k /= 10;
+
+        while k != 0 do
+            self.push('0' + (n / k));
+            n %= k;
+            k /= 10;
+        end
+    end
+
 end
 
 def string_eq string_a: String&, string_b: String& -> bool in
@@ -166,21 +210,12 @@ def string_eq string_a: String&, string_b: String& -> bool in
 
     var i = 0;
     while i < a_len do
-        if string_get(string_a, i) != string_get(string_b, i) then
+        if string_a.get(i) != string_b.get(i) then
             return false;
         end
         i += 1;
     end
     return true;
-end
-
-def string_cstr self: String& -> cstr in
-    var len = self.length;
-    if len == self.capacity then
-        string_resize(self, len + 1);
-    end
-    string_set(self, len, 0);
-    return self.buffer;
 end
 
 def cstr_eq cstr_a: cstr, cstr_b: cstr -> bool in
@@ -209,11 +244,4 @@ def cstr_len cstr: cstr -> int in
         cstr += 1;
     end
     return i;
-end
-
-def string_duplicate self: String& -> String& in
-    var copy = make_string(self.capacity);
-    memcpy(copy.buffer, self.buffer, self.length);
-    copy.length = self.length;
-    return copy;
 end

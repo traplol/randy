@@ -500,7 +500,7 @@ def _print_ast_string ast, indent in
     var string = cast(ast_value(ast), String&);
     var i = 0; var len = string.length;
     while i < len do
-        var c = string_get(string, i);
+        var c = string.get(i);
         if c == '\n' then
             printf("\\n");
         elif c == '"' then
@@ -939,7 +939,7 @@ def _ast_deep_copy_integer ast, tt, st in
 end
 
 def _ast_deep_copy_string ast, tt, st in
-    return make_ast_string(ast_token(ast), string_duplicate(ast_value(ast)));
+    return make_ast_string(ast_token(ast), cast(ast_value(ast), String&).duplicate());
 end
 
 def _ast_deep_copy_call ast, tt, st in

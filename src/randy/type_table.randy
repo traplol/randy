@@ -692,11 +692,11 @@ end
 
 def _tt_append_def_type_repr self, string, type in
     if not type then
-        string_append_cstr(string, "{null}");
+        string.append_cstr("{null}");
     elif type_is_def(type) then
         var name = tt_get_def_type_name(self, type);
-        string_append_string(string, name);
-        free_string(name);
+        string.append_string(name);
+        name.delete();
     else
         var refs = 0;
         var deref_type = type;
@@ -707,40 +707,40 @@ def _tt_append_def_type_repr self, string, type in
 
         var name = tt_get_type_name(self, deref_type);
         if name then
-            string_append_cstr(string, name);
+            string.append_cstr(name);
         else
-            string_append_cstr(string, "<type id ");
-            string_append_int(string, type_id(deref_type));
-            string_push(string, '>');
+            string.append_cstr("<type id ");
+            string.append_int(type_id(deref_type));
+            string.push('>');
         end
 
         var params = type_params(deref_type);
         if params and params.length > 0 then
-            string_push(string, '[');
+            string.push('[');
             var i = 0; var len = params.length;
             while i < len do
                 _tt_append_def_type_repr(self, string, params.get(i));
                 i += 1;
                 if i < len then
-                    string_append_cstr(string, ", ");
+                    string.append_cstr(", ");
                 end
             end
-            string_push(string, ']');
+            string.push(']');
         end
         while refs > 0 do
-            string_push(string, '&');
+            string.push('&');
             refs -= 1;
         end
     end
 end
 
-def tt_get_def_type_name self, type in
+def tt_get_def_type_name self, type -> String& in
     if not type_is_def(type) then
         return NULL;
     end
 
-    var string = make_string(20);
-    string_push(string, '(');
+    var string = String::new(20);
+    string.push('(');
     var params = type_def_parameters(type);
     var ret_ty = type_def_return_type(type);
 
@@ -750,16 +750,16 @@ def tt_get_def_type_name self, type in
         _tt_append_def_type_repr(self, string, param_type);
         i += 1;
         if i < len then
-            string_append_cstr(string, ", ");
+            string.append_cstr(", ");
         end
     end
     if i == 0 then
-        string_append_cstr(string, "void");
+        string.append_cstr("void");
     end
 
-    string_append_cstr(string, " -> ");
+    string.append_cstr(" -> ");
     _tt_append_def_type_repr(self, string, ret_ty);
-    string_push(string, ')');
+    string.push(')');
     return string;
 end
 
@@ -1011,10 +1011,10 @@ end
 
 def tt_print_type_name self, type in
     if type then
-        var name = make_string(32);
+        var name = String::new(32);
         _tt_append_def_type_repr(self, name, type);
-        printf("%s", string_cstr(name));
-        free_string(name);
+        printf("%s", name.cstr());
+        name.delete();
     else
         printf("{null}");
     end

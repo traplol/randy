@@ -830,16 +830,16 @@ def ir_new_def self, ident, params, ast, symbol in
         exit(1);
     end
 
-    var label = make_string(20); // @LEAK
-    string_append_cstr(label, "_def_");
+    var label = String::new(20); // @LEAK
+    label.append_cstr("_def_");
     if symbol.owned_by then
-        string_push(label, '_');
-        string_append_int(label, type_id(symbol.owned_by));
-        string_push(label, '_');
+        label.push('_');
+        label.append_int(type_id(symbol.owned_by));
+        label.push('_');
     end
-    string_append_cstr(label, ident);
+    label.append_cstr(ident);
 
-    var label_cstr = string_cstr(label);
+    var label_cstr = label.cstr();
     set_add(ir_labels(self), label_cstr);
     map_set(defs, symbol_name(symbol), make_def_info(label_cstr, false));
 
@@ -891,14 +891,14 @@ def ir_new_label self, hint in
     var label_id = cast(u64@(self + TIR_CONTEXT_label_id), int);
     u64!(self + TIR_CONTEXT_label_id, label_id + 1);
 
-    var label = make_string(13); // @LEAK
-    string_append_cstr(label, ".L");
+    var label = String::new(13); // @LEAK
+    label.append_cstr(".L");
     if hint then
-        string_append_cstr(label, hint);
+        label.append_cstr(hint);
     end
-    string_append_int(label, label_id);
+    label.append_int(label_id);
 
-    var label_cstr = string_cstr(label);
+    var label_cstr = label.cstr();
     set_add(ir_labels(self), label_cstr);
     return label_cstr;
 end

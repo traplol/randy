@@ -29,7 +29,7 @@ def get_escaped_char c: char -> char in
 end
 
 def get_ident_kind string: String& in
-    var cstr = string_cstr(string);
+    var cstr = string.cstr();
     var first = u8@(cstr);
     if 'a' == first then
         if cstr_eq("and", cstr) then return TK::KW_and; end
@@ -105,97 +105,97 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
     var tokens = Vector[Token&]::new(0);
     var length = code.length;
     // pad the ending so we don't have to check that every memory access is valid.
-    string_push(code, 0);
-    string_push(code, 0);
-    string_push(code, 0);
-    string_set_len(code, length);
+    code.push(0);
+    code.push(0);
+    code.push(0);
+    code.length = length;
     var line_no = 1;
     var temp; var c; var val;
     while i < length do
         // Consume whitespace
-        while i < length and is_whitespace(string_get(code, i)) do
-            if string_get(code, i) == '\n' then
+        while i < length and is_whitespace(code.get(i)) do
+            if code.get(i) == '\n' then
                 line_no = line_no + 1;
             end
             i += 1;
         end
 
         if i < length then
-            c = string_get(code, i);
-            if c == '/' and string_get(code, i + 1) == '/' then
-                while i < length and string_get(code, i) != '\n' do
+            c = code.get(i);
+            if c == '/' and code.get(i + 1) == '/' then
+                while i < length and code.get(i) != '\n' do
                     i += 1;
                 end
             elif is_ident_start(c) then
-                temp = make_string(2);
-                string_push(temp, c);
+                temp = String::new(2);
+                temp.push(c);
                 while i < length and is_ident_char(c) do
                    i += 1;
-                   c = string_get(code, i);
+                   c = code.get(i);
                    if is_ident_char(c) then
-                       string_push(temp, c);
+                       temp.push(c);
                    end
                 end
-                tokens.push(make_token(get_ident_kind(temp), string_cstr(temp), string_cstr(temp), line_no, filename));
+                tokens.push(make_token(get_ident_kind(temp), temp.cstr(), temp.cstr(), line_no, filename));
             elif is_digit(c) then
-                temp = make_string(2);
-                string_push(temp, c);
+                temp = String::new(2);
+                temp.push(c);
                 while i < length and is_digit(c) do
                    i += 1;
-                   c = string_get(code, i);
+                   c = code.get(i);
                    if is_digit(c) then
-                       string_push(temp, c);
+                       temp.push(c);
                    end
                 end
                 val = int_from_string(temp);
-                tokens.push(make_token(TK::Integer, string_cstr(temp), cast(val, ptr), line_no, filename));
+                tokens.push(make_token(TK::Integer, temp.cstr(), cast(val, ptr), line_no, filename));
             elif c == '"' then
-                temp = make_string(2);
+                temp = String::new(2);
                 i += 1; // skip open quote
-                while i < length and string_get(code, i) != '"' do
-                    c = string_get(code, i);
+                while i < length and code.get(i) != '"' do
+                    c = code.get(i);
                     if c == '\\' then
                         i += 1; // skip \
-                        c = string_get(code, i);
+                        c = code.get(i);
                         c = get_escaped_char(c);
                     elif c == '\n' then
                         line_no = line_no + 1;
                     end
-                    string_push(temp, c);
+                    temp.push(c);
                     i += 1;
                 end
                 i += 1; // skip close quote
-                tokens.push(make_token(TK::String, string_cstr(temp), temp, line_no, filename));
+                tokens.push(make_token(TK::String, temp.cstr(), temp, line_no, filename));
             elif c == '\'' then
-                temp = make_string(2);
+                temp = String::new(2);
                 i += 1; // skip open quote
-                c = string_get(code, i);
+                c = code.get(i);
                 if c == '\\' then
                     i += 1; // skip \
-                    c = string_get(code, i);
+                    c = code.get(i);
                     c = get_escaped_char(c);
                 elif c == '\n' then
                     line_no = line_no + 1;
                 end
-                string_push(temp, c);
+                temp.push(c);
                 i += 2; // skip char and close quote
-                tokens.push(make_token(TK::Char, string_cstr(temp), cast(c, ptr), line_no, filename));
+                tokens.push(make_token(TK::Char, temp.cstr(), cast(c, ptr), line_no, filename));
             elif c == '#' then
-                var directive = make_string(2);
-                var arg = make_string(2);
+                var directive = String::new(2);
+                var arg = String::new(2);
                 // gather #directive chars up to next space
                 while i < length do
-                    c = string_get(code, i);
+                    c = code.get(i);
                     if is_whitespace(c) then
                         break;
                     else
-                        string_push(directive, c);
+                        directive.push(c);
                         i += 1;
                     end
                 end
                 // consume all whitespace up to newline or non-whitespace
                 while i < length do
-                    c = string_get(code, i);
+                    c = code.get(i);
                     if c == '\n' then
                         break;
                     elif is_whitespace(c) then
@@ -206,24 +206,24 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                 end
                 // gather the rest of the line into arg
                 while i < length and c != '\n' do
-                    c = string_get(code, i);
+                    c = code.get(i);
                     if c != '\n' then
-                        string_push(arg, c);
+                        arg.push(c);
                         i += 1;
                     end
                 end
                 // trim whitespace off end of arg
-                while arg.length > 0 and is_whitespace(string_back(arg)) do
-                    string_pop(arg);
+                while arg.length > 0 and is_whitespace(arg.back()) do
+                    arg.pop();
                 end
                 handle_directive(filename, line_no, tokens, include_paths, included_already, directive, arg);
-                free_string(directive);
-                free_string(arg);
+                directive.delete();
+                arg.delete();
             elif c == ';' then
                 tokens.push(make_token(TK::Semicolon, ";", ";", line_no, filename));
                 i += 1;
             elif c == ':' then
-                if string_get(code, i + 1) == ':' then
+                if code.get(i + 1) == ':' then
                     tokens.push(make_token(TK::ColonColon, "::", "::", line_no, filename));
                     i += 2;
                 else
@@ -246,7 +246,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                 tokens.push(make_token(TK::RSquare, "]", "]", line_no, filename));
                 i += 1;
             elif c == '+' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::PlusEq, "+=", "+=", line_no, filename));
                     i += 2;
                 else
@@ -254,10 +254,10 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '-' then
-                if string_get(code, i + 1) == '>' then
+                if code.get(i + 1) == '>' then
                     tokens.push(make_token(TK::RightArrow, "->", "->", line_no, filename));
                     i += 2;
-                elif string_get(code, i + 1) == '=' then
+                elif code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::MinusEq, "-=", "-=", line_no, filename));
                     i += 2;
                 else
@@ -265,7 +265,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '*' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::StarEq, "*=", "*=", line_no, filename));
                     i += 2;
                 else
@@ -273,7 +273,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '/' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::SlashEq, "/=", "/=", line_no, filename));
                     i += 2;
                 else
@@ -281,7 +281,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '%' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::PercentEq, "%=", "%=", line_no, filename));
                     i += 2;
                 else
@@ -289,7 +289,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '|' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::BarEq, "|=", "|=", line_no, filename));
                     i += 2;
                 else
@@ -297,7 +297,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '&' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::AmperEq, "&=", "&=", line_no, filename));
                     i += 2;
                 else
@@ -305,7 +305,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '^' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::CaretEq, "^=", "^=", line_no, filename));
                     i += 2;
                 else
@@ -316,7 +316,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                 tokens.push(make_token(TK::Tilde, "~", "~", line_no, filename));
                 i += 1;
             elif c == '.' then
-                if string_get(code, i + 1) == '.' and string_get(code, i + 2) == '.' then
+                if code.get(i + 1) == '.' and code.get(i + 2) == '.' then
                     tokens.push(make_token(TK::Ellipsis, "...", "...", line_no, filename));
                     i += 3;
                 else
@@ -324,18 +324,18 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '!' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::NotEq, "!=", "!=", line_no, filename));
                     i += 2;
                 else
                     _unrecognized_char(filename, line_no, c);
                 end
             elif c == '<' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::LessEq, "<=", "<=", line_no, filename));
                     i += 2;
-                elif string_get(code, i + 1) == '<' then
-                    if string_get(code, i + 2) == '=' then
+                elif code.get(i + 1) == '<' then
+                    if code.get(i + 2) == '=' then
                         tokens.push(make_token(TK::LShiftEq, "<<=", "<<=", line_no, filename));
                         i += 3;
                     else
@@ -347,11 +347,11 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '>' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::GreaterEq, ">=", ">=", line_no, filename));
                     i += 2;
-                elif string_get(code, i + 1) == '>' then
-                    if string_get(code, i + 2) == '=' then
+                elif code.get(i + 1) == '>' then
+                    if code.get(i + 2) == '=' then
                         tokens.push(make_token(TK::RShiftEq, ">>=", ">>=", line_no, filename));
                         i += 3;
                     else
@@ -363,7 +363,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
             elif c == '=' then
-                if string_get(code, i + 1) == '=' then
+                if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::EqEq, "==", "==", line_no, filename));
                     i += 2;
                 else
@@ -394,31 +394,31 @@ def lex_file path: cstr, include_paths: Vector[String&]& in
 end
 
 def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[String&]&, included_already: set, arg: String& in
-    string_append_cstr(arg, ".randy");
+    arg.append_cstr(".randy");
 
     var i = 0;
-    var cur_dir = string_from_cstr(src_file);
-    while cur_dir.length > 0 and string_back(cur_dir) != '/' do
-        string_pop(cur_dir);
+    var cur_dir = String::new_from_cstr(src_file);
+    while cur_dir.length > 0 and cur_dir.back() != '/' do
+        cur_dir.pop();
     end
     var found = cur_dir;
-    string_append_string(found, arg);
-    if not file_is_readable(string_cstr(found)) then
+    found.append_string(arg);
+    if not file_is_readable(found.cstr()) then
         found = NULL;
-        free_string(cur_dir);
+        cur_dir.delete();
     end
 
     if not found then
         i = include_paths.length - 1;
         while i >= 0 do
             cur_dir = include_paths.get(i);
-            found = string_duplicate(cur_dir);
-            string_push(found, '/');
-            string_append_string(found, arg);
-            if file_is_readable(string_cstr(found)) then
+            found = cur_dir.duplicate();
+            found.push('/');
+            found.append_string(arg);
+            if file_is_readable(found.cstr()) then
                 i = 0;
             else
-                free_string(found);
+                found.delete();
                 found = NULL;
             end
             i -= 1;
@@ -428,7 +428,7 @@ def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, includ
     if found then
         if not set_contains(included_already, found) then
             set_add(included_already, found);
-            var included = _lex_file_aux(string_cstr(found), include_paths, included_already);
+            var included = _lex_file_aux(found.cstr(), include_paths, included_already);
             i = 0;
             var len = included.length;
             while i < len do
@@ -436,18 +436,18 @@ def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, includ
                 i += 1;
             end
         else
-            free_string(found);
+            found.delete();
         end
     else
         printf("ERROR: Included file is not readable or does not exist\n");
-        printf("NOTE: The included file was '%s'\n", string_cstr(arg));
+        printf("NOTE: The included file was '%s'\n", arg.cstr());
         printf("  File \"%s\", line %d\n", src_file, line_no);
         exit(1);
     end
 end
 
 def handle_directive src_file, line_no, tokens, include_paths, included_already, directive, arg in
-    if cstr_eq("#include", string_cstr(directive)) then
+    if cstr_eq("#include", directive.cstr()) then
         handle_include(src_file, line_no, tokens, include_paths, included_already, arg);
     end
 end

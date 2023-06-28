@@ -11,7 +11,7 @@ def read_file_to_string path: cstr -> String& in
     var buf = malloc(1024);
     var running = 1;
     var result = 0;
-    var string = make_string(64);
+    var string = String::new(64);
     var x = 0;
     while running do
         result = read_file(fd, buf, 1023);
@@ -19,21 +19,21 @@ def read_file_to_string path: cstr -> String& in
             running = 0;
             printf("error reading file: %d\n", result);
             free(buf);
-            free_string(string);
+            string.delete();
             return cast(NULL, String&);
         elif result == 0 then
             running = 0;
         else
             x = 0;
             while x < result do
-                string_push(string, u8@(buf+x));
+                string.push(u8@(buf+x));
                 x += 1;
             end
         end
     end
     free(buf);
 
-    string_push(string, 0);
+    string.push(0);
     return string;
 end
 
@@ -53,77 +53,10 @@ def string_hash string: String& -> int in
     var len = string.length;
     var i = 0;
     while i < len do
-        hash = hash * 33 + string_get(string, i);
+        hash = hash * 33 + string.get(i);
         i += 1;
     end
     return hash;
-end
-
-def _string_append_int_slow string: String&, n: int in
-    // no zero check because this isn't called unless very positive or very negative number.
-    var temp = n;
-    var len = 0;
-    while temp != 0 do
-        len = len + 1;
-        temp = temp / 10;
-    end
-    if n < 0 then
-        len = len + 1;
-    end
-    var buf = malloc(len + 1);
-    var idx = 0;
-    var k = 0;
-    if n < 0 then
-        u8!(buf + idx, '-');
-        idx = idx + 1;
-        k = 1;
-        n = -n;
-    end
-    var DIGITS = "098765432101234567890" + 10;
-    while idx < len do
-        u8!(buf + (len - idx - (1 - k)), u8@(DIGITS + n % 10));
-        n /= 10;
-        idx = idx + 1;
-    end
-    u8!(buf + len, 0);
-    string_append_cstr(string, buf);
-    free(buf);
-end
-
-def string_append_int string: String&, n: int in
-    // This will iteratively generate the characters for n -> str in left-to-right
-    // order but it will fail when we start to approach numbers that will overflow.
-    // We consider the alternative method "slow" because it does the same length
-    // calculation and but it also does a malloc/free for the intermediate result
-    // while this procedure does not.
-    if n < -100000000000000000 or n > 100000000000000000 then
-        _string_append_int_slow(string, n);
-        return;
-    end
-    if n < 0 then
-        string_push(string, '-');
-    end
-
-    if n < 0 then
-        n = -n;
-    end
-
-    if n < 10 then
-        string_push(string, '0' + n);
-        return;
-    end
-
-    var k = 1;
-    while (n / k) != 0 do
-        k *= 10;
-    end
-    k /= 10;
-
-    while k != 0 do
-        string_push(string, '0' + (n / k));
-        n %= k;
-        k /= 10;
-    end
 end
 
 def int_from_string string: String& -> int in
@@ -132,7 +65,7 @@ def int_from_string string: String& -> int in
     var k = 1;
     var c;
     while i >= 0 do
-        c = string_get(string, i);
+        c = string.get(i);
         if not is_digit(c) then
             i = 0;
         else
