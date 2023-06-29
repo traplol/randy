@@ -1,0 +1,3 @@
+
+def ir_v2 symbol_table, type_table, ast_nodes in
+end
