@@ -1066,7 +1066,7 @@ def ir_get_continue_dest self in
 end
 
 def _comptime_eval_is_n_out_of_range ast, min_inclusive, max_inclusive in
-    if ast_kind(ast) != AstK_Integer then
+    if ast_kind(ast) != AstK::Integer then
         // assumed false because the value isn't known.
         return false;
     end
@@ -1075,7 +1075,7 @@ def _comptime_eval_is_n_out_of_range ast, min_inclusive, max_inclusive in
 end
 
 def _comptime_eval_is_n n, ast in
-    return ast_kind(ast) == AstK_Integer and ast_value(ast) == n;
+    return ast_kind(ast) == AstK::Integer and ast_value(ast) == n;
 end
 
 def _comptime_scope_resolve_val self, ast, st, tt, depth in
@@ -1118,11 +1118,11 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
     var lhs_val; var rhs_val;
 
     var k = ast_kind(ast);
-    if k == AstK_Integer then
+    if k == AstK::Integer then
         return ast;
-    elif k == AstK_String then
+    elif k == AstK::String then
         return ast;
-    elif k == AstK_Ident then
+    elif k == AstK::Ident then
         ident = ast_ident(ast);
         if ir_is_const(self, ident) then
             ci = ir_get_const(self, ident);
@@ -1132,19 +1132,19 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
                 return make_ast_integer(ast_token(ast), cast(const_info_value(ci), int)); // @LEAK
             end
         end
-    elif k == AstK_ScopeResolve then
+    elif k == AstK::ScopeResolve then
         return _comptime_scope_resolve_val(self, ast, st, tt, depth);
-    elif k == AstK_SizeofExpr then
+    elif k == AstK::SizeofExpr then
         var expr_type = tt_get_ast_type(tt, ast_expr(ast));
         var size_bytes = (type_size(expr_type) + BYTE_BITS-1) / BYTE_BITS;
         return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
-    elif k == AstK_SizeofType then
+    elif k == AstK::SizeofType then
         var type = ast_type(ast);
         if type then
             var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
             return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
         end
-    elif k == AstK_BinOp then
+    elif k == AstK::BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
         rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail, depth + 1);
@@ -1157,7 +1157,7 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
         if op == TK::Slash and _comptime_eval_is_n(1, rhs) then return lhs; end // k / 1
 
         if ast_kind(lhs) == ast_kind(rhs) then
-            if ast_kind(lhs) == AstK_Integer then
+            if ast_kind(lhs) == AstK::Integer then
                 lhs_val = cast(ast_value(lhs), int);
                 rhs_val = cast(ast_value(rhs), int);
                 evaled = false;
@@ -1225,11 +1225,11 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
                 end
             end
         end
-    elif k == AstK_Prefix then
+    elif k == AstK::Prefix then
         op = ast_op(ast);
         rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
         evaled = false;
-        if ast_kind(rhs) == AstK_Integer then
+        if ast_kind(rhs) == AstK::Integer then
             rhs_val = cast(ast_value(rhs), int);
             if op == TK::Minus then
                 evaled = true;
@@ -1245,7 +1245,7 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
                 return make_ast_integer(ast_token(ast), result); // @LEAK
             end
         end
-    elif k == AstK_Cast then
+    elif k == AstK::Cast then
         return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
     end
 
@@ -1273,7 +1273,7 @@ def ir_emit_body self, body, st, tt in
 end
 
 def ir_emit_ident self, ast, st, tt in
-    check_ast_kind(AstK_Ident, ast);
+    check_ast_kind(AstK::Ident, ast);
 
     var ident = ast_ident(ast);
     if ir_is_local(self, ident) then
@@ -1306,19 +1306,19 @@ def ir_emit_ident self, ast, st, tt in
 end
 
 def ir_emit_integer self, ast, st, tt in
-    check_ast_kind(AstK_Integer, ast);
+    check_ast_kind(AstK::Integer, ast);
     ir_append(self, make_ir_push_int(ast_value(ast)));
 end
 
 def ir_emit_string self, ast, st, tt in
-    check_ast_kind(AstK_String, ast);
+    check_ast_kind(AstK::String, ast);
     var string = ast_value(ast);
     var string_label = ir_string_label(self, string);
     ir_append(self, make_ir_push_label(string_label));
 end
 
 def ir_emit_call self, ast, st, tt in
-    check_ast_kind(AstK_Call, ast);
+    check_ast_kind(AstK::Call, ast);
     var args = ast_args(ast);
     var len = args.length;
     if len > 0 then
@@ -1341,7 +1341,7 @@ def ir_emit_call self, ast, st, tt in
     end
 
     var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK_Ident then
+    if ast_kind(expr) == AstK::Ident then
         var ident = ast_ident(expr);
         var info;
         if ir_is_def(self, ident) then
@@ -1358,7 +1358,7 @@ def ir_emit_call self, ast, st, tt in
         else
             ir_append(self, make_ir_call_lazy_ident(ast_token(expr), st_get_symbol(st, ident), len));
         end
-    elif ast_kind(expr) == AstK_ScopeResolve then
+    elif ast_kind(expr) == AstK::ScopeResolve then
         var def_ = scope_resolve_def(tt, expr, true);
         assert(def_);
         if def_.label then
@@ -1389,7 +1389,7 @@ def ir_emit_logic_or self, ast, st, tt in
 end
 
 def ir_emit_binop self, ast, st, tt in
-    check_ast_kind(AstK_BinOp, ast);
+    check_ast_kind(AstK::BinOp, ast);
     var op = ast_op(ast);
     var simple = -1;
     if op == TK::Plus then simple = IRK_OpAdd;
@@ -1423,7 +1423,7 @@ def ir_emit_binop self, ast, st, tt in
 end
 
 def ir_emit_return self, ast, st, tt in
-    check_ast_kind(AstK_Return, ast);
+    check_ast_kind(AstK::Return, ast);
     var expr = ast_expr(ast);
     if not expr then
         ir_append(self, make_ir_return_void());
@@ -1434,7 +1434,7 @@ def ir_emit_return self, ast, st, tt in
 end
 
 def ir_emit_var_decl self, ast, st, tt in
-    check_ast_kind(AstK_VarDecl, ast);
+    check_ast_kind(AstK::VarDecl, ast);
     var ident = ast_ident(ast);
     assert(not ir_is_cur_scope_local(self, ident),
         "Compiler bug: Error should have been handled earlier.\n");
@@ -1475,7 +1475,7 @@ def _check_integer_bounds val, tt, type, ast in
 end
 
 def ir_emit_var_assign self, ast, st, tt in
-    check_ast_kind(AstK_VarAssign, ast);
+    check_ast_kind(AstK::VarAssign, ast);
     var ident = ast_ident(ast);
     assert(not ir_is_cur_scope_local(self, ident),
         "Compiler bug: Error should have been handled earlier.\n");
@@ -1485,7 +1485,7 @@ def ir_emit_var_assign self, ast, st, tt in
     assert(sym_type and type_size(sym_type) != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     var val = ir_comptime_eval(self, ast_assign_expr(ast), st, tt, false, 0);
-    if ast_kind(val) == AstK_Integer and type_is_int_like(sym_type) then
+    if ast_kind(val) == AstK::Integer and type_is_int_like(sym_type) then
         _check_integer_bounds(val, tt, sym_type, ast);
     end
     ir_compile(self, val, st, tt);
@@ -1495,7 +1495,7 @@ def ir_emit_var_assign self, ast, st, tt in
 end
 
 def ir_emit_assign_op self, ast, st, tt in
-    check_ast_kind(AstK_AssignOp, ast);
+    check_ast_kind(AstK::AssignOp, ast);
     var ident = ast_ident(ast);
     var op = ast_op(ast);
     if op != TK::Assign then
@@ -1554,13 +1554,13 @@ def ir_emit_assign_op self, ast, st, tt in
 end
 
 def ir_emit_assign_member self, ast, st, tt in
-    check_ast_kind(AstK_AssignMember, ast);
+    check_ast_kind(AstK::AssignMember, ast);
     var lhs = ast_lhs(ast);
     var rhs = ast_rhs(ast);
     var op = ast_op(ast);
 
     if op != TK::Assign then
-        if ast_kind(lhs) == AstK_MemberAccess then
+        if ast_kind(lhs) == AstK::MemberAccess then
             // dereference self
             ir_emit_member_access(self, lhs, st, tt, true);
         else
@@ -1592,7 +1592,7 @@ def ir_emit_assign_member self, ast, st, tt in
         ir_append(self, make_ir_simple_op(ir_op));
     end
 
-    if ast_kind(lhs) == AstK_MemberAccess then
+    if ast_kind(lhs) == AstK::MemberAccess then
         ir_emit_member_access(self, lhs, st, tt, false);
     else
         ir_compile(self, lhs, st, tt);
@@ -1603,7 +1603,7 @@ def ir_emit_assign_member self, ast, st, tt in
 end
 
 def ir_emit_def self, ast, st, tt in
-    check_ast_kind(AstK_Def, ast);
+    check_ast_kind(AstK::Def, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
     var label = ir_new_def(self, ident, params, ast, st_get_symbol(st, ident));
@@ -1627,7 +1627,7 @@ def ir_emit_def self, ast, st, tt in
 end
 
 def ir_emit_if_else self, ast, st, tt in
-    check_ast_kind(AstK_IfElse, ast);
+    check_ast_kind(AstK::IfElse, ast);
     var test = ir_comptime_eval(self, ast_test(ast), st, tt, false, 0);
     if _comptime_eval_is_n(1, test) then
         ir_push_scope(self);
@@ -1656,7 +1656,7 @@ def ir_emit_if_else self, ast, st, tt in
 end
 
 def ir_emit_while self, ast, st, tt in
-    check_ast_kind(AstK_While, ast);
+    check_ast_kind(AstK::While, ast);
     var l_test = ir_new_label(self, NULL);
     var l_out = ir_new_label(self, NULL);
     ir_push_scope(self);
@@ -1674,12 +1674,12 @@ def ir_emit_while self, ast, st, tt in
 end
 
 def ir_emit_pointer_op self, ast, st, tt in
-    //check_ast_kind(AstK_PointerOp, ast);
+    //check_ast_kind(AstK::PointerOp, ast);
     var args = ast_pop_args(ast);
     var size = ast_size(ast);
     if size == 0 then
         var type_ast = args.back();
-        assert(ast_kind(type_ast) == AstK_Type);
+        assert(ast_kind(type_ast) == AstK::Type);
         var type = ast_type(type_ast);
         size = type_size(type);
     end
@@ -1698,7 +1698,7 @@ def ir_emit_pointer_op self, ast, st, tt in
 end
 
 def ir_emit_prefix_op self, ast, st, tt in
-    check_ast_kind(AstK_Prefix, ast);
+    check_ast_kind(AstK::Prefix, ast);
     var expr = ast_expr(ast);
     var op = ast_op(ast);
     if op == TK::Tilde then
@@ -1708,7 +1708,7 @@ def ir_emit_prefix_op self, ast, st, tt in
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_logic_not());
     elif op == TK::Minus then
-        if ast_kind(expr) == AstK_Integer then
+        if ast_kind(expr) == AstK::Integer then
             ir_append(self, make_ir_push_int(0 - ast_value(expr)));
         else
             ir_compile(self, expr, st, tt);
@@ -1720,15 +1720,15 @@ def ir_emit_prefix_op self, ast, st, tt in
 end
 
 def ir_emit_const self, ast, st, tt in
-    check_ast_kind(AstK_Const, ast);
+    check_ast_kind(AstK::Const, ast);
     var expr = ast_assign_expr(ast);
     var val = ir_comptime_eval(self, expr, st, tt, true, 0);
     var const_info = NULL;
     var k = ast_kind(val);
-    if k == AstK_String then
+    if k == AstK::String then
         var string_label = ir_string_label(self, ast_value(val));
         const_info = make_const_info(CIK_String, string_label);
-    elif k == AstK_Integer then
+    elif k == AstK::Integer then
         const_info = make_const_info(CIK_Integer, ast_value(val));
     end
     if const_info then
@@ -1749,7 +1749,7 @@ def ir_emit_const self, ast, st, tt in
 end
 
 def ir_emit_extern self, ast, st, tt in
-    check_ast_kind(AstK_Extern, ast);
+    check_ast_kind(AstK::Extern, ast);
     var ident = ast_ident(ast);
     var type = ast_type(ast);
     var is_varargs = false;
@@ -1761,7 +1761,7 @@ end
 
 def ir_emit_inline_asm self, ast, st, tt in
     // TODO: Check if asm name already defined.
-    check_ast_kind(AstK_InlineAsm, ast);
+    check_ast_kind(AstK::InlineAsm, ast);
     var asm_name = ast_ident(ast);
     var asm_code = ast_asm(ast);
     ir_append(self, make_ir_inline_asm(asm_name, asm_code));
@@ -1769,7 +1769,7 @@ def ir_emit_inline_asm self, ast, st, tt in
 end
 
 def ir_emit_global self, ast, st, tt in
-    check_ast_kind(AstK_Global, ast);
+    check_ast_kind(AstK::Global, ast);
     var ident = ast_ident(ast);
     if ir_is_global(self, ident) then
         printf("ERROR: global `%s` already defined.\n", ident);
@@ -1780,9 +1780,9 @@ def ir_emit_global self, ast, st, tt in
     var expr = ast_assign_expr(ast);
     var val = ir_comptime_eval(self, expr, st, tt, true, 0);
     var k = ast_kind(val);
-    if k == AstK_String then
+    if k == AstK::String then
         ir_add_global_string(self, ident, ast_value(val));
-    elif k == AstK_Integer then
+    elif k == AstK::Integer then
         ir_add_global_int(self, ident, ast_value(val));
     else
         NYI_ERR(__FILE__, __LINE__, "ir_emit_global:comptime failed");
@@ -1790,7 +1790,7 @@ def ir_emit_global self, ast, st, tt in
 end
 
 def ir_emit_break self, ast, st, tt in
-    check_ast_kind(AstK_Break, ast);
+    check_ast_kind(AstK::Break, ast);
     var dest = ir_get_break_dest(self);
     if not dest then
         printf("ERROR: 'break' must be within a loop body.\n");
@@ -1801,7 +1801,7 @@ def ir_emit_break self, ast, st, tt in
 end
 
 def ir_emit_continue self, ast, st, tt in
-    check_ast_kind(AstK_Continue, ast);
+    check_ast_kind(AstK::Continue, ast);
     var dest = ir_get_continue_dest(self);
     if not dest then
         printf("ERROR: 'continue' must be within a loop body.\n");
@@ -1812,19 +1812,19 @@ def ir_emit_continue self, ast, st, tt in
 end
 
 def ir_emit_struct self, ast, st, tt in
-    check_ast_kind(AstK_Struct, ast);
+    check_ast_kind(AstK::Struct, ast);
 end
 
 def ir_emit_enum self, ast, st, tt in
-    check_ast_kind(AstK_Enum, ast);
+    check_ast_kind(AstK::Enum, ast);
 end
 
 def ir_emit_union self, ast, st, tt in
-    check_ast_kind(AstK_Union, ast);
+    check_ast_kind(AstK::Union, ast);
 end
 
 def ir_emit_member_access self, ast, st, tt, deref: bool in
-    check_ast_kind(AstK_MemberAccess, ast);
+    check_ast_kind(AstK::MemberAccess, ast);
 
     // Member access is essentially a left-associative binary operator and when
     // they are chained together in the form of `a.b.c.d`, they act as a linked
@@ -1835,7 +1835,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     var offset = 0;
     var head = ast;
     var deref_stack = Vector[int]::new(0);
-    while ast_kind(head) == AstK_MemberAccess do
+    while ast_kind(head) == AstK::MemberAccess do
         var member = ast_member(head);
         var type = tt_get_ast_type(tt, ast_expr(head));
         var _type = type;
@@ -1878,7 +1878,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 
     var head_type = tt_get_ast_type(tt, head);
     assert(head_type);
-    if type_is_struct(head_type) and ast_kind(head) == AstK_Ident then
+    if type_is_struct(head_type) and ast_kind(head) == AstK::Ident then
         assert(false, "stack allocations not supported yet.\n");
         // var ident = ast_ident(head);
         // if ir_is_local(self, ident) then
@@ -1940,15 +1940,15 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 end
 
 def ir_emit_scope_resolve self, ast, st, tt in
-    check_ast_kind(AstK_ScopeResolve, ast);
+    check_ast_kind(AstK::ScopeResolve, ast);
     var val = _comptime_scope_resolve_val(self, ast, st, tt, 0);
     if val != ast then
         ir_compile(self, val, st, tt);
         return;
     end
 
-    assert(ast_kind(ast_lhs(ast)) == AstK_Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_lhs(ast)) == AstK::Type, "Nested resolution not supported yet.\n");
+    assert(ast_kind(ast_rhs(ast)) == AstK::Ident, "Nested resolution not supported yet.\n");
     var type = ast_type(ast_lhs(ast));
     var member = ast_ident(ast_rhs(ast));
     if type_is_struct(type) then
@@ -1971,11 +1971,11 @@ def ir_emit_scope_resolve self, ast, st, tt in
 end
 
 def ir_emit_get_reference self, ast, st, tt in
-    check_ast_kind(AstK_GetReference, ast);
+    check_ast_kind(AstK::GetReference, ast);
     var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK_MemberAccess then
+    if ast_kind(expr) == AstK::MemberAccess then
         ir_emit_member_access(self, expr, st, tt, false);
-    elif ast_kind(expr) == AstK_Ident then
+    elif ast_kind(expr) == AstK::Ident then
         var ident = ast_ident(expr);
         if ir_is_local(self, ident) then
             var n = ir_get_local(self, ident);
@@ -2000,34 +2000,34 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
                    ast_kind_cstr(ast_kind(ast)));
     var k = ast_kind(ev_ast);
     ir_push_src_loc(self, ast_token(ev_ast).src_loc);
-    if k == AstK_Ident then ir_emit_ident(self, ev_ast, st, tt);
-    elif k == AstK_Integer then ir_emit_integer(self, ev_ast, st, tt);
-    elif k == AstK_String then ir_emit_string(self, ev_ast, st, tt);
-    elif k == AstK_Call then ir_emit_call(self, ev_ast, st, tt);
-    elif k == AstK_BinOp then ir_emit_binop(self, ev_ast, st, tt);
-    elif k == AstK_Return then ir_emit_return(self, ev_ast, st, tt);
-    elif k == AstK_VarDecl then ir_emit_var_decl(self, ev_ast, st, tt);
-    elif k == AstK_VarAssign then ir_emit_var_assign(self, ev_ast, st, tt);
-    elif k == AstK_Def then ir_emit_def(self, ev_ast, st, tt);
-    elif k == AstK_IfElse then ir_emit_if_else(self, ev_ast, st, tt);
-    elif k == AstK_While then ir_emit_while(self, ev_ast, st, tt);
-    elif k == AstK_PointerRead then ir_emit_pointer_op(self, ev_ast, st, tt);
-    elif k == AstK_PointerWrite then ir_emit_pointer_op(self, ev_ast, st, tt);
-    elif k == AstK_Prefix then ir_emit_prefix_op(self, ev_ast, st, tt);
-    elif k == AstK_Const then ir_emit_const(self, ev_ast, st, tt);
-    elif k == AstK_Extern then ir_emit_extern(self, ev_ast, st, tt);
-    elif k == AstK_InlineAsm then ir_emit_inline_asm(self, ev_ast, st, tt);
-    elif k == AstK_Global then ir_emit_global(self, ev_ast, st, tt);
-    elif k == AstK_Break then ir_emit_break(self, ev_ast, st, tt);
-    elif k == AstK_Continue then ir_emit_continue(self, ev_ast, st, tt);
-    elif k == AstK_AssignOp then ir_emit_assign_op(self, ev_ast, st, tt);
-    elif k == AstK_Struct then ir_emit_struct(self, ev_ast, st, tt);
-    elif k == AstK_MemberAccess then ir_emit_member_access(self, ev_ast, st, tt, true);
-    elif k == AstK_AssignMember then ir_emit_assign_member(self, ev_ast, st, tt);
-    elif k == AstK_Enum then ir_emit_enum(self, ev_ast, st, tt);
-    elif k == AstK_ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
-    elif k == AstK_GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
-    elif k == AstK_Union then ir_emit_union(self, ev_ast, st, tt);
+    if k == AstK::Ident then ir_emit_ident(self, ev_ast, st, tt);
+    elif k == AstK::Integer then ir_emit_integer(self, ev_ast, st, tt);
+    elif k == AstK::String then ir_emit_string(self, ev_ast, st, tt);
+    elif k == AstK::Call then ir_emit_call(self, ev_ast, st, tt);
+    elif k == AstK::BinOp then ir_emit_binop(self, ev_ast, st, tt);
+    elif k == AstK::Return then ir_emit_return(self, ev_ast, st, tt);
+    elif k == AstK::VarDecl then ir_emit_var_decl(self, ev_ast, st, tt);
+    elif k == AstK::VarAssign then ir_emit_var_assign(self, ev_ast, st, tt);
+    elif k == AstK::Def then ir_emit_def(self, ev_ast, st, tt);
+    elif k == AstK::IfElse then ir_emit_if_else(self, ev_ast, st, tt);
+    elif k == AstK::While then ir_emit_while(self, ev_ast, st, tt);
+    elif k == AstK::PointerRead then ir_emit_pointer_op(self, ev_ast, st, tt);
+    elif k == AstK::PointerWrite then ir_emit_pointer_op(self, ev_ast, st, tt);
+    elif k == AstK::Prefix then ir_emit_prefix_op(self, ev_ast, st, tt);
+    elif k == AstK::Const then ir_emit_const(self, ev_ast, st, tt);
+    elif k == AstK::Extern then ir_emit_extern(self, ev_ast, st, tt);
+    elif k == AstK::InlineAsm then ir_emit_inline_asm(self, ev_ast, st, tt);
+    elif k == AstK::Global then ir_emit_global(self, ev_ast, st, tt);
+    elif k == AstK::Break then ir_emit_break(self, ev_ast, st, tt);
+    elif k == AstK::Continue then ir_emit_continue(self, ev_ast, st, tt);
+    elif k == AstK::AssignOp then ir_emit_assign_op(self, ev_ast, st, tt);
+    elif k == AstK::Struct then ir_emit_struct(self, ev_ast, st, tt);
+    elif k == AstK::MemberAccess then ir_emit_member_access(self, ev_ast, st, tt, true);
+    elif k == AstK::AssignMember then ir_emit_assign_member(self, ev_ast, st, tt);
+    elif k == AstK::Enum then ir_emit_enum(self, ev_ast, st, tt);
+    elif k == AstK::ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
+    elif k == AstK::GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
+    elif k == AstK::Union then ir_emit_union(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

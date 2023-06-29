@@ -1021,7 +1021,7 @@ def tt_print_type_name self, type in
 end
 
 def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
-    if ast_kind(ast) == AstK_ScopeResolve then
+    if ast_kind(ast) == AstK::ScopeResolve then
         var lhs_type = scope_resolve_lhs(tt, ast_lhs(ast), false);
         if not lhs_type then
             if error then
@@ -1034,7 +1034,7 @@ def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
             end
             return NULL;
         end
-        assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+        assert(ast_kind(ast_rhs(ast)) == AstK::Ident);
         var name = ast_ident(ast_rhs(ast));
         var scope = type_scope(lhs_type);
         assert(scope);
@@ -1044,7 +1044,7 @@ def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
             return tt_get_type_by_id(tt, cast(map_pair_val(found), int));
         end
         return NULL;
-    elif ast_kind(ast) == AstK_Type then
+    elif ast_kind(ast) == AstK::Type then
         return ast_type(ast);
     else
         assert(false, "Recursive scope lookup only supports Types or Scope Resolve\n");
@@ -1053,19 +1053,19 @@ def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
 end
 
 def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> Type& in
-    assert(ast_kind(ast) == AstK_ScopeResolve);
+    assert(ast_kind(ast) == AstK::ScopeResolve);
     var type: Type&;
-    if ast_kind(ast_lhs(ast)) != AstK_Type then
-        assert(ast_kind(ast_lhs(ast)) == AstK_ScopeResolve);
+    if ast_kind(ast_lhs(ast)) != AstK::Type then
+        assert(ast_kind(ast_lhs(ast)) == AstK::ScopeResolve);
         type = scope_resolve_lhs(tt, ast_lhs(ast), error);
         if not type then
             return tt.any_type;
         end
     else
-        assert(ast_kind(ast_lhs(ast)) == AstK_Type);
+        assert(ast_kind(ast_lhs(ast)) == AstK::Type);
         type = ast_type(ast_lhs(ast));
     end
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+    assert(ast_kind(ast_rhs(ast)) == AstK::Ident);
 
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
@@ -1111,19 +1111,19 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> Type& in
 end
 
 def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
-    assert(ast_kind(ast) == AstK_ScopeResolve);
+    assert(ast_kind(ast) == AstK::ScopeResolve);
     var type: Type&;
-    if ast_kind(ast_lhs(ast)) != AstK_Type then
-        assert(ast_kind(ast_lhs(ast)) == AstK_ScopeResolve);
+    if ast_kind(ast_lhs(ast)) != AstK::Type then
+        assert(ast_kind(ast_lhs(ast)) == AstK::ScopeResolve);
         type = scope_resolve_lhs(tt, ast_lhs(ast), error);
         if not type then
             return NULL;
         end
     else
-        assert(ast_kind(ast_lhs(ast)) == AstK_Type);
+        assert(ast_kind(ast_lhs(ast)) == AstK::Type);
         type = ast_type(ast_lhs(ast));
     end
-    assert(ast_kind(ast_rhs(ast)) == AstK_Ident);
+    assert(ast_kind(ast_rhs(ast)) == AstK::Ident);
 
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));

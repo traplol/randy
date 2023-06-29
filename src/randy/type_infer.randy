@@ -59,7 +59,7 @@ def ti_infer_vector self, tt, st, vector in
 end
 
 def ti_infer_ident self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Ident, ast);
+    check_ast_kind(AstK::Ident, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     var type = symbol_type(symbol);
@@ -72,21 +72,21 @@ def ti_infer_ident self, tt, st, ast -> Type& in
 end
 
 def ti_infer_integer self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Integer, ast);
+    check_ast_kind(AstK::Integer, ast);
     return tt_int_type(tt);
 end
 
 def ti_infer_string self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_String, ast);
+    check_ast_kind(AstK::String, ast);
     return tt_cstr_type(tt);
 end
 
 def ti_infer_call self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Call, ast);
+    check_ast_kind(AstK::Call, ast);
     var expr = ast_expr(ast);
     var before_kind = ast_kind(expr);
     var object = NULL;
-    if before_kind == AstK_MemberAccess then
+    if before_kind == AstK::MemberAccess then
         object = ast_expr(expr);
     end
     var call_type = ti_infer(self, tt, st, expr);
@@ -99,10 +99,10 @@ def ti_infer_call self, tt, st, ast -> Type& in
     end
 
     var call_symbol = NULL;
-    if ast_kind(expr) == AstK_Ident then
+    if ast_kind(expr) == AstK::Ident then
         call_symbol = st_get_symbol(st, ast_ident(expr));
         call_type = symbol_type(call_symbol);
-    elif ast_kind(expr) == AstK_ScopeResolve then
+    elif ast_kind(expr) == AstK::ScopeResolve then
         call_type = scope_resolve_type(tt, expr, false);
         if not type_is_def(call_type) then
             ti_infer_vector(self, tt, st, ast_args(ast));
@@ -129,7 +129,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
     var param_types = type_def_parameters(call_type);
     var args = ast_args(ast);
 
-    if after_kind == AstK_ScopeResolve and before_kind == AstK_MemberAccess then
+    if after_kind == AstK::ScopeResolve and before_kind == AstK::MemberAccess then
         if param_types.length != 0 then
             var obj_type = tt_get_ast_type(tt, object);
             var param_type = param_types.front();
@@ -178,7 +178,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
 end
 
 def ti_infer_binop self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_BinOp, ast);
+    check_ast_kind(AstK::BinOp, ast);
     var lhs = ti_infer(self, tt, st, ast_lhs(ast));
     var rhs = ti_infer(self, tt, st, ast_rhs(ast));
     var op = ast_op(ast);
@@ -245,7 +245,7 @@ def ti_infer_binop self, tt, st, ast -> Type& in
 end
 
 def ti_infer_return self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Return, ast);
+    check_ast_kind(AstK::Return, ast);
     var type;
     if ast_expr(ast) then
         type = ti_infer(self, tt, st, ast_expr(ast));
@@ -270,7 +270,7 @@ def ti_infer_return self, tt, st, ast -> Type& in
 end
 
 def ti_infer_var_decl self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_VarDecl, ast);
+    check_ast_kind(AstK::VarDecl, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     if not symbol_type(symbol) then
@@ -293,7 +293,7 @@ def _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> Type& in
 end
 
 def ti_infer_var_assign self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_VarAssign, ast);
+    check_ast_kind(AstK::VarAssign, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -302,7 +302,7 @@ def ti_infer_var_assign self, tt, st, ast -> Type& in
 end
 
 def ti_infer_assign_op self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_AssignOp, ast);
+    check_ast_kind(AstK::AssignOp, ast);
     var op = ast_op(ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
 
@@ -327,7 +327,7 @@ def ti_infer_assign_op self, tt, st, ast -> Type& in
 end
 
 def ti_infer_def self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Def, ast);
+    check_ast_kind(AstK::Def, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     ti_push_def(self, symbol);
@@ -346,7 +346,7 @@ def ti_infer_def self, tt, st, ast -> Type& in
 end
 
 def ti_infer_if_else self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_IfElse, ast);
+    check_ast_kind(AstK::IfElse, ast);
     ti_infer(self, tt, st, ast_test(ast));
     ti_infer_vector(self, tt, st, ast_consequence(ast));
     ti_infer_vector(self, tt, st, ast_alternative(ast));
@@ -354,14 +354,14 @@ def ti_infer_if_else self, tt, st, ast -> Type& in
 end
 
 def ti_infer_while self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_While, ast);
+    check_ast_kind(AstK::While, ast);
     ti_infer(self, tt, st, ast_test(ast));
     ti_infer_vector(self, tt, st, ast_body(ast));
     return tt_void_type(tt);
 end
 
 def ti_infer_pointer_read self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_PointerRead, ast);
+    check_ast_kind(AstK::PointerRead, ast);
     var args = ast_pop_args(ast);
     ti_infer(self, tt, st, args.get(0));
     var size = ast_size(ast);
@@ -376,7 +376,7 @@ def ti_infer_pointer_read self, tt, st, ast -> Type& in
         type = tt_get_type_or_null(tt, "int8");
     elif size == 0 then
         var type_ast = args.back();
-        assert(ast_kind(type_ast) == AstK_Type);
+        assert(ast_kind(type_ast) == AstK::Type);
         type = ast_type(type_ast);
     else
         assert(false, "Compiler bug: pointer read where size outside valid range; size was %d\n", size);
@@ -386,7 +386,7 @@ def ti_infer_pointer_read self, tt, st, ast -> Type& in
 end
 
 def ti_infer_pointer_write self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_PointerWrite, ast);
+    check_ast_kind(AstK::PointerWrite, ast);
     var args = ast_pop_args(ast);
     var i = 0; var len = args.length;
     while i < len do
@@ -397,7 +397,7 @@ def ti_infer_pointer_write self, tt, st, ast -> Type& in
 end
 
 def ti_infer_prefix_op self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Prefix, ast);
+    check_ast_kind(AstK::Prefix, ast);
     var t = ti_infer(self, tt, st, ast_expr(ast));
     if ast_op == TK::KW_not then
         return tt_bool_type(tt);
@@ -406,7 +406,7 @@ def ti_infer_prefix_op self, tt, st, ast -> Type& in
 end
 
 def ti_infer_const self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Const, ast);
+    check_ast_kind(AstK::Const, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -415,21 +415,21 @@ def ti_infer_const self, tt, st, ast -> Type& in
 end
 
 def ti_infer_extern self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Extern, ast);
+    check_ast_kind(AstK::Extern, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 def ti_infer_inline_asm self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_InlineAsm, ast);
+    check_ast_kind(AstK::InlineAsm, ast);
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
     return tt_void_type(tt);
 end
 
 def ti_infer_global self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Global, ast);
+    check_ast_kind(AstK::Global, ast);
     var type = ti_infer(self, tt, st, ast_assign_expr(ast));
     var ident = ast_ident(ast);
     var symbol = st_get_symbol(st, ident);
@@ -438,7 +438,7 @@ def ti_infer_global self, tt, st, ast -> Type& in
 end
 
 def ti_infer_cast self, tt, st, ast -> Type& in
-    check_ast_kind(AstK_Cast, ast);
+    check_ast_kind(AstK::Cast, ast);
     ti_infer(self, tt, st, ast_expr(ast));
     return ast_type(ast);
 end
@@ -481,7 +481,7 @@ def _ti_get_union_field_type type, member in
 end
 
 def ti_infer_member_access self, tt, st, ast in
-    check_ast_kind(AstK_MemberAccess, ast);
+    check_ast_kind(AstK::MemberAccess, ast);
     var type = ti_infer(self, tt, st, ast_expr(ast));
     var member = ast_member(ast);
     var ftype = NULL;
@@ -520,17 +520,17 @@ end
 
 def ti_infer_assign_member self, tt, st, ast in
     // nothing really to infer, members are required type declarations.
-    check_ast_kind(AstK_AssignMember, ast);
+    check_ast_kind(AstK::AssignMember, ast);
     ti_infer(self, tt, st, ast_lhs(ast));
     ti_infer(self, tt, st, ast_rhs(ast));
     return tt_void_type(tt);
 end
 
 def ti_infer_sizeof_expr self, tt, st, ast in
-    check_ast_kind(AstK_SizeofExpr, ast);
+    check_ast_kind(AstK::SizeofExpr, ast);
     var expr = ast_expr(ast);
     var type = ti_infer(self, tt, st, ast_expr(ast));
-    if ast_kind(expr) == AstK_Ident then
+    if ast_kind(expr) == AstK::Ident then
         var sym = st_get_symbol(st, ast_ident(expr));
         type = symbol_type(sym);
         if type == tt_any_type(tt) then
@@ -543,12 +543,12 @@ def ti_infer_sizeof_expr self, tt, st, ast in
 end
 
 def ti_infer_scope_resolve self, tt, st, ast in
-    check_ast_kind(AstK_ScopeResolve, ast);
+    check_ast_kind(AstK::ScopeResolve, ast);
     return scope_resolve_type(tt, ast, false);
 end
 
 def ti_infer_get_reference self, tt, st, ast in
-    check_ast_kind(AstK_GetReference, ast);
+    check_ast_kind(AstK::GetReference, ast);
     var type = ti_infer(self, tt, st, ast_expr(ast));
     return tt_reference_to_type(tt, type);
 end
@@ -556,39 +556,39 @@ end
 def ti_infer self, tt, st, ast -> Type& in
     var k = ast_kind(ast);
     var type: Type&;
-    if k == AstK_Ident then type = ti_infer_ident(self, tt, st, ast);
-    elif k == AstK_Integer then type = ti_infer_integer(self, tt, st, ast);
-    elif k == AstK_String then type = ti_infer_string(self, tt, st, ast);
-    elif k == AstK_Call then type = ti_infer_call(self, tt, st, ast);
-    elif k == AstK_BinOp then type = ti_infer_binop(self, tt, st, ast);
-    elif k == AstK_Return then type = ti_infer_return(self, tt, st, ast);
-    elif k == AstK_VarDecl then type = ti_infer_var_decl(self, tt, st, ast);
-    elif k == AstK_VarAssign then type = ti_infer_var_assign(self, tt, st, ast);
-    elif k == AstK_Def then type = ti_infer_def(self, tt, st, ast);
-    elif k == AstK_IfElse then type = ti_infer_if_else(self, tt, st, ast);
-    elif k == AstK_While then type = ti_infer_while(self, tt, st, ast);
-    elif k == AstK_PointerRead then type = ti_infer_pointer_read(self, tt, st, ast);
-    elif k == AstK_PointerWrite then type = ti_infer_pointer_write(self, tt, st, ast);
-    elif k == AstK_Prefix then type = ti_infer_prefix_op(self, tt, st, ast);
-    elif k == AstK_Const then type = ti_infer_const(self, tt, st, ast);
-    elif k == AstK_Extern then type = ti_infer_extern(self, tt, st, ast);
-    elif k == AstK_InlineAsm then type = ti_infer_inline_asm(self, tt, st, ast);
-    elif k == AstK_Global then type = ti_infer_global(self, tt, st, ast);
-    elif k == AstK_Break then type = tt_void_type(tt);
-    elif k == AstK_Continue then type = tt_void_type(tt);
-    elif k == AstK_AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
-    elif k == AstK_Cast then type = ti_infer_cast(self, tt, st, ast);
-    elif k == AstK_Struct then type = tt_void_type(tt);
-    elif k == AstK_MemberAccess then type = ti_infer_member_access(self, tt, st, ast);
-    elif k == AstK_AssignMember then type = ti_infer_assign_member(self, tt, st, ast);
+    if k == AstK::Ident then type = ti_infer_ident(self, tt, st, ast);
+    elif k == AstK::Integer then type = ti_infer_integer(self, tt, st, ast);
+    elif k == AstK::String then type = ti_infer_string(self, tt, st, ast);
+    elif k == AstK::Call then type = ti_infer_call(self, tt, st, ast);
+    elif k == AstK::BinOp then type = ti_infer_binop(self, tt, st, ast);
+    elif k == AstK::Return then type = ti_infer_return(self, tt, st, ast);
+    elif k == AstK::VarDecl then type = ti_infer_var_decl(self, tt, st, ast);
+    elif k == AstK::VarAssign then type = ti_infer_var_assign(self, tt, st, ast);
+    elif k == AstK::Def then type = ti_infer_def(self, tt, st, ast);
+    elif k == AstK::IfElse then type = ti_infer_if_else(self, tt, st, ast);
+    elif k == AstK::While then type = ti_infer_while(self, tt, st, ast);
+    elif k == AstK::PointerRead then type = ti_infer_pointer_read(self, tt, st, ast);
+    elif k == AstK::PointerWrite then type = ti_infer_pointer_write(self, tt, st, ast);
+    elif k == AstK::Prefix then type = ti_infer_prefix_op(self, tt, st, ast);
+    elif k == AstK::Const then type = ti_infer_const(self, tt, st, ast);
+    elif k == AstK::Extern then type = ti_infer_extern(self, tt, st, ast);
+    elif k == AstK::InlineAsm then type = ti_infer_inline_asm(self, tt, st, ast);
+    elif k == AstK::Global then type = ti_infer_global(self, tt, st, ast);
+    elif k == AstK::Break then type = tt_void_type(tt);
+    elif k == AstK::Continue then type = tt_void_type(tt);
+    elif k == AstK::AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
+    elif k == AstK::Cast then type = ti_infer_cast(self, tt, st, ast);
+    elif k == AstK::Struct then type = tt_void_type(tt);
+    elif k == AstK::MemberAccess then type = ti_infer_member_access(self, tt, st, ast);
+    elif k == AstK::AssignMember then type = ti_infer_assign_member(self, tt, st, ast);
         // This seems like a bug but sizeof isn't supposed to evaluate its arguments.
-    elif k == AstK_SizeofExpr then type = ti_infer_sizeof_expr(self, tt, st, ast);
-    elif k == AstK_SizeofType then type = tt_int_type(tt);
-    elif k == AstK_Enum then type = tt_void_type(tt);
-    elif k == AstK_Type then type = tt_void_type(tt);
-    elif k == AstK_ScopeResolve then type = ti_infer_scope_resolve(self, tt, st, ast);
-    elif k == AstK_GetReference then type = ti_infer_get_reference(self, tt, st, ast);
-    elif k == AstK_Union then type = tt_void_type(tt);
+    elif k == AstK::SizeofExpr then type = ti_infer_sizeof_expr(self, tt, st, ast);
+    elif k == AstK::SizeofType then type = tt_int_type(tt);
+    elif k == AstK::Enum then type = tt_void_type(tt);
+    elif k == AstK::Type then type = tt_void_type(tt);
+    elif k == AstK::ScopeResolve then type = ti_infer_scope_resolve(self, tt, st, ast);
+    elif k == AstK::GetReference then type = ti_infer_get_reference(self, tt, st, ast);
+    elif k == AstK::Union then type = tt_void_type(tt);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

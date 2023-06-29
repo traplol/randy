@@ -219,14 +219,14 @@ def parse_assign_op ts, st, tt, lhs, op in
         exit(1);
     end
     var k = ast_kind(lhs);
-    if k == AstK_Ident then
+    if k == AstK::Ident then
         // LEAK: I think this ends up leaking the LHS AST node
         var symbol = st_get_symbol(st, ast_ident(lhs));
         if not symbol then
             symbol = st_prepare_undef(st, ast_ident(lhs), ast_token(lhs));
         end
         return make_ast_assign_op(op_tk, symbol_name(symbol), op, expr);
-    elif k == AstK_MemberAccess then
+    elif k == AstK::MemberAccess then
         return make_ast_assign_member(op_tk, lhs, op, expr);
     else
         assert(false, "parse_assign_op for %s (%d) not implemented.\n", ast_kind_cstr(k), k);
@@ -444,16 +444,16 @@ end
 
 def parse_scope_resolve ts, st, tt, lhs in
     var tk = ts.expect(TK::ColonColon);
-    if ast_kind(lhs) == AstK_Ident then
+    if ast_kind(lhs) == AstK::Ident then
         var type = tt_get_type_or_make_undefined(tt, ast_ident(lhs));
         lhs = make_ast_type(ast_token(lhs), type);
-    elif ast_kind(lhs) != AstK_ScopeResolve and ast_kind(lhs) != AstK_Type then
+    elif ast_kind(lhs) != AstK::ScopeResolve and ast_kind(lhs) != AstK::Type then
         printf("ERROR: expected type name on lhs of '::'\n");
         print_token_loc(tk);
         exit(1);
     end
     var rhs = parse_primary(ts, st, tt);
-    if not rhs or (ast_kind(rhs) != AstK_Ident and ast_kind(rhs) != AstK_Type) then
+    if not rhs or (ast_kind(rhs) != AstK::Ident and ast_kind(rhs) != AstK::Type) then
         printf("ERROR: expected identifier on rhs of '::'\n");
         print_token_loc(tk);
         print_ast(rhs);
@@ -471,7 +471,7 @@ def parse_scope_resolve ts, st, tt, lhs in
     lhs = make_ast_scope_resolve(tk, lhs, rhs);
     while ts.accept(TK::ColonColon) do
         var rhs = parse_primary(ts, st, tt);
-        if not rhs or (ast_kind(rhs) != AstK_Ident and ast_kind(rhs) != AstK_Type) then
+        if not rhs or (ast_kind(rhs) != AstK::Ident and ast_kind(rhs) != AstK::Type) then
             printf("ERROR: expected identifier on rhs of '::'\n");
             print_token_loc(tk);
             exit(1);
@@ -742,7 +742,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
     else
         expect_semi = true;
         stmt = parse_expression(ts, st, tt);
-        if stmt and (ast_kind(stmt) == AstK_Ident or ast_kind(stmt) == AstK_MemberAccess) then
+        if stmt and (ast_kind(stmt) == AstK::Ident or ast_kind(stmt) == AstK::MemberAccess) then
             if ts.peekk(TK::Assign) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::Assign);
             elif ts.peekk(TK::PlusEq) then
@@ -1055,7 +1055,7 @@ def parse_struct ts, st, tt in
         def_sym.owned_by = struct_type;
 
         var def_ = inner_ast.get(i);
-        if ast_kind(def_) == AstK_Def then
+        if ast_kind(def_) == AstK::Def then
             var def_type = def_sym.type;
             var def_params = ast_params(def_);
             if def_params.length > 0 and cstr_eq("self", def_params.front()) then
@@ -1104,7 +1104,7 @@ def parse_enum ts, st, tt in
         var val = NULL;
         if ts.accept(TK::Assign) then
             val = parse_expression(ts, st, tt);
-            if val and ast_kind(val) == AstK_Integer then
+            if val and ast_kind(val) == AstK::Integer then
                 cur_value = cast(ast_value(val), int);
             end
         end

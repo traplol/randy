@@ -4,82 +4,84 @@ enum PointerOp in
     Write;
 end
 
-const AstK_Ident        = 0;
-const AstK_Integer      = 1;
-const AstK_String       = 2;
-const AstK_Call         = 3;
-const AstK_BinOp        = 4;
-const AstK_Return       = 5;
-const AstK_VarDecl      = 6;
-const AstK_VarAssign    = 7;
-const AstK_Def          = 8;
-const AstK_IfElse       = 9;
-const AstK_While        = 10;
-const AstK_PointerRead  = 11;
-const AstK_PointerWrite = 12;
-const AstK_Prefix       = 13;
-const AstK_Const        = 14;
-const AstK_Extern       = 15;
-const AstK_InlineAsm    = 16;
-const AstK_Global       = 17;
-const AstK_Break        = 18;
-const AstK_Continue     = 19;
-const AstK_AssignOp     = 20;
-const AstK_Cast         = 21;
-const AstK_Struct       = 22;
-const AstK_MemberAccess = 23;
-const AstK_AssignMember = 24;
-const AstK_SizeofExpr   = 25;
-const AstK_SizeofType   = 26;
-const AstK_Enum         = 27;
-const AstK_Type         = 28;
-const AstK_ScopeResolve = 29;
-const AstK_GetReference = 30; // unavailable from source code
-const AstK_Union        = 31;
+enum AstK in
+    Ident;
+    Integer;
+    String;
+    Call;
+    BinOp;
+    Return;
+    VarDecl;
+    VarAssign;
+    Def;
+    IfElse;
+    While;
+    PointerRead;
+    PointerWrite;
+    Prefix;
+    Const;
+    Extern;
+    InlineAsm;
+    Global;
+    Break;
+    Continue;
+    AssignOp;
+    Cast;
+    Struct;
+    MemberAccess;
+    AssignMember;
+    SizeofExpr;
+    SizeofType;
+    Enum;
+    Type;
+    ScopeResolve;
+    GetReference; // unavailable from source code
+    Union;
+end
 
-def ast_kind_cstr k: int in
-    if k == AstK_Ident then return "AstK_Ident"; end
-    if k == AstK_Integer then return "AstK_Integer"; end
-    if k == AstK_String then return "AstK_String"; end
-    if k == AstK_Call then return "AstK_Call"; end
-    if k == AstK_BinOp then return "AstK_BinOp"; end
-    if k == AstK_Return then return "AstK_Return"; end
-    if k == AstK_VarDecl then return "AstK_VarDecl"; end
-    if k == AstK_VarAssign then return "AstK_VarAssign"; end
-    if k == AstK_Def then return "AstK_Def"; end
-    if k == AstK_IfElse then return "AstK_IfElse"; end
-    if k == AstK_While then return "AstK_While"; end
-    if k == AstK_PointerRead then return "AstK_PointerRead"; end
-    if k == AstK_PointerWrite then return "AstK_PointerWrite"; end
-    if k == AstK_Prefix then return "AstK_Prefix"; end
-    if k == AstK_Const then return "AstK_Const"; end
-    if k == AstK_Extern then return "AstK_Extern"; end
-    if k == AstK_InlineAsm then return "AstK_InlineAsm"; end
-    if k == AstK_Global then return "AstK_Global"; end
-    if k == AstK_Break then return "AstK_Break"; end
-    if k == AstK_Continue then return "AstK_Continue"; end
-    if k == AstK_AssignOp then return "AstK_AssignOp"; end
-    if k == AstK_Cast then return "AstK_Cast"; end
-    if k == AstK_Struct then return "AstK_Struct"; end
-    if k == AstK_MemberAccess then return "AstK_MemberAccess"; end
-    if k == AstK_AssignMember then return "AstK_AssignMember"; end
-    if k == AstK_SizeofExpr then return "AstK_SizeofExpr"; end
-    if k == AstK_SizeofType then return "AstK_SizeofType"; end
-    if k == AstK_Enum then return "AstK_Enum"; end
-    if k == AstK_Type then return "AstK_Type"; end
-    if k == AstK_ScopeResolve then return "AstK_ScopeResolve"; end
-    if k == AstK_GetReference then return "AstK_GetReference"; end
-    if k == AstK_Union then return "AstK_Union"; end
-    return "AstK_OUT_OF_RANGE";
+def ast_kind_cstr k: AstK in
+    if k == AstK::Ident then return "AstK::Ident"; end
+    if k == AstK::Integer then return "AstK::Integer"; end
+    if k == AstK::String then return "AstK::String"; end
+    if k == AstK::Call then return "AstK::Call"; end
+    if k == AstK::BinOp then return "AstK::BinOp"; end
+    if k == AstK::Return then return "AstK::Return"; end
+    if k == AstK::VarDecl then return "AstK::VarDecl"; end
+    if k == AstK::VarAssign then return "AstK::VarAssign"; end
+    if k == AstK::Def then return "AstK::Def"; end
+    if k == AstK::IfElse then return "AstK::IfElse"; end
+    if k == AstK::While then return "AstK::While"; end
+    if k == AstK::PointerRead then return "AstK::PointerRead"; end
+    if k == AstK::PointerWrite then return "AstK::PointerWrite"; end
+    if k == AstK::Prefix then return "AstK::Prefix"; end
+    if k == AstK::Const then return "AstK::Const"; end
+    if k == AstK::Extern then return "AstK::Extern"; end
+    if k == AstK::InlineAsm then return "AstK::InlineAsm"; end
+    if k == AstK::Global then return "AstK::Global"; end
+    if k == AstK::Break then return "AstK::Break"; end
+    if k == AstK::Continue then return "AstK::Continue"; end
+    if k == AstK::AssignOp then return "AstK::AssignOp"; end
+    if k == AstK::Cast then return "AstK::Cast"; end
+    if k == AstK::Struct then return "AstK::Struct"; end
+    if k == AstK::MemberAccess then return "AstK::MemberAccess"; end
+    if k == AstK::AssignMember then return "AstK::AssignMember"; end
+    if k == AstK::SizeofExpr then return "AstK::SizeofExpr"; end
+    if k == AstK::SizeofType then return "AstK::SizeofType"; end
+    if k == AstK::Enum then return "AstK::Enum"; end
+    if k == AstK::Type then return "AstK::Type"; end
+    if k == AstK::ScopeResolve then return "AstK::ScopeResolve"; end
+    if k == AstK::GetReference then return "AstK::GetReference"; end
+    if k == AstK::Union then return "AstK::Union"; end
+    return "AstK::OUT_OF_RANGE";
 end
 
 def ast_requires_semi k in
-    if k == AstK_Def then return false;
-    elif k == AstK_IfElse then return false;
-    elif k == AstK_While then return false;
-    elif k == AstK_InlineAsm then return false;
-    elif k == AstK_Struct then return false;
-    elif k == AstK_Enum then return false;
+    if k == AstK::Def then return false;
+    elif k == AstK::IfElse then return false;
+    elif k == AstK::While then return false;
+    elif k == AstK::InlineAsm then return false;
+    elif k == AstK::Struct then return false;
+    elif k == AstK::Enum then return false;
     else
         return true;
     end
@@ -173,7 +175,7 @@ const TAST_fields      = 24; // field Vector&
 
 const sizeof_TAST      = 40;
 
-def _make_ast kind: int, is_expr: bool, token: Token& -> ast in
+def _make_ast kind: AstK, is_expr: bool, token: Token& -> ast in
     var self = malloc(sizeof_TAST);
     u32!(self + TAST_kind, kind);
     u8!(self + TAST_is_expr, is_expr);
@@ -182,32 +184,32 @@ def _make_ast kind: int, is_expr: bool, token: Token& -> ast in
 end
 
 def make_ast_ident token: Token&, ident: cstr -> ast in
-    var self = _make_ast(AstK_Ident, true, token);
+    var self = _make_ast(AstK::Ident, true, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
 def make_ast_integer token: Token&, value: int -> ast in
-    var self = _make_ast(AstK_Integer, true, token);
+    var self = _make_ast(AstK::Integer, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
 def make_ast_string token: Token&, value: String& -> ast in
-    var self = _make_ast(AstK_String, true, token);
+    var self = _make_ast(AstK::String, true, token);
     u64!(self + TAST_value, value);
     return self;
 end
 
 def make_ast_call token: Token&, expr: ast, args: Vector[ast]& -> ast in
-    var self = _make_ast(AstK_Call, true, token);
+    var self = _make_ast(AstK::Call, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_args, args);
     return self;
 end
 
 def make_ast_binop token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
-    var self = _make_ast(AstK_BinOp, true, token);
+    var self = _make_ast(AstK::BinOp, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_op, op);
     u64!(self + TAST_rhs, rhs);
@@ -215,26 +217,26 @@ def make_ast_binop token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
 end
 
 def make_ast_return token: Token&, expr: ast -> ast in
-    var self = _make_ast(AstK_Return, false, token);
+    var self = _make_ast(AstK::Return, false, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
 def make_ast_var_decl token: Token&, ident: cstr -> ast in
-    var self = _make_ast(AstK_VarDecl, false, token);
+    var self = _make_ast(AstK::VarDecl, false, token);
     u64!(self + TAST_ident, ident);
     return self;
 end
 
 def make_ast_var_assign token: Token&, ident: cstr, expr: ast -> ast in
-    var self = _make_ast(AstK_VarAssign, false, token);
+    var self = _make_ast(AstK::VarAssign, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
 def make_ast_assign_op token: Token&, ident: cstr, op: TK, expr: ast -> ast in
-    var self = _make_ast(AstK_AssignOp, false, token);
+    var self = _make_ast(AstK::AssignOp, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_op, op);
     u64!(self + TAST_assign_expr, expr);
@@ -242,7 +244,7 @@ def make_ast_assign_op token: Token&, ident: cstr, op: TK, expr: ast -> ast in
 end
 
 def make_ast_def token: Token&, ident: cstr, params: Vector[cstr]&, body: Vector[ast]& -> ast in
-    var self = _make_ast(AstK_Def, false, token);
+    var self = _make_ast(AstK::Def, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_body, body);
     u64!(self + TAST_params, params);
@@ -250,7 +252,7 @@ def make_ast_def token: Token&, ident: cstr, params: Vector[cstr]&, body: Vector
 end
 
 def make_ast_if_else token: Token&, test: ast, conseq: Vector[ast]&, altern: Vector[ast]& -> ast in
-    var self = _make_ast(AstK_IfElse, false, token);
+    var self = _make_ast(AstK::IfElse, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_consequence, conseq);
     u64!(self + TAST_alternative, altern);
@@ -258,7 +260,7 @@ def make_ast_if_else token: Token&, test: ast, conseq: Vector[ast]&, altern: Vec
 end
 
 def make_ast_while token: Token&, test: ast, body: Vector[ast]& -> ast in
-    var self = _make_ast(AstK_While, false, token);
+    var self = _make_ast(AstK::While, false, token);
     u64!(self + TAST_test, test);
     u64!(self + TAST_body, body);
     return self;
@@ -267,10 +269,10 @@ end
 def make_ast_pointer_op token: Token&, size: int, op: PointerOp, args: Vector[ast]& -> ast in
     var astk; var is_expr;
     if op == PointerOp::Read then
-        astk = AstK_PointerRead;
+        astk = AstK::PointerRead;
         is_expr = true;
     else
-        astk = AstK_PointerWrite;
+        astk = AstK::PointerWrite;
         is_expr = false;
     end
     var self = _make_ast(astk, is_expr, token);
@@ -281,57 +283,57 @@ def make_ast_pointer_op token: Token&, size: int, op: PointerOp, args: Vector[as
 end
 
 def make_ast_prefix token: Token&, op: TK, expr: ast -> ast in
-    var self = _make_ast(AstK_Prefix, true, token);
+    var self = _make_ast(AstK::Prefix, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_op, op);
     return self;
 end
 
 def make_ast_const token: Token&, ident: cstr, expr: ast -> ast in
-    var self = _make_ast(AstK_Const, false, token);
+    var self = _make_ast(AstK::Const, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, expr);
     return self;
 end
 
 def make_ast_extern token: Token&, ident: cstr, type: Type& -> ast in
-    var self = _make_ast(AstK_Extern, false, token);
+    var self = _make_ast(AstK::Extern, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_type, type);
     return self;
 end
 
 def make_ast_inline_asm token: Token&, ident: cstr, asmcode: cstr -> ast in
-    var self = _make_ast(AstK_InlineAsm, false, token);
+    var self = _make_ast(AstK::InlineAsm, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_asm, asmcode);
     return self;
 end
 
 def make_ast_global token: Token&, ident: cstr, assign_expr: ast -> ast in
-    var self = _make_ast(AstK_Global, false, token);
+    var self = _make_ast(AstK::Global, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_assign_expr, assign_expr);
     return self;
 end
 
 def make_ast_break token: Token& -> ast in
-    return _make_ast(AstK_Break, false, token);
+    return _make_ast(AstK::Break, false, token);
 end
 
 def make_ast_continue token: Token& -> ast in
-    return _make_ast(AstK_Continue, false, token);
+    return _make_ast(AstK::Continue, false, token);
 end
 
 def make_ast_cast token: Token&, expr: ast, type: Type& -> ast in
-    var self = _make_ast(AstK_Cast, true, token);
+    var self = _make_ast(AstK::Cast, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_type, type);
     return self;
 end
 
 def make_ast_struct token: Token&, struct_type: Type&, fields: Vector[Field&]&, defs: Vector[ast]& -> ast in
-    var self = _make_ast(AstK_Struct, false, token);
+    var self = _make_ast(AstK::Struct, false, token);
     u64!(self + TAST_struct, struct_type);
     u64!(self + TAST_fields, fields);
     u64!(self + TAST_defs, defs);
@@ -339,25 +341,25 @@ def make_ast_struct token: Token&, struct_type: Type&, fields: Vector[Field&]&, 
 end
 
 def make_ast_union token: Token&, union_type: Type&, fields: Vector[Field&]& -> ast in
-    var self = _make_ast(AstK_Union, false, token);
+    var self = _make_ast(AstK::Union, false, token);
     u64!(self + TAST_union, union_type);
     u64!(self + TAST_fields, fields);
     return self;
 end
 
 def make_ast_member_access token: Token&, expr: ast, member: cstr -> ast in
-    var self = _make_ast(AstK_MemberAccess, true, token);
+    var self = _make_ast(AstK::MemberAccess, true, token);
     u64!(self + TAST_expr, expr);
     u64!(self + TAST_member, member);
     return self;
 end
 
 def make_ast_assign_member token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
-    assert(ast_kind(lhs) == AstK_MemberAccess,
+    assert(ast_kind(lhs) == AstK::MemberAccess,
         "Compiler bug: cannot make_ast_assign_member where lhs is %s (%d)\n",
         ast_kind_cstr(ast_kind(lhs)),
         ast_kind(lhs));
-    var self = _make_ast(AstK_AssignMember, false, token);
+    var self = _make_ast(AstK::AssignMember, false, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_op, op);
     u64!(self + TAST_rhs, rhs);
@@ -365,28 +367,28 @@ def make_ast_assign_member token: Token&, lhs: ast, op: TK, rhs: ast -> ast in
 end
 
 def make_ast_sizeof_expr token: Token&, expr: ast -> ast in
-    if ast_kind(expr) == AstK_Type then
+    if ast_kind(expr) == AstK::Type then
         return make_ast_sizeof_type(token, ast_type(expr));
     end
-    var self = _make_ast(AstK_SizeofExpr, true, token);
+    var self = _make_ast(AstK::SizeofExpr, true, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
 def make_ast_sizeof_type token: Token&, type: Type& -> ast in
-    var self = _make_ast(AstK_SizeofType, true, token);
+    var self = _make_ast(AstK::SizeofType, true, token);
     u64!(self + TAST_type, type);
     return self;
 end
 
 def ast_change_sizeof_expr_to_type self: ast, type: Type& in
-    assert(ast_kind(self) == AstK_SizeofExpr);
-    u32!(self + TAST_kind, AstK_SizeofType);
+    assert(ast_kind(self) == AstK::SizeofExpr);
+    u32!(self + TAST_kind, AstK::SizeofType);
     u64!(self + TAST_type, type);
 end
 
 def make_ast_enum token: Token&, ident: cstr, enum_: Type&, values: Vector[EnumValue&]& -> ast in
-    var self = _make_ast(AstK_Enum, false, token);
+    var self = _make_ast(AstK::Enum, false, token);
     u64!(self + TAST_ident, ident);
     u64!(self + TAST_enum, enum_);
     u64!(self + TAST_values, values);
@@ -394,21 +396,21 @@ def make_ast_enum token: Token&, ident: cstr, enum_: Type&, values: Vector[EnumV
 end
 
 def make_ast_type token: Token&, type: Type& -> ast in
-    var self = _make_ast(AstK_Type, false, token);
+    var self = _make_ast(AstK::Type, false, token);
     u64!(self + TAST_type, type);
     return self;
 end
 
 def make_ast_scope_resolve token: Token&, lhs: ast, rhs: ast -> ast in
-    var self = _make_ast(AstK_ScopeResolve, true, token);
+    var self = _make_ast(AstK::ScopeResolve, true, token);
     u64!(self + TAST_lhs, lhs);
     u64!(self + TAST_rhs, rhs);
     return self;
 end
 
 def ast_change_member_access_to_scope_access self: ast, type: Type&, member: Symbol& in
-    assert(ast_kind(self) == AstK_MemberAccess);
-    u32!(self + TAST_kind, AstK_ScopeResolve);
+    assert(ast_kind(self) == AstK::MemberAccess);
+    u32!(self + TAST_kind, AstK::ScopeResolve);
 
     var lhs = make_ast_type(ast_token(self), type);
     var rhs = make_ast_ident(ast_token(self), member.name);
@@ -418,12 +420,12 @@ def ast_change_member_access_to_scope_access self: ast, type: Type&, member: Sym
 end
 
 def make_ast_get_reference token: Token&, expr: ast -> ast in
-    var self = _make_ast(AstK_GetReference, true, token);
+    var self = _make_ast(AstK::GetReference, true, token);
     u64!(self + TAST_expr, expr);
     return self;
 end
 
-def ast_kind self: ast in return cast(u32@(self + TAST_kind), int); end
+def ast_kind self: ast in return cast(u32@(self + TAST_kind), AstK); end
 def ast_is_expr self: ast in return cast(u8@(self + TAST_is_expr), bool); end
 def ast_token self: ast in return cast(u64@(self + TAST_token), Token&); end
 def ast_alternative self: ast in return cast(u64@(self + TAST_alternative), Vector[ast]&); end
@@ -454,7 +456,7 @@ def ast_union self: ast in return cast(u64@(self + TAST_union), Type&); end
 def ast_values self: ast in return cast(u64@(self + TAST_values), Vector[EnumValue&]&); end
 
 def ast_set_struct self: ast, struct_: Type& in
-    assert(ast_kind(self) == AstK_Struct);
+    assert(ast_kind(self) == AstK::Struct);
     u64!(self + TAST_struct, struct_);
 end
 
@@ -653,7 +655,7 @@ def _print_ast_if_else ast, indent, print_if in
     var altern = ast_alternative(ast);
     _print_ast_body(conseq, indent+1);
     if altern.length > 0 then
-        if altern.length == 1 and AstK_IfElse == ast_kind(altern.get(0)) then
+        if altern.length == 1 and AstK::IfElse == ast_kind(altern.get(0)) then
             _print_indent(indent); printf("elif ");
             _print_ast_if_else(altern.get(0), indent, false);
             return;
@@ -688,11 +690,11 @@ def _print_ast_prefix ast, indent in
         printf("%s", token.cstr);
     end
     var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK_BinOp then
+    if ast_kind(expr) == AstK::BinOp then
         printf("(");
     end
     _print_ast(ast_expr(ast), indent);
-    if ast_kind(expr) == AstK_BinOp then
+    if ast_kind(expr) == AstK::BinOp then
         printf(")");
     end
 end
@@ -842,38 +844,38 @@ end
 
 def _print_ast ast, indent in
     var k = ast_kind(ast);
-    if k == AstK_Ident then _print_ast_ident(ast, indent);
-    elif k == AstK_Integer then _print_ast_integer(ast, indent);
-    elif k == AstK_String then _print_ast_string(ast, indent);
-    elif k == AstK_Call then _print_ast_call(ast, indent);
-    elif k == AstK_BinOp then _print_ast_binop(ast, indent);
-    elif k == AstK_Return then _print_ast_return(ast, indent);
-    elif k == AstK_VarDecl then _print_ast_var_decl(ast, indent);
-    elif k == AstK_VarAssign then _print_ast_var_assign(ast, indent);
-    elif k == AstK_Def then _print_ast_def(ast, indent);
-    elif k == AstK_IfElse then _print_ast_if_else(ast, indent, true);
-    elif k == AstK_While then _print_ast_while(ast, indent);
-    elif k == AstK_PointerRead then _print_ast_pointer_op(ast, indent);
-    elif k == AstK_PointerWrite then _print_ast_pointer_op(ast, indent);
-    elif k == AstK_Prefix then _print_ast_prefix(ast, indent);
-    elif k == AstK_Const then _print_ast_const(ast, indent);
-    elif k == AstK_Extern then _print_ast_extern(ast, indent);
-    elif k == AstK_InlineAsm then _print_ast_inline_asm(ast, indent);
-    elif k == AstK_Global then _print_ast_global(ast, indent);
-    elif k == AstK_Break then _print_ast_break(ast, indent);
-    elif k == AstK_Continue then _print_ast_continue(ast, indent);
-    elif k == AstK_AssignOp then _print_ast_assign_op(ast, indent);
-    elif k == AstK_Cast then _print_ast_cast(ast, indent);
-    elif k == AstK_Struct then _print_ast_struct(ast, indent);
-    elif k == AstK_MemberAccess then _print_ast_member_access(ast, indent);
-    elif k == AstK_AssignMember then _print_ast_assign_member(ast, indent);
-    elif k == AstK_SizeofExpr then _print_ast_sizeof_expr(ast, indent);
-    elif k == AstK_SizeofType then _print_ast_sizeof_type(ast, indent);
-    elif k == AstK_Enum then _print_ast_enum(ast, indent);
-    elif k == AstK_Type then _print_ast_type(ast, indent);
-    elif k == AstK_ScopeResolve then _print_ast_scope_resolve(ast, indent);
-    elif k == AstK_GetReference then _print_ast_get_reference(ast, indent);
-    elif k == AstK_Union then _print_ast_union(ast, indent);
+    if k == AstK::Ident then _print_ast_ident(ast, indent);
+    elif k == AstK::Integer then _print_ast_integer(ast, indent);
+    elif k == AstK::String then _print_ast_string(ast, indent);
+    elif k == AstK::Call then _print_ast_call(ast, indent);
+    elif k == AstK::BinOp then _print_ast_binop(ast, indent);
+    elif k == AstK::Return then _print_ast_return(ast, indent);
+    elif k == AstK::VarDecl then _print_ast_var_decl(ast, indent);
+    elif k == AstK::VarAssign then _print_ast_var_assign(ast, indent);
+    elif k == AstK::Def then _print_ast_def(ast, indent);
+    elif k == AstK::IfElse then _print_ast_if_else(ast, indent, true);
+    elif k == AstK::While then _print_ast_while(ast, indent);
+    elif k == AstK::PointerRead then _print_ast_pointer_op(ast, indent);
+    elif k == AstK::PointerWrite then _print_ast_pointer_op(ast, indent);
+    elif k == AstK::Prefix then _print_ast_prefix(ast, indent);
+    elif k == AstK::Const then _print_ast_const(ast, indent);
+    elif k == AstK::Extern then _print_ast_extern(ast, indent);
+    elif k == AstK::InlineAsm then _print_ast_inline_asm(ast, indent);
+    elif k == AstK::Global then _print_ast_global(ast, indent);
+    elif k == AstK::Break then _print_ast_break(ast, indent);
+    elif k == AstK::Continue then _print_ast_continue(ast, indent);
+    elif k == AstK::AssignOp then _print_ast_assign_op(ast, indent);
+    elif k == AstK::Cast then _print_ast_cast(ast, indent);
+    elif k == AstK::Struct then _print_ast_struct(ast, indent);
+    elif k == AstK::MemberAccess then _print_ast_member_access(ast, indent);
+    elif k == AstK::AssignMember then _print_ast_assign_member(ast, indent);
+    elif k == AstK::SizeofExpr then _print_ast_sizeof_expr(ast, indent);
+    elif k == AstK::SizeofType then _print_ast_sizeof_type(ast, indent);
+    elif k == AstK::Enum then _print_ast_enum(ast, indent);
+    elif k == AstK::Type then _print_ast_type(ast, indent);
+    elif k == AstK::ScopeResolve then _print_ast_scope_resolve(ast, indent);
+    elif k == AstK::GetReference then _print_ast_get_reference(ast, indent);
+    elif k == AstK::Union then _print_ast_union(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -890,7 +892,7 @@ def print_ast ast: ast in
     end
 end
 
-def check_ast_kind expect: int, ast: ast in
+def check_ast_kind expect: AstK, ast: ast in
     var actual = ast_kind(ast);
     if expect != actual then
         printf("check_ast_kind failed: expected %s, actual was %s\n",
@@ -1099,7 +1101,7 @@ def _ast_deep_copy_struct ast, tt, st in
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);
-        assert(ast_kind(def_) == AstK_Def);
+        assert(ast_kind(def_) == AstK::Def);
         var def_copy = _ast_deep_copy_def(def_, tt, st);
         var def_copy_sym = st_get_symbol(st, ast_ident(def_copy));
         assert(def_copy_sym);
@@ -1154,7 +1156,7 @@ end
 
 def _ast_deep_copy_sizeof_expr ast, tt, st in
     var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK_Ident then
+    if ast_kind(expr) == AstK::Ident then
         var type = tt_get_type_or_null(tt, ast_ident(expr));
         if type then
             type = tt_substitute_type(tt, type);
@@ -1195,38 +1197,38 @@ end
 
 def _ast_deep_copy ast, tt, st in
     var k = ast_kind(ast);
-    if k == AstK_Ident then return _ast_deep_copy_ident(ast, tt, st);
-    elif k == AstK_Integer then return _ast_deep_copy_integer(ast, tt, st);
-    elif k == AstK_String then return _ast_deep_copy_string(ast, tt, st);
-    elif k == AstK_Call then return _ast_deep_copy_call(ast, tt, st);
-    elif k == AstK_BinOp then return _ast_deep_copy_binop(ast, tt, st);
-    elif k == AstK_Return then return _ast_deep_copy_return(ast, tt, st);
-    elif k == AstK_VarDecl then return _ast_deep_copy_var_decl(ast, tt, st);
-    elif k == AstK_VarAssign then return _ast_deep_copy_var_assign(ast, tt, st);
-    elif k == AstK_Def then return _ast_deep_copy_def(ast, tt, st);
-    elif k == AstK_IfElse then return _ast_deep_copy_if_else(ast, tt, st);
-    elif k == AstK_While then return _ast_deep_copy_while(ast, tt, st);
-    elif k == AstK_PointerRead then return _ast_deep_copy_pointer_op(ast, tt, st);
-    elif k == AstK_PointerWrite then return _ast_deep_copy_pointer_op(ast, tt, st);
-    elif k == AstK_Prefix then return _ast_deep_copy_prefix(ast, tt, st);
-    elif k == AstK_Const then return _ast_deep_copy_const(ast, tt, st);
-    elif k == AstK_Extern then return _ast_deep_copy_extern(ast, tt, st);
-    elif k == AstK_InlineAsm then return _ast_deep_copy_inline_asm(ast, tt, st);
-    elif k == AstK_Global then return _ast_deep_copy_global(ast, tt, st);
-    elif k == AstK_Break then return _ast_deep_copy_break(ast, tt, st);
-    elif k == AstK_Continue then return _ast_deep_copy_continue(ast, tt, st);
-    elif k == AstK_AssignOp then return _ast_deep_copy_assign_op(ast, tt, st);
-    elif k == AstK_Cast then return _ast_deep_copy_cast(ast, tt, st);
-    elif k == AstK_Struct then return _ast_deep_copy_struct(ast, tt, st);
-    elif k == AstK_MemberAccess then return _ast_deep_copy_member_access(ast, tt, st);
-    elif k == AstK_AssignMember then return _ast_deep_copy_assign_member(ast, tt, st);
-    elif k == AstK_SizeofExpr then return _ast_deep_copy_sizeof_expr(ast, tt, st);
-    elif k == AstK_SizeofType then return _ast_deep_copy_sizeof_type(ast, tt, st);
-    elif k == AstK_Enum then return _ast_deep_copy_enum(ast, tt, st);
-    elif k == AstK_Type then return _ast_deep_copy_type(ast, tt, st);
-    elif k == AstK_ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
-    elif k == AstK_GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
-    elif k == AstK_Union then return _ast_deep_copy_union(ast, tt, st);
+    if k == AstK::Ident then return _ast_deep_copy_ident(ast, tt, st);
+    elif k == AstK::Integer then return _ast_deep_copy_integer(ast, tt, st);
+    elif k == AstK::String then return _ast_deep_copy_string(ast, tt, st);
+    elif k == AstK::Call then return _ast_deep_copy_call(ast, tt, st);
+    elif k == AstK::BinOp then return _ast_deep_copy_binop(ast, tt, st);
+    elif k == AstK::Return then return _ast_deep_copy_return(ast, tt, st);
+    elif k == AstK::VarDecl then return _ast_deep_copy_var_decl(ast, tt, st);
+    elif k == AstK::VarAssign then return _ast_deep_copy_var_assign(ast, tt, st);
+    elif k == AstK::Def then return _ast_deep_copy_def(ast, tt, st);
+    elif k == AstK::IfElse then return _ast_deep_copy_if_else(ast, tt, st);
+    elif k == AstK::While then return _ast_deep_copy_while(ast, tt, st);
+    elif k == AstK::PointerRead then return _ast_deep_copy_pointer_op(ast, tt, st);
+    elif k == AstK::PointerWrite then return _ast_deep_copy_pointer_op(ast, tt, st);
+    elif k == AstK::Prefix then return _ast_deep_copy_prefix(ast, tt, st);
+    elif k == AstK::Const then return _ast_deep_copy_const(ast, tt, st);
+    elif k == AstK::Extern then return _ast_deep_copy_extern(ast, tt, st);
+    elif k == AstK::InlineAsm then return _ast_deep_copy_inline_asm(ast, tt, st);
+    elif k == AstK::Global then return _ast_deep_copy_global(ast, tt, st);
+    elif k == AstK::Break then return _ast_deep_copy_break(ast, tt, st);
+    elif k == AstK::Continue then return _ast_deep_copy_continue(ast, tt, st);
+    elif k == AstK::AssignOp then return _ast_deep_copy_assign_op(ast, tt, st);
+    elif k == AstK::Cast then return _ast_deep_copy_cast(ast, tt, st);
+    elif k == AstK::Struct then return _ast_deep_copy_struct(ast, tt, st);
+    elif k == AstK::MemberAccess then return _ast_deep_copy_member_access(ast, tt, st);
+    elif k == AstK::AssignMember then return _ast_deep_copy_assign_member(ast, tt, st);
+    elif k == AstK::SizeofExpr then return _ast_deep_copy_sizeof_expr(ast, tt, st);
+    elif k == AstK::SizeofType then return _ast_deep_copy_sizeof_type(ast, tt, st);
+    elif k == AstK::Enum then return _ast_deep_copy_enum(ast, tt, st);
+    elif k == AstK::Type then return _ast_deep_copy_type(ast, tt, st);
+    elif k == AstK::ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
+    elif k == AstK::GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
+    elif k == AstK::Union then return _ast_deep_copy_union(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

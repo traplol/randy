@@ -4,10 +4,10 @@ def _compile_order_visit tt, st, stmt, seen, order in
         return;
     end
     var k = ast_kind(stmt);
-    if k == AstK_Call then
+    if k == AstK::Call then
         _compile_order_visit_vector(tt, st, ast_args(stmt), seen, order);
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
-    elif k == AstK_Ident then
+    elif k == AstK::Ident then
         var sym = st_get_symbol(st, ast_ident(stmt));
         if symbol_is_def(sym) then
             if set_contains(seen, sym) then
@@ -20,42 +20,42 @@ def _compile_order_visit tt, st, stmt, seen, order in
             assert(def_, "AST for symbol %s was null\n", symbol_name(sym));
             _compile_order_def(tt, st, def_, seen, order);
         end
-    elif k == AstK_BinOp then
+    elif k == AstK::BinOp then
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
-    elif k == AstK_Return then
+    elif k == AstK::Return then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
-    elif k == AstK_VarAssign then
+    elif k == AstK::VarAssign then
         _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
-    elif k == AstK_IfElse then
+    elif k == AstK::IfElse then
         _compile_order_visit(tt, st, ast_test(stmt), seen, order);
         _compile_order_visit_vector(tt, st, ast_consequence(stmt), seen, order);
         _compile_order_visit_vector(tt, st, ast_alternative(stmt), seen, order);
-    elif k == AstK_While then
+    elif k == AstK::While then
         _compile_order_visit(tt, st, ast_test(stmt), seen, order);
         _compile_order_visit_vector(tt, st, ast_body(stmt), seen, order);
-    elif k == AstK_PointerRead then
+    elif k == AstK::PointerRead then
         _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
-    elif k == AstK_PointerWrite then
+    elif k == AstK::PointerWrite then
         _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
         _compile_order_visit(tt, st, ast_pop_args(stmt).get(1), seen, order);
-    elif k == AstK_Prefix then
+    elif k == AstK::Prefix then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
-    elif k == AstK_AssignOp then
+    elif k == AstK::AssignOp then
         _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
-    elif k == AstK_Cast then
+    elif k == AstK::Cast then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
-    elif k == AstK_MemberAccess then
+    elif k == AstK::MemberAccess then
         _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
-    elif k == AstK_AssignMember then
+    elif k == AstK::AssignMember then
         _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
         _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
-    elif k == AstK_ScopeResolve then
+    elif k == AstK::ScopeResolve then
         var type = scope_resolve_lhs(tt, ast_lhs(stmt), false);
         if type then
             _compile_order_visit_type(tt, st, type, seen, order);
         end
-    // elif k == AstK_SizeofExpr then
+    // elif k == AstK::SizeofExpr then
     //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end
 end
@@ -121,7 +121,7 @@ def compile_order_main roots, type_table, symbol_table -> Vector[ast]& in
     var i = 0; var len = roots.length;
     while i < len do
         var ast = roots.get(i);
-        if ast_kind(ast) == AstK_Def then
+        if ast_kind(ast) == AstK::Def then
             if cstr_eq("main", ast_ident(ast)) then
                 main_def = ast;
             elif cstr_eq("exit", ast_ident(ast)) then
