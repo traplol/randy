@@ -1,0 +1,29 @@
+
+#include std/core
+#include std/limits
+
+def main in
+    var d: int64 = INT64_MIN;
+    var d_: int64 = INT64_MAX;
+
+    var c: int32 = INT32_MIN;
+    var c_: int32 = INT32_MAX;
+
+    var b: int16 = INT16_MIN;
+    var b_: int16 = INT16_MAX;
+
+    var a: int8 = INT8_MIN;
+    var a_: int8 = INT8_MAX;
+
+    printf("a = %ld\n", a);
+    printf("a_ = %ld\n", a_);
+
+    printf("b = %ld\n", b);
+    printf("b_ = %ld\n", b_);
+
+    printf("c = %ld\n", c);
+    printf("c_ = %ld\n", c_);
+
+    printf("d = %ld\n", d);
+    printf("d_ = %ld\n", d_);
+end

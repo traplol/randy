@@ -1,0 +1,12 @@
+// -nocompile
+
+struct Foo in
+    c: char;
+end
+
+static_assert(__sizeof(Foo) == 4, "sizeof Foo is not 4");
+
+def main in
+    return 0;
+end
+
