@@ -1,0 +1,9 @@
+Inner::A = 1000
+Inner::B = 2000
+Inner::C = 3000
+Foo::Inner::A = 10
+Foo::Inner::B = 20
+Foo::Inner::C = 30
+Bar::Inner::A = 100
+Bar::Inner::B = 200
+Bar::Inner::C = 300
