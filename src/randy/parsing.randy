@@ -392,6 +392,15 @@ def parse_assert ts, st, tt in
     return ast;
 end
 
+def parse_static_assert ts, st, tt in
+    var static_assert_ = ts.expect(TK::KW_static_assert);
+    ts.expect(TK::LParen);
+    var assert_args = Vector[ast]::new(0);
+    parse_args_until(ts, st, tt, assert_args, TK::RParen);
+    ts.expect(TK::RParen);
+    return make_ast_static_assert(static_assert_, assert_args);
+end
+
 def parse_primary ts, st, tt in
     var peek = ts.peek();
     if not peek then
@@ -735,6 +744,9 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
         expect_semi = true;
     elif ts.peekk(TK::KW_assert) then
         stmt = parse_assert(ts, st, tt);
+        expect_semi = true;
+    elif ts.peekk(TK::KW_static_assert) then
+        stmt = parse_static_assert(ts, st, tt);
         expect_semi = true;
     elif ts.peekk_one_of_5(TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
@@ -1186,6 +1198,9 @@ def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
             parsed = parse_enum(ts, st, tt);
         elif ts.peekk(TK::KW_union) then
             parsed = parse_union(ts, st, tt);
+        elif ts.peekk(TK::KW_static_assert) then
+            parsed = parse_static_assert(ts, st, tt);
+            ts.expect(TK::Semicolon);
         else
             tk = ts.peek();
             printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(tk.kind));

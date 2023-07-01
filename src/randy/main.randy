@@ -265,7 +265,7 @@ def main argc: int, argv: ptr in
         end
 
         if do_print_ast then
-            print_compile_ast(compile_order);
+            print_whole_ast(compile_order);
         end
 
         if g_Errors != 0 then

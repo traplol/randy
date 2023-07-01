@@ -553,6 +553,12 @@ def ti_infer_get_reference self, tt, st, ast in
     return tt_reference_to_type(tt, type);
 end
 
+def ti_infer_static_assert self, tt, st, ast in
+    check_ast_kind(AstK::StaticAssert, ast);
+    ti_infer_vector(self, tt, st, ast_args(ast));
+    return tt_void_type(tt);
+end
+
 def ti_infer self, tt, st, ast -> Type& in
     var k = ast_kind(ast);
     var type: Type&;
@@ -589,6 +595,7 @@ def ti_infer self, tt, st, ast -> Type& in
     elif k == AstK::ScopeResolve then type = ti_infer_scope_resolve(self, tt, st, ast);
     elif k == AstK::GetReference then type = ti_infer_get_reference(self, tt, st, ast);
     elif k == AstK::Union then type = tt_void_type(tt);
+    elif k == AstK::StaticAssert then type = ti_infer_static_assert(self, tt, st, ast);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

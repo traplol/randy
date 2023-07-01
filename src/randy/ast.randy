@@ -37,6 +37,7 @@ enum AstK in
     ScopeResolve;
     GetReference; // unavailable from source code
     Union;
+    StaticAssert;
 end
 
 def ast_kind_cstr k: AstK in
@@ -72,6 +73,7 @@ def ast_kind_cstr k: AstK in
     if k == AstK::ScopeResolve then return "AstK::ScopeResolve"; end
     if k == AstK::GetReference then return "AstK::GetReference"; end
     if k == AstK::Union then return "AstK::Union"; end
+    if k == AstK::StaticAssert then return "AstK::StaticAssert"; end
     return "AstK::OUT_OF_RANGE";
 end
 
@@ -82,8 +84,19 @@ def ast_requires_semi k in
     elif k == AstK::InlineAsm then return false;
     elif k == AstK::Struct then return false;
     elif k == AstK::Enum then return false;
+    elif k == AstK::Union then return false;
     else
         return true;
+    end
+end
+
+struct Ast in
+    kind: AstK;
+    is_expr: bool;
+    token: Token&;
+
+    struct Ident in
+
     end
 end
 
@@ -172,11 +185,13 @@ const TAST_object      = 16; // ast
 // Union
 const TAST_union       = 16; // type
 const TAST_fields      = 24; // field Vector&
+// StaticAssert
+const TAST_args        = 24; // ast Vector&
 
 const sizeof_TAST      = 40;
 
 def _make_ast kind: AstK, is_expr: bool, token: Token& -> ast in
-    var self = malloc(sizeof_TAST);
+    var self = calloc(1, sizeof_TAST);
     u32!(self + TAST_kind, kind);
     u8!(self + TAST_is_expr, is_expr);
     u64!(self + TAST_token, token);
@@ -422,6 +437,12 @@ end
 def make_ast_get_reference token: Token&, expr: ast -> ast in
     var self = _make_ast(AstK::GetReference, true, token);
     u64!(self + TAST_expr, expr);
+    return self;
+end
+
+def make_ast_static_assert token: Token&, args: Vector[ast]& -> ast in
+    var self = _make_ast(AstK::StaticAssert, false, token);
+    u64!(self + TAST_args, args);
     return self;
 end
 
@@ -728,6 +749,12 @@ def _print_ast_continue ast, indent in
     printf("continue");
 end
 
+def _print_ast_static_assert ast, indent in
+    printf("static_assert(");
+    _print_args(ast_args(ast), indent);
+    printf(")");
+end
+
 def _print_ast_cast ast, indent in
     printf("cast(");
     _print_ast(ast_expr(ast), indent);
@@ -876,6 +903,7 @@ def _print_ast ast, indent in
     elif k == AstK::ScopeResolve then _print_ast_scope_resolve(ast, indent);
     elif k == AstK::GetReference then _print_ast_get_reference(ast, indent);
     elif k == AstK::Union then _print_ast_union(ast, indent);
+    elif k == AstK::StaticAssert then _print_ast_static_assert(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
@@ -906,14 +934,6 @@ def print_whole_ast roots in
     var i = 0; var len = roots.length;
     while i < len do
         print_ast(roots.get(i));
-        i += 1;
-    end
-end
-
-def print_compile_ast compile_order: Vector[ast]& in
-    var i = 0; var len = compile_order.length;
-    while i < len do
-        print_ast(compile_order.get(i));
         i += 1;
     end
 end
@@ -965,7 +985,6 @@ def _ast_deep_copy_return ast, tt, st in
 end
 
 def _ast_deep_copy_var_decl ast, tt, st in
-    // here is a place to types would be replaced
     var ident = ast_ident(ast);
     var ident_sym = st_get_exact_symbol(st, ident);
     assert(ident_sym);
@@ -1195,6 +1214,11 @@ def _ast_deep_copy_get_reference ast, tt, st in
     return make_ast_get_reference(ast_token(ast), expr_copy);
 end
 
+def _ast_deep_copy_static_assert ast, tt, st in
+    var args_copy = _ast_deep_copy_vector(ast_args(ast), tt, st);
+    return make_ast_static_assert(ast_token(ast), args_copy);
+end
+
 def _ast_deep_copy ast, tt, st in
     var k = ast_kind(ast);
     if k == AstK::Ident then return _ast_deep_copy_ident(ast, tt, st);
@@ -1229,6 +1253,7 @@ def _ast_deep_copy ast, tt, st in
     elif k == AstK::ScopeResolve then return _ast_deep_copy_scope_resolve(ast, tt, st);
     elif k == AstK::GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
     elif k == AstK::Union then return _ast_deep_copy_union(ast, tt, st);
+    elif k == AstK::StaticAssert then return _ast_deep_copy_static_assert(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

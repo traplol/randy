@@ -668,21 +668,23 @@ def def_info_varargs self: def_info -> bool in
     return cast(u8@(self + TDEF_INFO_varargs), bool);
 end
 
-const TCONST_INFO_kind = 0;
-const TCONST_INFO_value = 8;
-const sizeof_TCONST_INFO = 16;
-const CIK_String = 0;
-const CIK_Integer = 1;
-
-def make_const_info kind: int, value: ptr -> const_info in
-    var self = malloc(sizeof_TCONST_INFO);
-    u64!(self + TCONST_INFO_kind, kind);
-    u64!(self + TCONST_INFO_value, value);
-    return cast(self, const_info);
+enum CIK in
+    String;
+    Integer;
+end
+struct ConstInfo in
+    kind: CIK;
+    value: ptr;
+    ast_value: ast;
 end
 
-def const_info_kind self: const_info in return cast(u64@(self + TCONST_INFO_kind), int); end
-def const_info_value self: const_info in return cast(u64@(self + TCONST_INFO_value), ptr); end
+def make_const_info kind: CIK, value: ptr, ast_value: ast -> ConstInfo& in
+    var self = cast(malloc(__sizeof(ConstInfo)), ConstInfo&);
+    self.kind = kind;
+    self.value = value;
+    self.ast_value = ast_value;
+    return self;
+end
 
 const TGLOBAL_INFO_kind = 0;
 const TGLOBAL_INFO_label = 8;
@@ -1006,7 +1008,7 @@ end
 
 def ir_get_const self, ident in
     var found = map_find(ir_constants(self), ident);
-    return map_pair_val(found);
+    return cast(map_pair_val(found), ConstInfo&);
 end
 
 def ir_add_const self, ident, value in
@@ -1130,10 +1132,10 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
         ident = ast_ident(ast);
         if ir_is_const(self, ident) then
             ci = ir_get_const(self, ident);
-            if const_info_kind(ci) == CIK_String then
-                return ast;
-            elif const_info_kind(ci) == CIK_Integer then
-                return make_ast_integer(ast_token(ast), cast(const_info_value(ci), int)); // @LEAK
+            if ci.kind == CIK::String then
+                return ci.ast_value;
+            elif ci.kind == CIK::Integer then
+                return make_ast_integer(ast_token(ast), cast(ci.value, int)); // @LEAK
             end
         end
     elif k == AstK::ScopeResolve then
@@ -1286,13 +1288,12 @@ def ir_emit_ident self, ast, st, tt in
         ir_append(self, make_ir_get_local(ident, n, offs));
     elif ir_is_const(self, ident) then
         var const_info = ir_get_const(self, ident);
-        var cik = const_info_kind(const_info);
-        if cik == CIK_Integer then
-            ir_append(self, make_ir_push_int(const_info_value(const_info)));
-        elif cik == CIK_String then
-            ir_append(self, make_ir_push_label(const_info_value(const_info)));
+        if const_info.kind == CIK::Integer then
+            ir_append(self, make_ir_push_int(const_info.value));
+        elif const_info.kind == CIK::String then
+            ir_append(self, make_ir_push_label(const_info.value));
         else
-            printf("Unhandled const_info kind: %d\n", cik);
+            printf("Unhandled const_info kind: %d\n", const_info.kind);
             NYI_ERR(__FILE__, __LINE__, "ir_emit_ident:const");
         end
     elif ir_is_def(self, ident) then
@@ -1727,19 +1728,19 @@ def ir_emit_const self, ast, st, tt in
     check_ast_kind(AstK::Const, ast);
     var expr = ast_assign_expr(ast);
     var val = ir_comptime_eval(self, expr, st, tt, true, 0);
-    var const_info = NULL;
+    var const_info: ConstInfo& = NULL;
     var k = ast_kind(val);
     if k == AstK::String then
         var string_label = ir_string_label(self, ast_value(val));
-        const_info = make_const_info(CIK_String, string_label);
+        const_info = make_const_info(CIK::String, string_label, val);
     elif k == AstK::Integer then
-        const_info = make_const_info(CIK_Integer, ast_value(val));
+        const_info = make_const_info(CIK::Integer, ast_value(val), val);
     end
     if const_info then
         if ir_is_const(self, ast_ident(ast)) then
             var existing = ir_get_const(self, ast_ident(ast));
-            if const_info_kind(existing) != const_info_kind(const_info) or
-                const_info_value(existing) != const_info_value(const_info) then
+            if existing.kind != const_info.kind or
+                existing.value != const_info.value then
                 printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast_ident(ast));
                 print_ast_src_loc(ast);
                 exit(1);
@@ -1999,8 +2000,22 @@ end
 def ir_emit_sizeof_type self, ast, st, tt in
     check_ast_kind(AstK::SizeofType, ast);
     var type = ast_type(ast);
-    tt_print_type_name(tt, type);
-    //ir_append(self, make_ir_push_int(type.size));
+    ir_append(self, make_ir_push_int(type.size));
+end
+
+def ir_emit_static_assert self, ast, st, tt in
+    check_ast_kind(AstK::StaticAssert, ast);
+    var args = ast_args(ast);
+    var arg0 = ir_comptime_eval(self, args.get(0), st, tt, true, 0);
+    var arg1 = ir_comptime_eval(self, args.get(1), st, tt, true, 0);
+    assert(arg1 and ast_kind(arg1) == AstK::String);
+    if _comptime_eval_is_n(0, arg0) then
+        printf("ERROR: static_assert failed: \"%s\"\n", cast(ast_value(arg1), String&).cstr());
+        printf("NOTE: the expression is: ");
+        print_ast(args.get(0));
+        print_ast_src_loc(ast);
+        exit(1);
+    end
 end
 
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
@@ -2040,6 +2055,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
     elif k == AstK::Union then ir_emit_union(self, ev_ast, st, tt);
     elif k == AstK::SizeofType then ir_emit_sizeof_type(self, ev_ast, st, tt);
+    elif k == AstK::StaticAssert then ir_emit_static_assert(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
@@ -2062,12 +2078,11 @@ def ir_resolve_lazy_idents self in
             var symbol = ir_instr_symbol(ir);
             var new_ir;
             if ir_is_const(self, symbol_name(symbol)) then
-                info = ir_get_const(self, symbol_name(symbol));
-                var cik = const_info_kind(info);
-                if cik == CIK_String then
-                    new_ir = make_ir_push_label(const_info_value(info));
-                elif cik == CIK_Integer then
-                    new_ir = make_ir_push_int(const_info_value(info));
+                var info = ir_get_const(self, symbol_name(symbol));
+                if info.kind == CIK::String then
+                    new_ir = make_ir_push_label(info.value);
+                elif info.kind == CIK::Integer then
+                    new_ir = make_ir_push_int(info.value);
                 end
             elif ir_is_def(self, symbol_name(symbol)) then
                 info = ir_get_def(self, symbol_name(symbol));

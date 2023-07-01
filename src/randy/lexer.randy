@@ -65,6 +65,7 @@ def get_ident_kind string: String& in
     elif 'r' == first then
         if cstr_eq("return", cstr) then return TK::KW_return; end
     elif 's' == first then
+        if cstr_eq("static_assert", cstr) then return TK::KW_static_assert; end
         if cstr_eq("struct", cstr) then return TK::KW_struct; end
     elif 't' == first then
         if cstr_eq("then", cstr) then return TK::KW_then; end

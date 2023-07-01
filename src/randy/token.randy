@@ -40,6 +40,7 @@ enum TK in
     KW_enum;
     KW_inline;
     KW_assert;
+    KW_static_assert;
     KW_elif;
     KW__FILE__;
     KW__LINE__;
@@ -162,6 +163,7 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::KW_inline then return "TK::KW_inline";
     elif k == TK::Dot then return "TK::Dot";
     elif k == TK::KW_assert then return "TK::KW_assert";
+    elif k == TK::KW_static_assert then return "TK::KW_static_assert";
     elif k == TK::KW_elif then return "TK::KW_elif";
     elif k == TK::KW__FILE__ then return "TK::KW__FILE__";
     elif k == TK::KW__LINE__ then return "TK::KW__LINE__";

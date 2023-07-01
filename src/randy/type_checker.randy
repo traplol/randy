@@ -543,6 +543,30 @@ def tc_check_sizeof_type self, tt, st, ast in
     end
 end
 
+def tc_check_static_assert self, tt, st, ast in
+    check_ast_kind(AstK::StaticAssert, ast);
+    var args = ast_args(ast);
+    if args.length != 2 then
+        printf("ERROR: 'static_assert' expects exactly two arguments, a test, and a message\n");
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+
+    var arg0_type = tt_get_ast_type(tt, args.get(0));
+    if not type_is_scalar(arg0_type) then
+        printf("ERROR: the first argument to 'static_assert' must be a scalar value\n");
+        print_ast_src_loc(args.get(0));
+        g_Errors += 1;
+    end
+
+    var arg1_type = tt_get_ast_type(tt, args.get(1));
+    if not types_eq(arg1_type, tt_cstr_type(tt)) then
+        printf("ERROR: the second argument to 'static_assert' must be a cstr value\n");
+        print_ast_src_loc(args.get(1));
+        g_Errors += 1;
+    end
+end
+
 def tc_check self, tt, st, ast in
     var k = ast_kind(ast);
     if k == AstK::Ident then tc_check_ident(self, tt, st, ast);
@@ -577,6 +601,7 @@ def tc_check self, tt, st, ast in
     elif k == AstK::ScopeResolve then tc_check_scope_resolve(self, tt, st, ast);
     elif k == AstK::GetReference then // nothing
     elif k == AstK::Union then // nothing
+    elif k == AstK::StaticAssert then tc_check_static_assert(self, tt, st, ast);
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
