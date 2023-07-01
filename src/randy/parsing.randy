@@ -1003,7 +1003,7 @@ def parse_struct ts, st, tt in
     if not ts.accept(TK::KW_in) then
         struct_type = parse_type(ts, st, tt, false);
         if not type_is_undefined(struct_type) then
-            printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, struct_type));
+            printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, struct_type));
         end
         ts.expect(TK::KW_in);
     else
@@ -1093,7 +1093,7 @@ def parse_enum ts, st, tt in
     ts.expect(TK::KW_in);
     var enum_type = tt_get_type_or_make_undefined(tt, ident.value);
     if not type_is_undefined(enum_type) then
-        printf("ERROR: type `%s` already defined.", ident.value);
+        printf("ERROR: type `%s` already defined.\n", ident.value);
         print_token_loc(ident);
         exit(1);
     end
@@ -1129,7 +1129,7 @@ def parse_union ts, st, tt in
     var fields = Vector[Field&]::new(0);
     var union_type = parse_type(ts, st, tt, false);
     if not type_is_undefined(union_type) then
-        printf("ERROR: type `%s` already defined.", tt_get_type_name(tt, union_type));
+        printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
     end
     ts.expect(TK::KW_in);
 
