@@ -1069,8 +1069,18 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> Type& in
 
     if type_is_struct(type) then
         var member = ast_ident(ast_rhs(ast));
+        var fields = type_struct_fields(type);
+        var i = 0; var len = fields.length;
+        while i < len do
+            var field = fields.get(i);
+            if cstr_eq(member, field.name) then
+                return field.type;
+            end
+            i += 1;
+        end
+
         var defs = type_struct_defs(type);
-        var i = 0; var len = defs.length;
+        i = 0; len = defs.length;
         while i < len do
             var def_ = defs.get(i);
             var def_name = symbol_name(def_);

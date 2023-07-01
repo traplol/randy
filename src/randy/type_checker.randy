@@ -461,6 +461,7 @@ def tc_check_assign_member self, tt, st, ast in
 end
 
 def tc_check_scope_resolve self, tt, st, ast in
+    check_ast_kind(AstK::ScopeResolve, ast);
     var type = scope_resolve_lhs(tt, ast_lhs(ast), true);
     if not type then
         return;
@@ -487,6 +488,11 @@ def tc_check_scope_resolve self, tt, st, ast in
         while i < len do
             var field = fields.get(i);
             if cstr_eq(field.name, member) then
+                printf("ERROR: cannot directly reference instance field `%s` from struct `");
+                tt_print_type_name(tt, type);
+                printf("`\n");
+                print_ast_src_loc(ast);
+                g_Errors += 1;
                 return; // OK. found field
             end
             i += 1;
@@ -513,6 +519,25 @@ def tc_check_scope_resolve self, tt, st, ast in
         printf("ERROR: type `");
         tt_print_type_name(tt, type);
         printf("` is not a struct, enum, or union.\n", member);
+        print_ast_src_loc(ast);
+        g_Errors += 1;
+    end
+end
+
+def tc_check_sizeof_expr self, tt, st, ast in
+    check_ast_kind(AstK::SizeofExpr, ast);
+end
+
+def tc_check_sizeof_type self, tt, st, ast in
+    check_ast_kind(AstK::SizeofType, ast);
+    var type = ast_type(ast);
+    if not type then
+        var expr = ast_expr(ast);
+        if expr and ast_kind(expr) == AstK::Ident then
+            printf("ERROR: __sizeof undefined type `%s`\n", ast_ident(expr));
+        else
+            printf("ERROR: __sizeof undefined type\n");
+        end
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
@@ -545,8 +570,8 @@ def tc_check self, tt, st, ast in
     elif k == AstK::Cast then tc_check_cast(self, tt, st, ast);
     elif k == AstK::MemberAccess then tc_check_member_access(self, tt, st, ast);
     elif k == AstK::AssignMember then tc_check_assign_member(self, tt, st, ast);
-    elif k == AstK::SizeofExpr then // nothing
-    elif k == AstK::SizeofType then // nothing
+    elif k == AstK::SizeofExpr then tc_check_sizeof_expr(self, tt, st, ast);
+    elif k == AstK::SizeofType then tc_check_sizeof_type(self, tt, st, ast);
     elif k == AstK::Enum then // nothing
     elif k == AstK::Type then // nothing
     elif k == AstK::ScopeResolve then tc_check_scope_resolve(self, tt, st, ast);

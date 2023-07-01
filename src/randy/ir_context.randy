@@ -821,7 +821,7 @@ def ir_cur_scope self in
     return ir_def_locals(self).back();
 end
 
-def ir_new_def self, ident, params, ast, symbol in
+def ir_new_def self, ident, params, ast, symbol, tt in
     var defs = ir_defs(self);
     var found = map_find(defs, ident);
     if found then
@@ -831,12 +831,16 @@ def ir_new_def self, ident, params, ast, symbol in
     end
 
     var label = String::new(20); // @LEAK
-    label.append_cstr("_def_");
     if symbol.owned_by then
         label.push('_');
         label.append_int(type_id(symbol.owned_by));
         label.push('_');
+        var name = tt_get_type_name(tt, symbol.owned_by);
+        if name then
+            label.append_cstr(name);
+        end
     end
+    label.append_cstr("_def_");
     label.append_cstr(ident);
 
     var label_cstr = label.cstr();
@@ -1606,7 +1610,7 @@ def ir_emit_def self, ast, st, tt in
     check_ast_kind(AstK::Def, ast);
     var ident = ast_ident(ast);
     var params = ast_params(ast);
-    var label = ir_new_def(self, ident, params, ast, st_get_symbol(st, ident));
+    var label = ir_new_def(self, ident, params, ast, st_get_symbol(st, ident), tt);
     var insn = make_ir_new_def(ident, label, params);
     ir_push_scope(self);
     ir_append(self, insn);
@@ -1992,6 +1996,13 @@ def ir_emit_get_reference self, ast, st, tt in
     end
 end
 
+def ir_emit_sizeof_type self, ast, st, tt in
+    check_ast_kind(AstK::SizeofType, ast);
+    var type = ast_type(ast);
+    tt_print_type_name(tt, type);
+    //ir_append(self, make_ir_push_int(type.size));
+end
+
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     assert(ast);
@@ -2028,6 +2039,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::ScopeResolve then ir_emit_scope_resolve(self, ev_ast, st, tt);
     elif k == AstK::GetReference then ir_emit_get_reference(self, ev_ast, st, tt);
     elif k == AstK::Union then ir_emit_union(self, ev_ast, st, tt);
+    elif k == AstK::SizeofType then ir_emit_sizeof_type(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
