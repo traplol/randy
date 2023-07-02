@@ -1,0 +1,67 @@
+extern malloc: (int -> ptr);
+extern printf: (cstr, ... -> int);
+
+struct Foo in
+    t: enum t in
+        A; B; C; D;
+    end
+
+    u: union in
+        A: struct in
+            a: int;
+        end
+        B: struct in
+            x: int;
+            y: int;
+        end
+        C: struct in
+            s: cstr;
+        end
+        D: Foo&;
+    end
+
+    def new_a a: int in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.t = t::A;
+        self.u.A.a = a;
+        return self;
+    end
+
+    def new_b x: int, y: int in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.t = t::B;
+        self.u.B.x = x;
+        self.u.B.y = y;
+        return self;
+    end
+
+    def new_c s: cstr in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.t = t::C;
+        self.u.C.s = s;
+        return self;
+    end
+
+    def new_d d: Foo& in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.t = t::D;
+        self.u.D = d;
+        return self;
+    end
+end
+
+
+def main in
+    var a = Foo::new_a(123);
+    var b = Foo::new_b(10, 20);
+    var c = Foo::new_c("hello world");
+    var d = Foo::new_d(a);
+
+    printf("__sizeof(Foo) == %d\n", __sizeof(Foo));
+    printf("a.u.A.a = %d\n", a.u.A.a);
+    printf("b.u.B.x = %d, b.u.B.b = %d\n", b.u.B.x, b.u.B.y);
+    printf("c.u.C.s = %s\n", c.u.C.s);
+    printf("d.u.D == a ? %d\n", d.u.D == a);
+
+    return 0;
+end
