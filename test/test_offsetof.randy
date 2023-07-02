@@ -17,6 +17,17 @@ struct Foo in
     g: int;    // 56
 end
 
+static_assert(__offsetof(Foo::a) == 0, "offsetof foo.a wrong");
+static_assert(__offsetof(Foo::b) == 8, "offsetof foo.b wrong");
+static_assert(__offsetof(Foo::c) == 16, "offsetof foo.c wrong");
+static_assert(__offsetof(Foo::d) == 17, "offsetof foo.d wrong");
+static_assert(__offsetof(Foo::e) == 24, "offsetof foo.e wrong");
+static_assert(__offsetof(Foo::f) == 32, "offsetof foo.f wrong");
+static_assert(__offsetof(Foo::f.x) == 32, "offsetof foo.f.x wrong");
+static_assert(__offsetof(Foo::f.y) == 40, "offsetof foo.f.y wrong");
+static_assert(__offsetof(Foo::f.z) == 48, "offsetof foo.f.z wrong");
+static_assert(__offsetof(Foo::g) == 56, "offsetof foo.g wrong");
+
 def main in
     printf("__offsetof(Foo::a) = %d\n", __offsetof(Foo::a));
     printf("__offsetof(Foo::b) = %d\n", __offsetof(Foo::b));

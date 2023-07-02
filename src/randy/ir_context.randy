@@ -1150,6 +1150,10 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
             var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
             return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
         end
+    elif k == AstK::OffsetOf then
+        var expr = ast_expr(ast);
+        var bit_offset = _ir_offsetof(self, expr, tt, 0);
+        return make_ast_integer(ast_token(ast), bit_offset / BYTE_BITS); // @LEAK
     elif k == AstK::BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
