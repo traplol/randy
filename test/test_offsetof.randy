@@ -1,0 +1,34 @@
+
+#include std/core
+
+struct Foo in
+    a: int;    // 0
+    b: int;    // 8
+    c: char;   // 16
+    d: char;   // 17
+    e: int;    // 24
+    f: int;    // 32
+    g: int;    // 40
+end
+
+def main in
+    printf("__offsetof(Foo::a) = %d\n", __offsetof(Foo::a));
+    printf("__offsetof(Foo::b) = %d\n", __offsetof(Foo::b));
+    printf("__offsetof(Foo::c) = %d\n", __offsetof(Foo::c));
+    printf("__offsetof(Foo::d) = %d\n", __offsetof(Foo::d));
+    printf("__offsetof(Foo::e) = %d\n", __offsetof(Foo::e));
+    printf("__offsetof(Foo::f) = %d\n", __offsetof(Foo::f));
+    printf("__offsetof(Foo::g) = %d\n", __offsetof(Foo::g));
+
+    var f: Foo&;
+    printf("__offsetof(f.a) = %d\n", __offsetof(f.a));
+    printf("__offsetof(f.b) = %d\n", __offsetof(f.b));
+    printf("__offsetof(f.c) = %d\n", __offsetof(f.c));
+    printf("__offsetof(f.d) = %d\n", __offsetof(f.d));
+    printf("__offsetof(f.e) = %d\n", __offsetof(f.e));
+    printf("__offsetof(f.f) = %d\n", __offsetof(f.f));
+    printf("__offsetof(f.g) = %d\n", __offsetof(f.g));
+
+    return 0;
+end
+

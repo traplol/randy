@@ -1,0 +1,14 @@
+__offsetof(Foo::a) = 0
+__offsetof(Foo::b) = 8
+__offsetof(Foo::c) = 16
+__offsetof(Foo::d) = 17
+__offsetof(Foo::e) = 24
+__offsetof(Foo::f) = 32
+__offsetof(Foo::g) = 40
+__offsetof(f.a) = 0
+__offsetof(f.b) = 8
+__offsetof(f.c) = 16
+__offsetof(f.d) = 17
+__offsetof(f.e) = 24
+__offsetof(f.f) = 32
+__offsetof(f.g) = 40
