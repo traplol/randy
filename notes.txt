@@ -1,30 +1,30 @@
 ====================================================================================================
 
-
-TODO: figure out a way to scope types and then allow nested types such as structs within structs
-      or enums within structs. this will be needed to make unions nice to use.
-
-every function has its own type because a function without type declarations won't have a concrete
-type until after type inference. this means we need a special equality comparison for function
-types. we need this because we want to allow passing functions around and we need a way to specify
-that function type. e.g.
-
-def map[N,M] fn: (N -> M), vals: vector[N] -> vector[M] in
-    var result = make_vector[M](vals.length);
-    var i = 0;
-    while i < vals.length do
-        result.push(fn(vals.get(i)));
+struct Foo in
+    t: enum t in
+        A; B; C; D;
     end
-    return result;
+
+    u: union in
+        A: struct in
+            a: int;
+        end
+        B: struct in
+            x: int;
+            y: int;
+        end
+        C: struct in
+            s: cstr;
+        end
+        D: Foo&;
+    end
 end
 
-maybe we should do:
-  parsing + type definition -> type inference -> type solidification -> type checking
-- during parsing we declare + define types
-- during type inference we resolve types
-- during type solidification we turn all generic types into concrete types and all "same" function
-  types are unified into a single type
-- then type checking can verify that every expression has resolved into a concrete type
+This syntax is valid but we don't arbitrarily allow structs/enums/unions as types.
+
+e.g.: var x: struct in x: int; y: int end;
+
+should we?
 
 ====================================================================================================
 
@@ -51,6 +51,11 @@ core:
     - [ ] fflush   - equiv to libc fflush
   - [ ] memcpy
   - [ ] memset
+  - [ ] rewrite with template structs
+    - [x] Vector
+    - [x] Queue
+    - [x] Hashmap
+    - [ ] Set
 
 [x] self-host:
   - [x] lexing
@@ -92,7 +97,8 @@ features:
          then freed when the callee returns.
        - passing values larger than ptr_width bytes is a concern, probably just
          pass them by reference and be aware of this when using varargs.
-  - [ ] native array support
+  - [~] native array support
+    - [x] template classes make this mostly uneeded
   - [x] bitwise ops: ^ | & << >>
   - [x] assignment ops: += -= *= etc
   - [~] structs
@@ -101,7 +107,7 @@ features:
     - [x] structs with references
     - [x] auto-deref with . operator
     - [x] Type::defs(...)
-    - [ ] var.defs(...)
+    - [x] var.defs(...)
     - [ ] meta/reflection generation
     - [x] c default align/layout
     - [ ] #packed    - no alignment or padding
@@ -112,6 +118,7 @@ features:
     - [ ] meta/reflection generation
     - [x] constant expressions for values
     - [x] more than just integer enums
+  - [x] c-style unions
   - [ ] tagged unions
   - [ ] tail call elimination
   - [ ] inlinable functions
