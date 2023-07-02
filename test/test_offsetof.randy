@@ -1,14 +1,20 @@
 
 #include std/core
 
+struct Bar in
+    x: int;
+    y: int;
+    z: int;
+end
+
 struct Foo in
     a: int;    // 0
     b: int;    // 8
     c: char;   // 16
     d: char;   // 17
     e: int;    // 24
-    f: int;    // 32
-    g: int;    // 40
+    f: Bar;    // 32
+    g: int;    // 56
 end
 
 def main in
@@ -18,6 +24,9 @@ def main in
     printf("__offsetof(Foo::d) = %d\n", __offsetof(Foo::d));
     printf("__offsetof(Foo::e) = %d\n", __offsetof(Foo::e));
     printf("__offsetof(Foo::f) = %d\n", __offsetof(Foo::f));
+    printf("__offsetof(Foo::f.x) = %d\n", __offsetof(Foo::f.x));
+    printf("__offsetof(Foo::f.y) = %d\n", __offsetof(Foo::f.y));
+    printf("__offsetof(Foo::f.z) = %d\n", __offsetof(Foo::f.z));
     printf("__offsetof(Foo::g) = %d\n", __offsetof(Foo::g));
 
     var f: Foo&;
@@ -27,8 +36,10 @@ def main in
     printf("__offsetof(f.d) = %d\n", __offsetof(f.d));
     printf("__offsetof(f.e) = %d\n", __offsetof(f.e));
     printf("__offsetof(f.f) = %d\n", __offsetof(f.f));
+    printf("__offsetof(f.f.x) = %d\n", __offsetof(f.f.x));
+    printf("__offsetof(f.f.y) = %d\n", __offsetof(f.f.y));
+    printf("__offsetof(f.f.z) = %d\n", __offsetof(f.f.z));
     printf("__offsetof(f.g) = %d\n", __offsetof(f.g));
-
     return 0;
 end
 

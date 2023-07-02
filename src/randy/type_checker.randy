@@ -543,7 +543,7 @@ def tc_check_sizeof_type self, tt, st, ast in
     end
 end
 
-def tc_check_offset_of self, tt, st, ast in
+def tc_check_offsetof self, tt, st, ast in
     check_ast_kind(AstK::OffsetOf, ast);
 end
 
@@ -606,7 +606,7 @@ def tc_check self, tt, st, ast in
     elif k == AstK::GetReference then // nothing
     elif k == AstK::Union then // nothing
     elif k == AstK::StaticAssert then tc_check_static_assert(self, tt, st, ast);
-    elif k == AstK::OffsetOf then tc_check_offset_of(self, tt, st, ast);
+    elif k == AstK::OffsetOf then tc_check_offsetof(self, tt, st, ast);
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

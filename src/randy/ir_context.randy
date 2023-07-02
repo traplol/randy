@@ -2018,17 +2018,26 @@ def ir_emit_static_assert self, ast, st, tt in
     end
 end
 
-def ir_emit_offset_of self, ast, st, tt in
-    check_ast_kind(AstK::OffsetOf, ast);
-    var expr = ast_expr(ast);
+def _ir_offsetof self, ast, tt, base_offset in
     var type: Type& = NULL;
     var member: cstr = NULL;
-    if ast_kind(expr) == AstK::ScopeResolve then
-        type = scope_resolve_lhs(tt, ast_lhs(expr), true);
-        member = ast_ident(ast_rhs(expr));
-    elif ast_kind(expr) == AstK::MemberAccess then
-        type = tt_get_ast_type(tt, ast_expr(expr));
-        member = ast_member(expr);
+    var lhs: ast = NULL;
+    if ast_kind(ast) == AstK::ScopeResolve then
+        type = scope_resolve_lhs(tt, ast_lhs(ast), true);
+        member = ast_ident(ast_rhs(ast));
+        if ast_kind(ast_lhs(ast)) == AstK::ScopeResolve then
+            lhs = ast_lhs(ast);
+        elif ast_kind(ast_lhs(ast)) == AstK::MemberAccess then
+            lhs = ast_lhs(ast);
+        end
+    elif ast_kind(ast) == AstK::MemberAccess then
+        type = tt_get_ast_type(tt, ast_expr(ast));
+        member = ast_member(ast);
+        if ast_kind(ast_expr(ast)) == AstK::ScopeResolve then
+            lhs = ast_expr(ast);
+        elif ast_kind(ast_expr(ast)) == AstK::MemberAccess then
+            lhs = ast_expr(ast);
+        end
     end
 
     assert(type);
@@ -2052,12 +2061,23 @@ def ir_emit_offset_of self, ast, st, tt in
     while i < len do
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
-            ir_append(self, make_ir_push_int(field.bit_offset / 8));
-            return;
+            if lhs then
+                return _ir_offsetof(self, lhs, tt, field.bit_offset);
+            else
+                return base_offset + field.bit_offset;
+            end
         end
         i += 1;
     end
-    assert(false, "NYI\n");
+
+    assert(false, "Compiler bug: 'no field named' should have been taken care of type inference\n");
+end
+
+def ir_emit_offsetof self, ast, st, tt in
+    check_ast_kind(AstK::OffsetOf, ast);
+    var expr = ast_expr(ast);
+    var bit_offset = _ir_offsetof(self, expr, tt, 0);
+    ir_append(self, make_ir_push_int(bit_offset / BYTE_BITS));
 end
 
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
@@ -2098,7 +2118,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::Union then ir_emit_union(self, ev_ast, st, tt);
     elif k == AstK::SizeofType then ir_emit_sizeof_type(self, ev_ast, st, tt);
     elif k == AstK::StaticAssert then ir_emit_static_assert(self, ev_ast, st, tt);
-    elif k == AstK::OffsetOf then ir_emit_offset_of(self, ev_ast, st, tt);
+    elif k == AstK::OffsetOf then ir_emit_offsetof(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

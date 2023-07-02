@@ -1598,6 +1598,11 @@ def _ast_deep_copy_static_assert ast, tt, st in
     return make_ast_static_assert(ast_token(ast), args_copy);
 end
 
+def _ast_deep_copy_offsetof ast, tt, st in
+    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
+    return make_ast_offsetof(ast_token(ast), expr_copy);
+end
+
 def _ast_deep_copy ast, tt, st in
     var k = ast_kind(ast);
     if k == AstK::Ident then return _ast_deep_copy_ident(ast, tt, st);
@@ -1633,6 +1638,7 @@ def _ast_deep_copy ast, tt, st in
     elif k == AstK::GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
     elif k == AstK::Union then return _ast_deep_copy_union(ast, tt, st);
     elif k == AstK::StaticAssert then return _ast_deep_copy_static_assert(ast, tt, st);
+    elif k == AstK::OffsetOf then return _ast_deep_copy_offsetof(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
