@@ -10,7 +10,7 @@ struct Vector[T] in
     capacity: int;
 
     def new init: int in
-        assert(__sizeof(T) == 8, "vector of T where sizeof T is not 8 is not implemented.\n");
+        static_assert(__sizeof(T) == 8, "vector of T where sizeof T is not 8 is not implemented.\n");
         var self = cast(malloc(__sizeof(Vector[T])), Vector[T]&);
         self.buffer = malloc(__sizeof(T) * init);
         self.length = 0;
