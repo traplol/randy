@@ -149,7 +149,7 @@ def x86_64_emit_call cc, ir in
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
 
-    if cstr_eq("__builtin_trap", ir_instr_label(ir)) then
+    if cstr_eq("__builtin_break", ir_instr_label(ir)) then
         cc_out(cc, "    int3");
         // needed to satisfy the DropTop that gets emitted after this "call"
         cc_out(cc, "    subq $8, %rsp");
