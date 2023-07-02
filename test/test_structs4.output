@@ -1,1 +1,5 @@
 __sizeof(Foo) == 32
+a.u.A.a = 123
+b.u.B.x = 10, b.u.B.b = 20
+c.u.C.s = hello world
+d.u.D == a ? 1

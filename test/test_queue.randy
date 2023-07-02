@@ -1,3 +1,4 @@
+#include std/core
 #include std/queue
 
 def test msg, expect, actual in

@@ -1,7 +1,4 @@
-
-
-
-extern printf: (cstr, ... -> int);
+#include std/core
 
 def foo_fun x in
     printf("global foo_fun: %d\n", x);

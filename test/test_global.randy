@@ -1,5 +1,4 @@
-
-extern printf: (cstr, ... -> int);
+#include std/core
 
 global string = "hello world";
 global foo = 42;

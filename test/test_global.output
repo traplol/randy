@@ -1,1 +1,5 @@
 foo is 42
+foo is 999
+string is 'hello world'
+string is 'asdf'
+string[0] is a

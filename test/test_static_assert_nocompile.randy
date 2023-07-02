@@ -1,4 +1,5 @@
 // -nocompile
+#include std/core
 
 struct Foo in
     c: char;

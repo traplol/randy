@@ -1,1 +1,3 @@
 global foo_fun: 123
+Foo::foo_fun: 456
+global foo_fun: 999

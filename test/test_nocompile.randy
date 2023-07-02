@@ -2,6 +2,8 @@
 
 // fails to compile because no `main` function.
 
+#include std/core
+
 def foo in
     return 42;
 end

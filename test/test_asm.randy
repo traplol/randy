@@ -1,4 +1,4 @@
-extern printf: (cstr, ... -> int);
+#include std/core
 
 asm test_asm in
 "
