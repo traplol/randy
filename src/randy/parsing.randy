@@ -1042,8 +1042,23 @@ def parse_struct ts, st, tt in
         elif ts.peekk(TK::Ident) then
             var field_ident = ts.next();
             ts.expect(TK::Colon);
-            var field_type = parse_type(ts, st, tt, true);
-            ts.expect(TK::Semicolon);
+            var field_type: Type& = NULL;
+            if ts.peekk(TK::KW_union) then
+                var union_ = parse_union(ts, st, tt);
+                inner_ast.push(union_);
+                field_type = ast_union(union_);
+            elif ts.peekk(TK::KW_struct) then
+                var struct_ = parse_struct(ts, st, tt);
+                inner_ast.push(struct_);
+                field_type = ast_struct(struct_);
+            elif ts.peekk(TK::KW_enum) then
+                var enum_ = parse_enum(ts, st, tt);
+                inner_ast.push(enum_);
+                field_type = ast_enum(enum_);
+            else
+                field_type = parse_type(ts, st, tt, true);
+                ts.expect(TK::Semicolon);
+            end
             fields.push(make_field(field_type, field_ident.value, -1, field_ident));
         else
             var tk = ts.peek();
@@ -1139,19 +1154,43 @@ def parse_union ts, st, tt in
     tt_push_scope(tt);
     var union_ = ts.expect(TK::KW_union);
     var fields = Vector[Field&]::new(0);
-    var union_type = parse_type(ts, st, tt, false);
-    if not type_is_undefined(union_type) then
-        printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
+    var union_type;
+    // if not type_is_undefined(union_type) then
+    //     printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
+    // end
+    // ts.expect(TK::KW_in);
+
+    if not ts.accept(TK::KW_in) then
+        union_type = parse_type(ts, st, tt, false);
+        if not type_is_undefined(union_type) then
+            printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
+        end
+        ts.expect(TK::KW_in);
+    else
+        union_type = tt_make_anon_union(tt, fields);
     end
-    ts.expect(TK::KW_in);
 
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
         if ts.peekk(TK::Ident) then
             var field_ident = ts.next();
             ts.expect(TK::Colon);
-            var field_type = parse_type(ts, st, tt, true);
-            ts.expect(TK::Semicolon);
+            // var field_type = parse_type(ts, st, tt, true);
+            // ts.expect(TK::Semicolon);
+            var field_type: Type& = NULL;
+            if ts.peekk(TK::KW_union) then
+                var union_ = parse_union(ts, st, tt);
+                field_type = ast_union(union_);
+            elif ts.peekk(TK::KW_struct) then
+                var struct_ = parse_struct(ts, st, tt);
+                field_type = ast_struct(struct_);
+            elif ts.peekk(TK::KW_enum) then
+                var enum_ = parse_enum(ts, st, tt);
+                field_type = ast_enum(enum_);
+            else
+                field_type = parse_type(ts, st, tt, true);
+                ts.expect(TK::Semicolon);
+            end
             fields.push(make_field(field_type, field_ident.value, -1, field_ident));
         else
             var tk = ts.peek();

@@ -502,7 +502,7 @@ def ti_infer_member_access self, tt, st, ast in
         end
         ftype = _ti_get_field_type_rewrite_if_def(ref_type, member, ast);
     elif type_is_enum(type) then
-        assert(false, "TODO: FIXME enum's don't use . operator for access\n");
+        return type;
     elif type_is_union(type) then
         return _ti_get_union_field_type(type, member);
     else

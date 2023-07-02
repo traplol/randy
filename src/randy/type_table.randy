@@ -683,8 +683,8 @@ def tt_make_anon_struct self, fields, defs in
     return type;
 end
 
-def tt_make_anon_union self, field_names, field_types in
-    var type = make_type_union(self.all_types.length, self.type_scope, field_names, field_types);
+def tt_make_anon_union self, fields in
+    var type = make_type_union(self.all_types.length, self.type_scope, fields);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
