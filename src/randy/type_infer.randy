@@ -133,6 +133,12 @@ def ti_infer_call self, tt, st, ast -> Type& in
         if param_types.length != 0 then
             var obj_type = tt_get_ast_type(tt, object);
             var param_type = param_types.front();
+            if not param_type then
+                tt_print_type_name(tt, call_type);
+                printf("<<<\n");
+            end
+            assert(obj_type);
+            assert(param_type);
             if types_eq(obj_type, param_type) then
                 args.insert_front(object);
             elif type_is_reference(param_type) and types_eq(tt_reference_to_type(tt, obj_type), param_type) then

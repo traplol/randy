@@ -1,0 +1,20 @@
+#include std/core
+
+struct Foo in
+    x: int;
+    y: int;
+
+    def bar self in
+        self.x = 99;
+        self.y = 111;
+    end
+end
+
+def main in
+    var f = cast(malloc(__sizeof(Foo)), Foo&);
+    f.bar();
+    assert(f.x == 99);
+    assert(f.y == 111);
+    printf("passed\n");
+    return 0;
+end
