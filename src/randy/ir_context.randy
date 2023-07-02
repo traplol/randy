@@ -2018,6 +2018,48 @@ def ir_emit_static_assert self, ast, st, tt in
     end
 end
 
+def ir_emit_offset_of self, ast, st, tt in
+    check_ast_kind(AstK::OffsetOf, ast);
+    var expr = ast_expr(ast);
+    var type: Type& = NULL;
+    var member: cstr = NULL;
+    if ast_kind(expr) == AstK::ScopeResolve then
+        type = scope_resolve_lhs(tt, ast_lhs(expr), true);
+        member = ast_ident(ast_rhs(expr));
+    elif ast_kind(expr) == AstK::MemberAccess then
+        type = tt_get_ast_type(tt, ast_expr(expr));
+        member = ast_member(expr);
+    end
+
+    assert(type);
+    assert(member);
+
+    while type.kind == TypeKind::Reference do
+        type = type.u.deref_type;
+    end
+
+    var fields: Vector[Field&]&;
+    if type.kind == TypeKind::Struct then
+        fields = type.u.struct_.fields;
+    elif type.kind == TypeKind::Union then
+        fields = type.u.union_.fields;
+    else
+        tt_print_type_name(tt, type); printf("\n");
+        assert(false, "Compiler bug: __offsetof on non-struct and non-union type\n");
+    end
+
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field = fields.get(i);
+        if cstr_eq(field.name, member) then
+            ir_append(self, make_ir_push_int(field.bit_offset / 8));
+            return;
+        end
+        i += 1;
+    end
+    assert(false, "NYI\n");
+end
+
 def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     assert(ast);
@@ -2056,6 +2098,7 @@ def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::Union then ir_emit_union(self, ev_ast, st, tt);
     elif k == AstK::SizeofType then ir_emit_sizeof_type(self, ev_ast, st, tt);
     elif k == AstK::StaticAssert then ir_emit_static_assert(self, ev_ast, st, tt);
+    elif k == AstK::OffsetOf then ir_emit_offset_of(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

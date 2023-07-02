@@ -332,8 +332,11 @@ def parse_sizeof ts, st, tt in
 end
 
 def parse_offsetof ts, st, tt in
-    NYI_ERR(__FILE__, __LINE__, "parse_offsetof");
-    return NULL;
+    var offsetof_ = ts.expect(TK::KW__offsetof);
+    ts.expect(TK::LParen);
+    var expr = parse_expression(ts, st, tt);
+    ts.expect(TK::RParen);
+    return make_ast_offsetof(offsetof_, expr);
 end
 
 def parse_assert ts, st, tt in
