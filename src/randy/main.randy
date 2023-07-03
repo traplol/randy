@@ -45,6 +45,9 @@ def print_usage in
     printf("-o path       : The path to compile the file provided by the -c flag.\n");
     printf("-I path       : Specify a path to search for #include directives.\n");
     printf("-g            : Enable debug info\n");
+    printf("-ir           : Print the intermediate representation of the compiled code.\n");
+    printf("-ast          : Print the Abstract Syntax Tree represtation of the source code.\n");
+    printf("-experimental : Enable experimental features.\n");
     printf("-ld flags...  : Everything after -ld will be passed to the linker directly.\n");
     printf("                see 'man ld' for linker flags.\n");
     printf("-v -vv -vvv   : Compiler verbosity level\n");
