@@ -2066,7 +2066,7 @@ def _ir_offsetof self, ast, tt, base_offset in
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
             if lhs then
-                return _ir_offsetof(self, lhs, tt, field.bit_offset);
+                return _ir_offsetof(self, lhs, tt, base_offset + field.bit_offset);
             else
                 return base_offset + field.bit_offset;
             end
