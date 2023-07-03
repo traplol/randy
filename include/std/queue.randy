@@ -43,9 +43,8 @@ struct Queue[T] in
         var tail = self.tail;
 
         if tail - head > 0 then
-            memcpy(new_buf, cast(old_buf + head, ptr), (tail - head) * __sizeof(T));
+            memcpy(new_buf, cast(old_buf + head * __sizeof(T), ptr), (tail - head) * __sizeof(T));
         end
-
         self.head = 0;
         self.tail = tail - head;
         self.buffer = new_buf;
@@ -54,14 +53,10 @@ struct Queue[T] in
     end
 
     def enqueue self, elem: T in
-        var tail = self.tail;
-        var cap = self.capacity;
-        if tail == cap then
-            self.resize(cap * 2 + 1);
+        if self.tail == self.capacity then
+            self.resize(self.capacity * 2 + 1);
         end
-
-        var buf = self.buffer;
-        u64!(buf + tail * __sizeof(T), elem);
+        u!(self.buffer + self.tail * __sizeof(T), elem, T);
         self.tail += 1;
     end
 
@@ -73,7 +68,7 @@ struct Queue[T] in
             abort();
         end
 
-        var val = cast(u@(self.buffer + head * __sizeof(T), T), T);
+        var val = u@(self.buffer + head * __sizeof(T), T);
         if head + 1 == tail then
             self.head = 0;
             self.tail = 0;
@@ -91,7 +86,7 @@ struct Queue[T] in
             abort();
         end
 
-        return cast(u@(self.buffer + head * __sizeof(T), T), T);
+        return u@(self.buffer + head * __sizeof(T), T);
     end
 
     def reset self in
