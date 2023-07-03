@@ -69,6 +69,23 @@ def parse_type ts, st, tt, is_instance in
     end
     var type_ident = ts.expect(TK::Ident);
     var type = tt_get_type_or_make_undefined(tt, type_ident.value);
+    while ts.accept(TK::ColonColon) do
+        var sub = ts.expect(TK::Ident);
+        if type.kind == TypeKind::Undefined then
+            assert(false, "Type::Scope::Resolution not implemented on undefined types yet\n");
+        else
+            var sub_ty = type_scope_find(type.scope, tt, sub.value);
+            if sub_ty then
+                type = sub_ty;
+            else
+                printf("ERROR: type `");
+                tt_print_type_name(tt, type);
+                printf("` does define a type named `%s`\n", sub.value);
+                print_token_loc(sub);
+                exit(1);
+            end
+        end
+    end
     var generic_params: Vector[Type&]& = NULL;
     if ts.accept(TK::LSquare) then
         if not is_instance and tt.type_scope.parent == NULL then
@@ -1024,6 +1041,7 @@ def parse_struct ts, st, tt in
     else
         struct_type = tt_make_anon_struct(tt, fields, def_symbols);
     end
+    tt_set_enclosing(tt, struct_type);
 
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
@@ -1113,7 +1131,7 @@ def parse_struct ts, st, tt in
     var ast = make_ast_struct(struct_, struct_type, fields, inner_ast);
     type_set_ast(struct_type, ast);
     tt_pop_scope(tt);
-    tt_set_local_type(tt, struct_type);
+    tt_promote_type(tt, struct_type);
     return ast;
 end
 
@@ -1173,6 +1191,8 @@ def parse_union ts, st, tt in
         union_type = tt_make_anon_union(tt, fields);
     end
 
+    tt_set_enclosing(tt, union_type);
+
     st_push_scope(st);
     while not ts.peekk(TK::KW_end) do
         if ts.peekk(TK::Ident) then
@@ -1212,7 +1232,7 @@ def parse_union ts, st, tt in
     var ast = make_ast_union(union_, union_type, fields);
     type_set_ast(union_type, ast);
     tt_pop_scope(tt);
-    tt_set_local_type(tt, union_type);
+    tt_promote_type(tt, union_type);
     return ast;
 end
 
