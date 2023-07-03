@@ -1,0 +1,13 @@
+sizeof ast = 48
+offsetof struct_.fields 32
+offset of kind = 0
+offset of is_expr = 8
+offset of token = 16
+offset of u = 24
+offset of u.ident = 24
+offset of u.sizeof = 24
+offset of u.struct_ = 24
+offset of u.struct_.type = 24
+offset of u.struct_.fields = 32
+offset of u.struct_.body = 40
+sizeof ast.token = 8

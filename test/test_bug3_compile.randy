@@ -1,0 +1,37 @@
+#include std/vector
+
+struct Foo in
+    v: Vector[Bar&]&;
+
+    def new v: Vector[Bar&]& in
+        var self = cast(malloc(__sizeof(Foo)), Foo&);
+        self.v = v;
+        return self;
+    end
+
+    struct Bar in
+        a: int;
+        b: int;
+        c: int;
+    end
+end
+
+struct Bar in
+    x: int;
+    y: int;
+    z: int;
+
+    def new x, y, z in
+        var self = cast(malloc(__sizeof(Bar)), Bar&);
+        self.x = x;
+        self.y = y;
+        self.z = z;
+        return self;
+    end
+end
+
+def main in
+    var f = Foo::new(Vector[Foo::Bar&]::new(10));
+    //var g = Foo::new(Vector[Bar&]::new(10));
+    return f.v.capacity;
+end

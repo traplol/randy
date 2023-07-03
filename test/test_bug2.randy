@@ -1,0 +1,172 @@
+#include std/core
+#include std/string
+#include std/vector
+
+struct Token in
+    x: int;
+    y: int;
+    z: int;
+end
+
+enum TK in
+    A; B; C;
+end
+
+enum PointerOp in
+    A; B;
+end
+
+enum AstK in
+    A; B;
+end
+
+struct Type in
+    a: int;
+    b: int;
+    c: int;
+end
+
+struct EnumValue in
+    a: int;
+    b: int;
+    c: int;
+end
+
+struct Field in
+    a: int;
+    b: int;
+    c: int;
+end
+
+struct Ast in
+    kind: AstK;
+    is_expr: bool;
+    token: Token&;
+
+    u: union in
+        ident: cstr;
+        integer: int;
+        string: String&;
+        return_: Ast&;
+        var_decl: cstr;
+        type: Type&;
+        get_reference: Ast&;
+        static_assert_: Vector[Ast&]&;
+        offsetof: Ast&;
+
+        sizeof: struct in
+            expr: Ast&;
+            type: Type&;
+        end
+        call: struct in
+            expr: Ast&;
+            args: Vector[Ast&]&;
+        end
+        binop: struct in
+            lhs: Ast&;
+            op: TK;
+            rhs: Ast&;
+        end
+        var_assign: struct in
+            ident: cstr;
+            expr: Ast&;
+        end
+        assign_op: struct in
+            ident: cstr;
+            op: TK;
+            expr: Ast&;
+        end
+        def_: struct in
+            ident: cstr;
+            body: Vector[Ast&]&;
+            params: Vector[cstr]&;
+        end
+        if_else: struct in
+            test: Ast&;
+            consequence: Vector[Ast&]&;
+            alternative: Vector[Ast&]&;
+        end
+        while_: struct in
+            test: Ast&;
+            body: Vector[Ast&]&;
+        end
+        ptr_op: struct in
+            size: int;
+            op: PointerOp;
+            args: Vector[Ast&]&;
+        end
+        prefix: struct in
+            expr: Ast&;
+            op: TK;
+        end
+        const_: struct in
+            ident: cstr;
+            expr: Ast&;
+        end
+        extern_: struct in
+            ident: cstr;
+            type: Type&;
+        end
+        inline_asm: struct in
+            ident: cstr;
+            asmcode: cstr;
+        end
+        global_: struct in
+            ident: cstr;
+            expr: Ast&;
+        end
+        cast_: struct in
+            expr: Ast&;
+            type: Type&;
+        end
+        struct_: struct in
+            type: Type&;
+            fields: Vector[Field&]&;
+            body: Vector[Ast&]&;
+        end
+        union_: struct in
+            type: Type&;
+            fields: Vector[Field&]&;
+        end
+        enum_: struct in
+            ident: cstr;
+            type: Type&;
+            values: Vector[EnumValue&]&;
+        end
+        member_access: struct in
+            expr: Ast&;
+            member: cstr;
+        end
+        assign_member: struct in
+            lhs: Ast&;
+            op: TK;
+            rhs: Ast&;
+        end
+        scope_resolve: struct in
+            lhs: Ast&;
+            rhs: Ast&;
+        end
+    end
+end
+
+def main in
+    printf("sizeof ast = %d\n", __sizeof(Ast));
+    var ast = cast(malloc(__sizeof(Ast)), Ast&);
+    printf("offsetof struct_.fields %d\n", __offsetof(Ast::u.struct_.fields));
+    ast.u.struct_.fields = cast(12345, ptr);
+
+    printf("offset of kind = %d\n", __offsetof(ast.kind));
+    printf("offset of is_expr = %d\n", __offsetof(ast.is_expr));
+    printf("offset of token = %d\n", __offsetof(ast.token));
+    printf("offset of u = %d\n", __offsetof(ast.u));
+    printf("offset of u.ident = %d\n", __offsetof(ast.u.ident));
+    printf("offset of u.sizeof = %d\n", __offsetof(ast.u.sizeof));
+    printf("offset of u.struct_ = %d\n", __offsetof(ast.u.struct_));
+    printf("offset of u.struct_.type = %d\n", __offsetof(ast.u.struct_.type));
+    printf("offset of u.struct_.fields = %d\n", __offsetof(ast.u.struct_.fields));
+    printf("offset of u.struct_.body = %d\n", __offsetof(ast.u.struct_.body));
+
+    printf("sizeof ast.token = %d\n", __sizeof(ast.token));
+
+    return 0;
+end
