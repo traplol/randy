@@ -781,7 +781,6 @@ def tt_calculate_struct self, stype, again_q in
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
-        var fname = field.name;
         var ftype = field.type;
         if type_is_generic_param(ftype) then
             // FIXME: this shouldn't happen but it does...
@@ -798,7 +797,7 @@ def tt_calculate_struct self, stype, again_q in
             again_q.enqueue(stype);
             return;
         end
-        if not type_is_struct(ftype) then
+        if not type_is_struct(ftype) and not type_is_union(ftype) then
             bit_offs = (bit_offs + (size - 1)) & -size; // align to nearest boundary
         end
         if type_is_struct(stype) then
@@ -824,7 +823,12 @@ def tt_detect_cycles self, stype in
     var explored = make_set(0, NULL, NULL);
 
     set_add(explored, stype);
-    var fields = type_struct_fields(stype);
+    var fields;
+    if type_is_struct(stype) then
+        fields = type_struct_fields(stype);
+    else
+        fields = type_union_fields(stype);
+    end
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
