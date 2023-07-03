@@ -1560,8 +1560,6 @@ def _ast_deep_copy_sizeof_expr ast, tt, st in
             type = tt_substitute_type(tt, type);
             return make_ast_sizeof_type(ast_token(ast), type);
         end
-        printf("not a type\n");
-        tt_dump_cur_scope(tt);
     end
     var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
     return make_ast_sizeof_expr(ast_token(ast), expr_copy);
