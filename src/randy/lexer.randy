@@ -379,7 +379,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
     return tokens;
 end
 
-def _lex_file_aux path: cstr, include_paths: Vector[String&]&, included_already: set -> Vector[Token&]& in
+def _lex_file_aux path: cstr, include_paths: Vector[String&]&, included_already -> Vector[Token&]& in
     var code = read_file_to_string(path);
     if not code then
         return cast(NULL, Vector[Token&]&);
@@ -388,13 +388,13 @@ def _lex_file_aux path: cstr, include_paths: Vector[String&]&, included_already:
 end
 
 def lex_file path: cstr, include_paths: Vector[String&]& in
-    var included_already = make_set(0, string_eq, string_hash);
+    var included_already = Set[String&, StringHashCompare, StringHashCompare]::new(0);
     var res = _lex_file_aux(path, include_paths, included_already);
-    free_set(included_already);
+    included_already.delete();
     return res;
 end
 
-def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[String&]&, included_already: set, arg: String& in
+def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, include_paths: Vector[String&]&, included_already, arg: String& in
     arg.append_cstr(".randy");
 
     var i = 0;
@@ -427,8 +427,8 @@ def handle_include src_file: cstr, line_no: int, tokens: Vector[Token&]&, includ
     end
 
     if found then
-        if not set_contains(included_already, found) then
-            set_add(included_already, found);
+        if not included_already.contains(found) then
+            included_already.insert(found);
             var included = _lex_file_aux(found.cstr(), include_paths, included_already);
             i = 0;
             var len = included.length;

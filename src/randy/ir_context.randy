@@ -748,10 +748,10 @@ def make_ir_context -> ir_context in
     u64!(self + TIR_CONTEXT_label_id, 0);
     u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
     u64!(self + TIR_CONTEXT_externs, make_map(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_labels, make_set(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_labels, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
     u64!(self + TIR_CONTEXT_constants, make_map(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_src_locs, Vector[SrcLoc&]::new(0));
-    u64!(self + TIR_CONTEXT_file_set, make_set(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_file_set, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
     u64!(self + TIR_CONTEXT_files, Vector[cstr]::new(0));
     u64!(self + TIR_CONTEXT_defs, make_map(0, NULL, NULL));
     u64!(self + TIR_CONTEXT_def_locals, Vector[map]::new(0));
@@ -765,10 +765,10 @@ end
 def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector[ir_instr]&); end
 def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
 def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
-def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), set); end
+def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
 def ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), map); end
 def ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector[SrcLoc&]&); end
-def ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), set); end
+def ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
 def ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector[cstr]&); end
 def ir_defs self: ir_context in return cast(u64@(self + TIR_CONTEXT_defs), map); end
 def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector[map]&); end
@@ -791,8 +791,8 @@ def ir_push_src_loc self, src_loc in
 
     var filename = src_loc.filename;
     var fileset = ir_file_set(self);
-    if not set_contains(fileset, filename) then
-        set_add(fileset, filename);
+    if not fileset.contains(filename) then
+        fileset.insert(filename);
         var files = ir_files(self);
         files.push(filename);
     end
@@ -846,7 +846,7 @@ def ir_new_def self, ident, params, ast, symbol, tt in
     label.append_cstr(ident);
 
     var label_cstr = label.cstr();
-    set_add(ir_labels(self), label_cstr);
+    ir_labels(self).insert(label_cstr);
     map_set(defs, symbol_name(symbol), make_def_info(label_cstr, false));
 
     assert(ir_def_locals(self).length == 0,
@@ -905,7 +905,7 @@ def ir_new_label self, hint in
     label.append_int(label_id);
 
     var label_cstr = label.cstr();
-    set_add(ir_labels(self), label_cstr);
+    ir_labels(self).insert(label_cstr);
     return label_cstr;
 end
 
@@ -917,14 +917,14 @@ def ir_string_label self, string in
     end
 
     var label = ir_new_label(self, "C");
-    set_add(ir_labels(self), label);
+    ir_labels(self).insert(label);
     map_set(strings, string, label);
 
     return label;
 end
 
 def ir_is_label self, ident in
-    return set_contains(ir_labels(self), ident);
+    return ir_labels(self).contains(ident);
 end
 
 def ir_is_def self, ident in
@@ -1774,7 +1774,7 @@ def ir_emit_inline_asm self, ast, st, tt in
     var asm_name = ast_ident(ast);
     var asm_code = ast_asm(ast);
     ir_append(self, make_ir_inline_asm(asm_name, asm_code));
-    set_add(ir_labels(self), asm_name);
+    ir_labels(self).insert(asm_name);
 end
 
 def ir_emit_global self, ast, st, tt in

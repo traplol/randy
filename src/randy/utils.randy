@@ -100,3 +100,33 @@ def cstr_starts_with cstr: cstr, substr: cstr -> bool in
     end
     return not u8@(substr);
 end
+
+struct CstrHashCompare in
+    def hash cstr: cstr in
+        return cstr_hash(cstr);
+    end
+
+    def equal a: cstr, b: cstr in
+        return cstr_eq(a, b);
+    end
+end
+
+struct StringHashCompare in
+    def hash string: String& in
+        return string_hash(string);
+    end
+
+    def equal a: String&, b: String& in
+        return string_eq(a, b);
+    end
+end
+
+struct PtrHashCompare in
+    def hash ptr: ptr in
+        return cast(ptr, int);
+    end
+
+    def equal a: ptr, b: ptr in
+        return a == b;
+    end
+end

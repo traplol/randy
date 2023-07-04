@@ -10,10 +10,10 @@ def _compile_order_visit tt, st, stmt, seen, order in
     elif k == AstK::Ident then
         var sym = st_get_symbol(st, ast_ident(stmt));
         if symbol_is_def(sym) then
-            if set_contains(seen, sym) then
+            if seen.contains(sym) then
                 return;
             end
-            set_add(seen, sym);
+            seen.insert(sym);
             var type = symbol_type(sym);
             assert(type, "Type for %s was null.\n", symbol_name(sym));
             var def_ = type_ast(type);
@@ -61,17 +61,17 @@ def _compile_order_visit tt, st, stmt, seen, order in
 end
 
 def _compile_order_visit_type tt, st, type, seen, order in
-    if set_contains(seen, type) then
+    if seen.contains(type) then
         return;
     end
-    set_add(seen, type);
+    seen.insert(type);
     if type_is_struct(type) then
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
         while i < len do
             var sym = defs.get(i);
-            if not set_contains(seen, sym) then
-                set_add(seen, sym);
+            if not seen.contains(sym) then
+                seen.insert(sym);
                 assert(sym.type, "Type for %s was null.\n", sym.name);
                 var def_ = type_ast(sym.type);
                 assert(def_, "AST for symbol %s was null\n", sym.name);
@@ -136,11 +136,11 @@ def compile_order_main roots, type_table, symbol_table -> Vector[ast]& in
         compile_order.delete();
         return NULL;
     end
-    var seen = make_set(0, NULL, NULL);
+    var seen = Set[ptr, PtrHashCompare, PtrHashCompare]::new(0);
     _compile_order_def(type_table, symbol_table, main_def, seen, compile_order);
-    if exit_def and not set_contains(seen, st_get_symbol(symbol_table, ast_ident(exit_def))) then
+    if exit_def and not seen.contains(st_get_symbol(symbol_table, ast_ident(exit_def))) then
         _compile_order_def(type_table, symbol_table, exit_def, seen, compile_order);
     end
-    free_set(seen);
+    seen.delete();
     return compile_order;
 end

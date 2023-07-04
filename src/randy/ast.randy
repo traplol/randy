@@ -205,7 +205,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.ident = ident;
-        return self
+        return self;
     end
 
     def new_integer token: Token&, val: int in
@@ -214,7 +214,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.integer = val;
-        return self
+        return self;
     end
 
     def new_string token: Token&, val: String& in
@@ -223,7 +223,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.string = val;
-        return self
+        return self;
     end
 
     def new_call token: Token&, expr: Ast&, args: Vector[Ast&]& in
@@ -233,7 +233,7 @@ struct Ast in
         self.token = token;
         self.u.call.expr = expr;
         self.u.call.args = args;
-        return self
+        return self;
     end
 
     def new_binop token: Token&, lhs: Ast&, op: TK, rhs: Ast& in
@@ -244,7 +244,7 @@ struct Ast in
         self.u.binop.lhs = lhs;
         self.u.binop.op = op;
         self.u.binop.rhs = rhs;
-        return self
+        return self;
     end
 
     def new_return token: Token&, expr: Ast& in
@@ -253,7 +253,7 @@ struct Ast in
         self.is_expr = false;
         self.token = token;
         self.u.return_ = expr;
-        return self
+        return self;
     end
 
     def new_var_decl token: Token&, ident: cstr in
@@ -262,7 +262,7 @@ struct Ast in
         self.is_expr = false;
         self.token = token;
         self.u.var_decl = ident;
-        return self
+        return self;
     end
 
     def new_var_assign token: Token&, ident: cstr, expr: Ast& in
@@ -272,7 +272,7 @@ struct Ast in
         self.token = token;
         self.u.var_assign.ident = ident;
         self.u.var_assign.expr = expr;
-        return self
+        return self;
     end
 
     def new_assign_op token: Token&, ident: cstr, op: TK, expr: Ast& in
@@ -283,7 +283,7 @@ struct Ast in
         self.u.assign_op.ident = ident;
         self.u.assign_op.op = op;
         self.u.assign_op.expr = expr;
-        return self
+        return self;
     end
 
     def new_def token: Token&, ident: cstr, body: Vector[Ast&]&, params: Vector[cstr]& in
@@ -294,7 +294,7 @@ struct Ast in
         self.u.def_.ident = ident;
         self.u.def_.body = body;
         self.u.def_.params = params;
-        return self
+        return self;
     end
 
     def new_if_else token: Token&, test: Ast&, consequence: Vector[Ast&]&, alternative: Vector[Ast&]& in
@@ -305,7 +305,7 @@ struct Ast in
         self.u.if_else.test = test;
         self.u.if_else.consequence = consequence;
         self.u.if_else.alternative = alternative;
-        return self
+        return self;
     end
 
     def new_while token: Token&, test: Ast&, body: Vector[Ast&]& in
@@ -315,7 +315,7 @@ struct Ast in
         self.token = token;
         self.u.while_.test = test;
         self.u.while_.body = body;
-        return self
+        return self;
     end
 
     def new_ptr_op token: Token&, size: int, op: PointerOp, args: Vector[Ast&]& in
@@ -326,13 +326,13 @@ struct Ast in
         else
             self.kind = AstK::PointerWrite;
             self.is_expr = false;
-            return self
+            return self;
         end
         self.token = token;
         self.u.ptr_op.size = size;
         self.u.ptr_op.op = op;
         self.u.ptr_op.args = args;
-        return self
+        return self;
     end
 
     def new_prefix token: Token&, op: TK, expr: Ast& in
@@ -342,7 +342,7 @@ struct Ast in
         self.token = token;
         self.u.prefix.op = op;
         self.u.prefix.expr = expr;
-        return self
+        return self;
     end
 
     def new_const token: Token&, ident: cstr, expr: Ast& in
@@ -352,7 +352,7 @@ struct Ast in
         self.token = token;
         self.u.const_.ident = ident;
         self.u.const_.expr = expr;
-        return self
+        return self;
     end
 
     def new_extern token: Token&, ident: cstr, type: Type& in
@@ -362,7 +362,7 @@ struct Ast in
         self.token = token;
         self.u.extern_.ident = ident;
         self.u.extern_.type = type;
-        return self
+        return self;
     end
 
     def new_inline_asm token: Token&, ident: cstr, asmcode: cstr in
@@ -372,7 +372,7 @@ struct Ast in
         self.token = token;
         self.u.inline_asm.ident = ident;
         self.u.inline_asm.asmcode = asmcode;
-        return self
+        return self;
     end
 
     def new_global token: Token&, ident:cstr, expr: Ast& in
@@ -382,7 +382,7 @@ struct Ast in
         self.token = token;
         self.u.global_.ident = ident;
         self.u.global_.expr = expr;
-        return self
+        return self;
     end
 
     def new_cast token: Token&, expr: Ast&, type: Type& in
@@ -392,7 +392,7 @@ struct Ast in
         self.token = token;
         self.u.cast_.expr = expr;
         self.u.cast_.type = type;
-        return self
+        return self;
     end
 
     def new_struct token: Token&, type: Type&, fields: Vector[Field&]&, body: Vector[Ast&]& in
@@ -403,7 +403,7 @@ struct Ast in
         self.u.struct_.type = type;
         self.u.struct_.fields = fields;
         self.u.struct_.body = body;
-        return self
+        return self;
     end
 
     def new_union token: Token&, type: Type&, fields: Vector[Field&]& in
@@ -413,7 +413,7 @@ struct Ast in
         self.token = token;
         self.u.union_.type = type;
         self.u.union_.fields = fields;
-        return self
+        return self;
     end
 
     def new_enum token: Token&, ident: cstr, type: Type&, values: Vector[EnumValue&]& in
@@ -424,7 +424,7 @@ struct Ast in
         self.u.enum_.ident = ident;
         self.u.enum_.type = type;
         self.u.enum_.values = values;
-        return self
+        return self;
     end
 
     def new_member_access token: Token&, expr: Ast&, member: cstr in
@@ -434,7 +434,7 @@ struct Ast in
         self.token = token;
         self.u.member_access.expr = expr;
         self.u.member_access.member = member;
-        return self
+        return self;
     end
 
     def new_assign_member token: Token&, lhs: Ast&, op: TK, rhs: Ast& in
@@ -446,7 +446,7 @@ struct Ast in
         self.u.assign_member.lhs = lhs;
         self.u.assign_member.op = op;
         self.u.assign_member.rhs = rhs;
-        return self
+        return self;
     end
 
     def new_sizeof_expr token: Token&, expr: Ast& in
@@ -455,7 +455,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.sizeof_expr = expr;
-        return self
+        return self;
     end
 
     def new_sizeof_type token: Token&, type: Type& in
@@ -464,7 +464,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.sizeof_type = type;
-        return self
+        return self;
     end
 
     def new_scope_resolve token: Token&, lhs: Ast&, rhs: Ast& in
@@ -474,7 +474,7 @@ struct Ast in
         self.token = token;
         self.u.scope_resolve.lhs = lhs;
         self.u.scope_resolve.rhs = rhs;
-        return self
+        return self;
     end
 
     def new_get_reference token: Token&, expr: Ast& in
@@ -483,7 +483,7 @@ struct Ast in
         self.is_expr = true;
         self.token = token;
         self.u.get_reference = expr;
-        return self
+        return self;
     end
 
     def new_static_assert token: Token&, args: Vector[Ast&]& in
@@ -492,7 +492,7 @@ struct Ast in
         self.is_expr = false;
         self.token = token;
         self.u.static_assert_ = args;
-        return self
+        return self;
     end
 end
 

@@ -855,9 +855,9 @@ end
 def tt_detect_cycles self, stype in
     // Breadth-first search for cycles.
     var q = Queue[Type&]::new(0);
-    var explored = make_set(0, NULL, NULL);
+    var explored = Set[Type&, PtrHashCompare, PtrHashCompare]::new(0);
 
-    set_add(explored, stype);
+    explored.insert(stype);
     var fields;
     if type_is_struct(stype) then
         fields = type_struct_fields(stype);
@@ -869,11 +869,13 @@ def tt_detect_cycles self, stype in
         var field = fields.get(i);
         var ftype = field.type;
         if ftype == stype then // immediate self-reference
+            q.delete();
+            explored.delete();
             return true;
         end
-        if not set_contains(explored, ftype) then
+        if not explored.contains(ftype) then
             if type_is_struct(ftype) or type_is_union(ftype) then
-                set_add(explored, ftype);
+                explored.insert(ftype);
                 q.enqueue(ftype);
             end
         end
@@ -883,19 +885,27 @@ def tt_detect_cycles self, stype in
     while q.length() != 0 do
         var v = q.dequeue();
         if v == stype then
+            q.delete();
+            explored.delete();
             return true;
         end
-        fields = type_struct_fields(v);
+        if type_is_struct(v) then
+            fields = type_struct_fields(v);
+        else
+            fields = type_union_fields(v);
+        end
         i = 0; len = fields.length;
         while i < len do
             var field = fields.get(i);
             var ftype = field.type;
             if ftype == stype then
+                q.delete();
+                explored.delete();
                 return true;
             end
-            if not set_contains(explored, ftype) then
+            if not explored.contains(ftype) then
                 if type_is_struct(ftype) or type_is_union(ftype) then
-                    set_add(explored, ftype);
+                    explored.insert(ftype);
                     q.enqueue(ftype);
                 end
             end
@@ -903,7 +913,7 @@ def tt_detect_cycles self, stype in
         end
     end
     q.delete();
-    free_set(explored);
+    explored.delete();
     return false;
 end
 

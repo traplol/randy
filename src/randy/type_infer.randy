@@ -3,14 +3,14 @@
 struct TypeInfer in
     cur_defs: Vector[Symbol&]&;
     did_returns: String&;
-    again: set;
+    again: Set[Symbol&, PtrHashCompare, PtrHashCompare]&;
 end
 
 def make_type_infer -> TypeInfer& in
     var self: TypeInfer& = malloc(__sizeof(TypeInfer));
     self.cur_defs = Vector[Symbol&]::new(0);
     self.did_returns = String::new(0);
-    self.again = make_set(0, NULL, NULL);
+    self.again = Set[Symbol&, PtrHashCompare, PtrHashCompare]::new(0);
     return self;
 end
 
@@ -18,7 +18,7 @@ def free_type_infer self: TypeInfer& in
     if self then
         self.cur_defs.delete();
         self.did_returns.delete();
-        free_set(self.again);
+        self.again.delete();
         free(self);
     end
 end
@@ -174,8 +174,8 @@ def ti_infer_call self, tt, st, ast -> Type& in
     end
     if changed then
         var def_ast = type_ast(call_type);
-        if def_ast and not set_contains(self.again, call_symbol) then
-            set_add(self.again, call_symbol);
+        if def_ast and not self.again.contains(call_symbol) then
+            self.again.insert(call_symbol);
             // FIXME: is there a better way to do this without recursion?
             ti_infer_def(self, tt, st, def_ast);
         end
@@ -631,20 +631,20 @@ def _type_infer_impl self, type_table, symbol_table, ast_nodes in
     // TODO: prove this terminates or design an alternate solution.
     while true do
         var again = self.again;
-        if set_len(again) == 0 then
+        if again.length == 0 then
             break;
         end
-        self.again = make_set(0, NULL, NULL);
-        var cur = set_begin(again);
-        while cur != set_end(again) do
-            var sym = cast(u64@(cur), Symbol&);
-            var type = symbol_type(sym);
-            var ast = type_ast(type);
-            assert(ast, "ast from type_infer_again should not be null");
-            ti_infer(self, type_table, symbol_table, ast);
-            cur = set_next(again, cur);
+        self.again = Set[Symbol&, PtrHashCompare, PtrHashCompare]::new(0);
+        var iter = again.iter();
+        while iter do
+            var sym = iter.key();
+            var type = sym.type;
+            assert(type);
+            assert(type.ast, "ast from type_infer_again should not be null");
+            ti_infer(self, type_table, symbol_table, type.ast);
+            iter = iter.next();
         end
-        free_set(again);
+        again.delete();
     end
 end
 
