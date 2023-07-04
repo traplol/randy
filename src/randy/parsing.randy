@@ -160,9 +160,9 @@ def parse_var ts, st, tt in
     symbol = st_make_local(st, ident.value, ident);
     symbol_set_type(symbol, type); // OK if type is NULL
     if expr then
-        return make_ast_var_assign(var_, symbol_name(symbol), expr);
+        return Ast::new_var_assign(var_, symbol_name(symbol), expr);
     end
-    return make_ast_var_decl(var_, symbol_name(symbol));
+    return Ast::new_var_decl(var_, symbol_name(symbol));
 end
 
 def parse_if_else ts, st, tt, expect in
@@ -175,19 +175,19 @@ def parse_if_else ts, st, tt, expect in
         exit(1);
     end
     ts.expect(TK::KW_then);
-    var conseq = Vector[ast]::new(0);
-    var altern = Vector[ast]::new(0);
+    var conseq = Vector[Ast&]::new(0);
+    var altern = Vector[Ast&]::new(0);
     parse_statements_until_one_of(ts, st, tt, conseq, TK::KW_elif, TK::KW_end, TK::KW_elif);
     // early end
     if ts.accept(TK::KW_end) then
         st_pop_scope(st);
-        return make_ast_if_else(if_, test, conseq, altern);
+        return Ast::new_if_else(if_, test, conseq, altern);
     end
     // elif ... then
     if ts.peekk(TK::KW_elif) then
         st_pop_scope(st);
         altern.push(parse_if_else(ts, st, tt, TK::KW_elif));
-        return make_ast_if_else(if_, test, conseq, altern);
+        return Ast::new_if_else(if_, test, conseq, altern);
     end
     // else
     ts.expect(TK::KW_else);
@@ -197,7 +197,7 @@ def parse_if_else ts, st, tt, expect in
     // end
     ts.next();
     st_pop_scope(st);
-    return make_ast_if_else(if_, test, conseq, altern);
+    return Ast::new_if_else(if_, test, conseq, altern);
 end
 
 def parse_while ts, st, tt in
@@ -209,22 +209,22 @@ def parse_while ts, st, tt in
         print_token_loc(while_);
         exit(1);
     end
-    var body = Vector[ast]::new(0);
+    var body = Vector[Ast&]::new(0);
     ts.expect(TK::KW_do);
     parse_statements_until(ts, st, tt, body, TK::KW_end);
     ts.expect(TK::KW_end);
     st_pop_scope(st);
-    return make_ast_while(while_, test, body);
+    return Ast::new_while(while_, test, body);
 end
 
 def parse_return ts, st, tt in
     var return_ = ts.expect(TK::KW_return);
     if ts.peekk(TK::Semicolon) then
-        return make_ast_return(return_, NULL);
+        return Ast::new_return(return_, NULL);
     end
     // no need to handle NULL here because return with null expr is a void return.
     var expr = parse_expression(ts, st, tt);
-    return make_ast_return(return_, expr);
+    return Ast::new_return(return_, expr);
 end
 
 def parse_assign_op ts, st, tt, lhs, op in
@@ -242,9 +242,9 @@ def parse_assign_op ts, st, tt, lhs, op in
         if not symbol then
             symbol = st_prepare_undef(st, ast_ident(lhs), ast_token(lhs));
         end
-        return make_ast_assign_op(op_tk, symbol_name(symbol), op, expr);
+        return Ast::new_assign_op(op_tk, symbol_name(symbol), op, expr);
     elif k == AstK::MemberAccess then
-        return make_ast_assign_member(op_tk, lhs, op, expr);
+        return Ast::new_assign_member(op_tk, lhs, op, expr);
     else
         assert(false, "parse_assign_op for %s (%d) not implemented.\n", ast_kind_cstr(k), k);
     end
@@ -291,7 +291,7 @@ def parse_pointer_op ts, st, tt in
     end
 
     ts.expect(TK::LParen);
-    var args = Vector[ast]::new(0);
+    var args = Vector[Ast&]::new(0);
     if op == PointerOp::Read then
         var arg = parse_expression(ts, st, tt);
         args.push(arg);
@@ -299,7 +299,7 @@ def parse_pointer_op ts, st, tt in
             ts.expect(TK::Comma);
             var peek = ts.peek();
             var type = parse_type(ts, st, tt, true);
-            args.push(make_ast_type(peek, type));
+            args.push(Ast::new_type(peek, type));
         end
     else
         var arg = parse_expression(ts, st, tt);
@@ -311,11 +311,11 @@ def parse_pointer_op ts, st, tt in
             ts.expect(TK::Comma);
             var peek = ts.peek();
             var type = parse_type(ts, st, tt, true);
-            args.push(make_ast_type(peek, type));
+            args.push(Ast::new_type(peek, type));
         end
     end
     ts.expect(TK::RParen);
-    return make_ast_pointer_op(token, size, op, args);
+    return Ast::new_pointer_op(token, size, op, args);
 end
 
 def parse_cast ts, st, tt in
@@ -330,7 +330,7 @@ def parse_cast ts, st, tt in
     ts.expect(TK::Comma);
     var type = parse_type(ts, st, tt, true);
     ts.expect(TK::RParen);
-    return make_ast_cast(cast_, expr, type);
+    return Ast::new_cast(cast_, expr, type);
 end
 
 def parse_sizeof ts, st, tt in
@@ -342,10 +342,10 @@ def parse_sizeof ts, st, tt in
         ts.idx = idx;
         var type = parse_type(ts, st, tt, true);
         ts.expect(TK::RParen);
-        return make_ast_sizeof_type(sizeof_, type);
+        return Ast::new_sizeof_type(sizeof_, type);
     end
     ts.expect(TK::RParen);
-    return make_ast_sizeof_expr(sizeof_, expr);
+    return Ast::new_sizeof_expr(sizeof_, expr);
 end
 
 def parse_offsetof ts, st, tt in
@@ -353,13 +353,13 @@ def parse_offsetof ts, st, tt in
     ts.expect(TK::LParen);
     var expr = parse_expression(ts, st, tt);
     ts.expect(TK::RParen);
-    return make_ast_offsetof(offsetof_, expr);
+    return Ast::new_offsetof(offsetof_, expr);
 end
 
 def parse_assert ts, st, tt in
     var assert_ = ts.expect(TK::KW_assert);
     ts.expect(TK::LParen);
-    var assert_args = Vector[ast]::new(0);
+    var assert_args = Vector[Ast&]::new(0);
     parse_args_until(ts, st, tt, assert_args, TK::RParen);
     ts.expect(TK::RParen);
     if assert_args.length == 0 then
@@ -368,46 +368,46 @@ def parse_assert ts, st, tt in
         exit(1);
     end
     var test = assert_args.get(0);
-    var body = Vector[ast]::new(0);
-    var printf_args = Vector[ast]::new(0);
+    var body = Vector[Ast&]::new(0);
+    var printf_args = Vector[Ast&]::new(0);
     var printf_symbol = st_get_symbol(st, "printf");
     assert(printf_symbol, "`printf` not defined for assert.");
     var abort_symbol = st_get_symbol(st, "abort");
     assert(abort_symbol, "`abort` not defined for assert.");
 
-    printf_args.push(make_ast_string(assert_, String::new_from_cstr("Assertion failed:\n")));
-    body.push(make_ast_call(assert_,
-                        make_ast_ident(assert_, symbol_name(printf_symbol)),
+    printf_args.push(Ast::new_string(assert_, String::new_from_cstr("Assertion failed:\n")));
+    body.push(Ast::new_call(assert_,
+                        Ast::new_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
 
     var len = assert_args.length;
     if len > 1 then
-        printf_args = Vector[ast]::new(0);
+        printf_args = Vector[Ast&]::new(0);
         var i = 1;
         while i < len do
             printf_args.push(assert_args.get(i));
             i += 1;
         end
-        body.push(make_ast_call(assert_,
-                            make_ast_ident(assert_, symbol_name(printf_symbol)),
+        body.push(Ast::new_call(assert_,
+                            Ast::new_ident(assert_, symbol_name(printf_symbol)),
                             printf_args));
     end
 
-    printf_args = Vector[ast]::new(1);
+    printf_args = Vector[Ast&]::new(1);
     var string = String::new_from_cstr("  File \"");
     string.append_cstr(assert_.src_loc.filename);
     string.append_cstr("\", line ");
     string.append_int(assert_.src_loc.line);
     string.push('\n');
-    printf_args.push(make_ast_string(assert_, string));
-    body.push(make_ast_call(assert_,
-                        make_ast_ident(assert_, symbol_name(printf_symbol)),
+    printf_args.push(Ast::new_string(assert_, string));
+    body.push(Ast::new_call(assert_,
+                        Ast::new_ident(assert_, symbol_name(printf_symbol)),
                         printf_args));
-    body.push(make_ast_call(assert_,
-                        make_ast_ident(assert_, symbol_name(abort_symbol)), Vector[ast]::new(0)));
+    body.push(Ast::new_call(assert_,
+                        Ast::new_ident(assert_, symbol_name(abort_symbol)), Vector[Ast&]::new(0)));
 
-    test = make_ast_prefix(assert_, TK::KW_not, test);
-    var ast = make_ast_if_else(assert_, test, body, Vector[ast]::new(0));
+    test = Ast::new_prefix(assert_, TK::KW_not, test);
+    var ast = Ast::new_if_else(assert_, test, body, Vector[Ast&]::new(0));
     assert_args.delete();
     return ast;
 end
@@ -415,10 +415,10 @@ end
 def parse_static_assert ts, st, tt in
     var static_assert_ = ts.expect(TK::KW_static_assert);
     ts.expect(TK::LParen);
-    var assert_args = Vector[ast]::new(0);
+    var assert_args = Vector[Ast&]::new(0);
     parse_args_until(ts, st, tt, assert_args, TK::RParen);
     ts.expect(TK::RParen);
-    return make_ast_static_assert(static_assert_, assert_args);
+    return Ast::new_static_assert(static_assert_, assert_args);
 end
 
 def parse_primary ts, st, tt in
@@ -443,21 +443,21 @@ def parse_primary ts, st, tt in
         if ts.peekk(TK::LSquare) then
             ts.idx = idx;
             var type = parse_type(ts, st, tt, true);
-            return make_ast_type(ident, type);
+            return Ast::new_type(ident, type);
         end
         var symbol = st_get_symbol(st, ident.value);
         if not symbol then
             symbol = st_prepare_undef(st, ident.value, ident);
         end
-        return make_ast_ident(peek, symbol_name(symbol));
+        return Ast::new_ident(peek, symbol_name(symbol));
     elif k == TK::Integer or k == TK::Char then
-        return make_ast_integer(peek, cast(ts.next().value, int));
+        return Ast::new_integer(peek, cast(ts.next().value, int));
     elif k == TK::String then
-        return make_ast_string(peek, cast(ts.next().value, String&));
+        return Ast::new_string(peek, cast(ts.next().value, String&));
     elif k == TK::KW__FILE__ then
-        return make_ast_string(peek, String::new_from_cstr(ts.next().src_loc.filename));
+        return Ast::new_string(peek, String::new_from_cstr(ts.next().src_loc.filename));
     elif k == TK::KW__LINE__ then
-        return make_ast_integer(peek, ts.next().src_loc.line);
+        return Ast::new_integer(peek, ts.next().src_loc.line);
     elif k == TK::KW_u@ or
         k == TK::KW_u8@ or k == TK::KW_u16@ or k == TK::KW_u32@ or k == TK::KW_u64@ then
         return parse_pointer_op(ts, st, tt);
@@ -475,7 +475,7 @@ def parse_scope_resolve ts, st, tt, lhs in
     var tk = ts.expect(TK::ColonColon);
     if ast_kind(lhs) == AstK::Ident then
         var type = tt_get_type_or_make_undefined(tt, ast_ident(lhs));
-        lhs = make_ast_type(ast_token(lhs), type);
+        lhs = Ast::new_type(ast_token(lhs), type);
     elif ast_kind(lhs) != AstK::ScopeResolve and ast_kind(lhs) != AstK::Type then
         printf("ERROR: expected type name on lhs of '::'\n");
         print_token_loc(tk);
@@ -490,14 +490,14 @@ def parse_scope_resolve ts, st, tt, lhs in
     end
 
     if ts.accept(TK::LParen) then
-        var args = Vector[ast]::new(0);
+        var args = Vector[Ast&]::new(0);
         parse_args_until(ts, st, tt, args, TK::RParen);
         ts.expect(TK::RParen);
-        lhs = make_ast_scope_resolve(tk, lhs, rhs);
-        return make_ast_call(tk, lhs, args);
+        lhs = Ast::new_scope_resolve(tk, lhs, rhs);
+        return Ast::new_call(tk, lhs, args);
     end
 
-    lhs = make_ast_scope_resolve(tk, lhs, rhs);
+    lhs = Ast::new_scope_resolve(tk, lhs, rhs);
     while ts.accept(TK::ColonColon) do
         var rhs = parse_primary(ts, st, tt);
         if not rhs or (ast_kind(rhs) != AstK::Ident and ast_kind(rhs) != AstK::Type) then
@@ -505,12 +505,12 @@ def parse_scope_resolve ts, st, tt, lhs in
             print_token_loc(tk);
             exit(1);
         end
-        lhs = make_ast_scope_resolve(tk, lhs, rhs);
+        lhs = Ast::new_scope_resolve(tk, lhs, rhs);
         if ts.accept(TK::LParen) then
-            var args = Vector[ast]::new(0);
+            var args = Vector[Ast&]::new(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
             ts.expect(TK::RParen);
-            return make_ast_call(tk, lhs, args);
+            return Ast::new_call(tk, lhs, args);
         end
     end
     return lhs;
@@ -530,13 +530,13 @@ def parse_postfix ts, st, tt in
         var tk = ts.next();
         var k = tk.kind;
         if k == TK::LParen then
-            var args = Vector[ast]::new(0);
+            var args = Vector[Ast&]::new(0);
             parse_args_until(ts, st, tt, args, TK::RParen);
             ts.expect(TK::RParen);
-            expr = make_ast_call(tk, expr, args);
+            expr = Ast::new_call(tk, expr, args);
         elif k == TK::Dot then
             var member = ts.expect(TK::Ident);
-            expr = make_ast_member_access(tk, expr, member.value);
+            expr = Ast::new_member_access(tk, expr, member.value);
         end
     end
 
@@ -552,7 +552,7 @@ def parse_prefix ts, st, tt in
     if ts.peekk_one_of_3(TK::Tilde, TK::KW_not, TK::Minus) then
         var tok = ts.next();
         var expr = parse_prefix(ts, st, tt);
-        return make_ast_prefix(tok, tok.kind, expr);
+        return Ast::new_prefix(tok, tok.kind, expr);
     end
     return NULL;
 end
@@ -570,7 +570,7 @@ def parse_binary_multiplicative ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -588,7 +588,7 @@ def parse_binary_additive ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -606,7 +606,7 @@ def parse_binary_shift ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -624,7 +624,7 @@ def parse_binary_relational ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -642,7 +642,7 @@ def parse_binary_equality ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -660,7 +660,7 @@ def parse_binary_bit_and ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -678,7 +678,7 @@ def parse_binary_bit_xor ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -696,7 +696,7 @@ def parse_binary_bit_or ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -714,7 +714,7 @@ def parse_binary_land ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
@@ -732,17 +732,17 @@ def parse_binary_lor ts, st, tt in
         if not rhs then
             return NULL;
         end
-        lhs = make_ast_binop(tok, lhs, tok.kind, rhs);
+        lhs = Ast::new_binop(tok, lhs, tok.kind, rhs);
     end
     return lhs;
 end
 
-def parse_expression ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
+def parse_expression ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& in
     return parse_binary_lor(ts, st, tt);
 end
 
-def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
-    var stmt: ast;
+def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& in
+    var stmt: Ast&;
     var expect_semi = true;
     if ts.peekk(TK::KW_var) then
         stmt = parse_var(ts, st, tt);
@@ -757,10 +757,10 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> ast in
         stmt = parse_return(ts, st, tt);
         expect_semi = true;
     elif ts.peekk(TK::KW_break) then
-        stmt = make_ast_break(ts.next());
+        stmt = Ast::new_break(ts.next());
         expect_semi = true;
     elif ts.peekk(TK::KW_continue) then
-        stmt = make_ast_continue(ts.next());
+        stmt = Ast::new_continue(ts.next());
         expect_semi = true;
     elif ts.peekk(TK::KW_assert) then
         stmt = parse_assert(ts, st, tt);
@@ -859,7 +859,7 @@ def parse_def ts, st, tt in
     end
 
     st_push_scope(st);
-    var body = Vector[ast]::new(0);
+    var body = Vector[Ast&]::new(0);
     var params = Vector[cstr]::new(0);
     var param_symbols = Vector[Symbol&]::new(0);
     var any_type = tt_any_type(tt);
@@ -913,7 +913,7 @@ def parse_def ts, st, tt in
     parse_statements_until(ts, st, tt, body, TK::KW_end);
     ts.expect(TK::KW_end);
     st_pop_scope(st);
-    var ast = make_ast_def(def_, symbol_name(def_symbol), params, body);
+    var ast = Ast::new_def(def_, symbol_name(def_symbol), params, body);
     type_set_ast(def_type, ast);
     return ast;
 end
@@ -939,7 +939,7 @@ def parse_const ts, st, tt in
         symbol = st_make_const(st, ident.value, ident);
     end
     symbol_set_type(symbol, type);
-    return make_ast_const(const_, symbol_name(symbol), expr);
+    return Ast::new_const(const_, symbol_name(symbol), expr);
 end
 
 def parse_extern ts, st, tt in
@@ -963,7 +963,7 @@ def parse_extern ts, st, tt in
         extern_symbol = st_make_extern(st, ident.value, ident);
     end
     symbol_set_type(extern_symbol, type);
-    return make_ast_extern(extern_, symbol_name(extern_symbol), type);
+    return Ast::new_extern(extern_, symbol_name(extern_symbol), type);
 end
 
 def parse_asm ts, st, tt in
@@ -989,7 +989,7 @@ def parse_asm ts, st, tt in
 
     var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[Type&]::new(0), true);
     symbol_set_type(symbol, def_type);
-    return make_ast_inline_asm(asm_, symbol_name(symbol), cast(asmcode.value, String&).cstr());
+    return Ast::new_inline_asm(asm_, symbol_name(symbol), cast(asmcode.value, String&).cstr());
 end
 
 def parse_global ts, st, tt in
@@ -1021,7 +1021,7 @@ def parse_global ts, st, tt in
         symbol = st_make_global(st, ident.value, ident);
     end
     symbol_set_type(symbol, type);
-    return make_ast_global(global_, symbol_name(symbol), expr);
+    return Ast::new_global(global_, symbol_name(symbol), expr);
 end
 
 def parse_struct ts, st, tt in
@@ -1029,7 +1029,7 @@ def parse_struct ts, st, tt in
     var struct_ = ts.expect(TK::KW_struct);
     var struct_type;
     var fields = Vector[Field&]::new(0);
-    var inner_ast = Vector[ast]::new(0);
+    var inner_ast = Vector[Ast&]::new(0);
     var def_symbols = Vector[Symbol&]::new(0);
 
     if not ts.accept(TK::KW_in) then
@@ -1128,7 +1128,7 @@ def parse_struct ts, st, tt in
         i += 1;
     end
 
-    var ast = make_ast_struct(struct_, struct_type, fields, inner_ast);
+    var ast = Ast::new_struct(struct_, struct_type, fields, inner_ast);
     type_set_ast(struct_type, ast);
     tt_pop_scope(tt);
     tt_promote_type(tt, struct_type);
@@ -1158,7 +1158,7 @@ def parse_enum ts, st, tt in
         end
         ts.expect(TK::Semicolon);
         if not val then
-            val = make_ast_integer(val_id, cur_value);
+            val = Ast::new_integer(val_id, cur_value);
         end
         values.push(make_enum_value(val_id, val_id.value, val));
         cur_value += 1;
@@ -1168,7 +1168,7 @@ def parse_enum ts, st, tt in
     type_set_kind(enum_type, TypeKind::Enum);
     type_set_enum_values(enum_type, values);
     type_set_size(enum_type, PTR_BITS);
-    return make_ast_enum(enum_, ident.value, enum_type, values);
+    return Ast::new_enum(enum_, ident.value, enum_type, values);
 end
 
 def parse_union ts, st, tt in
@@ -1229,7 +1229,7 @@ def parse_union ts, st, tt in
     type_set_kind(union_type, TypeKind::Union);
     type_set_union_fields(union_type, fields);
 
-    var ast = make_ast_union(union_, union_type, fields);
+    var ast = Ast::new_union(union_, union_type, fields);
     type_set_ast(union_type, ast);
     tt_pop_scope(tt);
     tt_promote_type(tt, union_type);
@@ -1237,8 +1237,8 @@ def parse_union ts, st, tt in
 end
 
 def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
-    var roots = Vector[ast]::new(0);
-    var parsed: ast = NULL; var tk: Token&;
+    var roots = Vector[Ast&]::new(0);
+    var parsed: Ast& = NULL; var tk: Token&;
     while ts.peek() do
         tk = ts.peek();
         if ts.peekk(TK::KW_def) then

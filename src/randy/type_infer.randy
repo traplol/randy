@@ -142,7 +142,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
             if types_eq(obj_type, param_type) then
                 args.insert_front(object);
             elif type_is_reference(param_type) and types_eq(tt_reference_to_type(tt, obj_type), param_type) then
-                var obj_ref = make_ast_get_reference(ast_token(object), object);
+                var obj_ref = Ast::new_get_reference(ast_token(object), object);
                 args.insert_front(obj_ref);
             end
         end

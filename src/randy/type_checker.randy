@@ -616,7 +616,7 @@ def tc_check self, tt, st, ast in
     end
 end
 
-def type_check type_table, symbol_table, compile_order: Vector[ast]& in
+def type_check type_table, symbol_table, compile_order: Vector[Ast&]& in
     var type_checker = make_type_check();
     var i = 0; var len = compile_order.length;
     while i < len do

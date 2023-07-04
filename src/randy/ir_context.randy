@@ -675,10 +675,10 @@ end
 struct ConstInfo in
     kind: CIK;
     value: ptr;
-    ast_value: ast;
+    ast_value: Ast&;
 end
 
-def make_const_info kind: CIK, value: ptr, ast_value: ast -> ConstInfo& in
+def make_const_info kind: CIK, value: ptr, ast_value: Ast& -> ConstInfo& in
     var self = cast(malloc(__sizeof(ConstInfo)), ConstInfo&);
     self.kind = kind;
     self.value = value;
@@ -1108,7 +1108,7 @@ def _comptime_scope_resolve_val self, ast, st, tt, depth in
     end
 end
 
-def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
+def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
 
     if depth > 10 then
         printf("ERROR: comptime eval reached recursion limit.\n");
@@ -1135,7 +1135,7 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
             if ci.kind == CIK::String then
                 return ci.ast_value;
             elif ci.kind == CIK::Integer then
-                return make_ast_integer(ast_token(ast), cast(ci.value, int)); // @LEAK
+                return Ast::new_integer(ast_token(ast), cast(ci.value, int)); // @LEAK
             end
         end
     elif k == AstK::ScopeResolve then
@@ -1143,17 +1143,17 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
     elif k == AstK::SizeofExpr then
         var expr_type = tt_get_ast_type(tt, ast_expr(ast));
         var size_bytes = (type_size(expr_type) + BYTE_BITS-1) / BYTE_BITS;
-        return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
+        return Ast::new_integer(ast_token(ast), size_bytes); // @LEAK
     elif k == AstK::SizeofType then
         var type = ast_type(ast);
         if type then
             var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
-            return make_ast_integer(ast_token(ast), size_bytes); // @LEAK
+            return Ast::new_integer(ast_token(ast), size_bytes); // @LEAK
         end
     elif k == AstK::OffsetOf then
         var expr = ast_expr(ast);
         var bit_offset = _ir_offsetof(self, expr, tt, 0);
-        return make_ast_integer(ast_token(ast), bit_offset / BYTE_BITS); // @LEAK
+        return Ast::new_integer(ast_token(ast), bit_offset / BYTE_BITS); // @LEAK
     elif k == AstK::BinOp then
         op = ast_op(ast);
         lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
@@ -1231,7 +1231,7 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
                     result = lhs_val >= rhs_val;
                 end
                 if evaled then
-                    return make_ast_integer(ast_token(ast), result); // @LEAK
+                    return Ast::new_integer(ast_token(ast), result); // @LEAK
                 end
             end
         end
@@ -1252,7 +1252,7 @@ def ir_comptime_eval self, ast, st, tt, error_on_fail, depth in
                 result = ~rhs_val;
             end
             if evaled then
-                return make_ast_integer(ast_token(ast), result); // @LEAK
+                return Ast::new_integer(ast_token(ast), result); // @LEAK
             end
         end
     elif k == AstK::Cast then
@@ -2025,7 +2025,7 @@ end
 def _ir_offsetof self, ast, tt, base_offset in
     var type: Type& = NULL;
     var member: cstr = NULL;
-    var lhs: ast = NULL;
+    var lhs: Ast& = NULL;
     if ast_kind(ast) == AstK::ScopeResolve then
         type = scope_resolve_lhs(tt, ast_lhs(ast), true);
         member = ast_ident(ast_rhs(ast));
@@ -2084,7 +2084,7 @@ def ir_emit_offsetof self, ast, st, tt in
     ir_append(self, make_ir_push_int(bit_offset / BYTE_BITS));
 end
 
-def ir_compile self: ir_context, ast: ast, st: SymbolTable&, tt: TypeTable& in
+def ir_compile self: ir_context, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     assert(ast);
     var ev_ast = ir_comptime_eval(self, ast, st, tt, false, 0);
@@ -2191,7 +2191,7 @@ def ir_resolve_lazy_idents self in
     end
 end
 
-def ir_compile_roots self: ir_context, roots: Vector[ast]&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector[ast]& in
+def ir_compile_roots self: ir_context, roots: Vector[Ast&]&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector[Ast&]& in
 
     if false then
         // compile everything in order

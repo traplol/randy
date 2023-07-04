@@ -22,11 +22,11 @@ end
 struct EnumValue in
     token: Token&;
     name: cstr;
-    value: ast;
+    value: Ast&;
     cache_value: ptr;
 end
 
-def make_enum_value token: Token&, name: cstr, value: ast -> EnumValue& in
+def make_enum_value token: Token&, name: cstr, value: Ast& -> EnumValue& in
     var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
     self.token = token;
     self.name = name;
@@ -81,7 +81,7 @@ struct Type in
     size: int32;
     is_generic: bool;
     params: Vector[Type&]&;
-    ast: ast;
+    ast: Ast&;
     ref_to_this: Type&;
     instances: Vector[Type&]&;
     scope: TypeScope&;
@@ -172,7 +172,7 @@ def type_set_is_generic self: Type&, val: bool in self.is_generic = val; end
 def type_set_size self: Type&, size: int in self.size = size; end
 def type_set_params self: Type&, params: Vector[Type&]& in self.params = params; end
 def type_set_instances self: Type&, instances: Vector[Type&]& in self.instances = instances; end
-def type_set_ast self: Type&, ast: ast in self.ast = ast; end
+def type_set_ast self: Type&, ast: Ast& in self.ast = ast; end
 def type_set_deref_type self: Type&, type: Type& in self.u.deref_type = type; end
 def type_set_ref_to_this self: Type&, type: Type& in self.ref_to_this = type; end
 def type_set_def_return_type self: Type&, type: Type& in self.u.def_.return_type = type; end
@@ -1071,7 +1071,7 @@ def tt_print_type_name self, type in
     end
 end
 
-def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
+def scope_resolve_lhs tt: TypeTable&, ast: Ast&, error: bool -> Type& in
     if ast_kind(ast) == AstK::ScopeResolve then
         var lhs_type = scope_resolve_lhs(tt, ast_lhs(ast), false);
         if not lhs_type then
@@ -1103,7 +1103,7 @@ def scope_resolve_lhs tt: TypeTable&, ast: ast, error: bool -> Type& in
     end
 end
 
-def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> Type& in
+def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
     assert(ast_kind(ast) == AstK::ScopeResolve);
     var type: Type&;
     if ast_kind(ast_lhs(ast)) != AstK::Type then
@@ -1171,7 +1171,7 @@ def scope_resolve_type tt: TypeTable&, ast: ast, error: bool -> Type& in
     return tt.any_type;
 end
 
-def scope_resolve_def tt: TypeTable&, ast: ast, error: bool -> Symbol& in
+def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
     assert(ast_kind(ast) == AstK::ScopeResolve);
     var type: Type&;
     if ast_kind(ast_lhs(ast)) != AstK::Type then
