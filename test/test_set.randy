@@ -2,92 +2,12 @@
 #include std/set
 #include std/string
 
-
 def test msg, cond in
     if cond then
         printf("pass: %s\n", msg);
     else
         printf("fail: %s\n", msg);
     end
-end
-
-def test_default_set in
-    printf("Testing default set.\n");
-    var set = make_set_default();
-
-    test("empty set length is 0", 0 == set_len(set));
-
-    set_add(set, 123);
-    test("set length is 1 after adding 123", 1 == set_len(set));
-    set_add(set, 234);
-    test("set length is 2 after adding 234", 2 == set_len(set));
-    set_add(set, 234);
-    test("set length is 2 after adding 234 again", 2 == set_len(set));
-
-    test("set contains 123", set_contains(set, 123));
-    test("set contains 234", set_contains(set, 234));
-
-    printf("forcing set to resize\n");
-    var i = 1;
-    var cap = set_cap(set);
-    while i < cap+1 do
-        set_add(set, i);
-        i += 1;
-    end
-    test("set length is cap+2", cap+2 == set_len(set));
-    test("set still contains 234", set_contains(set, 234));
-    test("set still contains 123", set_contains(set, 123));
-
-    var len = set_len(set);
-    set_remove(set, 234);
-    test("set supports removal", (len-1) == set_len(set));
-    test("set no longer contains 234", not set_contains(set, 234));
-
-    i = 1;
-    while i <= 200000 do
-        set_add(set, i);
-        i += 1;
-    end
-    test("set length is 200000", 200000 == set_len(set));
-    test("set contains 1000", set_contains(set, 1000));
-    test("set contains 65536", set_contains(set, 65536));
-    test("set contains 100000", set_contains(set, 100000));
-    test("set contains 200000", set_contains(set, 200000));
-    test("set does not contain 200001", not set_contains(set, 200001));
-    free_set(set);
-end
-
-def cstr_hash cstr: cstr -> int in
-    var hash = 5381;
-    var c = cast(u8@(cstr), char);
-    while c do
-        hash = hash * 33 + c;
-        c = cast(u8@(cstr), char);
-        cstr += 1;
-    end
-    return hash;
-end
-
-def test_cstr_set in
-    printf("Testing set with cstrings.\n");
-    var set = make_set(16, cstr_eq, cstr_hash);
-
-    test("set is empty", 0 == set_len(set));
-
-    set_add(set, "hello world");
-    test("set length is 1", 1 == set_len(set));
-    test("set contains \"hello world\"", set_contains(set, "hello world"));
-
-    set_add(set, "hello world");
-    test("set length is 1", 1 == set_len(set));
-
-    set_add(set, "helloworld");
-    test("set length is 2", 2 == set_len(set));
-    test("set contains \"helloworld\"", set_contains(set, "helloworld"));
-
-    set_remove(set, "hello world");
-    test("set supports removal", 1 == set_len(set));
-    test("set no longer contains \"hello world\"", not set_contains(set, "hello world"));
 end
 
 struct CstrHashCompare in
@@ -110,9 +30,84 @@ struct PtrHashCompare in
     end
 end
 
-struct Foo in
-    i: int;
-    j: int;
+def test_default_set in
+    printf("Testing default set.\n");
+    var set = Set[int, PtrHashCompare, PtrHashCompare]::new(0);
+
+    test("empty set length is 0", 0 == set.length);
+
+    set.insert(123);
+    test("set length is 1 after adding 123", 1 == set.length);
+    set.insert(234);
+    test("set length is 2 after adding 234", 2 == set.length);
+    set.insert(234);
+    test("set length is 2 after adding 234 again", 2 == set.length);
+
+    test("set contains 123", set.contains(123));
+    test("set contains 234", set.contains(234));
+
+    printf("forcing set to resize\n");
+    var i = 1;
+    var cap = set._capacity;
+    while i < cap + 1 do
+        set.insert(i);
+        i += 1;
+    end
+    test("set length is cap+2", cap + 2 == set.length);
+    test("set still contains 234", set.contains(234));
+    test("set still contains 123", set.contains(123));
+
+    var len = set.length;
+    set.remove(234);
+    test("set supports removal", (len - 1) == set.length);
+    test("set no longer contains 234", not set.contains(234));
+
+    i = 1;
+    while i <= 200000 do
+        set.insert(i);
+        i += 1;
+    end
+    test("set length is 200000", 200000 == set.length);
+    test("set contains 1000", set.contains(1000));
+    test("set contains 65536", set.contains(65536));
+    test("set contains 100000", set.contains(100000));
+    test("set contains 200000", set.contains(200000));
+    test("set does not contain 200001", not set.contains(200001));
+    set.delete();
+end
+
+def cstr_hash cstr: cstr -> int in
+    var hash = 5381;
+    var c = cast(u8@(cstr), char);
+    while c do
+        hash = hash * 33 + c;
+        c = cast(u8@(cstr), char);
+        cstr += 1;
+    end
+    return hash;
+end
+
+def test_cstr_set in
+    printf("Testing set with cstrings.\n");
+    var set = Set[cstr, CstrHashCompare, CstrHashCompare]::new(16);
+
+    test("set is empty", 0 == set.length);
+
+    set.insert("hello world");
+    test("set length is 1", 1 == set.length);
+    test("set contains \"hello world\"", set.contains("hello world"));
+
+    set.insert("hello world");
+    test("set length is 1", 1 == set.length);
+
+    set.insert("helloworld");
+    test("set length is 2", 2 == set.length);
+    test("set contains \"helloworld\"", set.contains("helloworld"));
+
+    set.remove("hello world");
+    test("set supports removal", 1 == set.length);
+    test("set no longer contains \"hello world\"", not set.contains("hello world"));
+    set.delete();
 end
 
 def test_template_set in
