@@ -8,12 +8,177 @@ def _default_set_hash e: ptr -> int in
     return cast(e, int);
 end
 
+struct SetIterator[K] in
+    _cur: K&;
+    _end: K&;
+
+    def new begin: K&, end_: K& in
+        var self = cast(malloc(__sizeof(SetIterator[K])), SetIterator[K]&);
+        self._cur = begin;
+        self._end = end_;
+        return self;
+    end
+
+    def next self in
+        if self._cur == self._end then
+            return NULL;
+        else
+            var cur = self._cur;
+            cur += __sizeof(K);
+            var end_ = self._end;
+            while cur != end_ and not u@(cur, K) do
+                cur += __sizeof(K);
+            end
+            self._cur = cur;
+            if cur == end_ then
+                return NULL;
+            end
+            return self;
+        end
+    end
+
+    def key self in
+        return u@(self._cur, K);
+    end
+end
+
+const Set_Load_Factor = 2;
+struct Set[K, KHash, KCompare] in
+    length: int;
+    _capacity: int;
+    _buffer: K&;
+
+    def new starting_capacity: int in
+        if starting_capacity == 0 then
+            starting_capacity = 17;
+        end
+
+        var self = cast(malloc(__sizeof(Set[K, KHash, KCompare])),
+                        Set[K, KHash, KCompare]&);
+        self.length = 0;
+        self._capacity = starting_capacity;
+        self._buffer = calloc(starting_capacity, __sizeof(K));
+        return self;
+    end
+
+    def delete self in
+        if self then
+            free(self._buffer);
+            free(self);
+        end
+    end
+
+    def _expand self in
+        var old_cap = self._capacity;
+        var old_buf = self._buffer;
+        var new_cap = (old_cap * 2) + 1;
+        self.length = 0;
+        self._capacity = new_cap;
+        var new_buf = calloc(new_cap, __sizeof(K));
+        self._buffer = new_buf;
+        var i = 0; var elt;
+        while i < old_cap do
+            elt = cast(old_buf + i * __sizeof(K), K&);
+            if u@(elt, K) then
+                self.insert(u@(elt, K));
+            end
+            i += 1;
+        end
+        free(old_buf);
+    end
+
+    def _at self, idx: int in
+        return cast(self._buffer + idx * __sizeof(K), K&);
+    end
+
+    def insert self, key: K in
+        if self.length >= self._capacity / Set_Load_Factor then
+            self._expand();
+        end
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and u@(cur, K) do
+            if KCompare::equal(u@(cur, K), key) then
+                return;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+        if not u@(cur, K) then
+            self.length += 1;
+        end
+        u!(cur, key, K);
+    end
+
+    def remove self, key: K in
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and u@(cur, K) do
+            if KCompare::equal(u@(cur, K), key) then
+                u!(cur, 0, K);
+                self.length -= 1;
+                return;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+    end
+
+    def contains self, key: K in
+        var idx = KHash::hash(key) % self._capacity;
+        if idx < 0 then
+            idx = -idx;
+        end
+        var cur = self._at(idx);
+        while cur and u@(cur, K) do
+            if KCompare::equal(u@(cur, K), key) then
+                return true;
+            else
+                idx = (idx + 1) % self._capacity;
+                cur = self._at(idx);
+            end
+        end
+        return false;
+    end
+
+    def _begin self in
+        var end_ = self._end();
+        if self.length == 0 then
+            return end_;
+        end
+        var cur = self._buffer;
+        while cur != end_ do
+            if u@(cur, K) then
+                return cur;
+            end
+            cur += __sizeof(K);
+        end
+        return end_;
+    end
+
+    def _end self in
+        return self._at(self._capacity);
+    end
+
+    def iter self in
+        return SetIterator[K]::new(self._begin(), self._end());
+    end
+end
+
 const TSET_length   =  0; // int
 const TSET_capacity =  8; // int
 const TSET_buffer   = 16; // ptr
 const TSET_comparer = 24; // compare_fn
 const TSET_hasher   = 32; // hash_fn
-const sizeof_TSET   = 40; 
+const sizeof_TSET   = 40;
 const sizeof_TSET_ELEM = sizeof_PTR;
 
 const SET_Load_Factor = 2; // resize & rehash when size >= capacity/2
@@ -85,9 +250,11 @@ end
 
 def set_contains self: set, elem: ptr -> bool in
     var cap = set_cap(self);
-    var hasher = set_hasher(self); 
+    var hasher = set_hasher(self);
     var idx = hasher(elem) % cap;
-    if idx < 0 then idx = 0 - idx; end
+    if idx < 0 then
+        idx = 0 - idx;
+    end
     var comparer = set_comparer(self);
     var cur = _set_at(self, idx);
     while u64@(cur) do
@@ -106,10 +273,12 @@ def set_add self: set, elem: ptr in
         _set_expand(self);
         cap = set_cap(self);
     end
-    
+
     var hasher = set_hasher(self);
     var idx = hasher(elem) % cap;
-    if idx < 0 then idx = 0 - idx; end
+    if idx < 0 then
+        idx = 0 - idx;
+    end
     var comparer = set_comparer(self);
     var cur = _set_at(self, idx);
     while cur and u64@(cur) do
@@ -132,7 +301,9 @@ def set_remove self: set, elem: ptr in
     var cap = set_cap(self);
     var hasher = set_hasher(self);
     var idx = hasher(elem) % cap;
-    if idx < 0 then idx = 0 - idx; end
+    if idx < 0 then
+        idx = 0 - idx;
+    end
     var comparer = set_comparer(self);
     var cur = _set_at(self, idx);
     while cur and u64@(cur) do

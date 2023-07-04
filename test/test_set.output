@@ -26,3 +26,28 @@ pass: set length is 2
 pass: set contains "helloworld"
 pass: set supports removal
 pass: set no longer contains "hello world"
+pass: set contains "asdf"
+pass: set length is 1
+pass: set contains "asdf"
+pass: set length is 1
+pass: set contains "asdf"
+pass: set length is 1
+pass: set contains "asdf"
+pass: set length is 2
+pass: set contains "foo"
+pass: set length is 3
+pass: set contains "bar"
+pass: set length is 4
+pass: set contains "baz"
+pass: set length is 5
+pass: set contains "quz"
+pass: set length is 6
+pass: set contains "qwerty"
+pass: set length is 6
+pass: set contains "foo"
+iter ~ baz
+iter ~ asdf
+iter ~ foo
+iter ~ bar
+iter ~ qwerty
+iter ~ quz

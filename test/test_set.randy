@@ -16,7 +16,7 @@ def test_default_set in
     var set = make_set_default();
 
     test("empty set length is 0", 0 == set_len(set));
-    
+
     set_add(set, 123);
     test("set length is 1 after adding 123", 1 == set_len(set));
     set_add(set, 234);
@@ -90,9 +90,74 @@ def test_cstr_set in
     test("set no longer contains \"hello world\"", not set_contains(set, "hello world"));
 end
 
+struct CstrHashCompare in
+    def hash cstr: cstr in
+        return cstr_hash(cstr);
+    end
+
+    def equal a: cstr, b: cstr in
+        return cstr_eq(a, b);
+    end
+end
+
+struct PtrHashCompare in
+    def hash ptr: ptr in
+        return cast(ptr, int);
+    end
+
+    def equal a: ptr, b: ptr in
+        return a == b;
+    end
+end
+
+struct Foo in
+    i: int;
+    j: int;
+end
+
+def test_template_set in
+    var set = Set[cstr, CstrHashCompare, CstrHashCompare]::new(0);
+    test("set contains \"asdf\"", false == set.contains("asdf"));
+    set.insert("asdf");
+    test("set length is 1", 1 == set.length);
+    test("set contains \"asdf\"", true == set.contains("asdf"));
+    set.insert("asdf");
+    test("set length is 1", 1 == set.length);
+    test("set contains \"asdf\"", true == set.contains("asdf"));
+    set.insert("asdf");
+    test("set length is 1", 1 == set.length);
+    test("set contains \"asdf\"", true == set.contains("asdf"));
+
+    set.insert("foo");
+    test("set length is 2", 2 == set.length);
+    test("set contains \"foo\"", true == set.contains("foo"));
+    set.insert("bar");
+    test("set length is 3", 3 == set.length);
+    test("set contains \"bar\"", true == set.contains("bar"));
+    set.insert("baz");
+    test("set length is 4", 4 == set.length);
+    test("set contains \"baz\"", true == set.contains("baz"));
+    set.insert("quz");
+    test("set length is 5", 5 == set.length);
+    test("set contains \"quz\"", true == set.contains("quz"));
+    set.insert("qwerty");
+    test("set length is 6", 6 == set.length);
+    test("set contains \"qwerty\"", true == set.contains("qwerty"));
+    set.insert("foo");
+    test("set length is 6", 6 == set.length);
+    test("set contains \"foo\"", true == set.contains("foo"));
+    var iter = set.iter();
+    while iter do
+        printf("iter ~ %s\n", iter.key());
+        iter = iter.next();
+    end
+    set.delete();
+end
+
 def main in
     test_default_set();
     test_cstr_set();
+    test_template_set();
     return 0;
 end
 
