@@ -673,10 +673,13 @@ def tt_get_type_instance_of self, st, type, params in
                 assert(params.length == inst_params.length, "forgot to verify params.length\n");
                 var j = 0; var jlen = inst_params.length;
                 while j < jlen do
-                    if types_eq(params.get(j), inst_params.get(j)) then
-                        return inst;
+                    if not types_eq(params.get(j), inst_params.get(j)) then
+                        break;
                     end
                     j += 1;
+                end
+                if j == jlen then
+                    return inst;
                 end
                 i += 1;
             end
