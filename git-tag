@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+cur_tag=$(git tag | tail -n 1)
+IFS=. read major minor <<<"$cur_tag"
+minor=$((10#$minor + 1))
+new_tag=$(printf "%s.%02d\n" $major $minor)
+
+echo "old tag: $cur_tag"
+echo "new tag: $new_tag"
+git tag $new_tag
+cp bin/randy bin/randy-$new_tag
