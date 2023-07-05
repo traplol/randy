@@ -76,7 +76,7 @@ def tc_check_body self, tt, st, body in
     while i < len do
         var ast = body.get(i);
         tc_check(self, tt, st, ast);
-        if ast_kind(ast) == AstK::Return then
+        if ast.kind == AstK::Return then
             break;
         end
         i += 1;
@@ -85,17 +85,17 @@ end
 
 def tc_check_ident self, tt, st, ast in
     check_ast_kind(AstK::Ident, ast);
-    _tc_check_ident_has_type(st, ast_ident(ast), ast);
+    _tc_check_ident_has_type(st, ast.u.ident, ast);
 end
 
 def tc_check_call self, tt, st, ast in
     check_ast_kind(AstK::Call, ast);
-    tc_check(self, tt, st, ast_expr(ast));
-    var call_type = tt_get_ast_type(tt, ast_expr(ast));
+    tc_check(self, tt, st, ast.u.call.expr);
+    var call_type = tt_get_ast_type(tt, ast.u.call.expr);
     assert(call_type);
     if not type_is_def(call_type) then
-        if ast_kind(ast_expr(ast)) == AstK::Ident then
-            printf("ERROR: `%s` which has type `", ast_ident(ast_expr(ast)));
+        if ast.u.call.expr == AstK::Ident then
+            printf("ERROR: `%s` which has type `", ast.u.call.expr.u.ident);
         else
             printf("ERROR: type `");
         end
@@ -109,7 +109,7 @@ def tc_check_call self, tt, st, ast in
     end
 
     var param_types = type_def_parameters(call_type);
-    var args = ast_args(ast);
+    var args = ast.u.call.args;
     var i = 0; var len = min(param_types.length, args.length);
     while i < len do
         var arg = args.get(i);
@@ -143,13 +143,13 @@ def tc_check_call self, tt, st, ast in
     end
 
     if (i < param_types.length) or (i > param_types.length and not type_def_varargs(call_type)) then
-        var expr = ast_expr(ast);
-        if ast_kind(expr) == AstK::Ident then
+        var expr = ast.u.call.expr;
+        if expr.kind == AstK::Ident then
             printf("ERROR: call to `%s` expects %d arguments but got %d.\n",
-                ast_ident(expr),
+                expr.u.ident,
                 param_types.length,
                 args.length);
-        elif ast_kind(expr) == AstK::ScopeResolve then
+        elif expr.kind == AstK::ScopeResolve then
             printf("ERROR: call to `");
             _print_ast_scope_resolve(expr, 0);
             printf("` expects %d arguments but got %d.\n", param_types.length, args.length);
@@ -165,15 +165,15 @@ end
 
 def tc_check_binop self, tt, st, ast in
     check_ast_kind(AstK::BinOp, ast);
-    tc_check(self, tt, st, ast_lhs(ast));
-    tc_check(self, tt, st, ast_rhs(ast));
+    tc_check(self, tt, st, ast.u.binop.lhs);
+    tc_check(self, tt, st, ast.u.binop.rhs);
 end
 
 def tc_check_return self, tt, st, ast in
     check_ast_kind(AstK::Return, ast);
     assert(self.current_def_type);
     var return_type = type_def_return_type(self.current_def_type);
-    var expr = ast_expr(ast);
+    var expr = ast.u.return_;
     if expr then
         tc_check(self, tt, st, expr);
         var expr_type = tt_get_ast_type(tt, expr);
@@ -185,7 +185,7 @@ def tc_check_return self, tt, st, ast in
             tt_print_type_name(tt, expr_type);
             printf(".`\nNOTE: The expression is: ");
             print_ast(ast);
-            print_token_loc(ast_token(ast));
+            print_token_loc(ast.token);
             g_Errors += 1;
         end
     elif return_type != tt_void_type(tt) then
@@ -194,33 +194,33 @@ def tc_check_return self, tt, st, ast in
         printf("` cannot return `void.`\n");
         printf("NOTE: The expression is: ");
         print_ast(ast);
-        print_token_loc(ast_token(ast));
+        print_token_loc(ast.token);
         g_Errors += 1;
     end
 end
 
 def tc_check_var_decl self, tt, st, ast in
     check_ast_kind(AstK::VarDecl, ast);
-    _tc_check_ident_has_type(st, ast_ident(ast), ast);
+    _tc_check_ident_has_type(st, ast.u.var_decl, ast);
 end
 
 def tc_check_var_assign self, tt, st, ast in
     check_ast_kind(AstK::VarAssign, ast);
-    var expr = ast_assign_expr(ast);
+    var expr = ast.u.var_assign.expr;
     tc_check(self, tt, st, expr);
-    var sym = st_get_symbol(st, ast_ident(ast));
+    var sym = st_get_symbol(st, ast.u.var_assign.ident);
     assert(sym);
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 def tc_check_assign_op self, tt, st, ast in
     check_ast_kind(AstK::AssignOp, ast);
-    var lhs_sym = st_get_symbol(st, ast_ident(ast));
+    var lhs_sym = st_get_symbol(st, ast.u.assign_op.ident);
     assert(lhs_sym);
 
-    var op = ast_op(ast);
+    var op = ast.u.assign_op.op;
     if op == TK::Assign then
-        var expr = ast_assign_expr(ast);
+        var expr = ast.u.assign_op.expr;
         tc_check(self, tt, st, expr);
         _tc_check_ident_type(tt, lhs_sym, expr, ast);
     else
@@ -231,7 +231,7 @@ def tc_check_assign_op self, tt, st, ast in
             g_Errors += 1;
         end
 
-        var rhs_type = tt_get_ast_type(tt, ast_assign_expr(ast));
+        var rhs_type = tt_get_ast_type(tt, ast.u.assign_op.expr);
         if not rhs_type or rhs_type == tt_any_type(tt) then
             printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
             print_ast_src_loc(ast);
@@ -258,7 +258,7 @@ end
 
 def tc_check_def self, tt, st, ast in
     check_ast_kind(AstK::Def, ast);
-    var params = ast_params(ast);
+    var params = ast.u.def_.params;
     var i = 0; var len = params.length;
     var any = tt_any_type(tt);
     var errors = Vector[Symbol&]::new(0);
@@ -273,7 +273,7 @@ def tc_check_def self, tt, st, ast in
         i += 1;
     end
     if errors.length > 0 then
-        printf("ERROR: in def `%s`: \n", ast_ident(ast));
+        printf("ERROR: in def `%s`: \n", ast.u.def_.ident);
         i = 0; len = errors.length;
         while i < len do
             var sym = errors.get(i);
@@ -286,13 +286,13 @@ def tc_check_def self, tt, st, ast in
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
-    var sym = st_get_symbol(st, ast_ident(ast));
+    var sym = st_get_symbol(st, ast.u.def_.ident);
     assert(sym);
 
     self.current_def_name = symbol_name(sym);
     self.current_def_type = symbol_type(sym);
 
-    tc_check_body(self, tt, st, ast_body(ast));
+    tc_check_body(self, tt, st, ast.u.def_.body);
 
     self.current_def_type = NULL;
     self.current_def_name = NULL;
@@ -300,46 +300,49 @@ end
 
 def tc_check_if_else self, tt, st, ast in
     check_ast_kind(AstK::IfElse, ast);
-    tc_check(self, tt, st, ast_test(ast));
-    tc_check_body(self, tt, st, ast_consequence(ast));
-    tc_check_body(self, tt, st, ast_alternative(ast));
+    var test = ast.u.if_else.test;
+    tc_check(self, tt, st, test);
+    tc_check_body(self, tt, st, ast.u.if_else.consequence);
+    tc_check_body(self, tt, st, ast.u.if_else.alternative);
 
-    var test_type = tt_get_ast_type(tt, ast_test(ast));
+    var test_type = tt_get_ast_type(tt, test);
     assert(test_type);
-    _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
+    _tc_check_is_scalar_type(tt, test, test_type);
 end
 
 def tc_check_while self, tt, st, ast in
     check_ast_kind(AstK::While, ast);
-    tc_check(self, tt, st, ast_test(ast));
-    tc_check_body(self, tt, st, ast_body(ast));
+    var test = ast.u.while_.test;
+    tc_check(self, tt, st, test);
+    tc_check_body(self, tt, st, ast.u.while_.body);
 
-    var test_type = tt_get_ast_type(tt, ast_test(ast));
+    var test_type = tt_get_ast_type(tt, test);
     assert(test_type);
-    _tc_check_is_scalar_type(tt, ast_test(ast), test_type);
+    _tc_check_is_scalar_type(tt, test, test_type);
 end
 
 def tc_check_pointer_read self, tt, st, ast in
     check_ast_kind(AstK::PointerRead, ast);
-    var pop_args = ast_pop_args(ast);
+    var pop_args = ast.u.ptr_op.args;
     tc_check(self, tt, st, pop_args.get(0));
 end
 
 def tc_check_pointer_write self, tt, st, ast in
     check_ast_kind(AstK::PointerWrite, ast);
-    var pop_args = ast_pop_args(ast);
+    var pop_args = ast.u.ptr_op.args;
     tc_check(self, tt, st, pop_args.get(0));
     tc_check(self, tt, st, pop_args.get(1));
 end
 
 def tc_check_prefix_op self, tt, st, ast in
     check_ast_kind(AstK::Prefix, ast);
-    tc_check(self, tt, st, ast_expr(ast));
+    var expr = ast.u.prefix.expr;
+    tc_check(self, tt, st, expr);
 
-    var expr_type = tt_get_ast_type(tt, ast_expr(ast));
+    var expr_type = tt_get_ast_type(tt, expr);
     assert(expr_type);
 
-    var op = ast_op(ast);
+    var op = ast.u.prefix.op;
     if op == TK::KW_not then
         _tc_check_is_scalar_type(tt, ast, expr_type);
     else
@@ -349,32 +352,32 @@ end
 
 def tc_check_const self, tt, st, ast in
     check_ast_kind(AstK::Const, ast);
-    var expr = ast_assign_expr(ast);
+    var expr = ast.u.const_.expr;
     tc_check(self, tt, st, expr);
-    var sym = st_get_symbol(st, ast_ident(ast));
+    var sym = st_get_symbol(st, ast.u.const_.ident);
     assert(sym);
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 def tc_check_global self, tt, st, ast in
     check_ast_kind(AstK::Global, ast);
-    var expr = ast_assign_expr(ast);
+    var expr = ast.u.global_.expr;
     tc_check(self, tt, st, expr);
-    var sym = st_get_symbol(st, ast_ident(ast));
+    var sym = st_get_symbol(st, ast.u.global_.ident);
     assert(sym);
     _tc_check_ident_type(tt, sym, expr, ast);
 end
 
 def tc_check_cast self, tt, st, ast in
     check_ast_kind(AstK::Cast, ast);
-    tc_check(self, tt, st, ast_expr(ast));
+    tc_check(self, tt, st, ast.u.cast_.expr);
 end
 
 def tc_check_member_access self, tt, st, ast in
     // field resolution happened in type inference so not much needed to check here
     check_ast_kind(AstK::MemberAccess, ast);
-    var expr = ast_expr(ast);
-    var member = ast_member(ast);
+    var expr = ast.u.member_access.expr;
+    var member = ast.u.member_access.member;
     tc_check(self, tt, st, expr);
     var type = tt_get_ast_type(tt, expr);
     if not type or type_size(type) == 0 then
@@ -430,12 +433,12 @@ end
 def tc_check_assign_member self, tt, st, ast in
     check_ast_kind(AstK::AssignMember, ast);
 
-    var lhs = ast_lhs(ast);
-    var rhs = ast_rhs(ast);
+    var lhs = ast.u.assign_member.lhs;
+    var rhs = ast.u.assign_member.rhs;
     tc_check(self, tt, st, lhs);
     tc_check(self, tt, st, rhs);
 
-    var op = ast_op(ast);
+    var op = ast.u.assign_member.op;
     var lhs_type = tt_get_ast_type(tt, lhs);
     var rhs_type = tt_get_ast_type(tt, rhs);
 
@@ -451,7 +454,8 @@ def tc_check_assign_member self, tt, st, ast in
         return; // TODO: Verify this is correct behaviour.
     end
 
-    printf("ERROR: the type of `%s` is `", ast_member(lhs));
+    assert(lhs.kind == AstK::MemberAccess);
+    printf("ERROR: the type of `%s` is `", lhs.u.member_access.member);
     tt_print_type_name(tt, lhs_type);
     printf("` (%d) which is not assignable by `", type_id(lhs_type));
     tt_print_type_name(tt, rhs_type);
@@ -462,11 +466,13 @@ end
 
 def tc_check_scope_resolve self, tt, st, ast in
     check_ast_kind(AstK::ScopeResolve, ast);
-    var type = scope_resolve_lhs(tt, ast_lhs(ast), true);
+    var type = scope_resolve_lhs(tt, ast.u.scope_resolve.lhs, true);
     if not type then
         return;
     end
-    var member = ast_ident(ast_rhs(ast));
+    var rhs = ast.u.scope_resolve.rhs;
+    assert(rhs.kind == AstK::Ident);
+    var member = rhs.u.ident;
     if type_is_enum(type) then
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
@@ -530,11 +536,11 @@ end
 
 def tc_check_sizeof_type self, tt, st, ast in
     check_ast_kind(AstK::SizeofType, ast);
-    var type = ast_type(ast);
+    var type = ast.u.sizeof.type;
     if not type then
-        var expr = ast_expr(ast);
-        if expr and ast_kind(expr) == AstK::Ident then
-            printf("ERROR: __sizeof undefined type `%s`\n", ast_ident(expr));
+        var expr = ast.u.sizeof.expr;
+        if expr and expr.kind == AstK::Ident then
+            printf("ERROR: __sizeof undefined type `%s`\n", expr.u.ident);
         else
             printf("ERROR: __sizeof undefined type\n");
         end
@@ -549,7 +555,7 @@ end
 
 def tc_check_static_assert self, tt, st, ast in
     check_ast_kind(AstK::StaticAssert, ast);
-    var args = ast_args(ast);
+    var args = ast.u.static_assert_;
     if args.length != 2 then
         printf("ERROR: 'static_assert' expects exactly two arguments, a test, and a message\n");
         print_ast_src_loc(ast);
@@ -572,7 +578,7 @@ def tc_check_static_assert self, tt, st, ast in
 end
 
 def tc_check self, tt, st, ast in
-    var k = ast_kind(ast);
+    var k = ast.kind;
     if k == AstK::Ident then tc_check_ident(self, tt, st, ast);
     elif k == AstK::Integer then // nothing
     elif k == AstK::String then //nothing

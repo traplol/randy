@@ -3,12 +3,12 @@ def _compile_order_visit tt, st, stmt, seen, order in
     if not stmt then
         return;
     end
-    var k = ast_kind(stmt);
+    var k = stmt.kind;
     if k == AstK::Call then
-        _compile_order_visit_vector(tt, st, ast_args(stmt), seen, order);
-        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+        _compile_order_visit_vector(tt, st, stmt.u.call.args, seen, order);
+        _compile_order_visit(tt, st, stmt.u.call.expr, seen, order);
     elif k == AstK::Ident then
-        var sym = st_get_symbol(st, ast_ident(stmt));
+        var sym = st_get_symbol(st, stmt.u.ident);
         if symbol_is_def(sym) then
             if seen.contains(sym) then
                 return;
@@ -21,42 +21,40 @@ def _compile_order_visit tt, st, stmt, seen, order in
             _compile_order_def(tt, st, def_, seen, order);
         end
     elif k == AstK::BinOp then
-        _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
-        _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.binop.lhs, seen, order);
+        _compile_order_visit(tt, st, stmt.u.binop.rhs, seen, order);
     elif k == AstK::Return then
-        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.return_, seen, order);
     elif k == AstK::VarAssign then
-        _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.var_assign.expr, seen, order);
     elif k == AstK::IfElse then
-        _compile_order_visit(tt, st, ast_test(stmt), seen, order);
-        _compile_order_visit_vector(tt, st, ast_consequence(stmt), seen, order);
-        _compile_order_visit_vector(tt, st, ast_alternative(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.if_else.test, seen, order);
+        _compile_order_visit_vector(tt, st, stmt.u.if_else.consequence, seen, order);
+        _compile_order_visit_vector(tt, st, stmt.u.if_else.alternative, seen, order);
     elif k == AstK::While then
-        _compile_order_visit(tt, st, ast_test(stmt), seen, order);
-        _compile_order_visit_vector(tt, st, ast_body(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.while_.test, seen, order);
+        _compile_order_visit_vector(tt, st, stmt.u.while_.body, seen, order);
     elif k == AstK::PointerRead then
-        _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
+        _compile_order_visit(tt, st, stmt.u.ptr_op.args.get(0), seen, order);
     elif k == AstK::PointerWrite then
-        _compile_order_visit(tt, st, ast_pop_args(stmt).get(0), seen, order);
-        _compile_order_visit(tt, st, ast_pop_args(stmt).get(1), seen, order);
+        _compile_order_visit(tt, st, stmt.u.ptr_op.args.get(0), seen, order);
+        _compile_order_visit(tt, st, stmt.u.ptr_op.args.get(1), seen, order);
     elif k == AstK::Prefix then
-        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.prefix.expr, seen, order);
     elif k == AstK::AssignOp then
-        _compile_order_visit(tt, st, ast_assign_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.assign_op.expr, seen, order);
     elif k == AstK::Cast then
-        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.cast_.expr, seen, order);
     elif k == AstK::MemberAccess then
-        _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.member_access.expr, seen, order);
     elif k == AstK::AssignMember then
-        _compile_order_visit(tt, st, ast_lhs(stmt), seen, order);
-        _compile_order_visit(tt, st, ast_rhs(stmt), seen, order);
+        _compile_order_visit(tt, st, stmt.u.assign_member.lhs, seen, order);
+        _compile_order_visit(tt, st, stmt.u.assign_member.rhs, seen, order);
     elif k == AstK::ScopeResolve then
-        var type = scope_resolve_lhs(tt, ast_lhs(stmt), false);
+        var type = scope_resolve_lhs(tt, stmt.u.scope_resolve.lhs, false);
         if type then
             _compile_order_visit_type(tt, st, type, seen, order);
         end
-    // elif k == AstK::SizeofExpr then
-    //     _compile_order_visit(tt, st, ast_expr(stmt), seen, order);
     end
 end
 
@@ -110,21 +108,21 @@ def _compile_order_visit_vector tt, st, vector, seen, order in
 end
 
 def _compile_order_def tt, st, def_, seen, order in
-    _compile_order_visit_vector(tt, st, ast_body(def_), seen, order);
+    _compile_order_visit_vector(tt, st, def_.u.def_.body, seen, order);
     order.push(def_);
 end
 
 def compile_order_main roots, type_table, symbol_table -> Vector[Ast&]& in
-    var main_def = NULL;
-    var exit_def = NULL;
+    var main_def: Ast& = NULL;
+    var exit_def: Ast& = NULL;
     var compile_order = Vector[Ast&]::new(128);
     var i = 0; var len = roots.length;
     while i < len do
         var ast = roots.get(i);
-        if ast_kind(ast) == AstK::Def then
-            if cstr_eq("main", ast_ident(ast)) then
+        if ast.kind == AstK::Def then
+            if cstr_eq("main", ast.u.def_.ident) then
                 main_def = ast;
-            elif cstr_eq("exit", ast_ident(ast)) then
+            elif cstr_eq("exit", ast.u.def_.ident) then
                 exit_def = ast;
             end
         else
@@ -138,7 +136,7 @@ def compile_order_main roots, type_table, symbol_table -> Vector[Ast&]& in
     end
     var seen = Set[ptr, PtrHashCompare, PtrHashCompare]::new(0);
     _compile_order_def(type_table, symbol_table, main_def, seen, compile_order);
-    if exit_def and not seen.contains(st_get_symbol(symbol_table, ast_ident(exit_def))) then
+    if exit_def and not seen.contains(st_get_symbol(symbol_table, exit_def.u.def_.ident)) then
         _compile_order_def(type_table, symbol_table, exit_def, seen, compile_order);
     end
     seen.delete();

@@ -235,12 +235,12 @@ def parse_assign_op ts, st, tt, lhs, op in
         print_token_loc(op_tk);
         exit(1);
     end
-    var k = ast_kind(lhs);
+    var k = lhs.kind;
     if k == AstK::Ident then
         // LEAK: I think this ends up leaking the LHS AST node
-        var symbol = st_get_symbol(st, ast_ident(lhs));
+        var symbol = st_get_symbol(st, lhs.u.ident);
         if not symbol then
-            symbol = st_prepare_undef(st, ast_ident(lhs), ast_token(lhs));
+            symbol = st_prepare_undef(st, lhs.u.ident, lhs.token);
         end
         return Ast::new_assign_op(op_tk, symbol_name(symbol), op, expr);
     elif k == AstK::MemberAccess then
@@ -421,7 +421,7 @@ def parse_static_assert ts, st, tt in
     return Ast::new_static_assert(static_assert_, assert_args);
 end
 
-def parse_primary ts, st, tt in
+def parse_primary ts, st, tt -> Ast& in
     var peek = ts.peek();
     if not peek then
         return NULL;
@@ -473,16 +473,16 @@ end
 
 def parse_scope_resolve ts, st, tt, lhs in
     var tk = ts.expect(TK::ColonColon);
-    if ast_kind(lhs) == AstK::Ident then
-        var type = tt_get_type_or_make_undefined(tt, ast_ident(lhs));
-        lhs = Ast::new_type(ast_token(lhs), type);
-    elif ast_kind(lhs) != AstK::ScopeResolve and ast_kind(lhs) != AstK::Type then
+    if lhs.kind == AstK::Ident then
+        var type = tt_get_type_or_make_undefined(tt, lhs.u.ident);
+        lhs = Ast::new_type(lhs.token, type);
+    elif lhs.kind != AstK::ScopeResolve and lhs.kind != AstK::Type then
         printf("ERROR: expected type name on lhs of '::'\n");
         print_token_loc(tk);
         exit(1);
     end
     var rhs = parse_primary(ts, st, tt);
-    if not rhs or (ast_kind(rhs) != AstK::Ident and ast_kind(rhs) != AstK::Type) then
+    if not rhs or (rhs.kind != AstK::Ident and rhs.kind != AstK::Type) then
         printf("ERROR: expected identifier on rhs of '::'\n");
         print_token_loc(tk);
         print_ast(rhs);
@@ -500,7 +500,7 @@ def parse_scope_resolve ts, st, tt, lhs in
     lhs = Ast::new_scope_resolve(tk, lhs, rhs);
     while ts.accept(TK::ColonColon) do
         var rhs = parse_primary(ts, st, tt);
-        if not rhs or (ast_kind(rhs) != AstK::Ident and ast_kind(rhs) != AstK::Type) then
+        if not rhs or (rhs.kind != AstK::Ident and rhs.kind != AstK::Type) then
             printf("ERROR: expected identifier on rhs of '::'\n");
             print_token_loc(tk);
             exit(1);
@@ -774,7 +774,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     else
         expect_semi = true;
         stmt = parse_expression(ts, st, tt);
-        if stmt and (ast_kind(stmt) == AstK::Ident or ast_kind(stmt) == AstK::MemberAccess) then
+        if stmt and (stmt.kind == AstK::Ident or stmt.kind == AstK::MemberAccess) then
             if ts.peekk(TK::Assign) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::Assign);
             elif ts.peekk(TK::PlusEq) then
@@ -1049,7 +1049,7 @@ def parse_struct ts, st, tt in
             st_push_scope(st);
             var def_ = parse_def(ts, st, tt);
             inner_ast.push(def_);
-            def_symbols.push(st_get_symbol(st, ast_ident(def_)));
+            def_symbols.push(st_get_symbol(st, def_.u.def_.ident));
             st_pop_scope(st);
         elif ts.peekk(TK::KW_struct) then
             var struct_ = parse_struct(ts, st, tt);
@@ -1067,15 +1067,15 @@ def parse_struct ts, st, tt in
             if ts.peekk(TK::KW_union) then
                 var union_ = parse_union(ts, st, tt);
                 inner_ast.push(union_);
-                field_type = ast_union(union_);
+                field_type = union_.u.union_.type;
             elif ts.peekk(TK::KW_struct) then
                 var struct_ = parse_struct(ts, st, tt);
                 inner_ast.push(struct_);
-                field_type = ast_struct(struct_);
+                field_type = struct_.u.struct_.type;
             elif ts.peekk(TK::KW_enum) then
                 var enum_ = parse_enum(ts, st, tt);
                 inner_ast.push(enum_);
-                field_type = ast_enum(enum_);
+                field_type = enum_.u.enum_.type;
             else
                 field_type = parse_type(ts, st, tt, true);
                 ts.expect(TK::Semicolon);
@@ -1103,9 +1103,9 @@ def parse_struct ts, st, tt in
         def_sym.owned_by = struct_type;
 
         var def_ = inner_ast.get(i);
-        if ast_kind(def_) == AstK::Def then
+        if def_.kind == AstK::Def then
             var def_type = def_sym.type;
-            var def_params = ast_params(def_);
+            var def_params = def_.u.def_.params;
             if def_params.length > 0 and cstr_eq("self", def_params.front()) then
                 var first_param = def_params.front();
                 var param_types = type_def_parameters(def_type);
@@ -1152,8 +1152,8 @@ def parse_enum ts, st, tt in
         var val = NULL;
         if ts.accept(TK::Assign) then
             val = parse_expression(ts, st, tt);
-            if val and ast_kind(val) == AstK::Integer then
-                cur_value = cast(ast_value(val), int);
+            if val and val.kind == AstK::Integer then
+                cur_value = val.u.integer;
             end
         end
         ts.expect(TK::Semicolon);
@@ -1203,13 +1203,13 @@ def parse_union ts, st, tt in
             var field_type: Type& = NULL;
             if ts.peekk(TK::KW_union) then
                 var union_ = parse_union(ts, st, tt);
-                field_type = ast_union(union_);
+                field_type = union_.u.union_.type;
             elif ts.peekk(TK::KW_struct) then
                 var struct_ = parse_struct(ts, st, tt);
-                field_type = ast_struct(struct_);
+                field_type = struct_.u.struct_.type;
             elif ts.peekk(TK::KW_enum) then
                 var enum_ = parse_enum(ts, st, tt);
-                field_type = ast_enum(enum_);
+                field_type = enum_.u.enum_.type;
             else
                 field_type = parse_type(ts, st, tt, true);
                 ts.expect(TK::Semicolon);

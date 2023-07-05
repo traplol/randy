@@ -462,7 +462,7 @@ struct Ast in
 
     def new_sizeof_expr token: Token&, expr: Ast& in
         if expr.kind == AstK::Type then
-            return Ast::new_sizeof_type(token, ast_type(expr));
+            return Ast::new_sizeof_type(token, expr.u.type);
         end
         var self = cast(calloc(1, __sizeof(Ast)), Ast&);
         self.kind = AstK::SizeofExpr;
@@ -552,238 +552,13 @@ def ast_change_member_access_to_scope_access self: Ast&, type: Type&, member: Sy
     self.u.scope_resolve.rhs = rhs;
 end
 
-def ast_kind self: Ast& in
-    return self.kind;
-end
-def ast_is_expr self: Ast& in
-    return self.is_expr;
-end
-def ast_token self: Ast& in
-    return self.token;
-end
-def ast_args self: Ast& in
-    if self.kind == AstK::Call then
-        return self.u.call.args;
-    elif self.kind == AstK::StaticAssert then
-        return self.u.static_assert_;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_asm self: Ast& in
-    if self.kind == AstK::InlineAsm then
-        return self.u.inline_asm.asmcode;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_assign_expr self: Ast& in
-    if self.kind == AstK::VarAssign then
-        return self.u.var_assign.expr;
-    elif self.kind == AstK::AssignOp then
-        return self.u.assign_op.expr;
-    elif self.kind == AstK::Const then
-        return self.u.const_.expr;
-    elif self.kind == AstK::Global then
-        return self.u.global_.expr;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_body self: Ast& in
-    if self.kind == AstK::Def then
-        return self.u.def_.body;
-    elif self.kind == AstK::While then
-        return self.u.while_.body;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_test self: Ast& in
-    if self.kind == AstK::IfElse then
-        return self.u.if_else.test;
-    elif self.kind == AstK::While then
-        return self.u.while_.test;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_consequence self: Ast& in
-    assert(self.kind == AstK::IfElse);
-    return self.u.if_else.consequence;
-end
-def ast_alternative self: Ast& in
-    assert(self.kind == AstK::IfElse);
-    return self.u.if_else.alternative;
-end
-def ast_expr self: Ast& in
-    if self.kind == AstK::Call then
-        return self.u.call.expr;
-    elif self.kind == AstK::Return then
-        return self.u.return_;
-    elif self.kind == AstK::Prefix then
-        return self.u.prefix.expr;
-    elif self.kind == AstK::Cast then
-        return self.u.cast_.expr;
-    elif self.kind == AstK::MemberAccess then
-        return self.u.member_access.expr;
-    elif self.kind == AstK::SizeofExpr then
-        return self.u.sizeof.expr;
-    elif self.kind == AstK::GetReference then
-        return self.u.get_reference;
-    elif self.kind == AstK::OffsetOf then
-        return self.u.offsetof;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_ident self: Ast& in
-    if self.kind == AstK::Ident then
-        return self.u.ident;
-    elif self.kind == AstK::VarDecl then
-        return self.u.var_decl;
-    elif self.kind == AstK::VarAssign then
-        return self.u.var_assign.ident;
-    elif self.kind == AstK::AssignOp then
-        return self.u.assign_op.ident;
-    elif self.kind == AstK::Def then
-        return self.u.def_.ident;
-    elif self.kind == AstK::Const then
-        return self.u.const_.ident;
-    elif self.kind == AstK::Extern then
-        return self.u.extern_.ident;
-    elif self.kind == AstK::InlineAsm then
-        return self.u.inline_asm.ident;
-    elif self.kind == AstK::Global then
-        return self.u.global_.ident;
-    elif self.kind == AstK::Enum then
-        return self.u.enum_.ident;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_lhs self: Ast& in
-    if self.kind == AstK::BinOp then
-        return self.u.binop.lhs;
-    elif self.kind == AstK::AssignMember then
-        return self.u.assign_member.lhs;
-    elif self.kind == AstK::ScopeResolve then
-        return self.u.scope_resolve.lhs;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_op self: Ast& in
-    if self.kind == AstK::BinOp then
-        return self.u.binop.op;
-    elif self.kind == AstK::AssignOp then
-        return self.u.assign_op.op;
-    elif self.kind == AstK::AssignMember then
-        return self.u.assign_member.op;
-    elif self.kind == AstK::Prefix then
-        return self.u.prefix.op;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_rhs self: Ast& in
-    if self.kind == AstK::BinOp then
-        return self.u.binop.rhs;
-    elif self.kind == AstK::AssignMember then
-        return self.u.assign_member.rhs;
-    elif self.kind == AstK::ScopeResolve then
-        return self.u.scope_resolve.rhs;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_pop self: Ast& in
-    if self.kind == AstK::PointerRead then
-        return self.u.ptr_op.op;
-    elif self.kind == AstK::PointerWrite then
-        return self.u.ptr_op.op;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_pop_args self: Ast& in
-    if self.kind == AstK::PointerRead then
-        return self.u.ptr_op.args;
-    elif self.kind == AstK::PointerWrite then
-        return self.u.ptr_op.args;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_size self: Ast& in
-    if self.kind == AstK::PointerRead then
-        return self.u.ptr_op.size;
-    elif self.kind == AstK::PointerWrite then
-        return self.u.ptr_op.size;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_params self: Ast& in
-    assert(self.kind == AstK::Def);
-    return self.u.def_.params;
-end
-def ast_value self: Ast& in
-    if self.kind == AstK::Integer then
-        return cast(self.u.integer, ptr);
-    elif self.kind == AstK::String then
-        return cast(self.u.string, ptr);
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_varargs self: Ast& in
-    assert(false, "this shouldn't be called...\n");
-    return false;
-end
-def ast_type self: Ast& in
-    if self.kind == AstK::Extern then
-        return self.u.extern_.type;
-    elif self.kind == AstK::Cast then
-        return self.u.cast_.type;
-    elif self.kind == AstK::SizeofType then
-        return self.u.sizeof.type;
-    elif self.kind == AstK::Type then
-        return self.u.type;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_fields self: Ast& in
-    if self.kind == AstK::Struct then
-        return self.u.struct_.fields;
-    elif self.kind == AstK::Union then
-        return self.u.union_.fields;
-    end
-    assert(false, "kind is %s (%d)\n", ast_kind_cstr(self.kind), self.kind);
-end
-def ast_defs self: Ast& in
-    assert(self.kind == AstK::Struct);
-    return self.u.struct_.body;
-end
-def ast_member self: Ast& in
-    assert(self.kind == AstK::MemberAccess);
-    return self.u.member_access.member;
-end
-def ast_struct self: Ast& in
-    assert(self.kind == AstK::Struct);
-    return self.u.struct_.type;
-end
-def ast_union self: Ast& in
-    assert(self.kind == AstK::Union);
-    return self.u.union_.type;
-end
-def ast_enum self: Ast& in
-    assert(self.kind == AstK::Enum);
-    return self.u.enum_.type;
-end
-def ast_values self: Ast& in
-    assert(self.kind == AstK::Enum);
-    return self.u.enum_.values;
-end
-
-def ast_set_struct self: Ast&, struct_: Type& in
-    assert(ast_kind(self) == AstK::Struct);
-    self.u.struct_.type = struct_;
-end
-
 def ast_src_loc self: Ast& in
-    var token = ast_token(self);
+    var token = self.token;
     return token_src_loc(token);
 end
 
 def print_ast_src_loc self: Ast& in
-    print_token_loc(ast_token(self));
+    print_token_loc(self.token);
 end
 
 def _print_indent indent: int in
@@ -807,16 +582,16 @@ def _print_args args: Vector[Ast&]&, indent: int in
 end
 
 def _print_ast_ident ast, indent in
-    printf("%s", ast_ident(ast));
+    printf("%s", ast.u.ident);
 end
 
 def _print_ast_integer ast, indent in
-    printf("%ld", cast(ast_value(ast), int));
+    printf("%ld", ast.u.integer);
 end
 
 def _print_ast_string ast, indent in
     printf("\"");
-    var string = cast(ast_value(ast), String&);
+    var string = ast.u.string;
     var i = 0; var len = string.length;
     while i < len do
         var c = string.get(i);
@@ -839,20 +614,20 @@ def _print_ast_string ast, indent in
 end
 
 def _print_ast_call ast, indent in
-    _print_ast(ast_expr(ast), indent);
+    _print_ast(ast.u.call.expr, indent);
     printf("(");
-    _print_args(ast_args(ast), indent);
+    _print_args(ast.u.call.args, indent);
     printf(")");
 end
 
 def _print_ast_binop ast, indent in
-    _print_ast(ast_lhs(ast), indent);
-    printf(" %s ", ast_token(ast).cstr);
-    _print_ast(ast_rhs(ast), indent);
+    _print_ast(ast.u.binop.lhs, indent);
+    printf(" %s ", ast.token.cstr);
+    _print_ast(ast.u.binop.rhs, indent);
 end
 
 def _print_ast_return ast, indent in
-    var expr = ast_expr(ast);
+    var expr = ast.u.return_;
     if expr then
         printf("return ");
         _print_ast(expr, indent);
@@ -862,10 +637,10 @@ def _print_ast_return ast, indent in
 end
 
 def _print_ast_var_decl ast, indent in
-    printf("var %s", ast_ident(ast));
-    var symbol = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    var symbol = st_get_symbol(g_SymbolTable, ast.u.var_decl);
     assert(symbol, "symbol is NULL");
-    var type = symbol_type(symbol);
+    printf("var %s", symbol.name);
+    var type = symbol.type;
     if type then
         printf(": ");
         tt_print_type_name(g_TypeTable, type);
@@ -873,21 +648,21 @@ def _print_ast_var_decl ast, indent in
 end
 
 def _print_ast_var_assign ast, indent in
-    printf("var %s", ast_ident(ast));
-    var symbol = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    var symbol = st_get_symbol(g_SymbolTable, ast.u.var_assign.ident);
     assert(symbol, "symbol is NULL");
-    var type = symbol_type(symbol);
+    printf("var %s", symbol.name);
+    var type = symbol.type;
     if type then
         printf(": ");
         tt_print_type_name(g_TypeTable, type);
     end
     printf(" = ");
-    _print_ast(ast_assign_expr(ast), indent);
+    _print_ast(ast.u.var_assign.expr, indent);
 end
 
 def _print_ast_assign_op ast, indent in
-    printf("%s ", ast_ident(ast));
-    var op = ast_op(ast);
+    printf("%s ", ast.u.assign_op.ident);
+    var op = ast.u.assign_op.op;
     var op_str = "FIXME in ast.randy";
     if op == TK::Assign      then op_str = "=";
     elif op == TK::PlusEq    then op_str = "+=";
@@ -902,7 +677,7 @@ def _print_ast_assign_op ast, indent in
     elif op == TK::BarEq     then op_str = "|=";
     end
     printf("%s ", op_str);
-    _print_ast(ast_assign_expr(ast), indent);
+    _print_ast(ast.u.assign_op.expr, indent);
 end
 
 def _print_ast_body body, indent in
@@ -913,7 +688,7 @@ def _print_ast_body body, indent in
         stmt = body.get(i);
         _print_indent(indent);
         _print_ast(stmt, indent);
-        if ast_requires_semi(ast_kind(stmt)) then
+        if ast_requires_semi(stmt.kind) then
             printf(";\n");
         else
             printf("\n");
@@ -923,17 +698,17 @@ def _print_ast_body body, indent in
 end
 
 def _print_ast_def ast, indent in
-    var def_sym = st_get_symbol(g_SymbolTable, ast_ident(ast));
+    var def_sym = st_get_symbol(g_SymbolTable, ast.u.def_.ident);
     assert(def_sym);
     if def_sym and def_sym.owned_by then
         printf("def ");
         tt_print_type_name(g_TypeTable, def_sym.owned_by);
-        printf("::%s", ast_ident(ast));
+        printf("::%s", ast.u.def_.ident);
     else
-        printf("def %s", ast_ident(ast));
+        printf("def %s", ast.u.def_.ident);
     end
     var i = 0;
-    var params = ast_params(ast);
+    var params = ast.u.def_.params;
     var len = params.length;
     while i < len do
         var param_name = params.get(i);
@@ -958,7 +733,7 @@ def _print_ast_def ast, indent in
         tt_print_type_name(g_TypeTable, ret_type);
     end
     printf(" in\n");
-    _print_ast_body(ast_body(ast), indent + 1);
+    _print_ast_body(ast.u.def_.body, indent + 1);
     _print_indent(indent); printf("end\n");
 end
 
@@ -966,13 +741,13 @@ def _print_ast_if_else ast, indent, print_if in
     if print_if then
         printf("if ");
     end
-    _print_ast(ast_test(ast), indent);
+    _print_ast(ast.u.if_else.test, indent);
     printf(" then\n");
-    var conseq = ast_consequence(ast);
-    var altern = ast_alternative(ast);
+    var conseq = ast.u.if_else.consequence;
+    var altern = ast.u.if_else.alternative;
     _print_ast_body(conseq, indent+1);
     if altern.length > 0 then
-        if altern.length == 1 and AstK::IfElse == ast_kind(altern.get(0)) then
+        if altern.length == 1 and AstK::IfElse == altern.get(0).kind then
             _print_indent(indent); printf("elif ");
             _print_ast_if_else(altern.get(0), indent, false);
             return;
@@ -986,54 +761,54 @@ end
 
 def _print_ast_while ast, indent in
     printf("while ");
-    _print_ast(ast_test(ast), indent);
+    _print_ast(ast.u.while_.test, indent);
     printf(" do\n");
-    _print_ast_body(ast_body(ast), indent+1);
+    _print_ast_body(ast.u.while_.body, indent+1);
     _print_indent(indent); printf("end");
 end
 
 def _print_ast_pointer_op ast, indent in
-    printf("%s(", ast_token(ast).cstr);
-    _print_args(ast_pop_args(ast), indent);
+    printf("%s(", ast.token.cstr);
+    _print_args(ast.u.ptr_op.args, indent);
     printf(")");
 end
 
 def _print_ast_prefix ast, indent in
-    var token = ast_token(ast);
+    var token = ast.token;
     // FIXME == TK::KW_assert is a hack.
     if token.kind == TK::KW_not or token.kind == TK::KW_assert then
         printf("not ");
     else
         printf("%s", token.cstr);
     end
-    var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK::BinOp then
+    var expr = ast.u.prefix.expr;
+    if expr.kind == AstK::BinOp then
         printf("(");
     end
-    _print_ast(ast_expr(ast), indent);
-    if ast_kind(expr) == AstK::BinOp then
+    _print_ast(expr, indent);
+    if expr.kind == AstK::BinOp then
         printf(")");
     end
 end
 
 def _print_ast_const ast, indent in
-    printf("const %s = ", ast_ident(ast));
-    _print_ast(ast_assign_expr(ast), indent);
+    printf("const %s = ", ast.u.const_.expr);
+    _print_ast(ast.u.const_.expr, indent);
 end
 
 def _print_ast_global ast, indent in
-    printf("global %s = ", ast_ident(ast));
-    _print_ast(ast_assign_expr(ast), indent);
+    printf("global %s = ", ast.u.global_.ident);
+    _print_ast(ast.u.global_.expr, indent);
 end
 
 def _print_ast_extern ast, indent in
-    printf("extern %s: ", ast_ident(ast));
-    tt_print_type_name(g_TypeTable, ast_type(ast));
+    printf("extern %s: ", ast.u.extern_.ident);
+    tt_print_type_name(g_TypeTable, ast.u.extern_.type);
 end
 
 def _print_ast_inline_asm ast, indent in
-    printf("asm %s in\n", ast_ident(ast));
-    printf("\"%s\"\n", ast_asm(ast));
+    printf("asm %s in\n", ast.u.inline_asm.ident);
+    printf("\"%s\"\n", ast.u.inline_asm.asmcode);
     printf("end\n");
 end
 
@@ -1047,23 +822,23 @@ end
 
 def _print_ast_static_assert ast, indent in
     printf("static_assert(");
-    _print_args(ast_args(ast), indent);
+    _print_args(ast.u.static_assert_, indent);
     printf(")");
 end
 
 def _print_ast_cast ast, indent in
     printf("cast(");
-    _print_ast(ast_expr(ast), indent);
+    _print_ast(ast.u.cast_.expr, indent);
     printf(", ");
-    tt_print_type_name(g_TypeTable, ast_type(ast));
+    tt_print_type_name(g_TypeTable, ast.u.cast_.type);
     printf(")");
 end
 
 def _print_ast_struct ast, indent in
     printf("struct ");
-    tt_print_type_name(g_TypeTable, ast_struct(ast));
+    tt_print_type_name(g_TypeTable, ast.u.struct_.type);
     printf(" in\n");
-    var fields = ast_fields(ast);
+    var fields = ast.u.struct_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -1078,9 +853,9 @@ end
 
 def _print_ast_union ast, indent in
     printf("union ");
-    tt_print_type_name(g_TypeTable, ast_struct(ast));
+    tt_print_type_name(g_TypeTable, ast.u.union_.type);
     printf(" in\n");
-    var fields = ast_fields(ast);
+    var fields = ast.u.union_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -1094,16 +869,16 @@ def _print_ast_union ast, indent in
 end
 
 def _print_ast_member_access ast, indent in
-    var expr = ast_expr(ast);
+    var expr = ast.u.member_access.expr;
     printf("(");
-    var member = ast_member(ast);
+    var member = ast.u.member_access.member;
     _print_ast(expr, indent);
     printf(".%s)", member);
 end
 
 def _print_ast_assign_member ast, indent in
-    _print_ast(ast_lhs(ast), indent);
-    var op = ast_op(ast);
+    _print_ast(ast.u.assign_member.lhs, indent);
+    var op = ast.u.assign_member.op;
     var op_str = "FIXME in ast.randy";
     if op == TK::Assign      then op_str = "=";
     elif op == TK::PlusEq    then op_str = "+=";
@@ -1118,24 +893,24 @@ def _print_ast_assign_member ast, indent in
     elif op == TK::BarEq     then op_str = "|=";
     end
     printf(" %s ", op_str);
-    _print_ast(ast_rhs(ast), indent);
+    _print_ast(ast.u.assign_member.rhs, indent);
 end
 
 def _print_ast_sizeof_expr ast, indent in
     printf("__sizeof(");
-    _print_ast(ast_expr(ast), indent);
+    _print_ast(ast.u.sizeof.expr, indent);
     printf(")");
 end
 
 def _print_ast_sizeof_type ast, indent in
     printf("__sizeof(");
-    tt_print_type_name(g_TypeTable, ast_type(ast));
+    tt_print_type_name(g_TypeTable, ast.u.sizeof.type);
     printf(")");
 end
 
 def _print_ast_enum ast, indent in
-    var enum_name = ast_ident(ast);
-    var enum_vals = ast_values(ast);
+    var enum_name = ast.u.enum_.ident;
+    var enum_vals = ast.u.enum_.values;
 
     printf("enum %s in\n", enum_name);
     var i = 0; var len = enum_vals.length;
@@ -1150,29 +925,29 @@ def _print_ast_enum ast, indent in
 end
 
 def _print_ast_type ast, indent in
-    tt_print_type_name(g_TypeTable, ast_type(ast));
+    tt_print_type_name(g_TypeTable, ast.u.type);
 end
 
 def _print_ast_scope_resolve ast, indent in
-    _print_ast(ast_lhs(ast), indent);
+    _print_ast(ast.u.scope_resolve.lhs, indent);
     printf("::");
-    _print_ast(ast_rhs(ast), indent);
+    _print_ast(ast.u.scope_resolve.rhs, indent);
 end
 
 def _print_ast_get_reference ast, indent in
     printf("#REF(");
-    _print_ast(ast_expr(ast), indent);
+    _print_ast(ast.u.get_reference, indent);
     printf(")");
 end
 
 def _print_ast_offsetof ast, indent in
     printf("__offsetof(");
-    _print_ast(ast_expr(ast), indent);
+    _print_ast(ast.u.offsetof, indent);
     printf(")");
 end
 
 def _print_ast ast, indent in
-    var k = ast_kind(ast);
+    var k = ast.kind;
     if k == AstK::Ident then _print_ast_ident(ast, indent);
     elif k == AstK::Integer then _print_ast_integer(ast, indent);
     elif k == AstK::String then _print_ast_string(ast, indent);
@@ -1216,7 +991,7 @@ end
 
 def print_ast ast: Ast& in
     _print_ast(ast, 0);
-    if ast_requires_semi(ast_kind(ast)) then
+    if ast_requires_semi(ast.kind) then
         printf(";\n");
     else
         printf("\n");
@@ -1224,7 +999,7 @@ def print_ast ast: Ast& in
 end
 
 def check_ast_kind expect: AstK, ast: Ast& in
-    var actual = ast_kind(ast);
+    var actual = ast.kind;
     if expect != actual then
         printf("check_ast_kind failed: expected %s, actual was %s\n",
             ast_kind_cstr(expect),
@@ -1255,63 +1030,63 @@ end
 // these copy functions don't create copies of the tokens
 
 def _ast_deep_copy_ident ast, tt, st in
-    var sym = st_get_symbol(st, ast_ident(ast));
-    return Ast::new_ident(ast_token(ast), symbol_name(sym));
+    var sym = st_get_symbol(st, ast.u.ident);
+    return Ast::new_ident(ast.token, symbol_name(sym));
 end
 
 def _ast_deep_copy_integer ast, tt, st in
-    return Ast::new_integer(ast_token(ast), cast(ast_value(ast), int));
+    return Ast::new_integer(ast.token, ast.u.integer);
 end
 
 def _ast_deep_copy_string ast, tt, st in
-    return Ast::new_string(ast_token(ast), cast(ast_value(ast), String&).duplicate());
+    return Ast::new_string(ast.token, ast.u.string.duplicate());
 end
 
 def _ast_deep_copy_call ast, tt, st in
-    var copy_expr = _ast_deep_copy(ast_expr(ast), tt, st);
-    var copy_args = _ast_deep_copy_vector(ast_args(ast), tt, st);
-    return Ast::new_call(ast_token(ast), copy_expr, copy_args);
+    var copy_expr = _ast_deep_copy(ast.u.call.expr, tt, st);
+    var copy_args = _ast_deep_copy_vector(ast.u.call.args, tt, st);
+    return Ast::new_call(ast.token, copy_expr, copy_args);
 end
 
 def _ast_deep_copy_binop ast, tt, st in
-    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
-    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
-    return Ast::new_binop(ast_token(ast), lhs_copy, ast_op(ast), rhs_copy);
+    var lhs_copy = _ast_deep_copy(ast.u.binop.lhs, tt, st);
+    var rhs_copy = _ast_deep_copy(ast.u.binop.rhs, tt, st);
+    return Ast::new_binop(ast.token, lhs_copy, ast.u.binop.op, rhs_copy);
 end
 
 def _ast_deep_copy_return ast, tt, st in
-    if ast_expr(ast) then
-        return Ast::new_return(ast_token(ast), _ast_deep_copy(ast_expr(ast), tt, st));
+    if ast.u.return_ then
+        return Ast::new_return(ast.token, _ast_deep_copy(ast.u.return_, tt, st));
     else
-        return Ast::new_return(ast_token(ast), NULL);
+        return Ast::new_return(ast.token, NULL);
     end
 end
 
 def _ast_deep_copy_var_decl ast, tt, st in
-    var ident = ast_ident(ast);
+    var ident = ast.u.var_decl;
     var ident_sym = st_get_exact_symbol(st, ident);
     assert(ident_sym);
     var copy_ident = strdup(ident);
     var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
     copy_sym.type = tt_substitute_type(tt, ident_sym.type);
-    return Ast::new_var_decl(ast_token(ast), symbol_name(copy_sym));
+    return Ast::new_var_decl(ast.token, symbol_name(copy_sym));
 end
 
 def _ast_deep_copy_var_assign ast, tt, st in
-    var ident = ast_ident(ast);
+    var ident = ast.u.var_assign.ident;
     var ident_sym = st_get_exact_symbol(st, ident);
     assert(ident_sym);
     var copy_ident = strdup(ident);
     var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
     copy_sym.type = tt_substitute_type(tt, ident_sym.type);
-    var assign_expr_copy = _ast_deep_copy(ast_assign_expr(ast), tt, st);
-    return Ast::new_var_assign(ast_token(ast), symbol_name(copy_sym), assign_expr_copy);
+    var assign_expr_copy = _ast_deep_copy(ast.u.var_assign.expr, tt, st);
+    return Ast::new_var_assign(ast.token, symbol_name(copy_sym), assign_expr_copy);
 end
 
 def _ast_deep_copy_def ast, tt, st in
-    var def_ident = ast_ident(ast);
+    var def_ident = ast.u.def_.ident;
     var def_sym = st_get_exact_symbol(st, def_ident);
-    var def_params = ast_params(ast);
+    var def_params = ast.u.def_.params;
     var def_copy_ident = strdup(def_ident);
     var def_copy_sym = st_make_def(st, def_copy_ident, def_sym.token);
     st_push_scope(st);
@@ -1332,34 +1107,34 @@ def _ast_deep_copy_def ast, tt, st in
     var return_type = tt_substitute_type(tt, type_def_return_type(def_sym.type));
     def_copy_sym.type = tt_make_anon_def(tt,
                             return_type, def_copy_params_types, type_def_varargs(def_sym.type));
-    var def_copy_body = _ast_deep_copy_vector(ast_body(ast), tt, st);
+    var def_copy_body = _ast_deep_copy_vector(ast.u.def_.body, tt, st);
     st_pop_scope(st);
-    var copy_ast = Ast::new_def(ast_token(ast), def_copy_ident, def_copy_params, def_copy_body);
+    var copy_ast = Ast::new_def(ast.token, def_copy_ident, def_copy_params, def_copy_body);
     type_set_ast(def_copy_sym.type, copy_ast);
     return copy_ast;
 end
 
 def _ast_deep_copy_if_else ast, tt, st in
-    var test_copy = _ast_deep_copy(ast_test(ast), tt, st);
-    var conseq_copy = _ast_deep_copy_vector(ast_consequence(ast), tt, st);
-    var altern_copy = _ast_deep_copy_vector(ast_alternative(ast), tt, st);
-    return Ast::new_if_else(ast_token(ast), test_copy, conseq_copy, altern_copy);
+    var test_copy = _ast_deep_copy(ast.u.if_else.test, tt, st);
+    var conseq_copy = _ast_deep_copy_vector(ast.u.if_else.consequence, tt, st);
+    var altern_copy = _ast_deep_copy_vector(ast.u.if_else.alternative, tt, st);
+    return Ast::new_if_else(ast.token, test_copy, conseq_copy, altern_copy);
 end
 
 def _ast_deep_copy_while ast, tt, st in
-    var test_copy = _ast_deep_copy(ast_test(ast), tt, st);
-    var body_copy = _ast_deep_copy_vector(ast_body(ast), tt, st);
-    return Ast::new_while(ast_token(ast), test_copy, body_copy);
+    var test_copy = _ast_deep_copy(ast.u.while_.test, tt, st);
+    var body_copy = _ast_deep_copy_vector(ast.u.while_.body, tt, st);
+    return Ast::new_while(ast.token, test_copy, body_copy);
 end
 
 def _ast_deep_copy_pointer_op ast, tt, st in
-    var args_copy = _ast_deep_copy_vector(ast_pop_args(ast), tt, st);
-    return Ast::new_pointer_op(ast_token(ast), ast_size(ast), ast_pop(ast), args_copy);
+    var args_copy = _ast_deep_copy_vector(ast.u.ptr_op.args, tt, st);
+    return Ast::new_pointer_op(ast.token, ast.u.ptr_op.size, ast.u.ptr_op.op, args_copy);
 end
 
 def _ast_deep_copy_prefix ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    return Ast::new_prefix(ast_token(ast), ast_op(ast), expr_copy);
+    var expr_copy = _ast_deep_copy(ast.u.prefix.expr, tt, st);
+    return Ast::new_prefix(ast.token, ast.u.prefix.op, expr_copy);
 end
 
 def _ast_deep_copy_const ast, tt, st in
@@ -1384,28 +1159,28 @@ def _ast_deep_copy_global ast, tt, st in
 end
 
 def _ast_deep_copy_break ast, tt, st in
-    return Ast::new_break(ast_token(ast));
+    return Ast::new_break(ast.token);
 end
 
 def _ast_deep_copy_continue ast, tt, st in
-    return Ast::new_continue(ast_token(ast));
+    return Ast::new_continue(ast.token);
 end
 
 def _ast_deep_copy_assign_op ast, tt, st in
-    var sym = st_get_symbol(st, ast_ident(ast));
-    var rhs_copy = _ast_deep_copy(ast_assign_expr(ast), tt, st);
-    return Ast::new_assign_op(ast_token(ast), sym.name, ast_op(ast), rhs_copy);
+    var sym = st_get_symbol(st, ast.u.assign_op.ident);
+    var rhs_copy = _ast_deep_copy(ast.u.assign_op.expr, tt, st);
+    return Ast::new_assign_op(ast.token, sym.name, ast.u.assign_op.op, rhs_copy);
 end
 
 def _ast_deep_copy_cast ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    var type = tt_substitute_type(tt, ast_type(ast));
-    return Ast::new_cast(ast_token(ast), expr_copy, type);
+    var expr_copy = _ast_deep_copy(ast.u.cast_.expr, tt, st);
+    var type = tt_substitute_type(tt, ast.u.cast_.type);
+    return Ast::new_cast(ast.token, expr_copy, type);
 end
 
 def _ast_deep_copy_struct ast, tt, st in
     st_push_scope(st);
-    var fields = ast_fields(ast);
+    var fields = ast.u.struct_.fields;
     var fields_copy = Vector[Field&]::new(fields.length);
     var i = 0; var len = fields.length;
     while i < len do
@@ -1415,24 +1190,24 @@ def _ast_deep_copy_struct ast, tt, st in
         fields_copy.push(field_copy);
         i += 1;
     end
-    var struct_type = tt_substitute_type(tt, ast_struct(ast));
-    var struct_changed = struct_type != ast_struct(ast);
-    var defs = ast_defs(ast);
+    var struct_type = tt_substitute_type(tt, ast.u.struct_.type);
+    var struct_changed = struct_type != ast.u.struct_.type;
+    var defs = ast.u.struct_.body;
     var defs_copy = Vector[Ast&]::new(defs.length);
     var defs_copy_symbols = Vector[Symbol&]::new(defs.length);
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);
-        assert(ast_kind(def_) == AstK::Def);
+        assert(def_.kind == AstK::Def);
         var def_copy = _ast_deep_copy_def(def_, tt, st);
-        var def_copy_sym = st_get_symbol(st, ast_ident(def_copy));
+        var def_copy_sym = st_get_symbol(st, def_copy.u.def_.ident);
         assert(def_copy_sym);
         def_copy_sym.owned_by = struct_type;
         defs_copy.push(def_copy);
         defs_copy_symbols.push(def_copy_sym);
         i += 1;
     end
-    var struct_copy = Ast::new_struct(ast_token(ast), struct_type, fields_copy, defs_copy);
+    var struct_copy = Ast::new_struct(ast.token, struct_type, fields_copy, defs_copy);
     if struct_changed then
         type_set_ast(struct_type, struct_copy);
         type_set_struct_fields(struct_type, fields_copy);
@@ -1444,7 +1219,7 @@ end
 
 def _ast_deep_copy_union ast, tt, st in
     st_push_scope(st);
-    var fields = ast_fields(ast);
+    var fields = ast.u.union_.fields;
     var fields_copy = Vector[Field&]::new(fields.length);
     var i = 0; var len = fields.length;
     while i < len do
@@ -1454,9 +1229,9 @@ def _ast_deep_copy_union ast, tt, st in
         fields_copy.push(field_copy);
         i += 1;
     end
-    var union_type = tt_substitute_type(tt, ast_union(ast));
-    var union_changed = union_type != ast_union(ast);
-    var union_copy = Ast::new_union(ast_token(ast), union_type, fields_copy);
+    var union_type = tt_substitute_type(tt, ast.u.union_.type);
+    var union_changed = union_type != ast.u.union_.type;
+    var union_copy = Ast::new_union(ast.token, union_type, fields_copy);
     if union_changed then
         type_set_ast(union_type, union_copy);
         type_set_union_fields(union_type, fields_copy);
@@ -1466,32 +1241,32 @@ def _ast_deep_copy_union ast, tt, st in
 end
 
 def _ast_deep_copy_member_access ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    return Ast::new_member_access(ast_token(ast), expr_copy, ast_member(ast));
+    var expr_copy = _ast_deep_copy(ast.u.member_access.expr, tt, st);
+    return Ast::new_member_access(ast.token, expr_copy, ast.u.member_access.member);
 end
 
 def _ast_deep_copy_assign_member ast, tt, st in
-    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
-    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
-    return Ast::new_assign_member(ast_token(ast), lhs_copy, ast_op(ast), rhs_copy);
+    var lhs_copy = _ast_deep_copy(ast.u.assign_member.lhs, tt, st);
+    var rhs_copy = _ast_deep_copy(ast.u.assign_member.rhs, tt, st);
+    return Ast::new_assign_member(ast.token, lhs_copy, ast.u.assign_member.op, rhs_copy);
 end
 
 def _ast_deep_copy_sizeof_expr ast, tt, st in
-    var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK::Ident then
-        var type = tt_get_type_or_null(tt, ast_ident(expr));
+    var expr = ast.u.sizeof.expr;
+    if expr.kind == AstK::Ident then
+        var type = tt_get_type_or_null(tt, expr.u.ident);
         if type then
             type = tt_substitute_type(tt, type);
-            return Ast::new_sizeof_type(ast_token(ast), type);
+            return Ast::new_sizeof_type(ast.token, type);
         end
     end
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    return Ast::new_sizeof_expr(ast_token(ast), expr_copy);
+    var expr_copy = _ast_deep_copy(expr, tt, st);
+    return Ast::new_sizeof_expr(ast.token, expr_copy);
 end
 
 def _ast_deep_copy_sizeof_type ast, tt, st in
-    var type = tt_substitute_type(tt, ast_type(ast));
-    return Ast::new_sizeof_type(ast_token(ast), type);
+    var type = tt_substitute_type(tt, ast.u.sizeof.type);
+    return Ast::new_sizeof_type(ast.token, type);
 end
 
 def _ast_deep_copy_enum ast, tt, st in
@@ -1500,33 +1275,33 @@ def _ast_deep_copy_enum ast, tt, st in
 end
 
 def _ast_deep_copy_type ast, tt, st in
-    var type = tt_substitute_type(tt, ast_type(ast));
-    return Ast::new_type(ast_token(ast), type);
+    var type = tt_substitute_type(tt, ast.u.type);
+    return Ast::new_type(ast.token, type);
 end
 
 def _ast_deep_copy_scope_resolve ast, tt, st in
-    var lhs_copy = _ast_deep_copy(ast_lhs(ast), tt, st);
-    var rhs_copy = _ast_deep_copy(ast_rhs(ast), tt, st);
-    return Ast::new_scope_resolve(ast_token(ast), lhs_copy, rhs_copy);
+    var lhs_copy = _ast_deep_copy(ast.u.scope_resolve.lhs, tt, st);
+    var rhs_copy = _ast_deep_copy(ast.u.scope_resolve.rhs, tt, st);
+    return Ast::new_scope_resolve(ast.token, lhs_copy, rhs_copy);
 end
 
 def _ast_deep_copy_get_reference ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    return Ast::new_get_reference(ast_token(ast), expr_copy);
+    var expr_copy = _ast_deep_copy(ast.u.get_reference, tt, st);
+    return Ast::new_get_reference(ast.token, expr_copy);
 end
 
 def _ast_deep_copy_static_assert ast, tt, st in
-    var args_copy = _ast_deep_copy_vector(ast_args(ast), tt, st);
-    return Ast::new_static_assert(ast_token(ast), args_copy);
+    var args_copy = _ast_deep_copy_vector(ast.u.static_assert_, tt, st);
+    return Ast::new_static_assert(ast.token, args_copy);
 end
 
 def _ast_deep_copy_offsetof ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast_expr(ast), tt, st);
-    return Ast::new_offsetof(ast_token(ast), expr_copy);
+    var expr_copy = _ast_deep_copy(ast.u.offsetof, tt, st);
+    return Ast::new_offsetof(ast.token, expr_copy);
 end
 
 def _ast_deep_copy ast, tt, st in
-    var k = ast_kind(ast);
+    var k = ast.kind;
     if k == AstK::Ident then return _ast_deep_copy_ident(ast, tt, st);
     elif k == AstK::Integer then return _ast_deep_copy_integer(ast, tt, st);
     elif k == AstK::String then return _ast_deep_copy_string(ast, tt, st);

@@ -1072,23 +1072,25 @@ def ir_get_continue_dest self in
 end
 
 def _comptime_eval_is_n_out_of_range ast, min_inclusive, max_inclusive in
-    if ast_kind(ast) != AstK::Integer then
+    if ast.kind != AstK::Integer then
         // assumed false because the value isn't known.
         return false;
     end
-    var val = cast(ast_value(ast), int);
+    var val = ast.u.integer;
     return val < min_inclusive or val > max_inclusive;
 end
 
 def _comptime_eval_is_n n, ast in
-    return ast_kind(ast) == AstK::Integer and ast_value(ast) == n;
+    return ast.kind == AstK::Integer and ast.u.integer == n;
 end
 
 def _comptime_scope_resolve_val self, ast, st, tt, depth in
-    var type = scope_resolve_lhs(tt, ast_lhs(ast), false);
+    var lhs = ast.u.scope_resolve.lhs;
+    var rhs = ast.u.scope_resolve.rhs;
+    var type = scope_resolve_lhs(tt, lhs, false);
     assert(type, "Compiler bug: should have caught this error in type checker.\n");
-
-    var member = ast_ident(ast_rhs(ast));
+    assert(rhs.kind == AstK::Ident);
+    var member = rhs.u.ident;
     if type_is_enum(type) then
         var enum_vals = type_enum_values(type);
         var i = 0; var len = enum_vals.length;
@@ -1123,41 +1125,41 @@ def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
     var lhs; var rhs;
     var lhs_val; var rhs_val;
 
-    var k = ast_kind(ast);
+    var k = ast.kind;
     if k == AstK::Integer then
         return ast;
     elif k == AstK::String then
         return ast;
     elif k == AstK::Ident then
-        ident = ast_ident(ast);
+        ident = ast.u.ident;
         if ir_is_const(self, ident) then
             ci = ir_get_const(self, ident);
             if ci.kind == CIK::String then
                 return ci.ast_value;
             elif ci.kind == CIK::Integer then
-                return Ast::new_integer(ast_token(ast), cast(ci.value, int)); // @LEAK
+                return Ast::new_integer(ast.token, cast(ci.value, int)); // @LEAK
             end
         end
     elif k == AstK::ScopeResolve then
         return _comptime_scope_resolve_val(self, ast, st, tt, depth);
     elif k == AstK::SizeofExpr then
-        var expr_type = tt_get_ast_type(tt, ast_expr(ast));
+        var expr_type = tt_get_ast_type(tt, ast.u.sizeof.expr);
         var size_bytes = (type_size(expr_type) + BYTE_BITS-1) / BYTE_BITS;
-        return Ast::new_integer(ast_token(ast), size_bytes); // @LEAK
+        return Ast::new_integer(ast.token, size_bytes); // @LEAK
     elif k == AstK::SizeofType then
-        var type = ast_type(ast);
+        var type = ast.u.sizeof.type;
         if type then
             var size_bytes = (type_size(type) + BYTE_BITS-1) / BYTE_BITS;
-            return Ast::new_integer(ast_token(ast), size_bytes); // @LEAK
+            return Ast::new_integer(ast.token, size_bytes); // @LEAK
         end
     elif k == AstK::OffsetOf then
-        var expr = ast_expr(ast);
+        var expr = ast.u.offsetof;
         var bit_offset = _ir_offsetof(self, expr, tt, 0);
-        return Ast::new_integer(ast_token(ast), bit_offset / BYTE_BITS); // @LEAK
+        return Ast::new_integer(ast.token, bit_offset / BYTE_BITS); // @LEAK
     elif k == AstK::BinOp then
-        op = ast_op(ast);
-        lhs = ir_comptime_eval(self, ast_lhs(ast), st, tt, error_on_fail, depth + 1);
-        rhs = ir_comptime_eval(self, ast_rhs(ast), st, tt, error_on_fail, depth + 1);
+        op = ast.u.binop.op;
+        lhs = ir_comptime_eval(self, ast.u.binop.lhs, st, tt, error_on_fail, depth + 1);
+        rhs = ir_comptime_eval(self, ast.u.binop.rhs, st, tt, error_on_fail, depth + 1);
 
         if op == TK::Plus  and _comptime_eval_is_n(0, rhs) then return lhs; end // k + 0
         if op == TK::Plus  and _comptime_eval_is_n(0, lhs) then return rhs; end // 0 + k
@@ -1166,10 +1168,10 @@ def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
         if op == TK::Star  and _comptime_eval_is_n(1, lhs) then return rhs; end // 1 * k
         if op == TK::Slash and _comptime_eval_is_n(1, rhs) then return lhs; end // k / 1
 
-        if ast_kind(lhs) == ast_kind(rhs) then
-            if ast_kind(lhs) == AstK::Integer then
-                lhs_val = cast(ast_value(lhs), int);
-                rhs_val = cast(ast_value(rhs), int);
+        if lhs.kind == rhs.kind then
+            if lhs.kind == AstK::Integer then
+                lhs_val = lhs.u.integer;
+                rhs_val = rhs.u.integer;
                 evaled = false;
                 if op == TK::Plus then
                     evaled = true;
@@ -1231,16 +1233,16 @@ def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
                     result = lhs_val >= rhs_val;
                 end
                 if evaled then
-                    return Ast::new_integer(ast_token(ast), result); // @LEAK
+                    return Ast::new_integer(ast.token, result); // @LEAK
                 end
             end
         end
     elif k == AstK::Prefix then
-        op = ast_op(ast);
-        rhs = ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
+        op = ast.u.prefix.op;
+        rhs = ir_comptime_eval(self, ast.u.prefix.expr, st, tt, error_on_fail, depth + 1);
         evaled = false;
-        if ast_kind(rhs) == AstK::Integer then
-            rhs_val = cast(ast_value(rhs), int);
+        if rhs.kind == AstK::Integer then
+            rhs_val = rhs.u.integer;
             if op == TK::Minus then
                 evaled = true;
                 result = 0 - rhs_val;
@@ -1252,11 +1254,11 @@ def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
                 result = ~rhs_val;
             end
             if evaled then
-                return Ast::new_integer(ast_token(ast), result); // @LEAK
+                return Ast::new_integer(ast.token, result); // @LEAK
             end
         end
     elif k == AstK::Cast then
-        return ir_comptime_eval(self, ast_expr(ast), st, tt, error_on_fail, depth + 1);
+        return ir_comptime_eval(self, ast.u.cast_.expr, st, tt, error_on_fail, depth + 1);
     end
 
     if error_on_fail then
@@ -1275,7 +1277,7 @@ def ir_emit_body self, body, st, tt in
     while i < len do
         var ast = body.get(i);
         ir_compile(self, ast, st, tt);
-        if ast_is_expr(ast) then
+        if ast.is_expr then
             ir_append(self, make_ir_drop_top());
         end
         i += 1;
@@ -1285,7 +1287,7 @@ end
 def ir_emit_ident self, ast, st, tt in
     check_ast_kind(AstK::Ident, ast);
 
-    var ident = ast_ident(ast);
+    var ident = ast.u.ident;
     if ir_is_local(self, ident) then
         var n = ir_get_local(self, ident);
         var offs = ir_get_local_offset(self, ident);
@@ -1310,25 +1312,25 @@ def ir_emit_ident self, ast, st, tt in
         var gi = ir_get_global(self, ident);
         ir_append(self, make_ir_get_global(ident, global_info_label(gi)));
     else
-        ir_append(self, make_ir_lazy_ident(ast_token(ast), st_get_symbol(st, ident)));
+        ir_append(self, make_ir_lazy_ident(ast.token, st_get_symbol(st, ident)));
     end
 end
 
 def ir_emit_integer self, ast, st, tt in
     check_ast_kind(AstK::Integer, ast);
-    ir_append(self, make_ir_push_int(ast_value(ast)));
+    ir_append(self, make_ir_push_int(ast.u.integer));
 end
 
 def ir_emit_string self, ast, st, tt in
     check_ast_kind(AstK::String, ast);
-    var string = ast_value(ast);
+    var string = ast.u.string;
     var string_label = ir_string_label(self, string);
     ir_append(self, make_ir_push_label(string_label));
 end
 
 def ir_emit_call self, ast, st, tt in
     check_ast_kind(AstK::Call, ast);
-    var args = ast_args(ast);
+    var args = ast.u.call.args;
     var len = args.length;
     if len > 0 then
         ir_append(self, make_ir_alloc_temps(len));
@@ -1349,9 +1351,9 @@ def ir_emit_call self, ast, st, tt in
         ir_append(self, make_ir_free_temps(len));
     end
 
-    var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK::Ident then
-        var ident = ast_ident(expr);
+    var expr = ast.u.call.expr;
+    if expr.kind == AstK::Ident then
+        var ident = expr.u.ident;
         var info;
         if ir_is_def(self, ident) then
             info = ir_get_def(self, ident);
@@ -1365,15 +1367,15 @@ def ir_emit_call self, ast, st, tt in
             ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_pop_call());
         else
-            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), st_get_symbol(st, ident), len));
+            ir_append(self, make_ir_call_lazy_ident(expr.token, st_get_symbol(st, ident), len));
         end
-    elif ast_kind(expr) == AstK::ScopeResolve then
+    elif expr.kind == AstK::ScopeResolve then
         var def_ = scope_resolve_def(tt, expr, true);
         assert(def_);
         if def_.label then
             ir_append(self, make_ir_call(def_.label, def_.is_varargs));
         else
-            ir_append(self, make_ir_call_lazy_ident(ast_token(expr), def_, len));
+            ir_append(self, make_ir_call_lazy_ident(expr.token, def_, len));
         end
     else
         ir_compile(self, expr, st, tt);
@@ -1383,23 +1385,23 @@ end
 
 def ir_emit_logic_and self, ast, st, tt in
     var label = ir_new_label(self, NULL);
-    ir_compile(self, ast_lhs(ast), st, tt);
+    ir_compile(self, ast.u.binop.lhs, st, tt);
     ir_append(self, make_ir_goto_top_false(label));
-    ir_compile(self, ast_rhs(ast), st, tt);
+    ir_compile(self, ast.u.binop.rhs, st, tt);
     ir_append(self, make_ir_label(label));
 end
 
 def ir_emit_logic_or self, ast, st, tt in
     var label = ir_new_label(self, NULL);
-    ir_compile(self, ast_lhs(ast), st, tt);
+    ir_compile(self, ast.u.binop.lhs, st, tt);
     ir_append(self, make_ir_goto_top_true(label));
-    ir_compile(self, ast_rhs(ast), st, tt);
+    ir_compile(self, ast.u.binop.rhs, st, tt);
     ir_append(self, make_ir_label(label));
 end
 
 def ir_emit_binop self, ast, st, tt in
     check_ast_kind(AstK::BinOp, ast);
-    var op = ast_op(ast);
+    var op = ast.u.binop.op;
     var simple = -1;
     if op == TK::Plus then simple = IRK_OpAdd;
     elif op == TK::Minus then simple = IRK_OpSub;
@@ -1421,19 +1423,19 @@ def ir_emit_binop self, ast, st, tt in
     elif op == TK::KW_or then ir_emit_logic_or(self, ast, st, tt);
     else
         printf("Unhandled binop: %d\n", op);
-        print_token(ast_token(ast));
+        print_token(ast.token);
         NYI_ERR(__FILE__, __LINE__, "ir_emit_binop");
     end
     if simple >= 0 then
-        ir_compile(self, ast_lhs(ast), st, tt);
-        ir_compile(self, ast_rhs(ast), st, tt);
+        ir_compile(self, ast.u.binop.lhs, st, tt);
+        ir_compile(self, ast.u.binop.rhs, st, tt);
         ir_append(self, make_ir_simple_op(simple));
     end
 end
 
 def ir_emit_return self, ast, st, tt in
     check_ast_kind(AstK::Return, ast);
-    var expr = ast_expr(ast);
+    var expr = ast.u.return_;
     if not expr then
         ir_append(self, make_ir_return_void());
         return;
@@ -1444,7 +1446,7 @@ end
 
 def ir_emit_var_decl self, ast, st, tt in
     check_ast_kind(AstK::VarDecl, ast);
-    var ident = ast_ident(ast);
+    var ident = ast.u.var_decl;
     assert(not ir_is_cur_scope_local(self, ident),
         "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
@@ -1476,7 +1478,7 @@ def _check_integer_bounds val, tt, type, ast in
     if _comptime_eval_is_n_out_of_range(val, mini, maxi) then
         printf("WARN: type is `");
         tt_print_type_name(tt, type);
-        printf("` which %ld is out of range\n", ast_value(val));
+        printf("` which %ld is out of range\n", ast.u.integer);
         printf("NOTE: the expression is: ");
         print_ast(ast);
         print_ast_src_loc(ast);
@@ -1485,7 +1487,7 @@ end
 
 def ir_emit_var_assign self, ast, st, tt in
     check_ast_kind(AstK::VarAssign, ast);
-    var ident = ast_ident(ast);
+    var ident = ast.u.var_assign.ident;
     assert(not ir_is_cur_scope_local(self, ident),
         "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
@@ -1493,8 +1495,8 @@ def ir_emit_var_assign self, ast, st, tt in
     var sym_type = symbol_type(sym);
     assert(sym_type and type_size(sym_type) != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
-    var val = ir_comptime_eval(self, ast_assign_expr(ast), st, tt, false, 0);
-    if ast_kind(val) == AstK::Integer and type_is_int_like(sym_type) then
+    var val = ir_comptime_eval(self, ast.u.var_assign.expr, st, tt, false, 0);
+    if val.kind == AstK::Integer and type_is_int_like(sym_type) then
         _check_integer_bounds(val, tt, sym_type, ast);
     end
     ir_compile(self, val, st, tt);
@@ -1505,8 +1507,8 @@ end
 
 def ir_emit_assign_op self, ast, st, tt in
     check_ast_kind(AstK::AssignOp, ast);
-    var ident = ast_ident(ast);
-    var op = ast_op(ast);
+    var ident = ast.u.assign_op.ident;
+    var op = ast.u.assign_op.op;
     if op != TK::Assign then
         if ir_is_local(self, ident) then
             var n = ir_get_local(self, ident);
@@ -1517,14 +1519,14 @@ def ir_emit_assign_op self, ast, st, tt in
             var label = global_info_label(gi);
             ir_append(self, make_ir_get_global(ident, label));
             else
-        //ir_append(self, make_ir_lazy_ident(ast_token(ast)));
+        //ir_append(self, make_ir_lazy_ident(ast.token));
         printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
         print_ast_src_loc(ast);
         exit(1);
         end
     end
-    ir_compile(self, ast_assign_expr(ast), st, tt);
+    ir_compile(self, ast.u.assign_op.expr, st, tt);
 
     var ir_op = -1;
     if op == TK::PlusEq then ir_op = IRK_OpAdd;
@@ -1564,12 +1566,12 @@ end
 
 def ir_emit_assign_member self, ast, st, tt in
     check_ast_kind(AstK::AssignMember, ast);
-    var lhs = ast_lhs(ast);
-    var rhs = ast_rhs(ast);
-    var op = ast_op(ast);
+    var lhs = ast.u.assign_member.lhs;
+    var rhs = ast.u.assign_member.rhs;
+    var op = ast.u.assign_member.op;
 
     if op != TK::Assign then
-        if ast_kind(lhs) == AstK::MemberAccess then
+        if lhs.kind == AstK::MemberAccess then
             // dereference self
             ir_emit_member_access(self, lhs, st, tt, true);
         else
@@ -1601,7 +1603,7 @@ def ir_emit_assign_member self, ast, st, tt in
         ir_append(self, make_ir_simple_op(ir_op));
     end
 
-    if ast_kind(lhs) == AstK::MemberAccess then
+    if lhs.kind == AstK::MemberAccess then
         ir_emit_member_access(self, lhs, st, tt, false);
     else
         ir_compile(self, lhs, st, tt);
@@ -1613,8 +1615,8 @@ end
 
 def ir_emit_def self, ast, st, tt in
     check_ast_kind(AstK::Def, ast);
-    var ident = ast_ident(ast);
-    var params = ast_params(ast);
+    var ident = ast.u.def_.ident;
+    var params = ast.u.def_.params;
     var label = ir_new_def(self, ident, params, ast, st_get_symbol(st, ident), tt);
     var insn = make_ir_new_def(ident, label, params);
     ir_push_scope(self);
@@ -1628,7 +1630,7 @@ def ir_emit_def self, ast, st, tt in
         ir_append(self, make_ir_set_local_arg(param, n, i, offs));
         i += 1;
     end
-    ir_emit_body(self, ast_body(ast), st, tt);
+    ir_emit_body(self, ast.u.def_.body, st, tt);
     u64!(insn + TIR_INSTR_nlocals, ir_num_locals(self));
     u64!(insn + TIR_INSTR_expr_size, ir_locals_size(self));
     ir_append(self, make_ir_close_def(ident, label));
@@ -1637,14 +1639,16 @@ end
 
 def ir_emit_if_else self, ast, st, tt in
     check_ast_kind(AstK::IfElse, ast);
-    var test = ir_comptime_eval(self, ast_test(ast), st, tt, false, 0);
+    var test = ir_comptime_eval(self, ast.u.if_else.test, st, tt, false, 0);
+    var conseq = ast.u.if_else.consequence;
+    var altern = ast.u.if_else.alternative;
     if _comptime_eval_is_n(1, test) then
         ir_push_scope(self);
-        ir_emit_body(self, ast_consequence(ast), st, tt);
+        ir_emit_body(self, conseq, st, tt);
         ir_pop_scope(self);
     elif _comptime_eval_is_n(0, test) then
         ir_push_scope(self);
-        ir_emit_body(self, ast_alternative(ast), st, tt);
+        ir_emit_body(self, altern, st, tt);
         ir_pop_scope(self);
     else
         var l_else = ir_new_label(self, NULL);
@@ -1652,13 +1656,13 @@ def ir_emit_if_else self, ast, st, tt in
         ir_compile(self, test, st, tt);
         ir_append(self, make_ir_goto_false(l_else));
         ir_push_scope(self);
-        ir_emit_body(self, ast_consequence(ast), st, tt);
+        ir_emit_body(self, conseq, st, tt);
         ir_pop_scope(self);
         ir_append(self, make_ir_goto(l_out));
 
         ir_append(self, make_ir_label(l_else));
         ir_push_scope(self);
-        ir_emit_body(self, ast_alternative(ast), st, tt);
+        ir_emit_body(self, altern, st, tt);
         ir_pop_scope(self);
         ir_append(self, make_ir_label(l_out));
     end
@@ -1670,11 +1674,11 @@ def ir_emit_while self, ast, st, tt in
     var l_out = ir_new_label(self, NULL);
     ir_push_scope(self);
     ir_append(self, make_ir_label(l_test));
-    ir_compile(self, ast_test(ast), st, tt);
+    ir_compile(self, ast.u.while_.test, st, tt);
     ir_append(self, make_ir_goto_false(l_out));
     ir_push_break_dest(self, l_out);     // break jumps to out
     ir_push_continue_dest(self, l_test); // continue jumps to test
-    ir_emit_body(self, ast_body(ast), st, tt);
+    ir_emit_body(self, ast.u.while_.body, st, tt);
     ir_pop_continue_dest(self);
     ir_pop_break_dest(self);
     ir_append(self, make_ir_goto(l_test));
@@ -1684,15 +1688,15 @@ end
 
 def ir_emit_pointer_op self, ast, st, tt in
     //check_ast_kind(AstK::PointerOp, ast);
-    var args = ast_pop_args(ast);
-    var size = ast_size(ast);
+    var args = ast.u.ptr_op.args;
+    var size = ast.u.ptr_op.size;
     if size == 0 then
         var type_ast = args.back();
-        assert(ast_kind(type_ast) == AstK::Type);
-        var type = ast_type(type_ast);
+        assert(type_ast.kind == AstK::Type);
+        var type = type_ast.u.type;
         size = type_size(type);
     end
-    var op = ast_pop(ast);
+    var op = ast.u.ptr_op.op;
     if op == PointerOp::Read then
         ir_compile(self, args.get(0), st, tt);
         ir_append(self, make_ir_ptr_read(size));
@@ -1708,8 +1712,8 @@ end
 
 def ir_emit_prefix_op self, ast, st, tt in
     check_ast_kind(AstK::Prefix, ast);
-    var expr = ast_expr(ast);
-    var op = ast_op(ast);
+    var expr = ast.u.prefix.expr;
+    var op = ast.u.prefix.op;
     if op == TK::Tilde then
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_bit_not());
@@ -1717,8 +1721,8 @@ def ir_emit_prefix_op self, ast, st, tt in
         ir_compile(self, expr, st, tt);
         ir_append(self, make_ir_logic_not());
     elif op == TK::Minus then
-        if ast_kind(expr) == AstK::Integer then
-            ir_append(self, make_ir_push_int(0 - ast_value(expr)));
+        if expr.kind == AstK::Integer then
+            ir_append(self, make_ir_push_int(0 - expr.u.integer));
         else
             ir_compile(self, expr, st, tt);
             ir_append(self, make_ir_negative());
@@ -1730,27 +1734,27 @@ end
 
 def ir_emit_const self, ast, st, tt in
     check_ast_kind(AstK::Const, ast);
-    var expr = ast_assign_expr(ast);
+    var expr = ast.u.const_.expr;
     var val = ir_comptime_eval(self, expr, st, tt, true, 0);
     var const_info: ConstInfo& = NULL;
-    var k = ast_kind(val);
+    var k = val.kind;
     if k == AstK::String then
-        var string_label = ir_string_label(self, ast_value(val));
+        var string_label = ir_string_label(self, val.u.string);
         const_info = make_const_info(CIK::String, string_label, val);
     elif k == AstK::Integer then
-        const_info = make_const_info(CIK::Integer, ast_value(val), val);
+        const_info = make_const_info(CIK::Integer, val.u.integer, val);
     end
     if const_info then
-        if ir_is_const(self, ast_ident(ast)) then
-            var existing = ir_get_const(self, ast_ident(ast));
+        if ir_is_const(self, ast.u.const_.ident) then
+            var existing = ir_get_const(self, ast.u.const_.ident);
             if existing.kind != const_info.kind or
                 existing.value != const_info.value then
-                printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast_ident(ast));
+                printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast.u.const_.ident);
                 print_ast_src_loc(ast);
                 exit(1);
             end
         else
-            ir_add_const(self, ast_ident(ast), const_info);
+            ir_add_const(self, ast.u.const_.ident, const_info);
         end
     else
         NYI_ERR(__FILE__, __LINE__, "ir_emit_const_comptime: unsupported constant");
@@ -1759,8 +1763,8 @@ end
 
 def ir_emit_extern self, ast, st, tt in
     check_ast_kind(AstK::Extern, ast);
-    var ident = ast_ident(ast);
-    var type = ast_type(ast);
+    var ident = ast.u.extern_.ident;
+    var type = ast.u.extern_.type;
     var is_varargs = false;
     if type_is_def(type) then
         is_varargs = type_def_varargs(type);
@@ -1771,28 +1775,28 @@ end
 def ir_emit_inline_asm self, ast, st, tt in
     // TODO: Check if asm name already defined.
     check_ast_kind(AstK::InlineAsm, ast);
-    var asm_name = ast_ident(ast);
-    var asm_code = ast_asm(ast);
+    var asm_name = ast.u.inline_asm.ident;
+    var asm_code = ast.u.inline_asm.asmcode;
     ir_append(self, make_ir_inline_asm(asm_name, asm_code));
     ir_labels(self).insert(asm_name);
 end
 
 def ir_emit_global self, ast, st, tt in
     check_ast_kind(AstK::Global, ast);
-    var ident = ast_ident(ast);
+    var ident = ast.u.global_.ident;
     if ir_is_global(self, ident) then
         printf("ERROR: global `%s` already defined.\n", ident);
         print_ast_src_loc(ast);
         exit(1);
     end
 
-    var expr = ast_assign_expr(ast);
+    var expr = ast.u.global_.expr;
     var val = ir_comptime_eval(self, expr, st, tt, true, 0);
-    var k = ast_kind(val);
+    var k = val.kind;
     if k == AstK::String then
-        ir_add_global_string(self, ident, ast_value(val));
+        ir_add_global_string(self, ident, val.u.string);
     elif k == AstK::Integer then
-        ir_add_global_int(self, ident, ast_value(val));
+        ir_add_global_int(self, ident, val.u.integer);
     else
         NYI_ERR(__FILE__, __LINE__, "ir_emit_global:comptime failed");
     end
@@ -1844,9 +1848,9 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     var offset = 0;
     var head = ast;
     var deref_stack = Vector[int]::new(0);
-    while ast_kind(head) == AstK::MemberAccess do
-        var member = ast_member(head);
-        var type = tt_get_ast_type(tt, ast_expr(head));
+    while head.kind == AstK::MemberAccess do
+        var member = head.u.member_access.member;
+        var type = tt_get_ast_type(tt, head.u.member_access.expr);
         var _type = type;
         while type_is_reference(_type) do
             _type = type_deref_type(_type);
@@ -1881,25 +1885,13 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
             deref_stack.push(offset);
             offset = 0;
         end
-        //assert(not type_is_reference(type), "TODO: implement auto-deref reference types\n");
-        head = ast_expr(head);
+        head = head.u.member_access.expr;
     end
 
     var head_type = tt_get_ast_type(tt, head);
     assert(head_type);
-    if type_is_struct(head_type) and ast_kind(head) == AstK::Ident then
+    if type_is_struct(head_type) and head.kind == AstK::Ident then
         assert(false, "stack allocations not supported yet.\n");
-        // var ident = ast_ident(head);
-        // if ir_is_local(self, ident) then
-        //     var n = ir_get_local(self, ident);
-        //     var offs = ir_get_local_offset(self, ident);
-        //     ir_append(self, make_ir_ref_local(ident, n, offs));
-        // elif ir_is_global(self, ident) then
-        //     var gi = ir_get_global(self, ident);
-        //     ir_append(self, make_ir_ref_global(ident, global_info_label(gi)));
-        // else
-        //     assert(false, "TODO: `%s` is not a local nor global, how to get reference?\n", ident);
-        // end
     else
         ir_compile(self, head, st, tt);
     end
@@ -1918,7 +1910,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     deref_stack.delete();
 
     if deref then
-        var type = tt_get_ast_type(tt, ast_expr(ast));
+        var type = tt_get_ast_type(tt, ast.u.member_access.expr);
         if type_is_reference(type) then
             type = type_deref_type(type);
             assert(type, "TODO: Type is reference but has no ref type\n");
@@ -1932,7 +1924,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
             fields = type_union_fields(type);
         end
         var i = 0; var len = fields.length;
-        var member = ast_member(ast);
+        var member = ast.u.member_access.member;
         var field: Field&;
         while i < len do
             field = fields.get(i);
@@ -1956,10 +1948,12 @@ def ir_emit_scope_resolve self, ast, st, tt in
         return;
     end
 
-    assert(ast_kind(ast_lhs(ast)) == AstK::Type, "Nested resolution not supported yet.\n");
-    assert(ast_kind(ast_rhs(ast)) == AstK::Ident, "Nested resolution not supported yet.\n");
-    var type = ast_type(ast_lhs(ast));
-    var member = ast_ident(ast_rhs(ast));
+    var lhs = ast.u.scope_resolve.lhs;
+    var rhs = ast.u.scope_resolve.rhs;
+    assert(lhs.kind == AstK::Type, "Nested resolution not supported yet.\n");
+    assert(rhs.kind == AstK::Ident, "Nested resolution not supported yet.\n");
+    var type = lhs.u.type;
+    var member = rhs.u.ident;
     if type_is_struct(type) then
         var defs = type_struct_defs(type);
         var i = 0; var len = defs.length;
@@ -1981,11 +1975,11 @@ end
 
 def ir_emit_get_reference self, ast, st, tt in
     check_ast_kind(AstK::GetReference, ast);
-    var expr = ast_expr(ast);
-    if ast_kind(expr) == AstK::MemberAccess then
+    var expr = ast.u.get_reference;
+    if expr.kind == AstK::MemberAccess then
         ir_emit_member_access(self, expr, st, tt, false);
-    elif ast_kind(expr) == AstK::Ident then
-        var ident = ast_ident(expr);
+    elif expr.kind == AstK::Ident then
+        var ident = expr.u.ident;
         if ir_is_local(self, ident) then
             var n = ir_get_local(self, ident);
             var offs = ir_get_local_offset(self, ident);
@@ -1997,24 +1991,24 @@ def ir_emit_get_reference self, ast, st, tt in
             assert(false, "TODO: `%s` is not a local nor global, how to get reference?\n", ident);
         end
     else
-        assert(false, "ir_emit_get_reference not implemented for %s\n", ast_kind_cstr(ast_kind(expr)));
+        assert(false, "ir_emit_get_reference not implemented for %s\n", ast_kind_cstr(expr.kind));
     end
 end
 
 def ir_emit_sizeof_type self, ast, st, tt in
     check_ast_kind(AstK::SizeofType, ast);
-    var type = ast_type(ast);
+    var type = ast.u.sizeof.type;
     ir_append(self, make_ir_push_int(type.size));
 end
 
 def ir_emit_static_assert self, ast, st, tt in
     check_ast_kind(AstK::StaticAssert, ast);
-    var args = ast_args(ast);
+    var args = ast.u.static_assert_;
     var arg0 = ir_comptime_eval(self, args.get(0), st, tt, true, 0);
     var arg1 = ir_comptime_eval(self, args.get(1), st, tt, true, 0);
-    assert(arg1 and ast_kind(arg1) == AstK::String);
+    assert(arg1 and arg1.kind == AstK::String);
     if _comptime_eval_is_n(0, arg0) then
-        printf("ERROR: static_assert failed: \"%s\"\n", cast(ast_value(arg1), String&).cstr());
+        printf("ERROR: static_assert failed: \"%s\"\n", arg1.u.string.cstr());
         printf("NOTE: the expression is: ");
         print_ast(args.get(0));
         print_ast_src_loc(ast);
@@ -2026,21 +2020,19 @@ def _ir_offsetof self, ast, tt, base_offset in
     var type: Type& = NULL;
     var member: cstr = NULL;
     var lhs: Ast& = NULL;
-    if ast_kind(ast) == AstK::ScopeResolve then
-        type = scope_resolve_lhs(tt, ast_lhs(ast), true);
-        member = ast_ident(ast_rhs(ast));
-        if ast_kind(ast_lhs(ast)) == AstK::ScopeResolve then
-            lhs = ast_lhs(ast);
-        elif ast_kind(ast_lhs(ast)) == AstK::MemberAccess then
-            lhs = ast_lhs(ast);
+    if ast.kind == AstK::ScopeResolve then
+        type = scope_resolve_lhs(tt, ast.u.scope_resolve.lhs, true);
+        member = ast.u.scope_resolve.rhs.u.ident;
+        var lhs_k = ast.u.scope_resolve.lhs.kind;
+        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
+            lhs = ast.u.scope_resolve.lhs;
         end
-    elif ast_kind(ast) == AstK::MemberAccess then
-        type = tt_get_ast_type(tt, ast_expr(ast));
-        member = ast_member(ast);
-        if ast_kind(ast_expr(ast)) == AstK::ScopeResolve then
-            lhs = ast_expr(ast);
-        elif ast_kind(ast_expr(ast)) == AstK::MemberAccess then
-            lhs = ast_expr(ast);
+    elif ast.kind == AstK::MemberAccess then
+        type = tt_get_ast_type(tt, ast.u.member_access.expr);
+        member = ast.u.member_access.member;
+        var lhs_k = ast.u.member_access.expr.kind;
+        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
+            lhs = ast.u.member_access.expr;
         end
     end
 
@@ -2079,7 +2071,7 @@ end
 
 def ir_emit_offsetof self, ast, st, tt in
     check_ast_kind(AstK::OffsetOf, ast);
-    var expr = ast_expr(ast);
+    var expr = ast.u.offsetof;
     var bit_offset = _ir_offsetof(self, expr, tt, 0);
     ir_append(self, make_ir_push_int(bit_offset / BYTE_BITS));
 end
@@ -2089,9 +2081,9 @@ def ir_compile self: ir_context, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     assert(ast);
     var ev_ast = ir_comptime_eval(self, ast, st, tt, false, 0);
     assert(ev_ast, "ir_comptime_eval returned null, original ast kind was %s\n",
-                   ast_kind_cstr(ast_kind(ast)));
-    var k = ast_kind(ev_ast);
-    ir_push_src_loc(self, ast_token(ev_ast).src_loc);
+                   ast_kind_cstr(ast.kind));
+    var k = ev_ast.kind;
+    ir_push_src_loc(self, ev_ast.token.src_loc);
     if k == AstK::Ident then ir_emit_ident(self, ev_ast, st, tt);
     elif k == AstK::Integer then ir_emit_integer(self, ev_ast, st, tt);
     elif k == AstK::String then ir_emit_string(self, ev_ast, st, tt);
