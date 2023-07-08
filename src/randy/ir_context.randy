@@ -1179,6 +1179,8 @@ def ir_comptime_eval self, ast: Ast&, st, tt, error_on_fail, depth in
         var expr = ast.u.offsetof;
         var bit_offset = _ir_offsetof(self, expr, tt, 0);
         return Ast::new_integer(ast.token, bit_offset / BYTE_BITS); // @LEAK
+    elif k == AstK::TupleLiteral then
+        return ast;
     elif k == AstK::BinOp then
         op = ast.u.binop.op;
         lhs = ir_comptime_eval(self, ast.u.binop.lhs, st, tt, error_on_fail, depth + 1);

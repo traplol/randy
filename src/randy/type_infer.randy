@@ -140,17 +140,13 @@ def ti_infer_call self, tt, st, ast -> Type& in
     end
 
     // TODO: need to handle varargs at some point
-    var param_types = type_def_parameters(call_type);
+    var param_types = call_type.u.def_.parameters;
     var args = ast.u.call.args;
 
     if after_kind == AstK::ScopeResolve and before_kind == AstK::MemberAccess then
         if param_types.length != 0 then
             var obj_type = tt_get_ast_type(tt, object);
             var param_type = param_types.front();
-            if not param_type then
-                tt_print_type_name(tt, call_type);
-                printf("<<<\n");
-            end
             assert(obj_type);
             assert(param_type);
             if types_eq(obj_type, param_type) then
@@ -162,6 +158,34 @@ def ti_infer_call self, tt, st, ast -> Type& in
         end
     end
 
+    if call_symbol then
+        if call_type.u.def_.varargs then
+            if param_types.length > 0 and param_types.back() == tt.empty_tuple then
+                var n_varargs = args.length - (param_types.length - 1);
+                if n_varargs == 1 and type_is_tuple(ti_infer(self, tt, st, args.back())) then
+                    // nothing to do because the last arg is a tuple and the function is a randy
+                    // varargs ABI.
+                elif n_varargs >= 0 then
+                    var tuple_args = Vector[Ast&]::new(n_varargs);
+                    var i = param_types.length - 1;
+                    while i < args.length do
+                        tuple_args.push(args.get(i));
+                        i += 1;
+                    end
+                    args.length = param_types.length - 1;
+                    // FIXME: we're using the call token but we could probably use another token
+                    // the main problems are:
+                    //    what token do we use when tuple_args.length > 0 ? tuple_args.get(0).token
+                    //    what token do we use when tuple_args.length = 0 ? args.back().token
+                    //    what token do we use when args.length = 0 ? ???
+                    args.push(Ast::new_tuple_literal(ast.token, tuple_args));
+                else
+                    // don't do anything when n_varargs < 0, it means not enough args were passed and
+                    // that will be caught for in the type checker.
+                end
+            end
+        end
+    end
     var i = 0; var len = min(param_types.length, args.length);
     var changed = false;
     while i < len do
