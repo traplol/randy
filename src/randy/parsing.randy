@@ -910,9 +910,7 @@ def parse_def ts, st, tt in
         end
     end
 
-    var varargs = false;
     if ts.accept(TK::Ellipsis) then
-        varargs = true;
         var va_id = ts.expect(TK::Ident);
         var va_symbol = st_get_symbol_here(st, va_id.value);
         if va_symbol then
@@ -921,7 +919,7 @@ def parse_def ts, st, tt in
             exit(1);
         end
         va_symbol = st_make_param(st, va_id.value, va_id);
-        va_symbol.type = any_type;
+        va_symbol.type = tt.empty_tuple;
         params.push(va_symbol.name);
         param_symbols.push(va_symbol);
     end
@@ -939,7 +937,7 @@ def parse_def ts, st, tt in
         i += 1;
     end
     param_symbols.delete();
-    var def_type = tt_make_anon_def(tt, return_type, param_types, varargs);
+    var def_type = tt_make_anon_def(tt, return_type, param_types, false);
     def_symbol.type = def_type;
 
     parse_statements_until(ts, st, tt, body, TK::KW_end);

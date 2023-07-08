@@ -324,6 +324,7 @@ struct TypeTable in
     ptr_type: Type&;
     cstr_type: Type&;
     bool_type: Type&;
+    empty_tuple: Type&;
     ast_types: map;    // (ast, type) map : ast -> type
     made_change: bool; // where any changes to the ast_types map made?
 end
@@ -395,6 +396,7 @@ def make_type_table -> TypeTable& in
     _tt_make_type(TypeKind::Int_like, "int16", 16, type_ids, types, names, self.type_scope);
     _tt_make_type(TypeKind::Int_like, "int32", 32, type_ids, types, names, self.type_scope);
 
+    self.empty_tuple = tt_make_tuple(self, Vector[Type&]::new(0));
     return self;
 end
 
@@ -757,6 +759,8 @@ def _tt_append_type_repr self, string, type in
         var name = tt_get_type_name(self, deref_type);
         if name then
             string.append_cstr(name);
+        elif type_is_tuple(deref_type) then
+            string.append_cstr("tuple");
         else
             string.append_cstr("<type id ");
             string.append_int(type_id(deref_type));
