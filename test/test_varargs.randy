@@ -1,0 +1,55 @@
+#include std/core
+#include std/string
+
+def my_print fd, fmt, ...args in
+    var str = String::new(cstr_len(fmt));
+    var arg_n = 0;
+    while u8@(fmt) do
+        if u8@(fmt) == '%' then
+            assert(arg_n < args.length, "varargs index out of bounds\n");
+            fmt += 1;
+            var c = u8@(fmt);
+            if c == 'd' then
+                var arg: int = cast(args.get(arg_n), int);
+                str.append_int(arg);
+                arg_n += 1;
+            elif c == 'c' then
+                var arg: char = cast(args.get(arg_n), char);
+                str.push(arg);
+                arg_n += 1;
+            elif c == 's' then
+                var arg: cstr = args.get(arg_n);
+                str.append_cstr(arg);
+                arg_n += 1;
+            elif c == 'S' then
+                var arg: String& = args.get(arg_n);
+                str.append_string(arg);
+                arg_n += 1;
+            elif c == 'p' then
+                var arg: int = cast(args.get(arg_n), int);
+                str.append_cstr("#<ptr ");
+                str.append_int(arg);
+                str.append_cstr(">");
+                arg_n += 1;
+            elif c == '%' then
+                str.push('%');
+            elif c == 0 then
+                str.push('%');
+                break;
+            end
+        else
+            str.push(u8@(fmt));
+        end
+        fmt += 1;
+    end
+    write_file(fd, str.buffer, str.length);
+    str.delete();
+end
+
+def main in
+    var stdout = open_for_write("/dev/stdout");
+    my_print(stdout, "hello world %d\n", 1);
+    my_print(stdout, "hello %s %% %c%c", { "world", 65, 10 });
+    my_print(stdout, "hello %d %S\n", 42, String::new_from_cstr("this is a String&!"));
+    return 0;
+end
