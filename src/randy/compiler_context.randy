@@ -198,6 +198,23 @@ def cc_out_data_section irctx: ir_context, cctx: compiler_context in
         i += 1;
     end
 
+    var tuples = ir_tuples(irctx);
+    i = 0; len = tuples.length;
+    while i < len do
+        str.reset();
+        var tup = tuples.get(i);
+        str.append_cstr(tup.label);
+        str.append_cstr(": .quad 0"); // length
+        var j = 0;
+        while j < tup.slots do
+            str.append_cstr(", 0"); // slot for each tuple element
+            j += 1;
+        end
+        cc_out(cctx, ".align 8");
+        cc_out(cctx, str.cstr());
+        i += 1;
+    end
+
     cc_out(cctx, ".section .rodata, \"a\"");
     var strings = ir_strings(irctx);
     var cur_string = map_begin(strings);

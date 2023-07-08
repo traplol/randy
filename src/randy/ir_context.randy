@@ -672,6 +672,7 @@ enum CIK in
     String;
     Integer;
 end
+
 struct ConstInfo in
     kind: CIK;
     value: ptr;
@@ -722,6 +723,18 @@ def local_info_n self: local_info in return cast(u64@(self + TLOCAL_INFO_n), int
 def local_info_offs self: local_info in return cast(u64@(self + TLOCAL_INFO_offs), int); end
 def local_info_size self: local_info in return cast(u64@(self + TLOCAL_INFO_size), int); end
 
+struct TupleLiteral in
+    label: cstr;
+    slots: int;
+
+    def new label: cstr, slots: int in
+        var self = cast(malloc(__sizeof(TupleLiteral)), TupleLiteral&);
+        self.label = label;
+        self.slots = slots;
+        return self;
+    end
+end
+
 const TIR_CONTEXT_instructions =  0;  // ir_instruction Vector&
 const TIR_CONTEXT_label_id     =  8;  // int
 const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : String& -> label
@@ -740,7 +753,8 @@ const TIR_CONTEXT_break_dests  = 104; // cstr Vector& -> label to goto
 const TIR_CONTEXT_conti_dests  = 112; // cstr Vector& -> label to goto
 const TIR_CONTEXT_num_locals   = 120; // int : max number of locals allocated
 const TIR_CONTEXT_locals_size  = 128; // int : max size needed for all locals
-const sizeof_TIR_CONTEXT       = 136;
+const TIR_CONTEXT_tuple_lits   = 136; // Vector[TupleLiteral&]&
+const sizeof_TIR_CONTEXT       = 144;
 
 def make_ir_context -> ir_context in
     var self = calloc(1, sizeof_TIR_CONTEXT);
@@ -759,10 +773,12 @@ def make_ir_context -> ir_context in
     u64!(self + TIR_CONTEXT_globals, Vector[global_info]::new(0));
     u64!(self + TIR_CONTEXT_break_dests, Vector[cstr]::new(0));
     u64!(self + TIR_CONTEXT_conti_dests, Vector[cstr]::new(0));
+    u64!(self + TIR_CONTEXT_tuple_lits, Vector[TupleLiteral&]::new(0));
     return cast(self, ir_context);
 end
 
 def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector[ir_instr]&); end
+def ir_tuples self: ir_context in return cast(u64@(self + TIR_CONTEXT_tuple_lits), Vector[TupleLiteral&]&); end
 def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
 def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
 def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
@@ -920,6 +936,13 @@ def ir_string_label self, string in
     ir_labels(self).insert(label);
     map_set(strings, string, label);
 
+    return label;
+end
+
+def ir_tuple_label self, slots in
+    var label = ir_new_label(self, "T");
+    ir_labels(self).insert(label);
+    ir_tuples(self).push(TupleLiteral::new(label, slots));
     return label;
 end
 
@@ -2076,6 +2099,47 @@ def ir_emit_offsetof self, ast, st, tt in
     ir_append(self, make_ir_push_int(bit_offset / BYTE_BITS));
 end
 
+def ir_emit_tuple_literal self, ast, st, tt in
+    check_ast_kind(AstK::TupleLiteral, ast);
+    // allocate N+1 slots in data section
+    var len = ast.u.tuple_literal.args.length;
+    var tuple_label = ir_tuple_label(self, len);
+    ir_append(self, make_ir_push_int(len));
+    ir_append(self, make_ir_push_label(tuple_label));
+    ir_append(self, make_ir_ptr_write(INT_BITS));
+
+    if len != 0 then
+        var i = 0;
+        while i < len do
+            ir_compile(self, ast.u.tuple_literal.args.get(i), st, tt);
+            ir_append(self, make_ir_push_label(tuple_label));
+            ir_append(self, make_ir_ptr_offs((1 + i) * PTR_BITS));
+            ir_append(self, make_ir_ptr_write(PTR_BITS));
+            i += 1;
+        end
+    end
+
+    ir_append(self, make_ir_push_label(tuple_label));
+end
+
+def ir_emit_tuple_length self, ast, st, tt in
+    check_ast_kind(AstK::TupleLength, ast);
+    ir_compile(self, ast.u.tuple_length.expr, st, tt);
+    ir_append(self, make_ir_ptr_read(INT_BITS));
+end
+
+def ir_emit_tuple_get self, ast, st, tt in
+    check_ast_kind(AstK::TupleGet, ast);
+    ir_compile(self, ast.u.tuple_get.idx, st, tt);
+    ir_append(self, make_ir_push_int(1));
+    ir_append(self, make_ir_simple_op(IRK_OpAdd)); // N+1
+    ir_append(self, make_ir_push_int(8));
+    ir_append(self, make_ir_simple_op(IRK_OpMul)); // (N+1) * 8
+    ir_compile(self, ast.u.tuple_get.expr, st, tt);
+    ir_append(self, make_ir_simple_op(IRK_OpAdd));
+    ir_append(self, make_ir_ptr_read(INT_BITS));
+end
+
 def ir_compile self: ir_context, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     // comptime eval will just return back the ast node if it's not evaluable
     assert(ast);
@@ -2115,6 +2179,9 @@ def ir_compile self: ir_context, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::SizeofType then ir_emit_sizeof_type(self, ev_ast, st, tt);
     elif k == AstK::StaticAssert then ir_emit_static_assert(self, ev_ast, st, tt);
     elif k == AstK::OffsetOf then ir_emit_offsetof(self, ev_ast, st, tt);
+    elif k == AstK::TupleLiteral then ir_emit_tuple_literal(self, ev_ast, st, tt);
+    elif k == AstK::TupleLength then ir_emit_tuple_length(self, ev_ast, st, tt);
+    elif k == AstK::TupleGet then ir_emit_tuple_get(self, ev_ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

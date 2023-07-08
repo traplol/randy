@@ -39,6 +39,9 @@ enum AstK in
     Union;
     StaticAssert;
     OffsetOf;
+    TupleLiteral;
+    TupleLength; // not directly created from source code
+    TupleGet; // not directly created from source code
 end
 
 def ast_kind_cstr k: AstK in
@@ -76,6 +79,9 @@ def ast_kind_cstr k: AstK in
     if k == AstK::Union then return "AstK::Union"; end
     if k == AstK::StaticAssert then return "AstK::StaticAssert"; end
     if k == AstK::OffsetOf then return "AstK::OffsetOf"; end
+    if k == AstK::TupleLiteral then return "AstK::TupleLiteral"; end
+    if k == AstK::TupleLength then return "AstK::TupleLength"; end
+    if k == AstK::TupleGet then return "AstK::TupleGet"; end
     return "AstK::OUT_OF_RANGE";
 end
 
@@ -199,6 +205,17 @@ struct Ast in
         scope_resolve: struct in
             lhs: Ast&;
             rhs: Ast&;
+        end
+        tuple_literal: struct in
+            type: Type&;
+            args: Vector[Ast&]&;
+        end
+        tuple_length: struct in
+            expr: Ast&;
+        end
+        tuple_get: struct in
+            expr: Ast&;
+            idx: Ast&;
         end
     end
 
@@ -509,6 +526,16 @@ struct Ast in
         return self;
     end
 
+    def new_tuple_literal token: Token&, args: Vector[Ast&]& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::TupleLiteral;
+        self.is_expr = true;
+        self.token = token;
+        self.u.tuple_literal.type = NULL;
+        self.u.tuple_literal.args = args;
+        return self;
+    end
+
     def new_break token: Token& in
         var self = cast(calloc(1, __sizeof(Ast)), Ast&);
         self.kind = AstK::Break;
@@ -537,6 +564,7 @@ end
 
 def ast_change_sizeof_expr_to_type self: Ast&, type: Type& in
     assert(self.kind == AstK::SizeofExpr);
+    self.is_expr = true;
     self.kind = AstK::SizeofType;
     self.u.sizeof.type = type;
 end
@@ -548,8 +576,27 @@ def ast_change_member_access_to_scope_access self: Ast&, type: Type&, member: Sy
     var lhs = Ast::new_type(self.token, type);
     var rhs = Ast::new_ident(self.token, member.name);
 
+    self.is_expr = true;
     self.u.scope_resolve.lhs = lhs;
     self.u.scope_resolve.rhs = rhs;
+end
+
+def ast_change_member_access_to_tuple_length self: Ast& in
+    assert(self.kind == AstK::MemberAccess);
+    self.kind = AstK::TupleLength;
+    self.is_expr = true;
+    var expr = self.u.member_access.expr;
+    self.u.tuple_length.expr = expr;
+end
+
+def ast_change_member_access_to_tuple_get self: Ast& in
+    assert(self.kind == AstK::MemberAccess);
+    self.kind = AstK::TupleGet;
+    self.is_expr = true;
+    var expr = self.u.member_access.expr;
+    self.u.tuple_get.expr = expr;
+    // the idx is set at call inference
+    self.u.tuple_get.idx = NULL;
 end
 
 def ast_src_loc self: Ast& in
@@ -826,6 +873,28 @@ def _print_ast_static_assert ast, indent in
     printf(")");
 end
 
+def _print_ast_tuple_literal ast, indent in
+    printf("{ ");
+    _print_args(ast.u.tuple_literal.args, indent);
+    printf(" }");
+end
+
+def _print_ast_tuple_length ast, indent in
+    _print_ast(ast.u.tuple_length.expr, indent);
+    printf(".length");
+end
+
+def _print_ast_tuple_get ast, indent in
+    _print_ast(ast.u.tuple_get.expr, indent);
+    printf(".get(");
+    if ast.u.tuple_get.idx then
+        _print_ast(ast.u.tuple_get.idx, indent);
+    else
+        printf("{null}");
+    end
+    printf(")");
+end
+
 def _print_ast_cast ast, indent in
     printf("cast(");
     _print_ast(ast.u.cast_.expr, indent);
@@ -982,6 +1051,9 @@ def _print_ast ast, indent in
     elif k == AstK::Union then _print_ast_union(ast, indent);
     elif k == AstK::StaticAssert then _print_ast_static_assert(ast, indent);
     elif k == AstK::OffsetOf then _print_ast_offsetof(ast, indent);
+    elif k == AstK::TupleLiteral then _print_ast_tuple_literal(ast, indent);
+    elif k == AstK::TupleLength then _print_ast_tuple_length(ast, indent);
+    elif k == AstK::TupleGet then _print_ast_tuple_get(ast, indent);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

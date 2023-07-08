@@ -55,6 +55,8 @@ def _compile_order_visit tt, st, stmt, seen, order in
         if type then
             _compile_order_visit_type(tt, st, type, seen, order);
         end
+    elif k == AstK::TupleLiteral then
+        _compile_order_visit_vector(tt, st, stmt.u.tuple_literal.args, seen, order);
     end
 end
 

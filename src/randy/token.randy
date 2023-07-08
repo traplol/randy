@@ -85,6 +85,8 @@ enum TK in
     RSquare;
     Dot;
     ColonColon;
+    LCurly;
+    RCurly;
 end
 
 def token_kind_cstr k: TK -> cstr in
@@ -172,6 +174,8 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::ColonColon then return "TK::ColonColon";
     elif k == TK::KW_u! then return "TK::KW_u!";
     elif k == TK::KW_u@ then return "TK::KW_u@";
+    elif k == TK::LCurly then return "TK::LCurly";
+    elif k == TK::RCurly then return "TK::RCurly";
     else return "TK_OUT_OF_RANGE"; end
 end
 

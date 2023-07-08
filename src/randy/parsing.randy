@@ -421,6 +421,14 @@ def parse_static_assert ts, st, tt in
     return Ast::new_static_assert(static_assert_, assert_args);
 end
 
+def parse_tuple_literal ts, st, tt in
+    var lcur = ts.expect(TK::LCurly);
+    var args = Vector[Ast&]::new(0);
+    parse_args_until(ts, st, tt, args, TK::RCurly);
+    ts.expect(TK::RCurly);
+    return Ast::new_tuple_literal(lcur, args);
+end
+
 def parse_primary ts, st, tt -> Ast& in
     var peek = ts.peek();
     if not peek then
@@ -467,6 +475,8 @@ def parse_primary ts, st, tt -> Ast& in
         return parse_offsetof(ts, st, tt);
     elif k == TK::KW__sizeof then
         return parse_sizeof(ts, st, tt);
+    elif k == TK::LCurly then
+        return parse_tuple_literal(ts, st, tt);
     end
     return NULL;
 end
@@ -872,14 +882,19 @@ def parse_def ts, st, tt in
             exit(1);
         end
         param_symbol = st_make_param(st, param_id.value, param_id);
-        params.push(symbol_name(param_symbol));
+        params.push(param_symbol.name);
         param_symbols.push(param_symbol);
         if ts.peekk(TK::KW_in) then
-            symbol_set_type(param_symbol, any_type);
+            param_symbol.type = any_type;
+            break;
+        elif ts.peekk(TK::Ellipsis) then
             break;
         elif ts.accept(TK::Colon) then
-            symbol_set_type(param_symbol, parse_type(ts, st, tt, true));
+            param_symbol.type = parse_type(ts, st, tt, true);
             if ts.peekk(TK::KW_in) then
+                break;
+            end
+            if ts.peekk(TK::Ellipsis) then
                 break;
             end
             if ts.peekk(TK::RightArrow) then
@@ -887,13 +902,30 @@ def parse_def ts, st, tt in
             end
             ts.expect(TK::Comma);
         elif ts.peekk(TK::RightArrow) then
-            symbol_set_type(param_symbol, any_type);
+            param_symbol.type = any_type;
             break;
         else
-            symbol_set_type(param_symbol, any_type);
+            param_symbol.type = any_type;
             ts.expect(TK::Comma);
         end
     end
+
+    var varargs = false;
+    if ts.accept(TK::Ellipsis) then
+        varargs = true;
+        var va_id = ts.expect(TK::Ident);
+        var va_symbol = st_get_symbol_here(st, va_id.value);
+        if va_symbol then
+            printf("ERROR: varargs param `%s` already defined.\n", va_id.value);
+            print_token_loc(va_id);
+            exit(1);
+        end
+        va_symbol = st_make_param(st, va_id.value, va_id);
+        va_symbol.type = any_type;
+        params.push(va_symbol.name);
+        param_symbols.push(va_symbol);
+    end
+
     var return_type = any_type;
     if ts.accept(TK::RightArrow) then
         return_type = parse_type(ts, st, tt, true);
@@ -903,18 +935,18 @@ def parse_def ts, st, tt in
     var param_types = Vector[Type&]::new(param_symbols.length);
     var i = 0; var len = param_symbols.length;
     while i < len do
-        param_types.push(symbol_type(param_symbols.get(i)));
+        param_types.push(param_symbols.get(i).type);
         i += 1;
     end
     param_symbols.delete();
-    var def_type = tt_make_anon_def(tt, return_type, param_types, false);
-    symbol_set_type(def_symbol, def_type);
+    var def_type = tt_make_anon_def(tt, return_type, param_types, varargs);
+    def_symbol.type = def_type;
 
     parse_statements_until(ts, st, tt, body, TK::KW_end);
     ts.expect(TK::KW_end);
     st_pop_scope(st);
-    var ast = Ast::new_def(def_, symbol_name(def_symbol), params, body);
-    type_set_ast(def_type, ast);
+    var ast = Ast::new_def(def_, def_symbol.name, params, body);
+    def_type.ast = ast;
     return ast;
 end
 

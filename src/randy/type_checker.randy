@@ -577,6 +577,34 @@ def tc_check_static_assert self, tt, st, ast in
     end
 end
 
+def tc_check_tuple_literal self, tt, st, ast in
+    check_ast_kind(AstK::TupleLiteral, ast);
+    assert(ast.u.tuple_literal.type, "Compiler bug: Tuple literal with no type\n");
+    var i = 0; var len = ast.u.tuple_literal.args.length;
+    while i < len do
+        tc_check(self, tt, st, ast.u.tuple_literal.args.get(i));
+        i += 1;
+    end
+end
+
+def tc_check_tuple_length self, tt, st, ast in
+    check_ast_kind(AstK::TupleLength, ast);
+    tc_check(self, tt, st, ast.u.tuple_length.expr);
+    var type = tt_get_ast_type(tt, ast.u.tuple_length.expr);
+    assert(type_is_tuple(type), "Compiler bug: inferred TupleLength from non-tuple expr.\n");
+end
+
+def tc_check_tuple_get self, tt, st, ast in
+    check_ast_kind(AstK::TupleGet, ast);
+    tc_check(self, tt, st, ast.u.tuple_get.expr);
+    tc_check(self, tt, st, ast.u.tuple_get.idx);
+    var tup_type = tt_get_ast_type(tt, ast.u.tuple_get.expr);
+    assert(type_is_tuple(tup_type), "Compiler bug: inferred TupleLength from non-tuple expr.\n");
+    assert(ast.u.tuple_get.idx != NULL);
+    var idx_type = tt_get_ast_type(tt, ast.u.tuple_get.idx);
+    _tc_check_is_int_like(tt, ast, idx_type);
+end
+
 def tc_check self, tt, st, ast in
     var k = ast.kind;
     if k == AstK::Ident then tc_check_ident(self, tt, st, ast);
@@ -613,6 +641,9 @@ def tc_check self, tt, st, ast in
     elif k == AstK::Union then // nothing
     elif k == AstK::StaticAssert then tc_check_static_assert(self, tt, st, ast);
     elif k == AstK::OffsetOf then tc_check_offsetof(self, tt, st, ast);
+    elif k == AstK::TupleLiteral then tc_check_tuple_literal(self, tt, st, ast);
+    elif k == AstK::TupleLength then tc_check_tuple_length(self, tt, st, ast);
+    elif k == AstK::TupleGet then tc_check_tuple_get(self, tt, st, ast);
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

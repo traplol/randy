@@ -246,6 +246,12 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
             elif c == ']' then
                 tokens.push(make_token(TK::RSquare, "]", "]", line_no, filename));
                 i += 1;
+            elif c == '{' then
+                tokens.push(make_token(TK::LCurly, "{", "{", line_no, filename));
+                i += 1;
+            elif c == '}' then
+                tokens.push(make_token(TK::RCurly, "}", "}", line_no, filename));
+                i += 1;
             elif c == '+' then
                 if code.get(i + 1) == '=' then
                     tokens.push(make_token(TK::PlusEq, "+=", "+=", line_no, filename));

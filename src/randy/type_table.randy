@@ -46,35 +46,10 @@ enum TypeKind in
     Enum;
     Union;
     GenericParam;
+    Tuple;
 end
 
 struct Type in
-    struct Def in
-        return_type: Type&;
-        parameters: Vector[Type&]&;
-        varargs: bool;
-    end
-
-    struct Struct in
-        fields: Vector[Field&]&;
-        defs: Vector[Symbol&]&;
-    end
-
-    struct Enum in
-        values: Vector[EnumValue&]&;
-    end
-
-    struct Union in
-        fields: Vector[Field&]&;
-    end
-
-    union u in
-        deref_type: Type&;
-        def_: Def;
-        struct_: Struct;
-        enum_: Enum;
-        union_: Union;
-    end
 
     kind: TypeKind;
     id: int;
@@ -86,16 +61,38 @@ struct Type in
     instances: Vector[Type&]&;
     scope: TypeScope&;
     enclosed: Type&;
-    u: u;
+    u: union in
+        deref_type: Type&;
+        tuple: Vector[Type&]&;
+
+        def_: struct in
+            return_type: Type&;
+            parameters: Vector[Type&]&;
+            varargs: bool;
+        end
+
+        struct_: struct in
+            fields: Vector[Field&]&;
+            defs: Vector[Symbol&]&;
+        end
+
+        enum_: struct in
+            values: Vector[EnumValue&]&;
+        end
+
+        union_: struct in
+            fields: Vector[Field&]&;
+        end
+    end
 end
 
 const TYPE_NEEDS_SIZING = (1<<32)-1;
 
-def make_type kind: TypeKind, id: int, scope: TypeScope& -> Type& in
+def make_type kind: TypeKind, id: int, scope: TypeScope&, size: int -> Type& in
     var self = cast(calloc(1, __sizeof(Type)), Type&);
     self.kind = kind;
     self.id = id;
-    self.size = TYPE_NEEDS_SIZING;
+    self.size = size;
     self.is_generic = false;
     self.scope = scope;
     if scope then
@@ -105,17 +102,17 @@ def make_type kind: TypeKind, id: int, scope: TypeScope& -> Type& in
 end
 
 def make_type_undefined id: int, scope: TypeScope& in
-    return make_type(TypeKind::Undefined, id, scope);
+    return make_type(TypeKind::Undefined, id, scope, TYPE_NEEDS_SIZING);
 end
 
 def make_type_reference id: int, type: Type& in
-    var self = make_type(TypeKind::Reference, id, type_scope(type));
+    var self = make_type(TypeKind::Reference, id, type_scope(type), PTR_BITS);
     self.u.deref_type = type;
     return self;
 end
 
 def make_type_def id: int, scope: TypeScope&, return_type: Type&, param_types: Vector[Type&]&, varargs: bool in
-    var self = make_type(TypeKind::Def, id, scope);
+    var self = make_type(TypeKind::Def, id, scope, PTR_BITS);
     self.u.def_.return_type = return_type;
     self.u.def_.parameters = param_types;
     self.u.def_.varargs = varargs;
@@ -123,21 +120,27 @@ def make_type_def id: int, scope: TypeScope&, return_type: Type&, param_types: V
 end
 
 def make_type_struct id: int, scope: TypeScope&, fields: Vector[Field&]&, defs: Vector[Symbol&]& in
-    var self = make_type(TypeKind::Struct, id, scope);
+    var self = make_type(TypeKind::Struct, id, scope, TYPE_NEEDS_SIZING);
     self.u.struct_.fields = fields;
     self.u.struct_.defs = defs;
     return self;
 end
 
 def make_type_enum id: int, scope: TypeScope&, enum_values: Vector[EnumValue&]& in
-    var self = make_type(TypeKind::Enum, id, scope);
+    var self = make_type(TypeKind::Enum, id, scope, INT_BITS);
     self.u.enum_.values = enum_values;
     return self;
 end
 
 def make_type_union id: int, scope: TypeScope&, fields: Vector[Field&]& in
-    var self = make_type(TypeKind::Union, id, scope);
+    var self = make_type(TypeKind::Union, id, scope, TYPE_NEEDS_SIZING);
     self.u.union_.fields = fields;
+    return self;
+end
+
+def make_type_tuple id: int, scope: TypeScope&, types: Vector[Type&]& in
+    var self = make_type(TypeKind::Tuple, id, scope, PTR_BITS);
+    self.u.tuple = types;
     return self;
 end
 
@@ -183,16 +186,17 @@ def type_set_struct_defs self: Type&, defs: Vector[Symbol&]& in self.u.struct_.d
 def type_set_enum_values self: Type&, values: Vector[EnumValue&]& in self.u.enum_.values = values; end
 def type_set_union_fields self: Type&, fields: Vector[Field&]& in self.u.union_.fields = fields; end
 
-def type_is_undefined self: Type& in return type_kind(self) == TypeKind::Undefined; end
-def type_is_void self: Type& in return type_kind(self) == TypeKind::Void; end
-def type_is_any self: Type& in return type_kind(self) == TypeKind::Any; end
-def type_is_int_like self: Type& in return type_kind(self) == TypeKind::Int_like; end
-def type_is_reference self: Type& in return type_kind(self) == TypeKind::Reference; end
-def type_is_struct self: Type& in return type_kind(self) == TypeKind::Struct; end
-def type_is_def self: Type& in return type_kind(self) == TypeKind::Def; end
-def type_is_enum self: Type& in return type_kind(self) == TypeKind::Enum; end
-def type_is_union self: Type& in return type_kind(self) == TypeKind::Union; end
-def type_is_generic_param self: Type& in return type_kind(self) == TypeKind::GenericParam; end
+def type_is_undefined self: Type& in return self.kind == TypeKind::Undefined; end
+def type_is_void self: Type& in return self.kind == TypeKind::Void; end
+def type_is_any self: Type& in return self.kind == TypeKind::Any; end
+def type_is_int_like self: Type& in return self.kind == TypeKind::Int_like; end
+def type_is_reference self: Type& in return self.kind == TypeKind::Reference; end
+def type_is_struct self: Type& in return self.kind == TypeKind::Struct; end
+def type_is_def self: Type& in return self.kind == TypeKind::Def; end
+def type_is_enum self: Type& in return self.kind == TypeKind::Enum; end
+def type_is_union self: Type& in return self.kind == TypeKind::Union; end
+def type_is_generic_param self: Type& in return self.kind == TypeKind::GenericParam; end
+def type_is_tuple self: Type& in return self.kind == TypeKind::Tuple; end
 
 def type_is_scalar self: Type& in
     if type_is_int_like(self) then
@@ -256,6 +260,9 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
     if type_is_int_like(lhs) and type_is_int_like(rhs) then
         return true;
     end
+    if type_is_tuple(lhs) and type_is_tuple(rhs) then
+        return true;
+    end
 
     if lhs == ptr and rhs == cstr then
         return true;
@@ -307,24 +314,23 @@ end
 struct TypeTable in
     type_scope: TypeScope&;
     top_type_scope: map; // fast reference to the top-level type scope.
-    all_types: Vector[Type&]&;  // type Vector& : all types; type_id is index into this Vector&
-    names: Vector[cstr]&;  // cstr Vector& : type_id is index into this Vector&, may have NULLs
-    ast_types: map;  // (ast, type) map : ast -> type
+    all_types: Vector[Type&]&;  // all types; type_id is index into this Vector&
+    names: Vector[cstr]&;  // type_id is index into this Vector&, may have NULLs
     type_substitutes: map; // (type, type) map : replace the key type with val type
-    void_type: Type&; // fast ref to `void` type
-    any_type: Type&;  // fast ref to `any` type
-    int_type: Type&;  // fast ref to `int` type
-    char_type: Type&; // fast ref to `char` type
-    ptr_type: Type&;  // fast ref to `ptr` type
-    cstr_type: Type&; // fast ref to `cstr` type
-    bool_type: Type&; // fast ref to `bool` type
-    made_change: bool;
+    void_type: Type&;
+    any_type: Type&;
+    int_type: Type&;
+    char_type: Type&;
+    ptr_type: Type&;
+    cstr_type: Type&;
+    bool_type: Type&;
+    ast_types: map;    // (ast, type) map : ast -> type
+    made_change: bool; // where any changes to the ast_types map made?
 end
 
 def _tt_make_type tyk, name, size, type_ids, types, names, scope in
     var type_idx = types.length;
-    var t = make_type(tyk, type_idx, scope);
-    type_set_size(t, size);
+    var t = make_type(tyk, type_idx, scope, size);
     map_set(type_ids, name, type_idx);
     types.push(t);
     names.push(name);
@@ -335,7 +341,6 @@ def _tt_make_ref_type type, name, type_ids, types, names in
     assert(not type_ref_to_this(type));
     var type_idx = types.length;
     var t = make_type_reference(type_idx, type);
-    type_set_size(t, PTR_BITS);
     type_set_ref_to_this(type, t);
     if name then
         map_set(type_ids, name, type_idx);
@@ -716,6 +721,13 @@ end
 
 def tt_make_anon_union self, fields in
     var type = make_type_union(self.all_types.length, self.type_scope, fields);
+    self.all_types.push(type);
+    self.names.push(NULL);
+    return type;
+end
+
+def tt_make_tuple self, types in
+    var type = make_type_tuple(self.all_types.length, self.type_scope, types);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;

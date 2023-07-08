@@ -91,6 +91,21 @@ def ti_infer_call self, tt, st, ast -> Type& in
     end
     var call_type = ti_infer(self, tt, st, expr);
     var after_kind = expr.kind;
+
+    if after_kind == AstK::TupleGet then
+        ti_infer_vector(self, tt, st, ast.u.call.args);
+        if ast.u.call.args.length != 1 then
+            printf("ERROR: tuple.get expects exactly 1 argument got %d\n", ast.u.call.args.length);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        expr.u.tuple_get.idx = ast.u.call.args.get(0);
+        // This seems like a foot gun waiting to go off...
+        // not just the memcpy but also returning a `ptr` type.
+        memcpy(ast, expr, __sizeof(Ast));
+        return tt.ptr_type;
+    end
+
     // TODO: put this check in type checker
     if not type_is_def(call_type) then
         ti_infer_vector(self, tt, st, ast.u.call.args);
@@ -496,6 +511,14 @@ def ti_infer_member_access self, tt, st, ast in
         return type;
     elif type_is_union(type) then
         return _ti_get_union_field_type(type, member);
+    elif type_is_tuple(type) then
+        if cstr_eq("length", member) then
+            ast_change_member_access_to_tuple_length(ast);
+            ftype = tt.int_type;
+        elif cstr_eq("get", member) then
+            ast_change_member_access_to_tuple_get(ast);
+            ftype = tt.any_type;
+        end
     else
         ftype = tt.any_type; // let it get resolved again later
     end
@@ -556,6 +579,49 @@ def ti_infer_offsetof self, tt, st, ast in
     return tt.int_type;
 end
 
+def ti_infer_tuple_literal self, tt, st, ast in
+    check_ast_kind(AstK::TupleLiteral, ast);
+    var types: Vector[Type&]& = NULL;
+
+    if ast.u.tuple_literal.type then
+        assert(ast.u.tuple_literal.type.kind == TypeKind::Tuple);
+        types = ast.u.tuple_literal.type.u.tuple;
+    else
+        types = Vector[Type&]::new(ast.u.tuple_literal.args.length);
+        ast.u.tuple_literal.type = tt_make_tuple(tt, types);
+        var i = 0; var len = ast.u.tuple_literal.args.length;
+        while i < len do
+            types.push(tt.any_type);
+            i += 1;
+        end
+    end
+
+    assert(types.length == ast.u.tuple_literal.args.length);
+    var i = 0; var len = ast.u.tuple_literal.args.length;
+    while i < len do
+        var type = ti_infer(self, tt, st, ast.u.tuple_literal.args.get(i));
+        var lhs_type = types.get(i);
+        if lhs_type == tt.any_type then
+            types.set(i, type);
+        end
+        i += 1;
+    end
+
+    return ast.u.tuple_literal.type;
+end
+
+def ti_infer_tuple_length self, tt, st, ast in
+    check_ast_kind(AstK::TupleLength, ast);
+    ti_infer(self, tt, st, ast.u.tuple_length.expr);
+    return tt.int_type;
+end
+
+def ti_infer_tuple_get self, tt, st, ast in
+    check_ast_kind(AstK::TupleGet, ast);
+    ti_infer(self, tt, st, ast.u.tuple_get.expr);
+    return tt.any_type;
+end
+
 def ti_infer self, tt, st, ast -> Type& in
     var k = ast.kind;
     var type: Type&;
@@ -594,6 +660,9 @@ def ti_infer self, tt, st, ast -> Type& in
     elif k == AstK::Union then type = tt.void_type;
     elif k == AstK::StaticAssert then type = ti_infer_static_assert(self, tt, st, ast);
     elif k == AstK::OffsetOf then type = ti_infer_offsetof(self, tt, st, ast);
+    elif k == AstK::TupleLiteral then type = ti_infer_tuple_literal(self, tt, st, ast);
+    elif k == AstK::TupleLength then type = ti_infer_tuple_length(self, tt, st, ast);
+    elif k == AstK::TupleGet then type = ti_infer_tuple_get(self, tt, st, ast);
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);
