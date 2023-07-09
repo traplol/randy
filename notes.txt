@@ -51,11 +51,11 @@ core:
     - [ ] fflush   - equiv to libc fflush
   - [ ] memcpy
   - [ ] memset
-  - [ ] rewrite with template structs
+  - [x] rewrite with template structs
     - [x] Vector
     - [x] Queue
     - [x] Hashmap
-    - [ ] Set
+    - [x] Set
 
 [x] self-host:
   - [x] lexing
@@ -76,7 +76,7 @@ features:
   - [~] full type checking
     - [x] basic type checking
     - [ ] remove `ptr`'s ability to auto-cast to reference types
-  - [ ] variadic functions
+  - [x] variadic functions
        - we could do this like C# or C++ variadiac templates in the form:
          ```
             def foo a, b, ...c in
