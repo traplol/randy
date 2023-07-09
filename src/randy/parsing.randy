@@ -177,7 +177,7 @@ def parse_if_else ts, st, tt, expect in
     ts.expect(TK::KW_then);
     var conseq = Vector[Ast&]::new(0);
     var altern = Vector[Ast&]::new(0);
-    parse_statements_until_one_of(ts, st, tt, conseq, TK::KW_elif, TK::KW_end, TK::KW_elif);
+    parse_statements_until(ts, st, tt, conseq, TK::KW_elif, TK::KW_end);
     // early end
     if ts.accept(TK::KW_end) then
         st_pop_scope(st);
@@ -536,7 +536,7 @@ def parse_postfix ts, st, tt in
         expr = parse_scope_resolve(ts, st, tt, expr);
     end
 
-    while ts.peekk_one_of_2(TK::LParen, TK::Dot) do
+    while ts.peekk_one_of(TK::LParen, TK::Dot) do
         var tk = ts.next();
         var k = tk.kind;
         if k == TK::LParen then
@@ -559,7 +559,7 @@ def parse_prefix ts, st, tt in
         return postfix;
     end
 
-    if ts.peekk_one_of_3(TK::Tilde, TK::KW_not, TK::Minus) then
+    if ts.peekk_one_of(TK::Tilde, TK::KW_not, TK::Minus) then
         var tok = ts.next();
         var expr = parse_prefix(ts, st, tt);
         return Ast::new_prefix(tok, tok.kind, expr);
@@ -574,7 +574,7 @@ def parse_binary_multiplicative ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts.peekk_one_of_3(TK::Star, TK::Slash, TK::Percent) do
+    while ts.peekk_one_of(TK::Star, TK::Slash, TK::Percent) do
         tok = ts.next();
         rhs = parse_prefix(ts, st, tt);
         if not rhs then
@@ -592,7 +592,7 @@ def parse_binary_additive ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts.peekk_one_of_2(TK::Plus, TK::Minus) do
+    while ts.peekk_one_of(TK::Plus, TK::Minus) do
         tok = ts.next();
         rhs = parse_binary_multiplicative(ts, st, tt);
         if not rhs then
@@ -610,7 +610,7 @@ def parse_binary_shift ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts.peekk_one_of_2(TK::LShift, TK::RShift) do
+    while ts.peekk_one_of(TK::LShift, TK::RShift) do
         tok = ts.next();
         rhs = parse_binary_additive(ts, st, tt);
         if not rhs then
@@ -628,7 +628,7 @@ def parse_binary_relational ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts.peekk_one_of_4(TK::Less, TK::Greater, TK::LessEq, TK::GreaterEq) do
+    while ts.peekk_one_of(TK::Less, TK::Greater, TK::LessEq, TK::GreaterEq) do
         tok = ts.next();
         rhs = parse_binary_shift(ts, st, tt);
         if not rhs then
@@ -646,7 +646,7 @@ def parse_binary_equality ts, st, tt in
     end
 
     var tok; var rhs;
-    while ts.peekk_one_of_2(TK::EqEq, TK::NotEq) do
+    while ts.peekk_one_of(TK::EqEq, TK::NotEq) do
         tok = ts.next();
         rhs = parse_binary_relational(ts, st, tt);
         if not rhs then
@@ -778,7 +778,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     elif ts.peekk(TK::KW_static_assert) then
         stmt = parse_static_assert(ts, st, tt);
         expect_semi = true;
-    elif ts.peekk_one_of_5(TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
+    elif ts.peekk_one_of(TK::KW_u!, TK::KW_u8!, TK::KW_u16!, TK::KW_u32!, TK::KW_u64!) then
         stmt = parse_pointer_op(ts, st, tt);
         expect_semi = true;
     else
@@ -820,29 +820,14 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     return stmt;
 end
 
-def parse_statements_until ts, st, tt, into, kind in
-    if ts.peekk(kind) then
+def parse_statements_until ts, st, tt, into, kind, ...kinds in
+    if ts.peekk_one_of(kind, kinds) then
         return;
     end
     var stmt = parse_statement(ts, st, tt);
     while stmt do
         into.push(stmt);
-        if ts.peekk(kind) then
-            stmt = NULL;
-        else
-            stmt = parse_statement(ts, st, tt);
-        end
-    end
-end
-
-def parse_statements_until_one_of ts, st, tt, into, k1, k2, k3 in
-    if ts.peekk_one_of_3(k1, k2, k3) then
-        return;
-    end
-    var stmt = parse_statement(ts, st, tt);
-    while stmt do
-        into.push(stmt);
-        if ts.peekk_one_of_3(k1, k2, k3) then
+        if ts.peekk_one_of(kind, kinds) then
             stmt = NULL;
         else
             stmt = parse_statement(ts, st, tt);

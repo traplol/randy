@@ -50,7 +50,6 @@ enum TypeKind in
 end
 
 struct Type in
-
     kind: TypeKind;
     id: int;
     size: int32;

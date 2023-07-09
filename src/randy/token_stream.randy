@@ -25,40 +25,23 @@ struct TokenStream in
         return peek.kind == kind;
     end
 
-    def peekk_one_of_2 self: TokenStream&, k1: TK, k2: TK -> bool in
+    def peekk_one_of self: TokenStream&, tk: TK, ...tks in
         var peek = self.peek();
         if not peek then
             return false;
         end
-        var tk = peek.kind;
-        return tk == k1 or tk == k2;
-    end
-
-    def peekk_one_of_3 self: TokenStream&, k1: TK, k2: TK, k3: TK -> bool in
-        var peek = self.peek();
-        if not peek then
-            return false;
+        var k = peek.kind;
+        if tk == k then
+            return true;
         end
-        var tk = peek.kind;
-        return tk == k1 or tk == k2 or tk == k3;
-    end
-
-    def peekk_one_of_4 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK -> bool in
-        var peek = self.peek();
-        if not peek then
-            return false;
+        var i = 0;
+        while i < tks.length do
+            if tks.get(i) == k then
+                return true;
+            end
+            i += 1;
         end
-        var tk = peek.kind;
-        return tk == k1 or tk == k2 or tk == k3 or tk == k4;
-    end
-
-    def peekk_one_of_5 self: TokenStream&, k1: TK, k2: TK, k3: TK, k4: TK, k5: TK -> bool in
-        var peek = self.peek();
-        if not peek then
-            return false;
-        end
-        var tk = peek.kind;
-        return tk == k1 or tk == k2 or tk == k3 or tk == k4 or tk == k5;
+        return false;
     end
 
     def next self: TokenStream& -> Token& in
