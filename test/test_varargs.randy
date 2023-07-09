@@ -49,6 +49,19 @@ end
 def no_args ...args in
 end
 
+def mono_type ...args: int in
+    if args.length == 0 then
+        printf("empty args\n");
+        return;
+    end
+    var i = 0;
+    while i < args.length do
+        var xx = args.get(i);
+        printf("args.get(%d) = %d\n", i, xx);
+        i += 1;
+    end
+end
+
 def main in
     no_args();
     var stdout = open_for_write("/dev/stdout");
@@ -57,5 +70,10 @@ def main in
     my_print(stdout, "hello %s %% %c%c", { "world", 65, 10 });
     my_print(stdout, "hello %d %S\n", 42, String::new_from_cstr("this is a String&!"));
     close(stdout);
+
+    mono_type();
+    mono_type(10);
+    mono_type(10, 20);
+    mono_type(10, 20, 30);
     return 0;
 end

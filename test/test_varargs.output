@@ -1,4 +1,7 @@
-nothing special
-hello world 1
-hello world % A
-hello 42 this is a String&!
+empty args
+args.get(0) = 10
+args.get(0) = 10
+args.get(1) = 20
+args.get(0) = 10
+args.get(1) = 20
+args.get(2) = 30

@@ -160,7 +160,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
 
     if call_symbol then
         if call_type.u.def_.varargs then
-            if param_types.length > 0 and param_types.back() == tt.empty_tuple then
+            if param_types.length > 0 and type_is_empty_tuple(param_types.back()) then
                 var n_varargs = args.length - (param_types.length - 1);
                 if n_varargs == 1 and type_is_tuple(ti_infer(self, tt, st, args.back())) then
                     // nothing to do because the last arg is a tuple and the function is a randy
@@ -609,10 +609,10 @@ def ti_infer_tuple_literal self, tt, st, ast in
 
     if ast.u.tuple_literal.type then
         assert(ast.u.tuple_literal.type.kind == TypeKind::Tuple);
-        types = ast.u.tuple_literal.type.u.tuple;
+        types = ast.u.tuple_literal.type.u.tuple.types;
     else
         types = Vector[Type&]::new(ast.u.tuple_literal.args.length);
-        ast.u.tuple_literal.type = tt_make_tuple(tt, types);
+        ast.u.tuple_literal.type = tt_make_tuple(tt, types, NULL);
         var i = 0; var len = ast.u.tuple_literal.args.length;
         while i < len do
             types.push(tt.any_type);
@@ -642,8 +642,16 @@ end
 
 def ti_infer_tuple_get self, tt, st, ast in
     check_ast_kind(AstK::TupleGet, ast);
-    ti_infer(self, tt, st, ast.u.tuple_get.expr);
-    return tt.any_type;
+    var type = ti_infer(self, tt, st, ast.u.tuple_get.expr);
+    if ast.u.tuple_get.idx != NULL then
+        ti_infer(self, tt, st, ast.u.tuple_get.idx);
+    end
+
+    if type_is_tuple(type) and type.u.tuple.mono_type then
+        return type.u.tuple.mono_type;
+    else
+        return tt.any_type;
+    end
 end
 
 def ti_infer self, tt, st, ast -> Type& in

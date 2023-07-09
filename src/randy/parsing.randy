@@ -906,7 +906,12 @@ def parse_def ts, st, tt in
             exit(1);
         end
         va_symbol = st_make_param(st, va_id.value, va_id);
-        va_symbol.type = tt.empty_tuple;
+        if ts.accept(TK::Colon) then
+            var mono_type = parse_type(ts, st, tt, true);
+            va_symbol.type = tt_make_tuple(tt, Vector[Type&]::new(0), mono_type);
+        else
+            va_symbol.type = tt.empty_tuple;
+        end
         params.push(va_symbol.name);
         param_symbols.push(va_symbol);
     end

@@ -62,7 +62,10 @@ struct Type in
     enclosed: Type&;
     u: union in
         deref_type: Type&;
-        tuple: Vector[Type&]&;
+        tuple: struct in
+            types: Vector[Type&]&;
+            mono_type: Type&;
+        end
 
         def_: struct in
             return_type: Type&;
@@ -137,9 +140,16 @@ def make_type_union id: int, scope: TypeScope&, fields: Vector[Field&]& in
     return self;
 end
 
-def make_type_tuple id: int, scope: TypeScope&, types: Vector[Type&]& in
+def make_type_tuple id: int, scope: TypeScope&, types: Vector[Type&]&, mono_type: Type& in
     var self = make_type(TypeKind::Tuple, id, scope, PTR_BITS);
-    self.u.tuple = types;
+    self.u.tuple.types = types;
+    self.u.tuple.mono_type = mono_type;
+    if mono_type != NULL then
+        var i = 0; var len = types.length;
+        while i < len do
+            assert(types.get(i) == mono_type, "Compiler bug: a mono-type tuple does't have a mono-type list.\n");
+        end
+    end
     return self;
 end
 
@@ -196,6 +206,10 @@ def type_is_enum self: Type& in return self.kind == TypeKind::Enum; end
 def type_is_union self: Type& in return self.kind == TypeKind::Union; end
 def type_is_generic_param self: Type& in return self.kind == TypeKind::GenericParam; end
 def type_is_tuple self: Type& in return self.kind == TypeKind::Tuple; end
+
+def type_is_empty_tuple self: Type& in
+    return self.kind == TypeKind::Tuple and self.u.tuple.types.length == 0;
+end
 
 def type_is_scalar self: Type& in
     if type_is_int_like(self) then
@@ -260,6 +274,15 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
         return true;
     end
     if type_is_tuple(lhs) and type_is_tuple(rhs) then
+        if lhs.u.tuple.mono_type != NULL then
+            var i = 0; var len = rhs.u.tuple.types.length;
+            while i < len do
+                if rhs.u.tuple.types.get(i) != lhs.u.tuple.mono_type then
+                    return false;
+                end
+                i += 1;
+            end
+        end
         return true;
     end
 
@@ -395,7 +418,7 @@ def make_type_table -> TypeTable& in
     _tt_make_type(TypeKind::Int_like, "int16", 16, type_ids, types, names, self.type_scope);
     _tt_make_type(TypeKind::Int_like, "int32", 32, type_ids, types, names, self.type_scope);
 
-    self.empty_tuple = tt_make_tuple(self, Vector[Type&]::new(0));
+    self.empty_tuple = tt_make_tuple(self, Vector[Type&]::new(0), NULL);
     return self;
 end
 
@@ -727,8 +750,8 @@ def tt_make_anon_union self, fields in
     return type;
 end
 
-def tt_make_tuple self, types in
-    var type = make_type_tuple(self.all_types.length, self.type_scope, types);
+def tt_make_tuple self, types, mono_type in
+    var type = make_type_tuple(self.all_types.length, self.type_scope, types, mono_type);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
@@ -760,6 +783,10 @@ def _tt_append_type_repr self, string, type in
             string.append_cstr(name);
         elif type_is_tuple(deref_type) then
             string.append_cstr("tuple");
+            if deref_type.u.tuple.mono_type != NULL then
+                string.append_cstr(" of ");
+                _tt_append_type_repr(self, string, deref_type.u.tuple.mono_type);
+            end
         else
             string.append_cstr("<type id ");
             string.append_int(type_id(deref_type));
