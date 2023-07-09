@@ -820,7 +820,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     return stmt;
 end
 
-def parse_statements_until ts, st, tt, into, kind, ...kinds in
+def parse_statements_until ts, st, tt, into, kind, ...kinds: TK in
     if ts.peekk_one_of(kind, kinds) then
         return;
     end

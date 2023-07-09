@@ -25,7 +25,7 @@ struct TokenStream in
         return peek.kind == kind;
     end
 
-    def peekk_one_of self: TokenStream&, tk: TK, ...tks in
+    def peekk_one_of self: TokenStream&, tk: TK, ...tks: TK in
         var peek = self.peek();
         if not peek then
             return false;

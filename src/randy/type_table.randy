@@ -275,6 +275,21 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
     end
     if type_is_tuple(lhs) and type_is_tuple(rhs) then
         if lhs.u.tuple.mono_type != NULL then
+            // There's a weird interaction with this where you can trick the type system into
+            // passing a multi-type tuple into a mono-type tuple because there's no RTTI for
+            // tuples and the best we can do for varargs is to infer the varargs parameter as
+            // the empty tuple type.
+            // e.g.:
+            //
+            //     def foo_of_int ...args: int in
+            //         ...
+            //     end
+            //     def foo_of_any ...args in
+            //         foo_of_int(args)
+            //     end
+            //
+            // This effectively tricks the type system into allowing a call to foo_of_int
+            // with non-ints...
             var i = 0; var len = rhs.u.tuple.types.length;
             while i < len do
                 if rhs.u.tuple.types.get(i) != lhs.u.tuple.mono_type then
