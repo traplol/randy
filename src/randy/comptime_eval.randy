@@ -1,0 +1,448 @@
+
+struct Interp in
+    constants: Hashmap[cstr, Ast&, CstrHashCompare, CstrHashCompare]&;
+
+    def new in
+        var self = cast(malloc(__sizeof(Interp)), Interp&);
+        self.constants = Hashmap[cstr, Ast&, CstrHashCompare, CstrHashCompare]::new(0);
+        return self;
+    end
+
+    def is_const self, ident in
+        return self.constants.contains(ident);
+    end
+
+    def get_const self, ident in
+        return self.constants.find(ident).val;
+    end
+
+    def add_const self, ident, val in
+        self.constants.insert(ident, val);
+    end
+end
+
+def comptime_eval_vector interp, vector, st, tt, depth in
+    var i = 0; var len = vector.length;
+    while i < len do
+        var e = comptime_eval1(interp, vector.get(i), st, tt, depth);
+        vector.set(i, e);
+        i += 1;
+    end
+end
+
+def comptime_eval_ident interp, ast, st, tt, depth in
+    if interp.is_const(ast.u.ident) then
+        return interp.get_const(ast.u.ident);
+    else
+        return ast;
+    end
+end
+
+def comptime_eval_integer interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_string interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_call interp, ast, st, tt, depth in
+    ast.u.call.expr = comptime_eval1(interp, ast.u.call.expr, st, tt, depth);
+    comptime_eval_vector(interp, ast.u.call.args, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_binop interp, ast, st, tt, depth in
+    ast.u.binop.lhs = comptime_eval1(interp, ast.u.binop.lhs, st, tt, depth);
+    ast.u.binop.rhs = comptime_eval1(interp, ast.u.binop.rhs, st, tt, depth);
+    var lhs = ast.u.binop.lhs;
+    var rhs = ast.u.binop.rhs;
+    var op = ast.u.binop.op;
+
+    if op == TK::Plus  and _comptime_is_int(0, rhs) then return lhs; end // k + 0
+    if op == TK::Plus  and _comptime_is_int(0, lhs) then return rhs; end // 0 + k
+    if op == TK::Minus and _comptime_is_int(0, rhs) then return lhs; end // k - 0
+    if op == TK::Star  and _comptime_is_int(1, rhs) then return lhs; end // k * 1
+    if op == TK::Star  and _comptime_is_int(1, lhs) then return rhs; end // 1 * k
+    if op == TK::Slash and _comptime_is_int(1, rhs) then return lhs; end // k / 1
+
+    if lhs.kind == rhs.kind then
+        if lhs.kind == AstK::Integer and rhs.kind == AstK::Integer then
+            var lhs_val = lhs.u.integer;
+            var rhs_val = rhs.u.integer;
+            if op == TK::Plus then
+                return Ast::new_integer(ast.token, lhs_val + rhs_val);
+            elif op == TK::Minus then
+                return Ast::new_integer(ast.token, lhs_val - rhs_val);
+            elif op == TK::Star then
+                return Ast::new_integer(ast.token, lhs_val * rhs_val);
+            elif op == TK::Slash then
+                if rhs_val != 0 then
+                    return Ast::new_integer(ast.token, lhs_val / rhs_val);
+                end
+            elif op == TK::Percent then
+                if rhs_val != 0 then
+                    return Ast::new_integer(ast.token, lhs_val % rhs_val);
+                end
+            elif op == TK::Caret then
+                return Ast::new_integer(ast.token, lhs_val ^ rhs_val);
+            elif op == TK::Amper then
+                return Ast::new_integer(ast.token, lhs_val & rhs_val);
+            elif op == TK::Bar then
+                return Ast::new_integer(ast.token, lhs_val | rhs_val);
+            elif op == TK::LShift then
+                return Ast::new_integer(ast.token, lhs_val << rhs_val);
+            elif op == TK::RShift then
+                return Ast::new_integer(ast.token, lhs_val >> rhs_val);
+            elif op == TK::EqEq then
+                return Ast::new_integer(ast.token, lhs_val == rhs_val);
+            elif op == TK::NotEq then
+                return Ast::new_integer(ast.token, lhs_val != rhs_val);
+            elif op == TK::Less then
+                return Ast::new_integer(ast.token, lhs_val < rhs_val);
+            elif op == TK::LessEq then
+                return Ast::new_integer(ast.token, lhs_val <= rhs_val);
+            elif op == TK::Greater then
+                return Ast::new_integer(ast.token, lhs_val > rhs_val);
+            elif op == TK::GreaterEq then
+                return Ast::new_integer(ast.token, lhs_val >= rhs_val);
+            elif op == TK::KW_and then
+                return Ast::new_integer(ast.token, lhs_val and rhs_val);
+            elif op == TK::KW_or then
+                return Ast::new_integer(ast.token, lhs_val or rhs_val);
+            else
+                printf("WARN: comptime eval did you forget to implement binop for %s?\n",
+                    token_kind_cstr(op));
+                print_ast_src_loc(ast);
+            end
+        end
+    end
+    return ast;
+end
+
+def comptime_eval_return interp, ast, st, tt, depth in
+    if ast.u.return_ then
+        ast.u.return_ = comptime_eval1(interp, ast.u.return_, st, tt, depth);
+    end
+    return ast;
+end
+
+def comptime_eval_var_decl interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_var_assign interp, ast, st, tt, depth in
+    ast.u.var_assign.expr = comptime_eval1(interp, ast.u.var_assign.expr, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_def interp, ast, st, tt, depth in
+    comptime_eval_vector(interp, ast.u.def_.body, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_if_else interp, ast, st, tt, depth in
+    ast.u.if_else.test = comptime_eval1(interp, ast.u.if_else.test, st, tt, depth);
+    comptime_eval_vector(interp, ast.u.if_else.consequence, st, tt, depth);
+    comptime_eval_vector(interp, ast.u.if_else.alternative, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_while interp, ast, st, tt, depth in
+    ast.u.while_.test = comptime_eval1(interp, ast.u.while_.test, st, tt, depth);
+    comptime_eval_vector(interp, ast.u.while_.body, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_pointer_op interp, ast, st, tt, depth in
+    comptime_eval_vector(interp, ast.u.ptr_op.args, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_prefix_op interp, ast, st, tt, depth in
+    ast.u.prefix.expr = comptime_eval1(interp, ast.u.prefix.expr, st, tt, depth);
+    var expr = ast.u.prefix.expr;
+    if expr.kind == AstK::Integer then
+        var op = ast.u.prefix.op;
+        if op == TK::Minus then
+            return Ast::new_integer(ast.token, 0 - expr.u.integer);
+        elif op == TK::KW_not then
+            return Ast::new_integer(ast.token, not expr.u.integer);
+        elif op == TK::Tilde then
+            return Ast::new_integer(ast.token, ~expr.u.integer);
+        else
+            printf("WARN: comptime eval did you forget to implement prefix op for %s?\n",
+                token_kind_cstr(op));
+            print_ast_src_loc(ast);
+        end
+    end
+    return ast;
+end
+
+def comptime_eval_const interp, ast, st, tt, depth in
+    ast.u.const_.expr = comptime_eval1(interp, ast.u.const_.expr, st, tt, depth);
+    interp.add_const(ast.u.const_.ident, ast.u.const_.expr);
+    return ast;
+end
+
+def comptime_eval_extern interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_inline_asm interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_global interp, ast, st, tt, depth in
+    ast.u.global_.expr = comptime_eval1(interp, ast.u.global_.expr, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_break interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_continue interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_assign_op interp, ast, st, tt, depth in
+    ast.u.assign_op.expr = comptime_eval1(interp, ast.u.assign_op.expr, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_struct interp, ast, st, tt, depth in
+    comptime_eval_vector(interp, ast.u.struct_.body, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_member_access interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_assign_member interp, ast, st, tt, depth in
+    ast.u.assign_member.rhs = comptime_eval1(interp, ast.u.assign_member.rhs, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_enum interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_scope_resolve interp, ast, st, tt, depth in
+    // if scope resolve is on an enum then we can resolve to an evaled value.
+    var lhs = ast.u.scope_resolve.lhs;
+    var rhs = ast.u.scope_resolve.rhs;
+    var type = scope_resolve_lhs(tt, lhs, false);
+    assert(type, "Compiler bug: should have caught this error in type checker.\n");
+    assert(rhs.kind == AstK::Ident);
+    var member = rhs.u.ident;
+    if type_is_enum(type) then
+        var enum_vals = type.u.enum_.values;
+        var i = 0; var len = enum_vals.length;
+        while i < len do
+            var ev = enum_vals.get(i);
+            if cstr_eq(ev.name, member) then
+                if not ev.cache_value then
+                    ev.cache_value = comptime_eval1(interp, ev.value, st, tt, depth);
+                end
+                return ev.cache_value;
+            end
+            i += 1;
+        end
+        assert(false, "Error should have been reported in type checker, type Enum::Value doesn't exist\n");
+    else
+        return ast;
+    end
+end
+
+def comptime_eval_get_reference interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_union interp, ast, st, tt, depth in
+    return ast;
+end
+
+def comptime_eval_sizeof_expr interp, ast, st, tt, depth in
+    var type = tt_get_ast_type(tt, ast.u.sizeof.expr);
+    if type then
+        var size_bytes = (type.size + BYTE_BITS-1) / BYTE_BITS;
+        return Ast::new_integer(ast.token, size_bytes);
+    else
+        return ast;
+    end
+end
+
+def comptime_eval_sizeof_type interp, ast, st, tt, depth in
+    var type = ast.u.sizeof.type;
+    assert(type);
+    var size_bytes = (type.size + BYTE_BITS-1) / BYTE_BITS;
+    return Ast::new_integer(ast.token, size_bytes);
+end
+
+def comptime_eval_static_assert interp, ast, st, tt, depth in
+    var args = ast.u.static_assert_;
+    var arg0 = comptime_eval1(interp, args.get(0), st, tt, depth);
+    var arg1 = comptime_eval1(interp, args.get(1), st, tt, depth);
+    assert(arg1 and arg1.kind == AstK::String);
+    if _comptime_is_int(0, arg0) then
+        printf("ERROR: static_assert failed: \"%s\"\n", arg1.u.string.cstr());
+        printf("NOTE: the expression is: ");
+        print_ast(args.get(0));
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+    return ast;
+end
+
+def comptime_eval_offsetof interp, ast, st, tt, depth in
+    var bit_offset = _comptime_offsetof(ast.u.offsetof, tt, 0);
+    return Ast::new_integer(ast.token, bit_offset / BYTE_BITS);
+end
+
+def comptime_eval_tuple_literal interp, ast, st, tt, depth in
+    comptime_eval_vector(interp, ast.u.tuple_literal.args, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_tuple_length interp, ast, st, tt, depth in
+    ast.u.tuple_length.expr = comptime_eval1(interp, ast.u.tuple_length.expr, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_tuple_get interp, ast, st, tt, depth in
+    ast.u.tuple_get.expr = comptime_eval1(interp, ast.u.tuple_get.expr, st, tt, depth);
+    assert(ast.u.tuple_get.idx, "Compiler bug, tuple.get idx is null at comptime eval.\n");
+    ast.u.tuple_get.idx = comptime_eval1(interp, ast.u.tuple_get.idx, st, tt, depth);
+    return ast;
+end
+
+def comptime_eval_cast interp, ast, st, tt, depth in
+    ast.u.cast_.expr = comptime_eval1(interp, ast.u.cast_.expr, st, tt, depth);
+    return ast.u.cast_.expr;
+end
+
+def comptime_eval_type interp, ast, st, tt, depth in
+    return ast;
+end
+
+def _comptime_is_int n, ast in
+    return ast.kind == AstK::Integer and ast.u.integer == n;
+end
+
+def _comptime_offsetof ast, tt, base_offset in
+    var type: Type& = NULL;
+    var member: cstr = NULL;
+    var lhs: Ast& = NULL;
+    if ast.kind == AstK::ScopeResolve then
+        type = scope_resolve_lhs(tt, ast.u.scope_resolve.lhs, true);
+        member = ast.u.scope_resolve.rhs.u.ident;
+        var lhs_k = ast.u.scope_resolve.lhs.kind;
+        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
+            lhs = ast.u.scope_resolve.lhs;
+        end
+    elif ast.kind == AstK::MemberAccess then
+        type = tt_get_ast_type(tt, ast.u.member_access.expr);
+        member = ast.u.member_access.member;
+        var lhs_k = ast.u.member_access.expr.kind;
+        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
+            lhs = ast.u.member_access.expr;
+        end
+    end
+    assert(type);
+    assert(member);
+
+    while type.kind == TypeKind::Reference do
+        type = type.u.deref_type;
+    end
+
+    var fields: Vector[Field&]&;
+    if type.kind == TypeKind::Struct then
+        fields = type.u.struct_.fields;
+    elif type.kind == TypeKind::Union then
+        fields = type.u.union_.fields;
+    else
+        tt_print_type_name(tt, type); printf("\n");
+        assert(false, "Compiler bug: __offsetof on non-struct and non-union type\n");
+    end
+
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field = fields.get(i);
+        if cstr_eq(field.name, member) then
+            if lhs then
+                return _comptime_offsetof(lhs, tt, base_offset + field.bit_offset);
+            else
+                return base_offset + field.bit_offset;
+            end
+        end
+        i += 1;
+    end
+
+    assert(false, "Compiler bug: 'no field named' should have been taken care of type inference\n");
+end
+
+def comptime_eval1 interp, ast, st, tt, depth in
+    depth += 1;
+    if depth > 1000 then
+        printf("ERROR: comptime eval reached recursion limit.\n");
+        printf("NOTE: The expression was: ");
+        print_ast(ast);
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+    var k = ast.kind;
+    if k == AstK::Ident then return comptime_eval_ident(interp, ast, st, tt, depth);
+    elif k == AstK::Integer then return comptime_eval_integer(interp, ast, st, tt, depth);
+    elif k == AstK::String then return comptime_eval_string(interp, ast, st, tt, depth);
+    elif k == AstK::Call then return comptime_eval_call(interp, ast, st, tt, depth);
+    elif k == AstK::BinOp then return comptime_eval_binop(interp, ast, st, tt, depth);
+    elif k == AstK::Return then return comptime_eval_return(interp, ast, st, tt, depth);
+    elif k == AstK::VarDecl then return comptime_eval_var_decl(interp, ast, st, tt, depth);
+    elif k == AstK::VarAssign then return comptime_eval_var_assign(interp, ast, st, tt, depth);
+    elif k == AstK::Def then return comptime_eval_def(interp, ast, st, tt, depth);
+    elif k == AstK::IfElse then return comptime_eval_if_else(interp, ast, st, tt, depth);
+    elif k == AstK::While then return comptime_eval_while(interp, ast, st, tt, depth);
+    elif k == AstK::PointerRead then return comptime_eval_pointer_op(interp, ast, st, tt, depth);
+    elif k == AstK::PointerWrite then return comptime_eval_pointer_op(interp, ast, st, tt, depth);
+    elif k == AstK::Prefix then return comptime_eval_prefix_op(interp, ast, st, tt, depth);
+    elif k == AstK::Const then return comptime_eval_const(interp, ast, st, tt, depth);
+    elif k == AstK::Extern then return comptime_eval_extern(interp, ast, st, tt, depth);
+    elif k == AstK::InlineAsm then return comptime_eval_inline_asm(interp, ast, st, tt, depth);
+    elif k == AstK::Global then return comptime_eval_global(interp, ast, st, tt, depth);
+    elif k == AstK::Break then return comptime_eval_break(interp, ast, st, tt, depth);
+    elif k == AstK::Continue then return comptime_eval_continue(interp, ast, st, tt, depth);
+    elif k == AstK::AssignOp then return comptime_eval_assign_op(interp, ast, st, tt, depth);
+    elif k == AstK::Struct then return comptime_eval_struct(interp, ast, st, tt, depth);
+    elif k == AstK::MemberAccess then return comptime_eval_member_access(interp, ast, st, tt, depth);
+    elif k == AstK::AssignMember then return comptime_eval_assign_member(interp, ast, st, tt, depth);
+    elif k == AstK::Enum then return comptime_eval_enum(interp, ast, st, tt, depth);
+    elif k == AstK::ScopeResolve then return comptime_eval_scope_resolve(interp, ast, st, tt, depth);
+    elif k == AstK::GetReference then return comptime_eval_get_reference(interp, ast, st, tt, depth);
+    elif k == AstK::Union then return comptime_eval_union(interp, ast, st, tt, depth);
+    elif k == AstK::SizeofExpr then return comptime_eval_sizeof_expr(interp, ast, st, tt, depth);
+    elif k == AstK::SizeofType then return comptime_eval_sizeof_type(interp, ast, st, tt, depth);
+    elif k == AstK::StaticAssert then return comptime_eval_static_assert(interp, ast, st, tt, depth);
+    elif k == AstK::OffsetOf then return comptime_eval_offsetof(interp, ast, st, tt, depth);
+    elif k == AstK::TupleLiteral then return comptime_eval_tuple_literal(interp, ast, st, tt, depth);
+    elif k == AstK::TupleLength then return comptime_eval_tuple_length(interp, ast, st, tt, depth);
+    elif k == AstK::TupleGet then return comptime_eval_tuple_get(interp, ast, st, tt, depth);
+    elif k == AstK::Cast then return comptime_eval_cast(interp, ast, st, tt, depth);
+    elif k == AstK::Type then return comptime_eval_type(interp, ast, st, tt, depth);
+    else
+        printf("`comptime_eval1` in File \"%s\", line %d\n", __FILE__, __LINE__);
+        printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);
+        print_ast_src_loc(ast);
+        exit(1);
+    end
+end
+
+def comptime_eval type_table, symbol_table, compile_order in
+    var interp = Interp::new();
+    var i = 0; var len = compile_order.length;
+    while i < len do
+        comptime_eval1(interp, compile_order.get(i), symbol_table, type_table, 0);
+        i += 1;
+    end
+end

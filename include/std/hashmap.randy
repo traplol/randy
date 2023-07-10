@@ -143,6 +143,10 @@ struct Hashmap[K, V, KHash, KCompare] in
         cur.key = cast(0, K); // TODO: default values...
     end
 
+    def contains self, key: K in
+        return self.find(key) != NULL;
+    end
+
     def find self, key: K in
         if self._cache and KCompare::equal(key, self._cache.key) then
             return self._cache;

@@ -4,6 +4,7 @@
 #include std/queue
 #include std/set
 #include std/map
+#include std/hashmap
 #include std/time
 #include std/process
 #include std/limits
@@ -29,6 +30,7 @@ global g_Errors = 0;
 #include x86_64_backend
 #include compile_order
 #include ir_v2
+#include comptime_eval
 
 def print_timespan msg, starttime, endtime in
     var elap_s = endtime.tv_sec - starttime.tv_sec;
@@ -277,13 +279,14 @@ def main argc: int, argv: ptr in
         end
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        // 8) TODO: AST rewriting
+        // 8) AST rewriting
+        comptime_eval(type_table, symbol_table, compile_order);
 
         time(starttime);
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 9) low AST into IR
         if g_Experimental then
-            ir_v2(symbol_table, type_table, compile_order);
+            ir_v2(type_table, symbol_table, compile_order);
         else
             var irctx = make_ir_context();
             ir_compile_roots(irctx, roots, symbol_table, type_table, compile_order);
