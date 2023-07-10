@@ -275,21 +275,6 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
     end
     if type_is_tuple(lhs) and type_is_tuple(rhs) then
         if lhs.u.tuple.mono_type != NULL then
-            // There's a weird interaction with this where you can trick the type system into
-            // passing a multi-type tuple into a mono-type tuple because there's no RTTI for
-            // tuples and the best we can do for varargs is to infer the varargs parameter as
-            // the empty tuple type.
-            // e.g.:
-            //
-            //     def foo_of_int ...args: int in
-            //         ...
-            //     end
-            //     def foo_of_any ...args in
-            //         foo_of_int(args)
-            //     end
-            //
-            // This effectively tricks the type system into allowing a call to foo_of_int
-            // with non-ints...
             var i = 0; var len = rhs.u.tuple.types.length;
             while i < len do
                 if rhs.u.tuple.types.get(i) != lhs.u.tuple.mono_type then
@@ -361,7 +346,6 @@ struct TypeTable in
     ptr_type: Type&;
     cstr_type: Type&;
     bool_type: Type&;
-    empty_tuple: Type&;
     ast_types: map;    // (ast, type) map : ast -> type
     made_change: bool; // where any changes to the ast_types map made?
 end
@@ -433,7 +417,6 @@ def make_type_table -> TypeTable& in
     _tt_make_type(TypeKind::Int_like, "int16", 16, type_ids, types, names, self.type_scope);
     _tt_make_type(TypeKind::Int_like, "int32", 32, type_ids, types, names, self.type_scope);
 
-    self.empty_tuple = tt_make_tuple(self, Vector[Type&]::new(0), NULL);
     return self;
 end
 
@@ -767,6 +750,13 @@ end
 
 def tt_make_tuple self, types, mono_type in
     var type = make_type_tuple(self.all_types.length, self.type_scope, types, mono_type);
+    self.all_types.push(type);
+    self.names.push(NULL);
+    return type;
+end
+
+def tt_make_empty_tuple self, mono_type in
+    var type = make_type_tuple(self.all_types.length, self.type_scope, Vector[Type&]::new(0), mono_type);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;

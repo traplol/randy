@@ -820,7 +820,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     return stmt;
 end
 
-def parse_statements_until ts, st, tt, into, kind, ...kinds: TK in
+def parse_statements_until ts, st, tt, into, kind, ...kinds in
     if ts.peekk_one_of(kind, kinds) then
         return;
     end
@@ -906,12 +906,11 @@ def parse_def ts, st, tt in
             exit(1);
         end
         va_symbol = st_make_param(st, va_id.value, va_id);
+        var mono_type: Type& = NULL;
         if ts.accept(TK::Colon) then
-            var mono_type = parse_type(ts, st, tt, true);
-            va_symbol.type = tt_make_tuple(tt, Vector[Type&]::new(0), mono_type);
-        else
-            va_symbol.type = tt.empty_tuple;
+            mono_type = parse_type(ts, st, tt, true);
         end
+        va_symbol.type = tt_make_empty_tuple(tt, mono_type);
         params.push(va_symbol.name);
         param_symbols.push(va_symbol);
     end

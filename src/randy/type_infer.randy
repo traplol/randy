@@ -163,8 +163,20 @@ def ti_infer_call self, tt, st, ast -> Type& in
             if param_types.length > 0 and type_is_empty_tuple(param_types.back()) then
                 var n_varargs = args.length - (param_types.length - 1);
                 if n_varargs == 1 and type_is_tuple(ti_infer(self, tt, st, args.back())) then
-                    // nothing to do because the last arg is a tuple and the function is a randy
-                    // varargs ABI.
+                    var last_arg = args.back();
+                    if last_arg.kind == AstK::Ident then
+                        var sym = st_get_symbol(st, last_arg.u.ident);
+                        if sym.type and type_is_empty_tuple(sym.type) then
+                            var last_param_type = param_types.back();
+                            // When a varargs function expects a mono-type tuple args list and we call that function
+                            // with a non-mono-type 'empty' tuple we can specify the non-mono-type into a mono-type.
+                            // The 'empty' part means we're calling with a truly empty tuple or forwarding varargs
+                            // directly.
+                            if last_param_type.u.tuple.mono_type != NULL and sym.type.u.tuple.mono_type == NULL then
+                                sym.type.u.tuple.mono_type = last_param_type.u.tuple.mono_type;
+                            end
+                        end
+                    end
                 elif n_varargs >= 0 then
                     var tuple_args = Vector[Ast&]::new(n_varargs);
                     var i = param_types.length - 1;
