@@ -1,0 +1,25 @@
+#include std/core
+#include std/vector
+
+struct List[T] in
+    def new ...args: T in
+        var vec = Vector[T]::new(args.length);
+        var i = 0;
+        while i < args.length do
+            vec.push(args.get(i));
+            i += 1;
+        end
+        return vec;
+    end
+end
+
+def main in
+    var list = List[int]::new(1, 2, 3, 4, 5);
+    var i = 0;
+    while i < list.length do
+        printf("list.get(%d) = %d\n", i, list.get(i));
+        i += 1;
+    end
+    list.delete();
+    return 0;
+end

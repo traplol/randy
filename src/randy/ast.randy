@@ -526,16 +526,6 @@ struct Ast in
         return self;
     end
 
-    def new_tuple_literal token: Token&, args: Vector[Ast&]& in
-        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
-        self.kind = AstK::TupleLiteral;
-        self.is_expr = true;
-        self.token = token;
-        self.u.tuple_literal.type = NULL;
-        self.u.tuple_literal.args = args;
-        return self;
-    end
-
     def new_break token: Token& in
         var self = cast(calloc(1, __sizeof(Ast)), Ast&);
         self.kind = AstK::Break;
@@ -558,6 +548,35 @@ struct Ast in
         self.is_expr = false;
         self.token = token;
         self.u.type = type;
+        return self;
+    end
+
+    def new_tuple_literal token: Token&, args: Vector[Ast&]& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::TupleLiteral;
+        self.is_expr = true;
+        self.token = token;
+        self.u.tuple_literal.type = NULL;
+        self.u.tuple_literal.args = args;
+        return self;
+    end
+
+    def new_tuple_length token: Token&, expr: Ast& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::TupleLength;
+        self.is_expr = true;
+        self.token = token;
+        self.u.tuple_length.expr = expr;
+        return self;
+    end
+
+    def new_tuple_get token: Token&, expr: Ast&, idx: Ast& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::TupleGet;
+        self.is_expr = true;
+        self.token = token;
+        self.u.tuple_get.expr = expr;
+        self.u.tuple_get.idx = idx;
         return self;
     end
 end
@@ -629,7 +648,13 @@ def _print_args args: Vector[Ast&]&, indent: int in
 end
 
 def _print_ast_ident ast, indent in
-    printf("%s", ast.u.ident);
+    var ident_sym = st_get_symbol(g_SymbolTable, ast.u.ident);
+    assert(ident_sym);
+    if ident_sym and ident_sym.owned_by then
+        tt_print_type_name(g_TypeTable, ident_sym.owned_by);
+        printf("::");
+    end
+    printf("%s", ident_sym.name);
 end
 
 def _print_ast_integer ast, indent in
@@ -839,7 +864,7 @@ def _print_ast_prefix ast, indent in
 end
 
 def _print_ast_const ast, indent in
-    printf("const %s = ", ast.u.const_.expr);
+    printf("const %s = ", ast.u.const_.ident);
     _print_ast(ast.u.const_.expr, indent);
 end
 
@@ -998,8 +1023,8 @@ def _print_ast_type ast, indent in
 end
 
 def _print_ast_scope_resolve ast, indent in
-    _print_ast(ast.u.scope_resolve.lhs, indent);
-    printf("::");
+    // _print_ast(ast.u.scope_resolve.lhs, indent);
+    // printf("::");
     _print_ast(ast.u.scope_resolve.rhs, indent);
 end
 
@@ -1372,6 +1397,27 @@ def _ast_deep_copy_offsetof ast, tt, st in
     return Ast::new_offsetof(ast.token, expr_copy);
 end
 
+def _ast_deep_copy_tuple_literal ast, tt, st in
+    var args = _ast_deep_copy_vector(ast.u.tuple_literal.args, tt, st);
+    var ast_copy = Ast::new_tuple_literal(ast.token, args);
+    ast_copy.u.tuple_literal.type = tt_substitute_type(tt, ast.u.tuple_literal.type);
+    return ast_copy;
+end
+
+def _ast_deep_copy_tuple_length ast, tt, st in
+    var expr = _ast_deep_copy(ast.u.tuple_length.expr, tt, st);
+    return Ast::new_tuple_length(ast.token, expr);
+end
+
+def _ast_deep_copy_tuple_get ast, tt, st in
+    var expr = _ast_deep_copy(ast.u.tuple_get.expr, tt, st);
+    var idx: Ast& = NULL;
+    if ast.u.tuple_get.idx then
+        idx = _ast_deep_copy(ast.u.tuple_get.idx, tt, st);
+    end
+    return Ast::new_tuple_get(ast.token, expr, idx);
+end
+
 def _ast_deep_copy ast, tt, st in
     var k = ast.kind;
     if k == AstK::Ident then return _ast_deep_copy_ident(ast, tt, st);
@@ -1407,7 +1453,9 @@ def _ast_deep_copy ast, tt, st in
     elif k == AstK::GetReference then return _ast_deep_copy_get_reference(ast, tt, st);
     elif k == AstK::Union then return _ast_deep_copy_union(ast, tt, st);
     elif k == AstK::StaticAssert then return _ast_deep_copy_static_assert(ast, tt, st);
-    elif k == AstK::OffsetOf then return _ast_deep_copy_offsetof(ast, tt, st);
+    elif k == AstK::TupleLiteral then return _ast_deep_copy_tuple_literal(ast, tt, st);
+    elif k == AstK::TupleLength then return _ast_deep_copy_tuple_length(ast, tt, st);
+    elif k == AstK::TupleGet then return _ast_deep_copy_tuple_get(ast, tt, st);
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

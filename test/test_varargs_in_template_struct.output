@@ -1,0 +1,5 @@
+list.get(0) = 1
+list.get(1) = 2
+list.get(2) = 3
+list.get(3) = 4
+list.get(4) = 5

@@ -140,8 +140,8 @@ def make_type_union id: int, scope: TypeScope&, fields: Vector[Field&]& in
     return self;
 end
 
-def make_type_tuple id: int, scope: TypeScope&, types: Vector[Type&]&, mono_type: Type& in
-    var self = make_type(TypeKind::Tuple, id, scope, PTR_BITS);
+def make_type_tuple id: int, types: Vector[Type&]&, mono_type: Type& in
+    var self = make_type(TypeKind::Tuple, id, NULL, PTR_BITS);
     self.u.tuple.types = types;
     self.u.tuple.mono_type = mono_type;
     if mono_type != NULL then
@@ -610,6 +610,30 @@ def tt_substitute_type self, type -> Type& in
         return type;
     end
 
+    if type_is_tuple(deref_type) then
+        var made_subst = false;
+        var tuple_types = deref_type.u.tuple.types;
+        var i = 0; var len = tuple_types.length;
+        var subst_types = Vector[Type&]::new(len);
+        while i < len do
+            var subst = tt_substitute_type(self, tuple_types.get(i));
+            if subst != tuple_types.get(i) then
+                made_subst = true;
+            end
+            subst_types.push(subst);
+            i += 1;
+        end
+        var subst_mono = tt_substitute_type(self, deref_type.u.tuple.mono_type);
+        if subst_mono != deref_type.u.tuple.mono_type then
+            made_subst = true;
+        end
+        if not made_subst then
+            subst_types.delete();
+            return type;
+        end
+        return tt_make_tuple(self, subst_types, subst_mono);
+    end
+
     var params = type_params(deref_type);
     if params and params.length > 0 then
         var i = 0; var len = params.length;
@@ -749,14 +773,14 @@ def tt_make_anon_union self, fields in
 end
 
 def tt_make_tuple self, types, mono_type in
-    var type = make_type_tuple(self.all_types.length, self.type_scope, types, mono_type);
+    var type = make_type_tuple(self.all_types.length, types, mono_type);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
 end
 
 def tt_make_empty_tuple self, mono_type in
-    var type = make_type_tuple(self.all_types.length, self.type_scope, Vector[Type&]::new(0), mono_type);
+    var type = make_type_tuple(self.all_types.length, Vector[Type&]::new(0), mono_type);
     self.all_types.push(type);
     self.names.push(NULL);
     return type;
