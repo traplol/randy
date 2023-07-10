@@ -1,3 +1,5 @@
+// -nocompile
+
 #include std/core
 #include std/string
 
@@ -82,6 +84,6 @@ def main in
     call_mono(100, 200, 300);
     call_mono({});
     call_mono({1, 2, 3});
-    //call_mono("asdf");
+    call_mono("asdf");
     return 0;
 end
