@@ -278,11 +278,11 @@ def main argc: int, argv: ptr in
             return 1;
         end
 
+        time(starttime);
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 8) AST rewriting
         comptime_eval(type_table, symbol_table, compile_order);
 
-        time(starttime);
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 9) low AST into IR
         if g_Experimental then

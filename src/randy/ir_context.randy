@@ -1681,10 +1681,13 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
     var head_type = tt_get_ast_type(tt, head);
     assert(head_type);
     if type_is_struct(head_type) and head.kind == AstK::Ident then
-        assert(false, "stack allocations not supported yet.\n");
-    else
-        ir_compile(self, head, st, tt);
+        // For the time being, we can allow small structs that fit inside a register to trivially
+        // be stack allocated.
+        if head_type.size > PTR_BITS then
+            assert(false, "stack allocations not supported yet. type size = %d\n", head_type.size);
+        end
     end
+    ir_compile(self, head, st, tt);
 
     if offset != 0 then
         deref_stack.push(offset);
@@ -1767,63 +1770,10 @@ def ir_emit_static_assert self, ast, st, tt in
     check_ast_kind(AstK::StaticAssert, ast);
 end
 
-def _ir_offsetof self, ast, tt, base_offset in
-    var type: Type& = NULL;
-    var member: cstr = NULL;
-    var lhs: Ast& = NULL;
-    if ast.kind == AstK::ScopeResolve then
-        type = scope_resolve_lhs(tt, ast.u.scope_resolve.lhs, true);
-        member = ast.u.scope_resolve.rhs.u.ident;
-        var lhs_k = ast.u.scope_resolve.lhs.kind;
-        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
-            lhs = ast.u.scope_resolve.lhs;
-        end
-    elif ast.kind == AstK::MemberAccess then
-        type = tt_get_ast_type(tt, ast.u.member_access.expr);
-        member = ast.u.member_access.member;
-        var lhs_k = ast.u.member_access.expr.kind;
-        if lhs_k == AstK::ScopeResolve or lhs_k == AstK::MemberAccess then
-            lhs = ast.u.member_access.expr;
-        end
-    end
-
-    assert(type);
-    assert(member);
-
-    while type.kind == TypeKind::Reference do
-        type = type.u.deref_type;
-    end
-
-    var fields: Vector[Field&]&;
-    if type.kind == TypeKind::Struct then
-        fields = type.u.struct_.fields;
-    elif type.kind == TypeKind::Union then
-        fields = type.u.union_.fields;
-    else
-        tt_print_type_name(tt, type); printf("\n");
-        assert(false, "Compiler bug: __offsetof on non-struct and non-union type\n");
-    end
-
-    var i = 0; var len = fields.length;
-    while i < len do
-        var field = fields.get(i);
-        if cstr_eq(field.name, member) then
-            if lhs then
-                return _ir_offsetof(self, lhs, tt, base_offset + field.bit_offset);
-            else
-                return base_offset + field.bit_offset;
-            end
-        end
-        i += 1;
-    end
-
-    assert(false, "Compiler bug: 'no field named' should have been taken care of type inference\n");
-end
-
 def ir_emit_offsetof self, ast, st, tt in
     check_ast_kind(AstK::OffsetOf, ast);
     var expr = ast.u.offsetof;
-    var bit_offset = _ir_offsetof(self, expr, tt, 0);
+    var bit_offset = _comptime_offsetof(expr, tt, 0);
     ir_append(self, make_ir_push_int(bit_offset / BYTE_BITS));
 end
 
