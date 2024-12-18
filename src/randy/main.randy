@@ -285,6 +285,7 @@ def main argc: int, argv: ptr in
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 9) low AST into IR
+        ir_v2(type_table, symbol_table, compile_order);
         if g_Experimental then
             ir_v2(type_table, symbol_table, compile_order);
         else

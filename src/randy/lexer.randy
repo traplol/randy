@@ -393,7 +393,7 @@ def _lex_file_aux path: cstr, include_paths: Vector[String&]&, included_already 
     return _lex_code(path, code, include_paths, included_already);
 end
 
-def lex_file path: cstr, include_paths: Vector[String&]& in
+def lex_file path, include_paths: Vector[String&]& in
     var included_already = Set[String&, StringHashCompare, StringHashCompare]::new(0);
     var res = _lex_file_aux(path, include_paths, included_already);
     included_already.delete();

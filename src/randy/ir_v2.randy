@@ -1,3 +1,152 @@
 
+struct MachineIR in
+    t: enum t in
+        Nop;
+        Copy;
+        Copy_i;
+
+        SAdd;
+        SAdd_i;
+        UAdd;
+        UAdd_i;
+
+        SSub;
+        SSub_i;
+        USub;
+        USub_i;
+
+        SDiv;
+        SDiv_i;
+        UDiv;
+        UDiv_i;
+
+        SMul;
+        SMul_i;
+        UMul;
+        UMul_i;
+
+        SMod;
+        SMod_i;
+        UMod;
+        UMod_i;
+
+        Eq;
+        Eq_i;
+
+        NotEq;
+        NotEq_i;
+
+        Lt;
+        Lt_i;
+
+        LtEq;
+        LtEq_i;
+
+        Gt;
+        Gt_i;
+
+        GtEq;
+        GtEq_i;
+
+        Or;
+        Or_i;
+
+        And;
+        Andi;
+
+        Xor;
+        Xor_i;
+
+        LShift;
+        LShift_i;
+
+        RShift;
+        RShift_i;
+
+        Not;
+        Neg;
+
+        Jmp;
+        Jmp_r;
+
+        JmpTrue;
+        JmpTrue_r;
+
+        JmpFalse;
+        JmpFalse_r;
+
+        Call;
+        Call_r;
+
+        Ret;
+    end
+
+    struct Register in
+        id: int;
+    end
+
+    dest: Register;
+    src0: Register;
+    src1: Register;
+
+    imm0: int;
+    imm1: int;
+
+    def new_nop in
+        var self = cast(malloc(__sizeof(MachineIR)), MachineIR&);
+        self.t = t::Nop;
+        return self;
+    end
+end
+
+struct MIRList in
+    next: MIRList&;
+    prev: MIRList&;
+    ir: MachineIR&;
+end
+
+struct MIRBlock in
+    head: MIRList&;
+    tail: MIRList&;
+    entires: Vector[MIRBlock&]&;
+    exits: Vector[MIRBlock&]&;
+    label: cstr;
+end
+
+struct MachineIRContext in
+    _labels: Vector[cstr]&;
+    _label_map: Hashmap[cstr, int, CstrHashCompare, CstrHashCompare]&;
+    _functions: Vector[MIRBlock&]&;
+    _block_stack: Vector[MIRBlock&]&;
+    _next_reg: MachineIR::Register;
+
+    def new in
+        var self = cast(malloc(__sizeof(MachineIRContext)), MachineIRContext&);
+        self._labels = Vector[cstr]::new(128);
+        self._label_map = Hashmap[cstr, int, CstrHashCompare, CstrHashCompare]::new(0);
+        self._functions = Vector[MIRBlock&]::new(16);
+        self._next_reg.id = 0;
+        self._block_stack = Vector[MIRBlock&]::new(16);
+        return self;
+    end
+
+    def next_reg self in
+        var tmp = self._next_reg;
+        self._next_reg.id += 1;
+        return tmp;
+    end
+
+    def new_label self, name: cstr in
+        if self._label_map.contains(name) then
+            return self._label_map.find(name).val;
+        end
+        var idx = self._labels.length;
+        self._labels.push(name);
+        self._label_map.insert(name, idx);
+        return idx;
+    end
+end
+
 def ir_v2 type_table, symbol_table, ast_nodes in
+    var ctx = MachineIRContext::new();
 end
