@@ -78,8 +78,8 @@ Arena::at(self, idx) -> ptr / Arena::set(self, idx, val)
 
 ## file.randy — file I/O via syscalls
 ```
-open_for_read(path: cstr) -> fd / open_for_write(path: cstr) -> fd / close(fd) -> int
-read_file(fd, buf, count) -> int / write_file(fd, buf, count) -> int
+open_for_read(path: cstr) -> int / open_for_write(path: cstr) -> int / close(fd: int) -> int
+read_file(fd: int, buf, count) -> int / write_file(fd: int, buf, count) -> int
 getcwd() -> String&
 file_exists(path) / file_is_readable(path) / file_is_writable(path) / file_is_executable(path)
 ```
@@ -95,7 +95,7 @@ Siginfo::si_signo(self) -> int / Siginfo::si_status(self) -> int / Siginfo::si_p
 
 ## time.randy — `Timespec` struct, clock reading, sleep
 ```
-make_timespec(sec, nsec) / make_empty_timespec() / free_timespec(self)
+Timespec::new(sec, nsec) / Timespec::delete(self)
 time(timespec) — monotonic clock / clock(timespec) — realtime clock
 usleep(usec)
 ```

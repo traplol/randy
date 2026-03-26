@@ -1,0 +1,12 @@
+// -nocompile
+// -expect "Aborting due to 2 errors"
+#include std/core
+
+def add a: int, b: int -> int in
+    return a + b;
+end
+
+def main in
+    add("hello", "world");
+    return 0;
+end

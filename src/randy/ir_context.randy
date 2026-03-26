@@ -803,9 +803,10 @@ def ir_new_def self, ident, params, ast, symbol, tt in
     var defs = self.defs;
     var found = defs.find(ident);
     if found then
-        printf("ERROR: def `%s` already defined\n", ident);
+        printf("ERROR: def `%s` already defined.\n", ident);
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return NULL;
     end
 
     var label = String::new(20); // @LEAK
@@ -1271,11 +1272,10 @@ def ir_emit_assign_op self, ast, st, tt in
             var label = gi.label;
             ir_append(self, IrInstr::new_get_global(ident, label));
             else
-        //ir_append(self, IrInstr::new_lazy_ident(ast.token));
-        printf("TODO: This can be fixed in the compiler by implementing IRK_SetLazyIdent\n");
         printf("ERROR: No variable named `%s` exists.\n", ident);
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return;
         end
     end
     ir_compile(self, ast.u.assign_op.expr, st, tt);
@@ -1500,9 +1500,9 @@ def ir_emit_const self, ast, st, tt in
             var existing = ir_get_const(self, ast.u.const_.ident);
             if existing.kind != const_info.kind or
                 existing.value != const_info.value then
-                printf("ERROR: Cannot redefine a const `%s` to a new value.\n", ast.u.const_.ident);
+                printf("ERROR: Cannot redefine const `%s` to a different value.\n", ast.u.const_.ident);
                 print_ast_src_loc(ast);
-                exit(1);
+                g_Errors += 1;
             end
         else
             ir_add_const(self, ast.u.const_.ident, const_info);
@@ -1538,7 +1538,8 @@ def ir_emit_global self, ast, st, tt in
     if ir_is_global(self, ident) then
         printf("ERROR: global `%s` already defined.\n", ident);
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return;
     end
 
     var expr = ast.u.global_.expr;
@@ -1558,7 +1559,8 @@ def ir_emit_break self, ast, st, tt in
     if not dest then
         printf("ERROR: 'break' must be within a loop body.\n");
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return;
     end
     ir_append(self, IrInstr::new_goto(dest));
 end
@@ -1569,7 +1571,8 @@ def ir_emit_continue self, ast, st, tt in
     if not dest then
         printf("ERROR: 'continue' must be within a loop body.\n");
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return;
     end
     ir_append(self, IrInstr::new_goto(dest));
 end
@@ -1584,6 +1587,24 @@ end
 
 def ir_emit_union self, ast, st, tt in
     check_ast_kind(AstK::Union, ast);
+end
+
+def _ir_find_field type: Type&, member: cstr -> Field& in
+    var fields: Vector[Field&]&;
+    if type.kind == TypeKind::Struct then
+        fields = type.u.struct_.fields;
+    elif type.kind == TypeKind::Union then
+        fields = type.u.union_.fields;
+    end
+    var i = 0; var len = fields.length;
+    while i < len do
+        var field: Field& = fields.get(i);
+        if cstr_eq(field.name, member) then
+            return field;
+        end
+        i += 1;
+    end
+    return NULL;
 end
 
 def ir_emit_member_access self, ast, st, tt, deref: bool in
@@ -1607,27 +1628,8 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         end
         assert(_type.kind == TypeKind::Struct or _type.kind == TypeKind::Union,
                "Error should have been reported in type checker\n");
-        var fields;
-        if _type.kind == TypeKind::Struct then
-            fields = _type.u.struct_.fields;
-        elif _type.kind == TypeKind::Union then
-            fields = _type.u.union_.fields;
-        end
-        var field: Field& = NULL;
-        var i = 0; var len = fields.length;
-        while i < len do
-            field = fields.get(i);
-            if cstr_eq(field.name, member) then
-                break;
-            end
-            i += 1;
-        end
-        // This assert is < and not <= because a successful find breaks early and
-        // if i == len, this means we didn't find the field which is either a bug
-        // in the type inference or we're trying to emit def lookup which
-        // isn't implemented yet.
-        assert(i < len, "TODO: update ir_emit_member_access for defs\n");
-        assert(field, "Compiler bug: field should not be NULL\n");
+        var field = _ir_find_field(_type, member);
+        assert(field, "Compiler bug: field `%s` not found (should have been caught by type checker)\n", member);
         var offs = field.bit_offset;
         assert(offs >= 0, "Compiler bug: field offset should be >= 0\n");
         offset += offs;
@@ -1670,22 +1672,9 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         end
         assert(type.kind == TypeKind::Struct or type.kind == TypeKind::Union,
                "TODO: catch this bug in type checker.\n");
-        var fields;
-        if type.kind == TypeKind::Struct then
-            fields = type.u.struct_.fields;
-        elif type.kind == TypeKind::Union then
-            fields = type.u.union_.fields;
-        end
-        var i = 0; var len = fields.length;
         var member = ast.u.member_access.member;
-        var field: Field&;
-        while i < len do
-            field = fields.get(i);
-            if cstr_eq(field.name, member) then
-                break;
-            end
-            i += 1;
-        end
+        var field = _ir_find_field(type, member);
+        assert(field, "Compiler bug: field `%s` not found for deref\n", member);
         var size = field.type.size;
         assert(size > 0, "Compiler bug: size cannot be zero for auto-deref\n");
         assert(size <= PTR_BITS, "TODO: support larger than memory read: %d\n", size);
@@ -1806,6 +1795,7 @@ def ir_compile self: IrContext&, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::Global then ir_emit_global(self, ast, st, tt);
     elif k == AstK::Break then ir_emit_break(self, ast, st, tt);
     elif k == AstK::Continue then ir_emit_continue(self, ast, st, tt);
+    elif k == AstK::Defer then assert(false, "Compiler bug: defer should have been rewritten before IR\n");
     elif k == AstK::AssignOp then ir_emit_assign_op(self, ast, st, tt);
     elif k == AstK::Struct then ir_emit_struct(self, ast, st, tt);
     elif k == AstK::MemberAccess then ir_emit_member_access(self, ast, st, tt, true);
@@ -1860,7 +1850,9 @@ def ir_resolve_lazy_idents self in
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", symbol.name);
                 print_token_loc(token);
-                exit(1);
+                g_Errors += 1;
+                i += 1;
+                continue;
             end
             new_ir.src_loc = token.src_loc;
             instrs.set(i, new_ir);
@@ -1880,7 +1872,9 @@ def ir_resolve_lazy_idents self in
             else
                 printf("ERROR: Undeclared identifier: `%s`\n", symbol.name);
                 print_token_loc(token);
-                exit(1);
+                g_Errors += 1;
+                i += 1;
+                continue;
             end
             call.src_loc = token.src_loc;
             instrs.set(i, call);

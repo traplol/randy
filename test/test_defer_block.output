@@ -1,0 +1,17 @@
+=== block ===
+using: hello
+cleaning up: hello
+done cleaning
+=== block early return (1) ===
+early exit
+freeing B
+freeing A
+=== block early return (0) ===
+normal exit
+freeing B
+freeing A
+=== mixed ===
+body
+block defer line 1
+block defer line 2
+single stmt defer

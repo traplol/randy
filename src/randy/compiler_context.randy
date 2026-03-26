@@ -18,16 +18,6 @@ struct CompilerContext in
 end
 
 
-def cc_print_lines self: CompilerContext& in
-    var lines = self.out_lines;
-    var len = lines.length;
-    var i = 0;
-    while i < len do
-        printf("%s\n", lines.get(i).cstr());
-        i += 1;
-    end
-end
-
 def cc_out self: CompilerContext&, cstr: cstr in
     var lines = self.out_lines;
     var string = String::new(128);

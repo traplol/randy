@@ -1,4 +1,5 @@
 // -nocompile
+// -expect "not a callable object" "line 7"
 #include std/core
 
 def main in

@@ -111,8 +111,8 @@ def comptime_eval_binop interp, ast, st, tt, depth in
             elif op == TK::KW_or then
                 return Ast::new_integer(ast.token, lhs_val or rhs_val);
             else
-                printf("WARN: comptime eval did you forget to implement binop for %s?\n",
-                    token_kind_cstr(op));
+                printf("WARN: compile-time evaluation not implemented for operator %s.\n",
+                    token_kind_display(op));
                 print_ast_src_loc(ast);
             end
         end
@@ -171,8 +171,8 @@ def comptime_eval_prefix_op interp, ast, st, tt, depth in
         elif op == TK::Tilde then
             return Ast::new_integer(ast.token, ~expr.u.integer);
         else
-            printf("WARN: comptime eval did you forget to implement prefix op for %s?\n",
-                token_kind_cstr(op));
+            printf("WARN: compile-time evaluation not implemented for prefix operator %s.\n",
+                token_kind_display(op));
             print_ast_src_loc(ast);
         end
     end
@@ -413,6 +413,7 @@ def comptime_eval1 interp, ast, st, tt, depth in
     elif k == AstK::Global then return comptime_eval_global(interp, ast, st, tt, depth);
     elif k == AstK::Break then return comptime_eval_break(interp, ast, st, tt, depth);
     elif k == AstK::Continue then return comptime_eval_continue(interp, ast, st, tt, depth);
+    elif k == AstK::Defer then return ast;
     elif k == AstK::AssignOp then return comptime_eval_assign_op(interp, ast, st, tt, depth);
     elif k == AstK::Struct then return comptime_eval_struct(interp, ast, st, tt, depth);
     elif k == AstK::MemberAccess then return comptime_eval_member_access(interp, ast, st, tt, depth);
@@ -443,6 +444,89 @@ def comptime_eval type_table, symbol_table, compile_order in
     var i = 0; var len = compile_order.length;
     while i < len do
         comptime_eval1(interp, compile_order.get(i), symbol_table, type_table, 0);
+        i += 1;
+    end
+end
+
+// Defer rewriting: insert deferred statements before returns and at end of body.
+// This eliminates all AstK::Defer nodes from the AST before IR generation.
+
+def _emit_deferred_stmts target: Vector[Ast&]&, defers: Vector[Vector[Ast&]&]&, from: int in
+    // Insert deferred statement bodies in reverse order, starting from the end
+    var d = defers.length - 1;
+    while d >= from do
+        var defer_body: Vector[Ast&]& = defers.get(d);
+        var s = 0;
+        while s < defer_body.length do
+            target.push(defer_body.get(s));
+            s += 1;
+        end
+        d -= 1;
+    end
+end
+
+def _rewrite_defers_in_body body: Vector[Ast&]&, parent_defers: Vector[Vector[Ast&]&]& in
+    var new_body = Vector[Ast&]::new(body.length);
+    var defers = Vector[Vector[Ast&]&]::new(0);
+
+    // Copy parent defers
+    var pi = 0;
+    while pi < parent_defers.length do
+        defers.push(parent_defers.get(pi));
+        pi += 1;
+    end
+
+    var i = 0;
+    while i < body.length do
+        var ast = body.get(i);
+        if ast.kind == AstK::Defer then
+            defers.push(ast.u.defer_);
+        elif ast.kind == AstK::Return then
+            _emit_deferred_stmts(new_body, defers, 0);
+            new_body.push(ast);
+        elif ast.kind == AstK::IfElse then
+            _rewrite_defers_in_body(ast.u.if_else.consequence, defers);
+            _rewrite_defers_in_body(ast.u.if_else.alternative, defers);
+            new_body.push(ast);
+        elif ast.kind == AstK::While then
+            _rewrite_defers_in_body(ast.u.while_.body, defers);
+            new_body.push(ast);
+        else
+            new_body.push(ast);
+        end
+        i += 1;
+    end
+
+    // At end of body, emit only defers added in this scope (not parent defers)
+    if defers.length > parent_defers.length then
+        var last: Ast& = NULL;
+        if new_body.length > 0 then
+            last = new_body.back();
+        end
+        if not last or last.kind != AstK::Return then
+            _emit_deferred_stmts(new_body, defers, parent_defers.length);
+        end
+    end
+
+    body.length = 0;
+    i = 0;
+    while i < new_body.length do
+        body.push(new_body.get(i));
+        i += 1;
+    end
+    new_body.delete();
+    defers.delete();
+end
+
+def rewrite_defers compile_order: Vector[Ast&]& in
+    var i = 0; var len = compile_order.length;
+    while i < len do
+        var ast = compile_order.get(i);
+        if ast.kind == AstK::Def then
+            var empty_defers = Vector[Vector[Ast&]&]::new(0);
+            _rewrite_defers_in_body(ast.u.def_.body, empty_defers);
+            empty_defers.delete();
+        end
         i += 1;
     end
 end

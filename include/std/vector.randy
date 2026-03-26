@@ -26,12 +26,18 @@ struct Vector[T] in
     end
 
     def get self, idx: int -> T in
-        // TODO: Bounds check & abort
+        if idx < 0 or idx >= self.length then
+            printf("ERROR: Vector::get index %d out of bounds (length %d)\n", idx, self.length);
+            exit(1);
+        end
         return cast(u64@(self.buffer + (idx * __sizeof(T))), T);
     end
 
     def set self, idx: int, val: T in
-        // TODO: Bounds check & abort
+        if idx < 0 or idx >= self.length then
+            printf("ERROR: Vector::set index %d out of bounds (length %d)\n", idx, self.length);
+            exit(1);
+        end
         u64!(self.buffer + (idx * __sizeof(T)), val);
     end
 

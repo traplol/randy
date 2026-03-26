@@ -50,8 +50,8 @@ def subprocess_blocking path: cstr, argv: ptr, envp: ptr in
         return execve(path, argv, envp);
     else
         var si = Siginfo::new();
+        defer si.delete();
         waitpid(pid, si._buf, 4);
-        si.delete();
     end
     return 0;
 end

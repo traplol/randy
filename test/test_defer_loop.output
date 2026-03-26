@@ -1,0 +1,16 @@
+=== defer before loop ===
+loop 0
+loop 1
+loop 2
+function cleanup
+=== defer with break ===
+loop 0
+loop 1
+loop 2
+breaking
+after loop
+function cleanup
+=== return inside loop ===
+returning from loop
+cleanup on return
+returned: 2

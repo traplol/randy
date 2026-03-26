@@ -274,13 +274,18 @@ def main argc: int, argv: ptr in
         end
 
         if g_Errors != 0 then
-            printf("Too many errors to continue.\n");
+            if g_Errors == 1 then
+                printf("Aborting due to 1 error.\n");
+            else
+                printf("Aborting due to %d errors.\n", g_Errors);
+            end
             return 1;
         end
 
         time(starttime);
         ////////////////////////////////////////////////////////////////////////////////////////////
         // 8) AST rewriting
+        rewrite_defers(compile_order);
         comptime_eval(type_table, symbol_table, compile_order);
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +299,15 @@ def main argc: int, argv: ptr in
             time(endtime);
             if verbosity > 0 then
                 print_timespan("IR compile took: ", starttime, endtime);
+            end
+
+            if g_Errors != 0 then
+                if g_Errors == 1 then
+                    printf("Aborting due to 1 error.\n");
+                else
+                    printf("Aborting due to %d errors.\n", g_Errors);
+                end
+                return 1;
             end
 
             if do_print_ir then

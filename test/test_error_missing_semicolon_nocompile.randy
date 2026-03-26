@@ -1,0 +1,8 @@
+// -nocompile
+// -expect "Expected ';', got 'return'" "line 7"
+#include std/core
+
+def main in
+    var x = 42
+    return 0;
+end

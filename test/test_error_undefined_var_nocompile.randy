@@ -1,0 +1,8 @@
+// -nocompile
+// -expect "type of `nonexistent_var` is undefined" "line 6"
+#include std/core
+
+def main in
+    printf("%d\n", nonexistent_var);
+    return 0;
+end

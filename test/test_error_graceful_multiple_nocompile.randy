@@ -1,5 +1,5 @@
 // -nocompile
-// -expect "has no member `z`" "line 12"
+// -expect "has no member `z`" "has no member `w`" "Aborting due to"
 #include std/core
 
 struct Point in
@@ -10,5 +10,6 @@ end
 def main in
     var p = cast(malloc(__sizeof(Point)), Point&);
     printf("%d\n", p.z);
+    printf("%d\n", p.w);
     return 0;
 end

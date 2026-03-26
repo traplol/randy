@@ -25,6 +25,7 @@ enum AstK in
     Global;
     Break;
     Continue;
+    Defer;
     AssignOp;
     Cast;
     Struct;
@@ -65,6 +66,7 @@ def ast_kind_cstr k: AstK in
     if k == AstK::Global then return "AstK::Global"; end
     if k == AstK::Break then return "AstK::Break"; end
     if k == AstK::Continue then return "AstK::Continue"; end
+    if k == AstK::Defer then return "AstK::Defer"; end
     if k == AstK::AssignOp then return "AstK::AssignOp"; end
     if k == AstK::Cast then return "AstK::Cast"; end
     if k == AstK::Struct then return "AstK::Struct"; end
@@ -108,6 +110,7 @@ struct Ast in
         integer: int;
         string: String&;
         return_: Ast&;
+        defer_: Vector[Ast&]&;
         var_decl: cstr;
         type: Type&;
         get_reference: Ast&;
@@ -539,6 +542,15 @@ struct Ast in
         self.kind = AstK::Continue;
         self.is_expr = false;
         self.token = token;
+        return self;
+    end
+
+    def new_defer token: Token&, body: Vector[Ast&]& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::Defer;
+        self.is_expr = false;
+        self.token = token;
+        self.u.defer_ = body;
         return self;
     end
 
@@ -1062,6 +1074,7 @@ def _print_ast ast, indent in
     elif k == AstK::Global then _print_ast_global(ast, indent);
     elif k == AstK::Break then _print_ast_break(ast, indent);
     elif k == AstK::Continue then _print_ast_continue(ast, indent);
+    elif k == AstK::Defer then printf("defer "); _print_ast_body(ast.u.defer_, indent);
     elif k == AstK::AssignOp then _print_ast_assign_op(ast, indent);
     elif k == AstK::Cast then _print_ast_cast(ast, indent);
     elif k == AstK::Struct then _print_ast_struct(ast, indent);
@@ -1390,11 +1403,6 @@ end
 def _ast_deep_copy_static_assert ast, tt, st in
     var args_copy = _ast_deep_copy_vector(ast.u.static_assert_, tt, st);
     return Ast::new_static_assert(ast.token, args_copy);
-end
-
-def _ast_deep_copy_offsetof ast, tt, st in
-    var expr_copy = _ast_deep_copy(ast.u.offsetof, tt, st);
-    return Ast::new_offsetof(ast.token, expr_copy);
 end
 
 def _ast_deep_copy_tuple_literal ast, tt, st in

@@ -1,0 +1,10 @@
+// -nocompile
+// -expect "global `g` already defined" "previously defined here"
+#include std/core
+
+global g = 42;
+global g = 99;
+
+def main in
+    return 0;
+end

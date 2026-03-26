@@ -535,14 +535,14 @@ def ti_infer_member_access self, tt, st, ast in
         var ref_type = type.u.deref_type;
         assert(ref_type, "reference type has no deref type");
         if ref_type.kind != TypeKind::Struct then
-            printf("FIXME: this error message sucks! File \"%s\", line %d\n", __FILE__, __LINE__);
             printf("ERROR: type `");
             tt_print_type_name(tt, ref_type);
-            printf("` is not a struct; it's a (%d). did you forget a cast?\n", ref_type.kind);
+            printf("` is not a struct and does not have members. Did you forget a cast?\n");
             printf("NOTE: the expression was: ");
             print_ast(ast);
             print_ast_src_loc(ast);
-            exit(1);
+            g_Errors += 1;
+            return tt.any_type;
         end
         ftype = _ti_get_field_type_rewrite_if_def(ref_type, member, ast);
     elif type.kind == TypeKind::Enum then
@@ -563,9 +563,10 @@ def ti_infer_member_access self, tt, st, ast in
     if not ftype then
         printf("ERROR: type `");
         tt_print_type_name(tt, type);
-        printf("` has no member `%s.` (ti_infer_member_access)\n", member);
+        printf("` has no member `%s`.\n", member);
         print_ast_src_loc(ast);
-        exit(1);
+        g_Errors += 1;
+        return tt.any_type;
     end
     return ftype;
 end
@@ -691,6 +692,7 @@ def ti_infer self, tt, st, ast -> Type& in
     elif k == AstK::Global then type = ti_infer_global(self, tt, st, ast);
     elif k == AstK::Break then type = tt.void_type;
     elif k == AstK::Continue then type = tt.void_type;
+    elif k == AstK::Defer then ti_infer_vector(self, tt, st, ast.u.defer_); type = tt.void_type;
     elif k == AstK::AssignOp then type = ti_infer_assign_op(self, tt, st, ast);
     elif k == AstK::Cast then type = ti_infer_cast(self, tt, st, ast);
     elif k == AstK::Struct then type = tt.void_type;

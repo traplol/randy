@@ -1,4 +1,5 @@
 // -nocompile
+// -expect "Type mismatch" "line 11"
 #include std/core
 
 def add a: int, b: int -> int in

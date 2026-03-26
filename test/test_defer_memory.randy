@@ -1,0 +1,47 @@
+#include std/core
+#include std/string
+
+def make_greeting name: cstr -> String& in
+    var greeting = String::new(32);
+    greeting.append_cstr("Hello, ");
+    greeting.append_cstr(name);
+    greeting.append_cstr("!");
+    return greeting;
+end
+
+def test_defer_delete in
+    var s = make_greeting("world");
+    defer s.delete();
+    printf("%s\n", s.cstr());
+    // s.delete() runs here automatically
+end
+
+def test_defer_multiple_resources in
+    var a = String::new_from_cstr("alpha");
+    defer a.delete();
+    var b = String::new_from_cstr("beta");
+    defer b.delete();
+    var c = String::new_from_cstr("gamma");
+    defer c.delete();
+    printf("%s %s %s\n", a.cstr(), b.cstr(), c.cstr());
+    // delete order: c, b, a (LIFO)
+end
+
+def test_defer_early_return_cleanup flag: int in
+    var s = String::new_from_cstr("resource");
+    defer s.delete();
+    if flag then
+        printf("early: %s\n", s.cstr());
+        return;
+    end
+    printf("normal: %s\n", s.cstr());
+end
+
+def main in
+    test_defer_delete();
+    test_defer_multiple_resources();
+    test_defer_early_return_cleanup(1);
+    test_defer_early_return_cleanup(0);
+    printf("done\n");
+    return 0;
+end

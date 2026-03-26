@@ -128,12 +128,6 @@ def make_type_struct id: int, scope: TypeScope&, fields: Vector[Field&]&, defs: 
     return self;
 end
 
-def make_type_enum id: int, scope: TypeScope&, enum_values: Vector[EnumValue&]& in
-    var self = make_type(TypeKind::Enum, id, scope, INT_BITS);
-    self.u.enum_.values = enum_values;
-    return self;
-end
-
 def make_type_union id: int, scope: TypeScope&, fields: Vector[Field&]& in
     var self = make_type(TypeKind::Union, id, scope, TYPE_NEEDS_SIZING);
     self.u.union_.fields = fields;
@@ -416,15 +410,6 @@ def tt_get_type_name self, type -> cstr in
     return self.names.get(type.id);
 end
 
-def tt_dump_scope self, scope in
-    var types = scope.types;
-    var cur = types.iter_begin();
-    printf("========= %p =========\n", scope);
-    while cur != types.iter_end() do
-        printf("key = %s, val = %d\n", cur.key, cur.val);
-        cur = types.iter_next(cur);
-    end
-end
 
 def tt_get_type_by_id self, id: int -> Type& in
     return self.all_types.get(id);
@@ -1055,8 +1040,9 @@ def tt_calculate_structs self in
     while to_calc.length() != 0 do
         var type = to_calc.dequeue();
         if tt_detect_cycles(self, type) then
-            printf("ERROR: Detected cycles in struct `%s`\n", tt_get_type_name(self, type));
-            exit(1);
+            printf("ERROR: Detected cycles in struct `%s`.\n", tt_get_type_name(self, type));
+            g_Errors += 1;
+            continue;
         end
         tt_calculate_struct(self, type, to_calc);
     end
@@ -1161,7 +1147,7 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
         if error then
             printf("ERROR: type `");
             tt_print_type_name(tt, type);
-            printf("` has no member `%s.` (scope_resolve_type)\n", member);
+            printf("` has no member `%s`.\n", member);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
@@ -1215,7 +1201,7 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
         if error then
             printf("ERROR: type `");
             tt_print_type_name(tt, type);
-            printf("` has no member `%s.` (scope_resolve_def)\n", member);
+            printf("` has no member `%s`.\n", member);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end

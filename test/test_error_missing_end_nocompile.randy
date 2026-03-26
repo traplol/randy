@@ -1,0 +1,6 @@
+// -nocompile
+// -expect "Expected 'end' but ran out of tokens"
+#include std/core
+
+def main in
+    return 0;

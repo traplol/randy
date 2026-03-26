@@ -1,4 +1,5 @@
 // -nocompile
+// -expect "expects 2 arguments but got 3" "line 10"
 #include std/core
 
 def foo a: int, b: int -> int in

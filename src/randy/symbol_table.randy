@@ -87,10 +87,6 @@ end
 def st_make_local self, ident, token in
     return st_make_symbol(self, SymbolKind::Local, ident, token);
 end
-def st_make_enum self, ident, token in
-    return st_make_symbol(self, SymbolKind::Enum, ident, token);
-end
-
 def st_prepare_undef self, ident, token in
     var found = self.all_symbols.find(ident);
     if found then

@@ -1,0 +1,8 @@
+// -nocompile
+// -expect "'break' must be within a loop body" "line 6"
+#include std/core
+
+def main in
+    break;
+    return 0;
+end

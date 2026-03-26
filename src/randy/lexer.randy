@@ -43,6 +43,7 @@ def get_ident_kind string: String& in
         if cstr_eq("continue", cstr) then return TK::KW_continue; end
     elif 'd' == first then
         if cstr_eq("def", cstr) then return TK::KW_def; end
+        if cstr_eq("defer", cstr) then return TK::KW_defer; end
         if cstr_eq("do", cstr) then return TK::KW_do; end
     elif 'e' == first then
         if cstr_eq("else", cstr) then return TK::KW_else; end

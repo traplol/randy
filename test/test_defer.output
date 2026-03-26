@@ -1,0 +1,21 @@
+=== basic ===
+before
+after
+deferred
+=== lifo order ===
+body
+third deferred
+second deferred
+first deferred
+=== early return (true) ===
+early return
+cleanup
+=== early return (false) ===
+normal return
+cleanup
+=== multiple returns (1) ===
+always runs
+=== multiple returns (2) ===
+always runs
+=== multiple returns (0) ===
+always runs

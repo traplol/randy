@@ -61,15 +61,14 @@ struct TokenStream in
     def expect self: TokenStream&, kind: TK -> Token& in
         var tmp = self.peek();
         if not tmp then
-            printf("ERROR: Expected token kind %s but ran out of tokens.\n", token_kind_cstr(kind));
+            printf("ERROR: Expected %s but ran out of tokens.\n", token_kind_display(kind));
             exit(1);
         end
         var tmp_k = tmp.kind;
         if tmp_k != kind then
-            printf("ERROR: Expected token kind %s (%d), got %s\n",
-            token_kind_cstr(kind),
-            kind,
-            token_kind_cstr(tmp_k));
+            printf("ERROR: Expected %s, got %s\n",
+            token_kind_display(kind),
+            token_kind_display(tmp_k));
             print_token_loc(tmp);
             exit(1);
         end

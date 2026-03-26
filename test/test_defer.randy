@@ -1,0 +1,59 @@
+#include std/core
+
+def test_basic in
+    printf("before\n");
+    defer printf("deferred\n");
+    printf("after\n");
+end
+
+def test_lifo_order in
+    defer printf("first deferred\n");
+    defer printf("second deferred\n");
+    defer printf("third deferred\n");
+    printf("body\n");
+end
+
+def test_early_return flag: int -> int in
+    defer printf("cleanup\n");
+    if flag then
+        printf("early return\n");
+        return 1;
+    end
+    printf("normal return\n");
+    return 0;
+end
+
+def test_multiple_returns x: int -> int in
+    defer printf("always runs\n");
+    if x == 1 then
+        return 10;
+    elif x == 2 then
+        return 20;
+    end
+    return 0;
+end
+
+def main in
+    printf("=== basic ===\n");
+    test_basic();
+
+    printf("=== lifo order ===\n");
+    test_lifo_order();
+
+    printf("=== early return (true) ===\n");
+    test_early_return(1);
+
+    printf("=== early return (false) ===\n");
+    test_early_return(0);
+
+    printf("=== multiple returns (1) ===\n");
+    test_multiple_returns(1);
+
+    printf("=== multiple returns (2) ===\n");
+    test_multiple_returns(2);
+
+    printf("=== multiple returns (0) ===\n");
+    test_multiple_returns(0);
+
+    return 0;
+end

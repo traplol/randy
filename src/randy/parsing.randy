@@ -285,7 +285,7 @@ def parse_pointer_op ts, st, tt in
         size = 64;
         op = PointerOp::Read;
     else
-        printf("ERROR: Unexpected token: %s\n", token_kind_cstr(token.kind));
+        printf("ERROR: Unexpected token: %s\n", token_kind_display(token.kind));
         print_token_loc(token);
         exit(1);
     end
@@ -772,6 +772,19 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     elif ts.peekk(TK::KW_continue) then
         stmt = Ast::new_continue(ts.next());
         expect_semi = true;
+    elif ts.peekk(TK::KW_defer) then
+        var defer_tok = ts.next();
+        var defer_body = Vector[Ast&]::new(0);
+        if ts.peekk(TK::KW_in) then
+            ts.next();
+            parse_statements_until(ts, st, tt, defer_body, TK::KW_end);
+            ts.expect(TK::KW_end);
+            expect_semi = false;
+        else
+            defer_body.push(parse_expression(ts, st, tt));
+            expect_semi = true;
+        end
+        stmt = Ast::new_defer(defer_tok, defer_body);
     elif ts.peekk(TK::KW_assert) then
         stmt = parse_assert(ts, st, tt);
         expect_semi = true;
@@ -1104,7 +1117,7 @@ def parse_struct ts, st, tt in
             fields.push(Field::new(field_type, field_ident.value, -1, field_ident));
         else
             var tk = ts.peek();
-            printf("ERROR: Unexpected token in struct: %s\n", token_kind_cstr(tk.kind));
+            printf("ERROR: Unexpected token in struct body: %s\n", token_kind_display(tk.kind));
             print_token(tk);
             print_token_loc(tk);
             exit(1);
@@ -1238,7 +1251,7 @@ def parse_union ts, st, tt in
             fields.push(Field::new(field_type, field_ident.value, -1, field_ident));
         else
             var tk = ts.peek();
-            printf("ERROR: Unexpected token in union: %s\n", token_kind_cstr(tk.kind));
+            printf("ERROR: Unexpected token in union body: %s\n", token_kind_display(tk.kind));
             print_token(tk);
             print_token_loc(tk);
             exit(1);
@@ -1286,14 +1299,13 @@ def parse ts: TokenStream&, st: SymbolTable&, tt: TypeTable& in
             ts.expect(TK::Semicolon);
         else
             tk = ts.peek();
-            printf("ERROR: Unexpected token in top-level: %s\n", token_kind_cstr(tk.kind));
-            print_token(tk);
+            printf("ERROR: Unexpected token at top-level: %s\n", token_kind_display(tk.kind));
             print_token_loc(tk);
             exit(1);
         end
 
         if not parsed then
-            printf("ERROR: Unhandled parse error for %s\n", token_kind_cstr(tk.kind));
+            printf("ERROR: Unhandled parse error at %s\n", token_kind_display(tk.kind));
             print_token_loc(tk);
             exit(1);
         end

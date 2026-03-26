@@ -20,6 +20,7 @@ def main in
     // Test write, then read back
     var path = "out/test_file_tmp.txt";
     var wfd = open_for_write(path);
+    defer close(wfd);
     test("open_for_write returns valid fd", cast(wfd, int) >= 0);
 
     var msg = "hello from randy";
@@ -32,20 +33,20 @@ def main in
 
     // Read it back
     var rfd = open_for_read(path);
+    defer close(rfd);
     test("open_for_read returns valid fd", cast(rfd, int) >= 0);
 
     var buf = malloc(1024);
+    defer free(buf);
     memset(buf, 0, 1024);
     var nread = read_file(rfd, buf, 1023);
     test("read_file returns correct count", cstr_len(msg) == nread);
     test("read back matches written data", cstr_eq(cast(buf, cstr), msg));
-    close(rfd);
-    free(buf);
 
     // Test getcwd
     var cwd = getcwd();
+    defer cwd.delete();
     test("getcwd returns non-empty string", cwd.length > 0);
-    cwd.delete();
 
     // Clean up temp file
     syscall(SYS_unlink, path);

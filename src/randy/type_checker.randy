@@ -42,9 +42,9 @@ def _tc_check_is_scalar_type tt, ast, type in
     if type_is_scalar(type) then
         return;
     end
-    printf("ERROR: used type `");
+    printf("ERROR: type `");
     tt_print_type_name(tt, type);
-    printf("` where scalar is required.\n");
+    printf("` cannot be used in this expression (expected a scalar type: int, bool, ptr, or enum).\n");
     print_ast_src_loc(ast);
     g_Errors += 1;
 end
@@ -484,7 +484,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         end
         printf("ERROR: enum `");
         tt_print_type_name(tt, type);
-        printf("` has no value `%s.`\n", member);
+        printf("` has no value `%s`.\n", member);
         print_ast_src_loc(ast);
         g_Errors += 1;
     elif type.kind == TypeKind::Struct then
@@ -515,7 +515,7 @@ def tc_check_scope_resolve self, tt, st, ast in
 
         printf("ERROR: struct `");
         tt_print_type_name(tt, type);
-        printf("` has no member `%s.`\n", member);
+        printf("` has no member `%s`.\n", member);
         print_ast_src_loc(ast);
         g_Errors += 1;
     elif type.kind == TypeKind::Union then
@@ -523,7 +523,7 @@ def tc_check_scope_resolve self, tt, st, ast in
     else
         printf("ERROR: type `");
         tt_print_type_name(tt, type);
-        printf("` is not a struct, enum, or union.\n", member);
+        printf("` is not a struct, enum, or union.\n");
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
@@ -626,6 +626,7 @@ def tc_check self, tt, st, ast in
     elif k == AstK::Global then tc_check_global(self, tt, st, ast);
     elif k == AstK::Break then // nothing
     elif k == AstK::Continue then // nothing
+    elif k == AstK::Defer then tc_check_body(self, tt, st, ast.u.defer_);
     elif k == AstK::AssignOp then tc_check_assign_op(self, tt, st, ast);
     elif k == AstK::Struct then // nothing
     elif k == AstK::Cast then tc_check_cast(self, tt, st, ast);

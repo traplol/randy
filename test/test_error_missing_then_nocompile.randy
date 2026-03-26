@@ -1,0 +1,10 @@
+// -nocompile
+// -expect "Expected 'then', got 'return'" "line 7"
+#include std/core
+
+def main in
+    if true
+        return 1;
+    end
+    return 0;
+end

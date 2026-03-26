@@ -1,0 +1,10 @@
+// -nocompile
+// -expect "Expected 'do', got 'return'" "line 7"
+#include std/core
+
+def main in
+    while true
+        return 1;
+    end
+    return 0;
+end

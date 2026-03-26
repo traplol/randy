@@ -34,6 +34,7 @@ enum TK in
     KW_global;
     KW_break;
     KW_continue;
+    KW_defer;
     KW_cast;
     KW_struct;
     KW_union;
@@ -142,6 +143,7 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::KW_global then return "TK::KW_global";
     elif k == TK::KW_break then return "TK::KW_break";
     elif k == TK::KW_continue then return "TK::KW_continue";
+    elif k == TK::KW_defer then return "TK::KW_defer";
     elif k == TK::LShift then return "TK::LShift";
     elif k == TK::RShift then return "TK::RShift";
     elif k == TK::Colon then return "TK::Colon";
@@ -177,6 +179,97 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::LCurly then return "TK::LCurly";
     elif k == TK::RCurly then return "TK::RCurly";
     else return "TK_OUT_OF_RANGE"; end
+end
+
+def token_kind_display k: TK -> cstr in
+    if k == TK::Integer then return "integer";
+    elif k == TK::String then return "string";
+    elif k == TK::Char then return "character";
+    elif k == TK::Ident then return "identifier";
+    elif k == TK::KW_def then return "'def'";
+    elif k == TK::KW_do then return "'do'";
+    elif k == TK::KW_var then return "'var'";
+    elif k == TK::KW_in then return "'in'";
+    elif k == TK::KW_if then return "'if'";
+    elif k == TK::KW_else then return "'else'";
+    elif k == TK::KW_then then return "'then'";
+    elif k == TK::KW_end then return "'end'";
+    elif k == TK::KW_while then return "'while'";
+    elif k == TK::KW_return then return "'return'";
+    elif k == TK::KW_and then return "'and'";
+    elif k == TK::KW_or then return "'or'";
+    elif k == TK::KW_not then return "'not'";
+    elif k == TK::KW_u8@ then return "'u8@'";
+    elif k == TK::KW_u16@ then return "'u16@'";
+    elif k == TK::KW_u32@ then return "'u32@'";
+    elif k == TK::KW_u64@ then return "'u64@'";
+    elif k == TK::KW_u8! then return "'u8!'";
+    elif k == TK::KW_u16! then return "'u16!'";
+    elif k == TK::KW_u32! then return "'u32!'";
+    elif k == TK::KW_u64! then return "'u64!'";
+    elif k == TK::KW_const then return "'const'";
+    elif k == TK::KW_extern then return "'extern'";
+    elif k == TK::KW_asm then return "'asm'";
+    elif k == TK::Plus then return "'+'";
+    elif k == TK::Minus then return "'-'";
+    elif k == TK::Star then return "'*'";
+    elif k == TK::Slash then return "'/'";
+    elif k == TK::Percent then return "'%'";
+    elif k == TK::Semicolon then return "';'";
+    elif k == TK::Less then return "'<'";
+    elif k == TK::LessEq then return "'<='";
+    elif k == TK::Greater then return "'>'";
+    elif k == TK::GreaterEq then return "'>='";
+    elif k == TK::Assign then return "'='";
+    elif k == TK::EqEq then return "'=='";
+    elif k == TK::NotEq then return "'!='";
+    elif k == TK::Tilde then return "'~'";
+    elif k == TK::Comma then return "','";
+    elif k == TK::LParen then return "'('";
+    elif k == TK::RParen then return "')'";
+    elif k == TK::Bar then return "'|'";
+    elif k == TK::Amper then return "'&'";
+    elif k == TK::Caret then return "'^'";
+    elif k == TK::Ellipsis then return "'...'";
+    elif k == TK::KW_global then return "'global'";
+    elif k == TK::KW_break then return "'break'";
+    elif k == TK::KW_continue then return "'continue'";
+    elif k == TK::KW_defer then return "'defer'";
+    elif k == TK::LShift then return "'<<'";
+    elif k == TK::RShift then return "'>>'";
+    elif k == TK::Colon then return "':'";
+    elif k == TK::RightArrow then return "'->'";
+    elif k == TK::PlusEq then return "'+='";
+    elif k == TK::MinusEq then return "'-='";
+    elif k == TK::StarEq then return "'*='";
+    elif k == TK::SlashEq then return "'/='";
+    elif k == TK::PercentEq then return "'%='";
+    elif k == TK::LShiftEq then return "'<<='";
+    elif k == TK::RShiftEq then return "'>>='";
+    elif k == TK::AmperEq then return "'&='";
+    elif k == TK::CaretEq then return "'^='";
+    elif k == TK::BarEq then return "'|='";
+    elif k == TK::LSquare then return "'['";
+    elif k == TK::RSquare then return "']'";
+    elif k == TK::KW_cast then return "'cast'";
+    elif k == TK::KW_struct then return "'struct'";
+    elif k == TK::KW_union then return "'union'";
+    elif k == TK::KW_enum then return "'enum'";
+    elif k == TK::KW_inline then return "'inline'";
+    elif k == TK::Dot then return "'.'";
+    elif k == TK::KW_assert then return "'assert'";
+    elif k == TK::KW_static_assert then return "'static_assert'";
+    elif k == TK::KW_elif then return "'elif'";
+    elif k == TK::KW__FILE__ then return "'__FILE__'";
+    elif k == TK::KW__LINE__ then return "'__LINE__'";
+    elif k == TK::KW__sizeof then return "'__sizeof'";
+    elif k == TK::KW__offsetof then return "'__offsetof'";
+    elif k == TK::ColonColon then return "'::'";
+    elif k == TK::KW_u! then return "'u!'";
+    elif k == TK::KW_u@ then return "'u@'";
+    elif k == TK::LCurly then return "'{'";
+    elif k == TK::RCurly then return "'}'";
+    else return "unknown token"; end
 end
 
 struct Token in

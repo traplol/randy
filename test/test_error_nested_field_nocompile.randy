@@ -1,0 +1,17 @@
+// -nocompile
+// -expect "has no member `z`" "line 15"
+#include std/core
+
+struct Inner in
+    x: int;
+end
+
+struct Outer in
+    inner: Inner&;
+end
+
+def main in
+    var o = cast(malloc(__sizeof(Outer)), Outer&);
+    printf("%d\n", o.inner.z);
+    return 0;
+end

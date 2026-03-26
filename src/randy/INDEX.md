@@ -21,6 +21,7 @@ get_escaped_char(c: char) -> char
 ```
 make_token(kind: TK, cstr, value, line, filename) -> Token&
 token_kind_cstr(k: TK) -> cstr
+token_kind_display(k: TK) -> cstr
 print_token(self: Token&)
 print_token_loc(self: Token&)
 ```
@@ -76,7 +77,7 @@ tt_any_type / tt_void_type / tt_int_type / tt_ptr_type / tt_cstr_type / tt_bool_
 tt_push_scope / tt_pop_scope / tt_cur_scope / tt_top_scope
 tt_get_type_name(tt, type) / tt_print_type_name(tt, type)
 types_eq(a, b) / types_assignable(tt, lhs, rhs)
-make_type_struct / make_type_enum / make_type_union / make_type_def / make_type_tuple
+make_type_struct / make_type_union / make_type_def / make_type_tuple
 ```
 
 ## type_infer.randy — two-phase type inference engine
@@ -129,7 +130,6 @@ struct CompilerContext in out_lines; file_map; nodebug; ... end
 CompilerContext::new(debug) -> CompilerContext&
 cc_out(self, cstr) / cc_out_label(self, cstr) / cc_out_string(self, string)
 cc_out_src_loc(self, src_loc) / cc_out_files(irctx, cctx)
-cc_print_lines(self)
 ```
 
 ## x86_64_backend.randy — x86_64 assembly emission (System V AMD64 ABI)
@@ -144,7 +144,7 @@ read_file_to_string(path: cstr) -> String&
 cstr_hash(cstr) -> int / string_hash(string) -> int
 int_from_string(string) -> int
 min(a, b) / max(a, b)
-cstr_starts_with(cstr, substr) -> bool
+CstrHashCompare (for Hashmap/Map key operations)
 ```
 
 ## bits.randy — platform constants (CHAR_BITS=8, INT_BITS=64, PTR_BITS=64)

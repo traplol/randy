@@ -1,4 +1,5 @@
 // -nocompile
+// -expect "Return type for `foo` is `int`" "line 6"
 #include std/core
 
 def foo -> int in

@@ -1,0 +1,51 @@
+#include std/core
+#include std/string
+
+def test_block in
+    var s = String::new_from_cstr("hello");
+    defer in
+        printf("cleaning up: %s\n", s.cstr());
+        s.delete();
+        printf("done cleaning\n");
+    end
+    printf("using: %s\n", s.cstr());
+end
+
+def test_block_early_return flag: int in
+    var a = String::new_from_cstr("resource A");
+    defer in
+        printf("freeing A\n");
+        a.delete();
+    end
+    var b = String::new_from_cstr("resource B");
+    defer in
+        printf("freeing B\n");
+        b.delete();
+    end
+    if flag then
+        printf("early exit\n");
+        return;
+    end
+    printf("normal exit\n");
+end
+
+def test_mixed in
+    defer printf("single stmt defer\n");
+    defer in
+        printf("block defer line 1\n");
+        printf("block defer line 2\n");
+    end
+    printf("body\n");
+end
+
+def main in
+    printf("=== block ===\n");
+    test_block();
+    printf("=== block early return (1) ===\n");
+    test_block_early_return(1);
+    printf("=== block early return (0) ===\n");
+    test_block_early_return(0);
+    printf("=== mixed ===\n");
+    test_mixed();
+    return 0;
+end

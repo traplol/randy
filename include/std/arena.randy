@@ -28,12 +28,18 @@ struct Arena in
     end
 
     def at self, idx: int -> ptr in
-        // TODO: Bounds check & abort
+        if idx < 0 or idx >= self.length then
+            printf("ERROR: Arena::at index %d out of bounds (length %d)\n", idx, self.length);
+            exit(1);
+        end
         return self.buffer + (idx * self.elem_size);
     end
 
     def set self, idx: int, val: ptr in
-        // TODO: Bounds check & abort
+        if idx < 0 or idx >= self.length then
+            printf("ERROR: Arena::set index %d out of bounds (length %d)\n", idx, self.length);
+            exit(1);
+        end
         memcpy(self.at(idx), val, self.elem_size);
     end
 end
