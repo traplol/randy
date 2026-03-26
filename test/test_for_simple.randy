@@ -1,0 +1,8 @@
+#include std/core
+
+def main in
+    for i in 0..5 do
+        printf("%d\n", i);
+    end
+    return 0;
+end

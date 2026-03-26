@@ -35,6 +35,7 @@ enum TK in
     KW_break;
     KW_continue;
     KW_defer;
+    KW_for;
     KW_cast;
     KW_struct;
     KW_union;
@@ -68,6 +69,7 @@ enum TK in
     Amper;
     Caret;
     Ellipsis;
+    DotDot;
     LShift;
     RShift;
     Colon;
@@ -140,10 +142,12 @@ def token_kind_cstr k: TK -> cstr in
     elif k == TK::Amper then return "TK::Amper";
     elif k == TK::Caret then return "TK::Caret";
     elif k == TK::Ellipsis then return "TK::Ellipsis";
+    elif k == TK::DotDot then return "TK::DotDot";
     elif k == TK::KW_global then return "TK::KW_global";
     elif k == TK::KW_break then return "TK::KW_break";
     elif k == TK::KW_continue then return "TK::KW_continue";
     elif k == TK::KW_defer then return "TK::KW_defer";
+    elif k == TK::KW_for then return "TK::KW_for";
     elif k == TK::LShift then return "TK::LShift";
     elif k == TK::RShift then return "TK::RShift";
     elif k == TK::Colon then return "TK::Colon";
@@ -231,10 +235,12 @@ def token_kind_display k: TK -> cstr in
     elif k == TK::Amper then return "'&'";
     elif k == TK::Caret then return "'^'";
     elif k == TK::Ellipsis then return "'...'";
+    elif k == TK::DotDot then return "'..'";
     elif k == TK::KW_global then return "'global'";
     elif k == TK::KW_break then return "'break'";
     elif k == TK::KW_continue then return "'continue'";
     elif k == TK::KW_defer then return "'defer'";
+    elif k == TK::KW_for then return "'for'";
     elif k == TK::LShift then return "'<<'";
     elif k == TK::RShift then return "'>>'";
     elif k == TK::Colon then return "':'";

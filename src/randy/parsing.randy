@@ -833,17 +833,105 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     return stmt;
 end
 
+def _for_insert_incr_before_continue body: Vector[Ast&]&, incr_name: cstr, incr_token: Token& in
+    // Insert i += 1 before every continue statement in the body.
+    // This is needed because for loops desugar to while loops, and continue
+    // would skip the increment at the end of the body.
+    var new_body = Vector[Ast&]::new(body.length);
+    var i = 0;
+    while i < body.length do
+        var ast: Ast& = body.get(i);
+        if ast.kind == AstK::Continue then
+            new_body.push(Ast::new_assign_op(incr_token, incr_name, TK::PlusEq, Ast::new_integer(incr_token, 1)));
+            new_body.push(ast);
+        elif ast.kind == AstK::IfElse then
+            _for_insert_incr_before_continue(ast.u.if_else.consequence, incr_name, incr_token);
+            _for_insert_incr_before_continue(ast.u.if_else.alternative, incr_name, incr_token);
+            new_body.push(ast);
+        else
+            new_body.push(ast);
+        end
+        i += 1;
+    end
+    body.length = 0;
+    i = 0;
+    while i < new_body.length do
+        body.push(new_body.get(i));
+        i += 1;
+    end
+    new_body.delete();
+end
+
+def _parse_for ts, st, tt, into in
+    var for_ = ts.expect(TK::KW_for);
+    var ident = ts.expect(TK::Ident);
+    ts.expect(TK::KW_in);
+    var start = parse_expression(ts, st, tt);
+    ts.expect(TK::DotDot);
+    var end_ = parse_expression(ts, st, tt);
+    ts.expect(TK::KW_do);
+
+    // Create: var <ident> = <start>;
+    // If the variable already exists (e.g. second for loop with same name),
+    // emit an assignment instead of a declaration.
+    var existing = st_get_symbol_here(st, ident.value);
+    var var_decl: Ast&;
+    var name: cstr;
+    if existing then
+        name = existing.name;
+        var_decl = Ast::new_assign_op(ident, name, TK::Assign, start);
+    else
+        var symbol = st_make_local(st, ident.value, ident);
+        name = symbol.name;
+        var_decl = Ast::new_var_assign(for_, name, start);
+    end
+
+    // Parse loop body
+    st_push_scope(st);
+    var body = Vector[Ast&]::new(0);
+    parse_statements_until(ts, st, tt, body, TK::KW_end);
+    ts.expect(TK::KW_end);
+    st_pop_scope(st);
+
+    // Insert i += 1 before every continue in the body
+    _for_insert_incr_before_continue(body, name, ident);
+
+    // Append: <ident> += 1; to the body
+    body.push(Ast::new_assign_op(ident, name, TK::PlusEq, Ast::new_integer(ident, 1)));
+
+    // Create: while <ident> < <end> do body end
+    var loop_var = Ast::new_ident(ident, name);
+    var test = Ast::new_binop(for_, loop_var, TK::Less, end_);
+    var while_ = Ast::new_while(for_, test, body);
+
+    into.push(var_decl);
+    into.push(while_);
+end
+
 def parse_statements_until ts, st, tt, into, kind, ...kinds in
     if ts.peekk_one_of(kind, kinds) then
         return;
     end
-    var stmt = parse_statement(ts, st, tt);
-    while stmt do
-        into.push(stmt);
+    if ts.peekk(TK::KW_for) then
+        _parse_for(ts, st, tt, into);
+    else
+        var stmt = parse_statement(ts, st, tt);
+        if stmt then
+            into.push(stmt);
+        end
+    end
+    while true do
         if ts.peekk_one_of(kind, kinds) then
-            stmt = NULL;
+            return;
+        end
+        if ts.peekk(TK::KW_for) then
+            _parse_for(ts, st, tt, into);
         else
-            stmt = parse_statement(ts, st, tt);
+            var stmt = parse_statement(ts, st, tt);
+            if not stmt then
+                return;
+            end
+            into.push(stmt);
         end
     end
 end

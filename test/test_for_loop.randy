@@ -1,0 +1,56 @@
+#include std/core
+
+def main in
+    // Basic for loop
+    printf("basic:\n");
+    for i in 0..5 do
+        printf("%d ", i);
+    end
+    printf("\n");
+
+    // For loop with expression bounds
+    printf("expression bounds:\n");
+    var n = 3;
+    for i in 1..n + 1 do
+        printf("%d ", i);
+    end
+    printf("\n");
+
+    // Nested for loops
+    printf("nested:\n");
+    for i in 0..3 do
+        for j in 0..3 do
+            printf("(%d,%d) ", i, j);
+        end
+        printf("\n");
+    end
+
+    // For loop with break
+    printf("break:\n");
+    for i in 0..10 do
+        if i == 5 then
+            break;
+        end
+        printf("%d ", i);
+    end
+    printf("\n");
+
+    // For loop with continue
+    printf("continue:\n");
+    for i in 0..10 do
+        if i % 2 == 0 then
+            continue;
+        end
+        printf("%d ", i);
+    end
+    printf("\n");
+
+    // For loop as accumulator
+    var sum = 0;
+    for i in 1..101 do
+        sum += i;
+    end
+    printf("sum 1..100 = %d\n", sum);
+
+    return 0;
+end
