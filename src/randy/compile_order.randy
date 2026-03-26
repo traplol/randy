@@ -47,6 +47,9 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, stmt.u.cast_.expr, seen, order);
     elif k == AstK::MemberAccess then
         _compile_order_visit(tt, st, stmt.u.member_access.expr, seen, order);
+    elif k == AstK::Index then
+        _compile_order_visit(tt, st, stmt.u.index.expr, seen, order);
+        _compile_order_visit(tt, st, stmt.u.index.idx, seen, order);
     elif k == AstK::AssignMember then
         _compile_order_visit(tt, st, stmt.u.assign_member.lhs, seen, order);
         _compile_order_visit(tt, st, stmt.u.assign_member.rhs, seen, order);

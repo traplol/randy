@@ -1,0 +1,89 @@
+#include std/core
+
+// Phase 1: Nested indexing and chaining with member access
+
+def test_2d_array in
+    // 2D array: array of pointers to int arrays
+    var rows = 3;
+    var cols = 4;
+    var grid: int& = malloc(rows * 8);
+    for i in 0..rows do
+        var row: int& = malloc(cols * 8);
+        for j in 0..cols do
+            row[j] = i * cols + j;
+        end
+        // Store row pointer in grid (both are int& = 8 bytes)
+        grid[i] = cast(row, int);
+    end
+
+    for i in 0..rows do
+        var row = cast(grid[i], int&);
+        for j in 0..cols do
+            printf("%d ", row[j]);
+        end
+        printf("\n");
+    end
+
+    for i in 0..rows do
+        free(cast(grid[i], int&));
+    end
+    free(grid);
+end
+
+struct Pair in
+    a: int;
+    b: int;
+end
+
+def make_pair a, b -> Pair& in
+    var self = cast(malloc(__sizeof(Pair)), Pair&);
+    self.a = a;
+    self.b = b;
+    return self;
+end
+
+def test_index_then_member in
+    // Inline array of Pair structs
+    var pairs: Pair& = malloc(2 * __sizeof(Pair));
+    pairs[0].a = 10;
+    pairs[0].b = 20;
+    pairs[1].a = 30;
+    pairs[1].b = 40;
+
+    printf("pairs[0].a = %d\n", pairs[0].a);
+    printf("pairs[0].b = %d\n", pairs[0].b);
+    printf("pairs[1].a = %d\n", pairs[1].a);
+    printf("pairs[1].b = %d\n", pairs[1].b);
+
+    free(pairs);
+end
+
+struct Container in
+    data: int&;
+    length: int;
+end
+
+def test_member_then_index in
+    var c = cast(malloc(__sizeof(Container)), Container&);
+    c.data = malloc(5 * 8);
+    c.length = 5;
+
+    for i in 0..c.length do
+        c.data[i] = i * 100;
+    end
+
+    for i in 0..c.length do
+        printf("c.data[%d] = %d\n", i, c.data[i]);
+    end
+
+    free(c.data);
+    free(c);
+end
+
+def main in
+    test_2d_array();
+    test_index_then_member();
+    test_member_then_index();
+    printf("pass\n");
+    return 0;
+end

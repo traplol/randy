@@ -1,0 +1,39 @@
+#include std/core
+#include std/vector
+
+// Phase 1: Using [] indexing with Vector
+
+def test_vector_get_set in
+    var v = Vector[int]::new(10);
+    for i in 0..10 do
+        v.push(i * 100);
+    end
+
+    // Read via []
+    for i in 0..v.length do
+        printf("v[%d] = %d\n", i, v.buffer[i]);
+    end
+end
+
+def test_vector_sum in
+    var v = Vector[int]::new(5);
+    v.push(1);
+    v.push(2);
+    v.push(3);
+    v.push(4);
+    v.push(5);
+
+    var sum = 0;
+    for i in 0..v.length do
+        sum += v.buffer[i];
+    end
+    printf("sum = %d\n", sum);
+    v.delete();
+end
+
+def main in
+    test_vector_get_set();
+    test_vector_sum();
+    printf("pass\n");
+    return 0;
+end

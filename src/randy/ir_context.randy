@@ -1222,6 +1222,38 @@ def ir_emit_return self, ast, st, tt in
     ir_append(self, IrInstr::new_pop_return());
 end
 
+def _ir_create_slice_storage self, ident, st in
+    // Create two hidden locals for slice storage and initialize the slice pointer.
+    // The hidden locals are adjacent on the stack:
+    //   __ident__len  at local N   (higher address: rbp - (N+1)*8)
+    //   __ident__data at local N+1 (lower address:  rbp - (N+2)*8)
+    // The slice pointer points to __ident__data, so:
+    //   offset 0 → data pointer
+    //   offset 8 → length
+    var name_data = String::new(32);
+    name_data.append_cstr("__");
+    name_data.append_cstr(ident);
+    name_data.append_cstr("__data");
+    var name_len = String::new(32);
+    name_len.append_cstr("__");
+    name_len.append_cstr(ident);
+    name_len.append_cstr("__len");
+
+    // Create length local first (higher local index = lower address)
+    ir_cur_scope(self).set(name_len.cstr(), LocalInfo::new(self.num_locals, 0, 0));
+    self.num_locals += 1;
+    // Create data local second (will be at lower address = base of struct)
+    var data_idx = self.num_locals;
+    ir_cur_scope(self).set(name_data.cstr(), LocalInfo::new(data_idx, 0, 0));
+    self.num_locals += 1;
+
+    // Set slice variable to address of data storage (RefLocal)
+    ir_append(self, IrInstr::new_ref_local(name_data.cstr(), data_idx, 0));
+    var n = ir_get_local(self, ident);
+    var offs = ir_get_local_offset(self, ident);
+    ir_append(self, IrInstr::new_set_local(ident, n, offs));
+end
+
 def ir_emit_var_decl self, ast, st, tt in
     check_ast_kind(AstK::VarDecl, ast);
     var ident = ast.u.var_decl;
@@ -1233,6 +1265,11 @@ def ir_emit_var_decl self, ast, st, tt in
     assert(sym_type and sym_type.size != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     ir_new_local(self, ident, st);
+    if sym_type.kind == TypeKind::Slice then
+        _ir_create_slice_storage(self, ident, st);
+    elif sym_type.kind == TypeKind::Array then
+        _ir_create_array_storage(self, ident, st, sym_type.u.array_.length);
+    end
 end
 
 def ir_emit_var_assign self, ast, st, tt in
@@ -1250,6 +1287,9 @@ def ir_emit_var_assign self, ast, st, tt in
     var n = ir_new_local(self, ident, st);
     var offs = ir_get_local_offset(self, ident);
     ir_append(self, IrInstr::new_set_local(ident, n, offs));
+    if sym_type.kind == TypeKind::Slice then
+        _ir_create_slice_storage(self, ident, st);
+    end
 end
 
 def ir_emit_assign_op self, ast, st, tt in
@@ -1318,8 +1358,9 @@ def ir_emit_assign_member self, ast, st, tt in
 
     if op != TK::Assign then
         if lhs.kind == AstK::MemberAccess then
-            // dereference self
             ir_emit_member_access(self, lhs, st, tt, true);
+        elif lhs.kind == AstK::Index then
+            ir_emit_index(self, lhs, st, tt, true);
         else
             ir_compile(self, lhs, st, tt);
         end
@@ -1351,6 +1392,8 @@ def ir_emit_assign_member self, ast, st, tt in
 
     if lhs.kind == AstK::MemberAccess then
         ir_emit_member_access(self, lhs, st, tt, false);
+    elif lhs.kind == AstK::Index then
+        ir_emit_index(self, lhs, st, tt, false);
     else
         ir_compile(self, lhs, st, tt);
     end
@@ -1597,8 +1640,111 @@ def _ir_find_field type: Type&, member: cstr -> Field& in
     return NULL;
 end
 
+def _ir_create_array_storage self, ident, st, length: int in
+    // Create N hidden locals for array storage.
+    // The last hidden local (highest index) has the lowest stack address = array base.
+    var base_idx = self.num_locals + length - 1;
+    var last_name: cstr;
+    for i in 0..length do
+        var name = String::new(32);
+        name.append_cstr("__");
+        name.append_cstr(ident);
+        name.append_cstr("__");
+        name.append_int(i);
+        var key = name.cstr();
+        ir_cur_scope(self).set(key, LocalInfo::new(self.num_locals, 0, 0));
+        self.num_locals += 1;
+        last_name = key;
+    end
+
+    // Set array variable to address of last hidden local (lowest stack address = base)
+    ir_append(self, IrInstr::new_ref_local(last_name, base_idx, 0));
+    var n = ir_get_local(self, ident);
+    var offs = ir_get_local_offset(self, ident);
+    ir_append(self, IrInstr::new_set_local(ident, n, offs));
+end
+
+def _ir_emit_array_member_access self, ast, st, tt, deref: bool in
+    // Array member access: only .length
+    var member = ast.u.member_access.member;
+    if cstr_eq("length", member) then
+        var type = tt_get_ast_type(tt, ast.u.member_access.expr);
+        ir_append(self, IrInstr::new_push_int(type.u.array_.length));
+    else
+        assert(false, "Compiler bug: unknown array member `%s`\n", member);
+    end
+end
+
+def _ir_emit_array_index self, ast, st, tt, deref: bool in
+    // Array indexing with bounds checking
+    var array_type = tt_get_ast_type(tt, ast.u.index.expr);
+    var elem_type = array_type.u.array_.elem_type;
+    var elem_size = elem_type.size / BYTE_BITS;
+    var length = array_type.u.array_.length;
+
+    // Bounds check
+    var fail_label = ir_new_label(self, "bounds_fail");
+    var ok_label = ir_new_label(self, "bounds_ok");
+    ir_compile(self, ast.u.index.idx, st, tt);
+    ir_append(self, IrInstr::new_push_int(length));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpLess));
+    ir_append(self, IrInstr::new_goto_false(fail_label));
+    ir_append(self, IrInstr::new_goto(ok_label));
+    ir_append(self, IrInstr::new_label(fail_label));
+    ir_append(self, IrInstr::new_push_int(1));
+    ir_append(self, IrInstr::new_alloc_temps(1));
+    ir_append(self, IrInstr::new_store_temp(0));
+    ir_append(self, IrInstr::new_set_arg_temp(0));
+    ir_append(self, IrInstr::new_free_temps(1));
+    ir_append(self, IrInstr::new_call("exit", false));
+    ir_append(self, IrInstr::new_label(ok_label));
+
+    // Actual indexing: load array base pointer, then index
+    ir_compile(self, ast.u.index.expr, st, tt);
+    ir_compile(self, ast.u.index.idx, st, tt);
+    ir_append(self, IrInstr::new_push_int(elem_size));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpMul));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpAdd));
+    if deref then
+        if elem_type.kind != TypeKind::Struct and elem_type.kind != TypeKind::Union then
+            ir_append(self, IrInstr::new_ptr_read(elem_type.size));
+        end
+    end
+end
+
+def _ir_emit_slice_member_access self, ast, st, tt, deref: bool in
+    // Slice member access: s.data or s.length
+    // The slice variable holds a pointer to {data, length} on the stack.
+    var member = ast.u.member_access.member;
+    ir_compile(self, ast.u.member_access.expr, st, tt);
+    if cstr_eq("data", member) then
+        // data is at offset 0
+        if deref then
+            ir_append(self, IrInstr::new_ptr_read(PTR_BITS));
+        end
+    elif cstr_eq("length", member) then
+        // length is at offset 8 (PTR_BITS bits)
+        ir_append(self, IrInstr::new_ptr_offs(PTR_BITS));
+        if deref then
+            ir_append(self, IrInstr::new_ptr_read(INT_BITS));
+        end
+    else
+        assert(false, "Compiler bug: unknown slice member `%s`\n", member);
+    end
+end
+
 def ir_emit_member_access self, ast, st, tt, deref: bool in
     check_ast_kind(AstK::MemberAccess, ast);
+
+    // Check for slice/array member access
+    var expr_type = tt_get_ast_type(tt, ast.u.member_access.expr);
+    if expr_type and expr_type.kind == TypeKind::Slice then
+        _ir_emit_slice_member_access(self, ast, st, tt, deref);
+        return;
+    elif expr_type and expr_type.kind == TypeKind::Array then
+        _ir_emit_array_member_access(self, ast, st, tt, deref);
+        return;
+    end
 
     // Member access is essentially a left-associative binary operator and when
     // they are chained together in the form of `a.b.c.d`, they act as a linked
@@ -1669,6 +1815,84 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         assert(size > 0, "Compiler bug: size cannot be zero for auto-deref\n");
         assert(size <= PTR_BITS, "TODO: support larger than memory read: %d\n", size);
         ir_append(self, IrInstr::new_ptr_read(size));
+    end
+end
+
+def _ir_emit_slice_index self, ast, st, tt, deref: bool in
+    // Slice indexing: s[i] with bounds checking
+    var slice_type = tt_get_ast_type(tt, ast.u.index.expr);
+    var elem_type = slice_type.u.slice_elem_type;
+    var elem_size = elem_type.size / BYTE_BITS;
+
+    // Bounds check: if i >= s.length then exit(1)
+    var fail_label = ir_new_label(self, "bounds_fail");
+    var ok_label = ir_new_label(self, "bounds_ok");
+
+    // Push index, push length, compare: index < length
+    ir_compile(self, ast.u.index.idx, st, tt);
+    ir_compile(self, ast.u.index.expr, st, tt);
+    ir_append(self, IrInstr::new_ptr_offs(PTR_BITS));
+    ir_append(self, IrInstr::new_ptr_read(INT_BITS));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpLess));
+    // GotoFalse pops the result and jumps if false (i.e., bounds violation)
+    ir_append(self, IrInstr::new_goto_false(fail_label));
+    ir_append(self, IrInstr::new_goto(ok_label));
+    // Bounds check failed: exit(1)
+    ir_append(self, IrInstr::new_label(fail_label));
+    ir_append(self, IrInstr::new_push_int(1));
+    ir_append(self, IrInstr::new_alloc_temps(1));
+    ir_append(self, IrInstr::new_store_temp(0));
+    ir_append(self, IrInstr::new_set_arg_temp(0));
+    ir_append(self, IrInstr::new_free_temps(1));
+    ir_append(self, IrInstr::new_call("exit", false));
+    // Bounds check passed
+    ir_append(self, IrInstr::new_label(ok_label));
+
+    // Actual indexing: load data pointer, then index
+    ir_compile(self, ast.u.index.expr, st, tt);
+    ir_append(self, IrInstr::new_ptr_read(PTR_BITS)); // read data ptr at offset 0
+    ir_compile(self, ast.u.index.idx, st, tt);
+    ir_append(self, IrInstr::new_push_int(elem_size));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpMul));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpAdd));
+    if deref then
+        if elem_type.kind != TypeKind::Struct and elem_type.kind != TypeKind::Union then
+            ir_append(self, IrInstr::new_ptr_read(elem_type.size));
+        end
+    end
+end
+
+def ir_emit_index self, ast, st, tt, deref: bool in
+    check_ast_kind(AstK::Index, ast);
+
+    // Check for slice/array indexing
+    var expr_type = tt_get_ast_type(tt, ast.u.index.expr);
+    if expr_type.kind == TypeKind::Slice then
+        _ir_emit_slice_index(self, ast, st, tt, deref);
+        return;
+    elif expr_type.kind == TypeKind::Array then
+        _ir_emit_array_index(self, ast, st, tt, deref);
+        return;
+    end
+
+    // Regular pointer indexing
+    ir_compile(self, ast.u.index.expr, st, tt);
+    ir_compile(self, ast.u.index.idx, st, tt);
+    // Get the element type: deref exactly once from the pointer type
+    assert(expr_type.kind == TypeKind::Reference, "ir_emit_index: expected reference type\n");
+    var elem_type = expr_type.u.deref_type;
+    var elem_size = elem_type.size / BYTE_BITS;
+    // Multiply index by element size (in bytes)
+    ir_append(self, IrInstr::new_push_int(elem_size));
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpMul));
+    // Add to base address
+    ir_append(self, IrInstr::new_simple_op(IrKind::OpAdd));
+    // Read the value at computed address for scalar types.
+    // For struct/union types, the address IS the result (a reference).
+    if deref then
+        if elem_type.kind != TypeKind::Struct and elem_type.kind != TypeKind::Union then
+            ir_append(self, IrInstr::new_ptr_read(elem_type.size));
+        end
     end
 end
 
@@ -1798,6 +2022,7 @@ def ir_compile self: IrContext&, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     elif k == AstK::TupleLiteral then ir_emit_tuple_literal(self, ast, st, tt);
     elif k == AstK::TupleLength then ir_emit_tuple_length(self, ast, st, tt);
     elif k == AstK::TupleGet then ir_emit_tuple_get(self, ast, st, tt);
+    elif k == AstK::Index then ir_emit_index(self, ast, st, tt, true);
     elif k == AstK::Cast then ir_emit_cast(self, ast, st, tt);
     else
         printf("`ir_compile` in File \"%s\", line %d\n", __FILE__, __LINE__);

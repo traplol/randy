@@ -1,0 +1,114 @@
+#include std/core
+
+// Phase 2: Basic slice operations (stack-allocated, zero-cost)
+
+def test_slice_from_malloc in
+    var data: int& = malloc(5 * 8);
+    for i in 0..5 do
+        data[i] = (i + 1) * 10;
+    end
+
+    // Declare slice and initialize fields
+    var s: int[];
+    s.data = data;
+    s.length = 5;
+
+    printf("s.length = %d\n", s.length);
+    for i in 0..s.length do
+        printf("s[%d] = %d\n", i, s[i]);
+    end
+
+    free(data);
+end
+
+def test_slice_write in
+    var data: int& = malloc(3 * 8);
+    var s: int[];
+    s.data = data;
+    s.length = 3;
+
+    s[0] = 100;
+    s[1] = 200;
+    s[2] = 300;
+
+    for i in 0..s.length do
+        printf("s[%d] = %d\n", i, s[i]);
+    end
+
+    free(data);
+end
+
+def print_ints s: int[] in
+    printf("[");
+    for i in 0..s.length do
+        if i > 0 then
+            printf(", ");
+        end
+        printf("%d", s[i]);
+    end
+    printf("]\n");
+end
+
+def test_slice_as_param in
+    var data: int& = malloc(4 * 8);
+    data[0] = 1;
+    data[1] = 2;
+    data[2] = 3;
+    data[3] = 4;
+    var s: int[];
+    s.data = data;
+    s.length = 4;
+    print_ints(s);
+    free(data);
+end
+
+def sum_slice s: int[] -> int in
+    var total = 0;
+    for i in 0..s.length do
+        total += s[i];
+    end
+    return total;
+end
+
+def test_slice_sum in
+    var data: int& = malloc(3 * 8);
+    data[0] = 10;
+    data[1] = 20;
+    data[2] = 30;
+    var s: int[];
+    s.data = data;
+    s.length = 3;
+    printf("sum = %d\n", sum_slice(s));
+    free(data);
+end
+
+def test_char_slice in
+    var data: char& = malloc(5);
+    data[0] = 'h';
+    data[1] = 'e';
+    data[2] = 'l';
+    data[3] = 'l';
+    data[4] = 'o';
+
+    var s: char[];
+    s.data = data;
+    s.length = 5;
+
+    printf("s.length = %d\n", s.length);
+    for i in 0..s.length do
+        printf("%c", s[i]);
+    end
+    printf("\n");
+
+    free(data);
+end
+
+def main in
+    test_slice_from_malloc();
+    test_slice_write();
+    test_slice_as_param();
+    test_slice_sum();
+    test_char_slice();
+    printf("pass\n");
+    return 0;
+end

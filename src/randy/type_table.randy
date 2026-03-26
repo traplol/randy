@@ -47,6 +47,8 @@ enum TypeKind in
     Union;
     GenericParam;
     Tuple;
+    Slice;
+    Array;
 end
 
 struct Type in
@@ -84,6 +86,13 @@ struct Type in
 
         union_: struct in
             fields: Vector[Field&]&;
+        end
+
+        slice_elem_type: Type&;
+
+        array_: struct in
+            elem_type: Type&;
+            length: int;
         end
     end
 end
@@ -285,6 +294,8 @@ struct TypeTable in
     bool_type: Type&;
     ast_types: Map&;    // (ast, type) map : ast -> type
     made_change: bool; // where any changes to the ast_types map made?
+    slice_types: Map&; // (elem_type_id, slice_type) cache
+    array_types: Map&; // cache for array types
 end
 
 def _tt_make_type tyk, name, size, type_ids: Map&, types, names, scope in
@@ -325,6 +336,8 @@ def make_type_table -> TypeTable& in
     self.all_types = types;
     self.names = names;
     self.ast_types = Map::new(0, NULL, NULL);
+    self.slice_types = Map::new(0, NULL, NULL);
+    self.array_types = Map::new(0, NULL, NULL);
     self.type_substitutes = NULL;
 
     var void_t = _tt_make_type(TypeKind::Void, "void", 0, type_ids, types, names, self.type_scope);
@@ -355,6 +368,52 @@ def make_type_table -> TypeTable& in
     _tt_make_type(TypeKind::Int_like, "int32", 32, type_ids, types, names, self.type_scope);
 
     return self;
+end
+
+def tt_get_or_create_slice_type self, elem_type: Type& -> Type& in
+    var found = self.slice_types.find(elem_type.id);
+    if found then
+        return found.val;
+    end
+    var type_idx = self.all_types.length;
+    var slice_t = cast(calloc(1, __sizeof(Type)), Type&);
+    slice_t.kind = TypeKind::Slice;
+    slice_t.id = type_idx;
+    slice_t.size = PTR_BITS; // a slice variable is an 8-byte pointer to {data, length}
+    slice_t.scope = self.type_scope;
+    slice_t.u.slice_elem_type = elem_type;
+    self.all_types.push(slice_t);
+    self.names.push(NULL);
+    self.slice_types.set(elem_type.id, slice_t);
+    return slice_t;
+end
+
+def tt_is_slice_type self, type: Type& -> bool in
+    if not type then
+        return false;
+    end
+    return type.kind == TypeKind::Slice;
+end
+
+def tt_get_or_create_array_type self, elem_type: Type&, length: int -> Type& in
+    // Use a composite key: elem_type_id * 10000 + length (simple hash)
+    var key = elem_type.id * 10000 + length;
+    var found = self.array_types.find(key);
+    if found then
+        return found.val;
+    end
+    var type_idx = self.all_types.length;
+    var array_t = cast(calloc(1, __sizeof(Type)), Type&);
+    array_t.kind = TypeKind::Array;
+    array_t.id = type_idx;
+    array_t.size = PTR_BITS; // array variable is a pointer to stack storage
+    array_t.scope = self.type_scope;
+    array_t.u.array_.elem_type = elem_type;
+    array_t.u.array_.length = length;
+    self.all_types.push(array_t);
+    self.names.push(NULL);
+    self.array_types.set(key, array_t);
+    return array_t;
 end
 
 def tt_set_enclosing self, enclosing in
@@ -723,6 +782,14 @@ def _tt_append_type_repr self, string, type in
                 string.append_cstr(" of ");
                 _tt_append_type_repr(self, string, deref_type.u.tuple.mono_type);
             end
+        elif deref_type.kind == TypeKind::Slice then
+            _tt_append_type_repr(self, string, deref_type.u.slice_elem_type);
+            string.append_cstr("[]");
+        elif deref_type.kind == TypeKind::Array then
+            _tt_append_type_repr(self, string, deref_type.u.array_.elem_type);
+            string.push('[');
+            string.append_int(deref_type.u.array_.length);
+            string.push(']');
         else
             string.append_cstr("<type id ");
             string.append_int(deref_type.id);

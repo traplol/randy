@@ -384,6 +384,26 @@ def tc_check_member_access self, tt, st, ast in
         type = type.u.deref_type;
     end
 
+    // Slice types have .data and .length members
+    if type.kind == TypeKind::Slice then
+        if not cstr_eq(member, "data") and not cstr_eq(member, "length") then
+            printf("ERROR: slice type has no member `%s`. Only `data` and `length` are available.\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        return;
+    end
+
+    // Array types have .length member
+    if type.kind == TypeKind::Array then
+        if not cstr_eq(member, "length") then
+            printf("ERROR: array type has no member `%s`. Only `length` is available.\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        return;
+    end
+
     if type.kind != TypeKind::Struct and type.kind != TypeKind::Union then
         printf("ERROR: attempting to access member `%s` with '.' operator on non-struct type.\n", member);
         printf("NOTE: the expression is:");
@@ -626,6 +646,25 @@ def tc_check self, tt, st, ast in
     elif k == AstK::TupleLiteral then tc_check_tuple_literal(self, tt, st, ast);
     elif k == AstK::TupleLength then tc_check_tuple_length(self, tt, st, ast);
     elif k == AstK::TupleGet then tc_check_tuple_get(self, tt, st, ast);
+    elif k == AstK::Index then
+        tc_check(self, tt, st, ast.u.index.expr);
+        tc_check(self, tt, st, ast.u.index.idx);
+        var idx_type = tt_get_ast_type(tt, ast.u.index.idx);
+        if idx_type.kind != TypeKind::Int_like and idx_type != tt.any_type then
+            printf("ERROR: array index must be an integer, got `");
+            tt_print_type_name(tt, idx_type);
+            printf("`.\n");
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
+        var expr_type = tt_get_ast_type(tt, ast.u.index.expr);
+        if expr_type.kind != TypeKind::Reference and expr_type.kind != TypeKind::Slice and expr_type.kind != TypeKind::Array and expr_type != tt.any_type then
+            printf("ERROR: cannot index into type `");
+            tt_print_type_name(tt, expr_type);
+            printf("`.\n");
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+        end
     else
         printf("  File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %s (%d)\n", ast_kind_cstr(k), k);

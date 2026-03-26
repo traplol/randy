@@ -1,0 +1,21 @@
+#include std/core
+
+def main in
+    var data: int& = malloc(3 * 8);
+    data[0] = 10;
+    data[1] = 20;
+    data[2] = 30;
+
+    var s: int[];
+    s.data = data;
+    s.length = 3;
+
+    printf("s.length = %d\n", s.length);
+    printf("s[0] = %d\n", s[0]);
+    printf("s[1] = %d\n", s[1]);
+    printf("s[2] = %d\n", s[2]);
+
+    free(data);
+    printf("pass\n");
+    return 0;
+end

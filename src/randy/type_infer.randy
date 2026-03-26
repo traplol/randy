@@ -539,6 +539,26 @@ def ti_infer_member_access self, tt, st, ast in
         return type;
     elif type.kind == TypeKind::Union then
         return _ti_get_union_field_type(type, member);
+    elif type.kind == TypeKind::Slice then
+        if cstr_eq("length", member) then
+            ftype = tt.int_type;
+        elif cstr_eq("data", member) then
+            ftype = tt_reference_to_type(tt, type.u.slice_elem_type);
+        else
+            printf("ERROR: slice type has no member `%s`. Only `data` and `length` are available.\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+            return tt.any_type;
+        end
+    elif type.kind == TypeKind::Array then
+        if cstr_eq("length", member) then
+            ftype = tt.int_type;
+        else
+            printf("ERROR: array type has no member `%s`. Only `length` is available.\n", member);
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+            return tt.any_type;
+        end
     elif type.kind == TypeKind::Tuple then
         if cstr_eq("length", member) then
             ast_change_member_access_to_tuple_length(ast);
@@ -697,6 +717,30 @@ def ti_infer self, tt, st, ast -> Type& in
     elif k == AstK::TupleLiteral then type = ti_infer_tuple_literal(self, tt, st, ast);
     elif k == AstK::TupleLength then type = ti_infer_tuple_length(self, tt, st, ast);
     elif k == AstK::TupleGet then type = ti_infer_tuple_get(self, tt, st, ast);
+    elif k == AstK::Index then
+        var expr_type = ti_infer(self, tt, st, ast.u.index.expr);
+        ti_infer(self, tt, st, ast.u.index.idx);
+        if expr_type.kind == TypeKind::Slice then
+            type = expr_type.u.slice_elem_type;
+        elif expr_type.kind == TypeKind::Array then
+            type = expr_type.u.array_.elem_type;
+        elif expr_type.kind == TypeKind::Reference then
+            var elem_type = expr_type.u.deref_type;
+            if elem_type.kind == TypeKind::Struct or elem_type.kind == TypeKind::Union then
+                type = expr_type;
+            else
+                type = elem_type;
+            end
+        elif expr_type == tt.any_type then
+            type = tt.any_type;
+        else
+            printf("ERROR: cannot index into non-reference type `");
+            tt_print_type_name(tt, expr_type);
+            printf("`.\n");
+            print_ast_src_loc(ast);
+            g_Errors += 1;
+            type = tt.any_type;
+        end
     else
         printf("`ti_infer` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

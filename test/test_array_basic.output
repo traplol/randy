@@ -1,0 +1,13 @@
+arr.length = 5
+arr[0] = 10
+arr[1] = 20
+arr[2] = 30
+arr[3] = 40
+arr[4] = 50
+buf = world
+0 1 4 9 16 25 36 49 64 81 
+sum = 15
+arr[0] = 15
+arr[1] = 40
+arr[2] = 20
+pass

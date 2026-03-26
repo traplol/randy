@@ -1,0 +1,12 @@
+sum = 100
+empty.length = 0
+empty slice ok
+data[0] = 0
+data[1] = 1
+data[2] = 4
+data[3] = 9
+data[4] = 16
+s[0] = 15
+s[1] = 40
+s[2] = 20
+pass

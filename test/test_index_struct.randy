@@ -1,0 +1,74 @@
+#include std/core
+
+// Phase 1: [] indexing with struct-related patterns
+
+struct Point in
+    x: int;
+    y: int;
+end
+
+def make_point x, y -> Point& in
+    var self = cast(malloc(__sizeof(Point)), Point&);
+    self.x = x;
+    self.y = y;
+    return self;
+end
+
+def test_inline_struct_array in
+    // Array of inline Point structs (each 16 bytes)
+    var points: Point& = malloc(3 * __sizeof(Point));
+    points[0].x = 1;
+    points[0].y = 2;
+    points[1].x = 3;
+    points[1].y = 4;
+    points[2].x = 5;
+    points[2].y = 6;
+
+    for i in 0..3 do
+        printf("points[%d] = (%d, %d)\n", i, points[i].x, points[i].y);
+    end
+
+    free(points);
+end
+
+def test_pointer_array in
+    // Array of pointers to Point (each pointer 8 bytes)
+    // Use int& as the buffer type since pointers are 8 bytes
+    var buf: int& = malloc(3 * 8);
+    var p0 = make_point(10, 20);
+    var p1 = make_point(30, 40);
+    var p2 = make_point(50, 60);
+    buf[0] = cast(p0, int);
+    buf[1] = cast(p1, int);
+    buf[2] = cast(p2, int);
+
+    for i in 0..3 do
+        var p = cast(buf[i], Point&);
+        printf("p[%d] = (%d, %d)\n", i, p.x, p.y);
+    end
+
+    free(p0); free(p1); free(p2);
+    free(buf);
+end
+
+def test_struct_field_assign_via_index in
+    var points: Point& = malloc(3 * __sizeof(Point));
+
+    // Assign via compound ops
+    points[0].x = 10;
+    points[0].y = 20;
+    points[0].x += 5;
+    points[0].y *= 2;
+
+    printf("(%d, %d)\n", points[0].x, points[0].y);
+
+    free(points);
+end
+
+def main in
+    test_inline_struct_array();
+    test_pointer_array();
+    test_struct_field_assign_via_index();
+    printf("pass\n");
+    return 0;
+end

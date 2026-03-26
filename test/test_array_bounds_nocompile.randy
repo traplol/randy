@@ -1,0 +1,12 @@
+// -nocompile
+// -expect "array type has no member"
+#include std/core
+
+// Phase 3: Array error - accessing invalid member
+
+def main in
+    var arr: int[5];
+    var x = arr.capacity;
+    printf("%d\n", x);
+    return 0;
+end

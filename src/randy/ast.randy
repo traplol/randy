@@ -43,6 +43,7 @@ enum AstK in
     TupleLiteral;
     TupleLength; // not directly created from source code
     TupleGet; // not directly created from source code
+    Index;
 end
 
 def ast_kind_cstr k: AstK in
@@ -84,6 +85,7 @@ def ast_kind_cstr k: AstK in
     if k == AstK::TupleLiteral then return "AstK::TupleLiteral"; end
     if k == AstK::TupleLength then return "AstK::TupleLength"; end
     if k == AstK::TupleGet then return "AstK::TupleGet"; end
+    if k == AstK::Index then return "AstK::Index"; end
     return "AstK::OUT_OF_RANGE";
 end
 
@@ -217,6 +219,10 @@ struct Ast in
             expr: Ast&;
         end
         tuple_get: struct in
+            expr: Ast&;
+            idx: Ast&;
+        end
+        index: struct in
             expr: Ast&;
             idx: Ast&;
         end
@@ -460,7 +466,7 @@ struct Ast in
     end
 
     def new_assign_member token: Token&, lhs: Ast&, op: TK, rhs: Ast& in
-        assert(lhs.kind == AstK::MemberAccess);
+        assert(lhs.kind == AstK::MemberAccess or lhs.kind == AstK::Index);
         var self = cast(calloc(1, __sizeof(Ast)), Ast&);
         self.kind = AstK::AssignMember;
         self.is_expr = false;
@@ -589,6 +595,16 @@ struct Ast in
         self.token = token;
         self.u.tuple_get.expr = expr;
         self.u.tuple_get.idx = idx;
+        return self;
+    end
+
+    def new_index token: Token&, expr: Ast&, idx: Ast& in
+        var self = cast(calloc(1, __sizeof(Ast)), Ast&);
+        self.kind = AstK::Index;
+        self.is_expr = true;
+        self.token = token;
+        self.u.index.expr = expr;
+        self.u.index.idx = idx;
         return self;
     end
 end
@@ -1082,6 +1098,11 @@ def _print_ast ast, indent in
     elif k == AstK::TupleLiteral then _print_ast_tuple_literal(ast, indent);
     elif k == AstK::TupleLength then _print_ast_tuple_length(ast, indent);
     elif k == AstK::TupleGet then _print_ast_tuple_get(ast, indent);
+    elif k == AstK::Index then
+        _print_ast(ast.u.index.expr, indent);
+        printf("[");
+        _print_ast(ast.u.index.idx, indent);
+        printf("]");
     else
         printf("`_print_ast` at File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled AstK: %d\n", k);

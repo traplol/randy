@@ -1,0 +1,21 @@
+buf[0] = 10
+buf[1] = 20
+buf[2] = 30
+buf[3] = 40
+buf[4] = 50
+str = hello
+buf[0] = h
+buf[4] = o
+buf[0] = true
+buf[1] = false
+buf[2] = true
+buf[x] = 9
+buf[x+1] = 16
+buf[2*x] = 36
+sum = 60
+buf[1] > buf[0]
+max(buf[0], buf[2]) = 30
+b[0] = 100
+b[1] = 200
+b[2] = 300
+pass

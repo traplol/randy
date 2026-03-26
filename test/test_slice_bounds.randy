@@ -1,0 +1,26 @@
+#include std/core
+
+// Phase 2: Slice bounds checking (runtime)
+
+def main in
+    var data: int& = malloc(5 * 8);
+    for i in 0..5 do
+        data[i] = i * 10;
+    end
+
+    var s: int[];
+    s.data = data;
+    s.length = 5;
+
+    // Access within bounds
+    printf("s[0] = %d\n", s[0]);
+    printf("s[4] = %d\n", s[4]);
+
+    // This should trigger a bounds check and exit(1)
+    printf("s[5] = ");
+    var x = s[5];
+    printf("should not reach here: %d\n", x);
+
+    free(data);
+    return 0;
+end

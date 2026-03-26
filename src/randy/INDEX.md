@@ -48,13 +48,13 @@ parse_offsetof(ts, st, tt)
 parse_static_assert(ts, st, tt)
 ```
 
-## ast.randy — `Ast` struct (35+ node kinds via `AstK` enum), `Field`, `EnumValue`
+## ast.randy — `Ast` struct (36+ node kinds via `AstK` enum), `Field`, `EnumValue`
 ```
 // AstK enum: Ident, Integer, String, Call, BinOp, Return, VarDecl, VarAssign,
 //   Def, IfElse, While, PointerRead, PointerWrite, Prefix, Const, Extern,
-//   InlineAsm, Global, Break, Continue, AssignOp, Cast, Struct, MemberAccess,
+//   InlineAsm, Global, Break, Continue, Defer, AssignOp, Cast, Struct, MemberAccess,
 //   AssignMember, SizeofExpr, SizeofType, Enum, Union, StaticAssert, OffsetOf,
-//   TupleLiteral, TupleLength, TupleGet, ScopeResolve, GetReference
+//   TupleLiteral, TupleLength, TupleGet, ScopeResolve, GetReference, Index
 Ast::new_ident / new_integer / new_string / new_call / new_binop / ...
 ast_kind_cstr(k: AstK)
 Field::make_copy(self)
@@ -71,11 +71,12 @@ symbol_kind(self) / symbol_name(self) / symbol_type(self) / symbol_token(self)
 ## type_table.randy — `TypeTable` struct: type registry, generic instantiation, scope management
 ```
 // TypeKind enum: Undefined, Void, Any, Int_like, Reference, Def, Struct, Enum,
-//   Union, GenericParam, Tuple
+//   Union, GenericParam, Tuple, Slice, Array
 make_type_table() -> TypeTable&
 tt_any_type / tt_void_type / tt_int_type / tt_ptr_type / tt_cstr_type / tt_bool_type / tt_char_type
 tt_push_scope / tt_pop_scope / tt_cur_scope / tt_top_scope
 tt_get_type_name(tt, type) / tt_print_type_name(tt, type)
+tt_get_or_create_slice_type(tt, elem_type) / tt_get_or_create_array_type(tt, elem_type, length)
 types_eq(a, b) / types_assignable(tt, lhs, rhs)
 make_type_struct / make_type_union / make_type_def / make_type_tuple
 ```

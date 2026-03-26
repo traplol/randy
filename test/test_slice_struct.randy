@@ -1,0 +1,89 @@
+#include std/core
+
+// Phase 2: Slices as struct fields and with various types
+
+struct Buffer in
+    items: int[];
+end
+
+def test_slice_in_struct in
+    var data: int& = malloc(4 * 8);
+    data[0] = 10;
+    data[1] = 20;
+    data[2] = 30;
+    data[3] = 40;
+
+    // Can't easily embed a slice in a struct yet (16 bytes)
+    // But we can test slices of various scalar types
+    var s: int[];
+    s.data = data;
+    s.length = 4;
+
+    var sum = 0;
+    for i in 0..s.length do
+        sum += s[i];
+    end
+    printf("sum = %d\n", sum);
+
+    free(data);
+end
+
+def test_empty_slice in
+    var s: int[];
+    s.data = NULL;
+    s.length = 0;
+
+    printf("empty.length = %d\n", s.length);
+    for i in 0..s.length do
+        printf("should not print\n");
+    end
+    printf("empty slice ok\n");
+end
+
+def test_slice_write_back in
+    var data: int& = malloc(5 * 8);
+    var s: int[];
+    s.data = data;
+    s.length = 5;
+
+    // Write through slice
+    for i in 0..s.length do
+        s[i] = i * i;
+    end
+
+    // Read back through original pointer
+    for i in 0..5 do
+        printf("data[%d] = %d\n", i, data[i]);
+    end
+
+    free(data);
+end
+
+def test_slice_compound_assign in
+    var data: int& = malloc(3 * 8);
+    var s: int[];
+    s.data = data;
+    s.length = 3;
+
+    s[0] = 10;
+    s[1] = 20;
+    s[2] = 30;
+    s[0] += 5;
+    s[1] *= 2;
+    s[2] -= 10;
+
+    printf("s[0] = %d\n", s[0]);
+    printf("s[1] = %d\n", s[1]);
+    printf("s[2] = %d\n", s[2]);
+
+    free(data);
+end
+
+def main in
+    test_slice_in_struct();
+    test_empty_slice();
+    test_slice_write_back();
+    test_slice_compound_assign();
+    printf("pass\n");
+    return 0;
+end

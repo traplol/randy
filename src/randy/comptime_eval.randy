@@ -408,6 +408,7 @@ def comptime_eval1 interp, ast, st, tt, depth in
     elif k == AstK::Break then return comptime_eval_break(interp, ast, st, tt, depth);
     elif k == AstK::Continue then return comptime_eval_continue(interp, ast, st, tt, depth);
     elif k == AstK::Defer then return ast;
+    elif k == AstK::Index then return ast;
     elif k == AstK::AssignOp then return comptime_eval_assign_op(interp, ast, st, tt, depth);
     elif k == AstK::Struct then return comptime_eval_struct(interp, ast, st, tt, depth);
     elif k == AstK::MemberAccess then return comptime_eval_member_access(interp, ast, st, tt, depth);

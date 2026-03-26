@@ -1,0 +1,117 @@
+#include std/core
+
+// Phase 1: Basic [] indexing on pointer types
+
+def test_int_array in
+    // Allocate space for 5 ints (each 8 bytes)
+    var buf: int& = malloc(5 * 8);
+    buf[0] = 10;
+    buf[1] = 20;
+    buf[2] = 30;
+    buf[3] = 40;
+    buf[4] = 50;
+
+    printf("buf[0] = %d\n", buf[0]);
+    printf("buf[1] = %d\n", buf[1]);
+    printf("buf[2] = %d\n", buf[2]);
+    printf("buf[3] = %d\n", buf[3]);
+    printf("buf[4] = %d\n", buf[4]);
+
+    free(buf);
+end
+
+def test_char_array in
+    var buf: char& = malloc(6);
+    buf[0] = 'h';
+    buf[1] = 'e';
+    buf[2] = 'l';
+    buf[3] = 'l';
+    buf[4] = 'o';
+    buf[5] = 0;
+
+    printf("str = %s\n", buf);
+    printf("buf[0] = %c\n", buf[0]);
+    printf("buf[4] = %c\n", buf[4]);
+
+    free(buf);
+end
+
+def test_bool_array in
+    var buf: bool& = malloc(3 * 8);
+    buf[0] = true;
+    buf[1] = false;
+    buf[2] = true;
+
+    if buf[0] then printf("buf[0] = true\n"); end
+    if not buf[1] then printf("buf[1] = false\n"); end
+    if buf[2] then printf("buf[2] = true\n"); end
+
+    free(buf);
+end
+
+def test_index_expression in
+    var buf: int& = malloc(10 * 8);
+    for i in 0..10 do
+        buf[i] = i * i;
+    end
+
+    // Test complex index expressions
+    var x = 3;
+    printf("buf[x] = %d\n", buf[x]);
+    printf("buf[x+1] = %d\n", buf[x + 1]);
+    printf("buf[2*x] = %d\n", buf[2 * x]);
+
+    free(buf);
+end
+
+def test_index_in_expression in
+    var buf: int& = malloc(5 * 8);
+    buf[0] = 10;
+    buf[1] = 20;
+    buf[2] = 30;
+
+    // Use indexed values in expressions
+    var sum = buf[0] + buf[1] + buf[2];
+    printf("sum = %d\n", sum);
+
+    // Use in conditions
+    if buf[1] > buf[0] then
+        printf("buf[1] > buf[0]\n");
+    end
+
+    // Use in function calls
+    printf("max(buf[0], buf[2]) = %d\n", buf[2]);
+
+    free(buf);
+end
+
+def test_index_assign_from_index in
+    var a: int& = malloc(3 * 8);
+    var b: int& = malloc(3 * 8);
+    a[0] = 100;
+    a[1] = 200;
+    a[2] = 300;
+
+    // Copy via indexing
+    b[0] = a[0];
+    b[1] = a[1];
+    b[2] = a[2];
+
+    printf("b[0] = %d\n", b[0]);
+    printf("b[1] = %d\n", b[1]);
+    printf("b[2] = %d\n", b[2]);
+
+    free(a);
+    free(b);
+end
+
+def main in
+    test_int_array();
+    test_char_array();
+    test_bool_array();
+    test_index_expression();
+    test_index_in_expression();
+    test_index_assign_from_index();
+    printf("pass\n");
+    return 0;
+end

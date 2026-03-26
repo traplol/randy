@@ -1,0 +1,77 @@
+#include std/core
+
+// Phase 3: Fixed-size arrays
+
+def test_stack_array in
+    var arr: int[5];
+    arr[0] = 10;
+    arr[1] = 20;
+    arr[2] = 30;
+    arr[3] = 40;
+    arr[4] = 50;
+
+    printf("arr.length = %d\n", arr.length);
+    for i in 0..arr.length do
+        printf("arr[%d] = %d\n", i, arr[i]);
+    end
+end
+
+def test_char_array in
+    var buf: char[6];
+    buf[0] = 'w';
+    buf[1] = 'o';
+    buf[2] = 'r';
+    buf[3] = 'l';
+    buf[4] = 'd';
+    buf[5] = 0;
+    printf("buf = %s\n", buf);
+end
+
+def test_array_init_loop in
+    var arr: int[10];
+    for i in 0..10 do
+        arr[i] = i * i;
+    end
+    for i in 0..arr.length do
+        printf("%d ", arr[i]);
+    end
+    printf("\n");
+end
+
+def test_array_sum in
+    var arr: int[5];
+    arr[0] = 1;
+    arr[1] = 2;
+    arr[2] = 3;
+    arr[3] = 4;
+    arr[4] = 5;
+
+    var sum = 0;
+    for i in 0..arr.length do
+        sum += arr[i];
+    end
+    printf("sum = %d\n", sum);
+end
+
+def test_array_compound_assign in
+    var arr: int[3];
+    arr[0] = 10;
+    arr[1] = 20;
+    arr[2] = 30;
+    arr[0] += 5;
+    arr[1] *= 2;
+    arr[2] -= 10;
+    printf("arr[0] = %d\n", arr[0]);
+    printf("arr[1] = %d\n", arr[1]);
+    printf("arr[2] = %d\n", arr[2]);
+end
+
+def main in
+    test_stack_array();
+    test_char_array();
+    test_array_init_loop();
+    test_array_sum();
+    test_array_compound_assign();
+    printf("pass\n");
+    return 0;
+end

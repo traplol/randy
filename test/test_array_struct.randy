@@ -1,0 +1,55 @@
+#include std/core
+
+// Phase 3: Arrays with various types
+
+struct Point in
+    x: int;
+    y: int;
+end
+
+def test_stack_array_of_scalars in
+    var a: int[4];
+    var b: int[4];
+    for i in 0..4 do
+        a[i] = i;
+        b[i] = i * i;
+    end
+
+    var sum = 0;
+    for i in 0..a.length do
+        sum += a[i] * b[i];
+    end
+    // 0*0 + 1*1 + 2*4 + 3*9 = 0 + 1 + 8 + 27 = 36
+    printf("dot product = %d\n", sum);
+end
+
+def test_nested_array_access in
+    var a: int[3];
+    var b: int[3];
+    a[0] = 1; a[1] = 2; a[2] = 3;
+    b[0] = 10; b[1] = 20; b[2] = 30;
+
+    // Use arrays in expressions
+    for i in 0..3 do
+        printf("a[%d] + b[%d] = %d\n", i, i, a[i] + b[i]);
+    end
+end
+
+def test_array_bounds in
+    // Test that bounds checking works for arrays
+    var arr: int[3];
+    arr[0] = 100;
+    arr[1] = 200;
+    arr[2] = 300;
+    printf("arr[0] = %d\n", arr[0]);
+    printf("arr[2] = %d\n", arr[2]);
+    printf("arr.length = %d\n", arr.length);
+end
+
+def main in
+    test_stack_array_of_scalars();
+    test_nested_array_access();
+    test_array_bounds();
+    printf("pass\n");
+    return 0;
+end

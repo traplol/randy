@@ -86,6 +86,21 @@ def parse_type ts, st, tt, is_instance in
             end
         end
     end
+    // Check for slice type T[] or array type T[N]
+    if ts.peekk(TK::LSquare) then
+        var saved_idx = ts.idx;
+        ts.next(); // consume [
+        if ts.peekk(TK::RSquare) then
+            ts.next(); // consume ]
+            return tt_get_or_create_slice_type(tt, type);
+        elif ts.peekk(TK::Integer) then
+            var n_tok = ts.next();
+            ts.expect(TK::RSquare);
+            return tt_get_or_create_array_type(tt, type, cast(n_tok.value, int));
+        end
+        ts.idx = saved_idx; // not a slice/array, let generic params handle it
+    end
+
     var generic_params: Vector[Type&]& = NULL;
     if ts.accept(TK::LSquare) then
         if not is_instance and tt.type_scope.parent == NULL then
@@ -130,6 +145,18 @@ def parse_type ts, st, tt, is_instance in
     if ts.accept(TK::Amper) then
         type = tt_reference_to_type(tt, type);
     end
+
+    // Check for slice type after reference: T&[]
+    if ts.peekk(TK::LSquare) then
+        var saved_idx = ts.idx;
+        ts.next(); // consume [
+        if ts.peekk(TK::RSquare) then
+            ts.next(); // consume ]
+            return tt_get_or_create_slice_type(tt, type);
+        end
+        ts.idx = saved_idx;
+    end
+
     return type;
 end
 
@@ -244,6 +271,8 @@ def parse_assign_op ts, st, tt, lhs, op in
         end
         return Ast::new_assign_op(op_tk, symbol.name, op, expr);
     elif k == AstK::MemberAccess then
+        return Ast::new_assign_member(op_tk, lhs, op, expr);
+    elif k == AstK::Index then
         return Ast::new_assign_member(op_tk, lhs, op, expr);
     else
         assert(false, "parse_assign_op for %s (%d) not implemented.\n", ast_kind_cstr(k), k);
@@ -449,9 +478,14 @@ def parse_primary ts, st, tt -> Ast& in
         var idx = ts.idx;
         var ident = ts.next();
         if ts.peekk(TK::LSquare) then
-            ts.idx = idx;
-            var type = parse_type(ts, st, tt, true);
-            return Ast::new_type(ident, type);
+            // Distinguish generic type (Vector[int]) from array indexing (buf[0]).
+            // If the identifier is a known type name, parse as generic type params.
+            // Otherwise, fall through and let parse_postfix handle [ as indexing.
+            if tt_get_type_or_null(tt, ident.value) then
+                ts.idx = idx;
+                var type = parse_type(ts, st, tt, true);
+                return Ast::new_type(ident, type);
+            end
         end
         var symbol = st_get_symbol(st, ident.value);
         if not symbol then
@@ -536,7 +570,7 @@ def parse_postfix ts, st, tt in
         expr = parse_scope_resolve(ts, st, tt, expr);
     end
 
-    while ts.peekk_one_of(TK::LParen, TK::Dot) do
+    while ts.peekk_one_of(TK::LParen, TK::Dot, TK::LSquare) do
         var tk = ts.next();
         var k = tk.kind;
         if k == TK::LParen then
@@ -547,6 +581,10 @@ def parse_postfix ts, st, tt in
         elif k == TK::Dot then
             var member = ts.expect(TK::Ident);
             expr = Ast::new_member_access(tk, expr, member.value);
+        elif k == TK::LSquare then
+            var idx = parse_expression(ts, st, tt);
+            ts.expect(TK::RSquare);
+            expr = Ast::new_index(tk, expr, idx);
         end
     end
 
@@ -797,7 +835,7 @@ def parse_statement ts: TokenStream&, st: SymbolTable&, tt: TypeTable& -> Ast& i
     else
         expect_semi = true;
         stmt = parse_expression(ts, st, tt);
-        if stmt and (stmt.kind == AstK::Ident or stmt.kind == AstK::MemberAccess) then
+        if stmt and (stmt.kind == AstK::Ident or stmt.kind == AstK::MemberAccess or stmt.kind == AstK::Index) then
             if ts.peekk(TK::Assign) then
                 stmt = parse_assign_op(ts, st, tt, stmt, TK::Assign);
             elif ts.peekk(TK::PlusEq) then
