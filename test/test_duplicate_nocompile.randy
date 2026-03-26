@@ -1,0 +1,11 @@
+// -nocompile
+#include std/core
+
+def foo -> int in
+    return "this is not an int";
+end
+
+def main in
+    foo();
+    return 0;
+end

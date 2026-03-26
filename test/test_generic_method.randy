@@ -1,0 +1,86 @@
+#include std/core
+#include std/vector
+#include std/hashmap
+#include std/string
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+struct IntHash in
+    def hash val: int -> int in
+        return val;
+    end
+end
+
+struct IntCompare in
+    def equal a: int, b: int in
+        return a == b;
+    end
+end
+
+def main in
+    // Test hashmap with int keys and int values
+    var map = Hashmap[int, int, IntHash, IntCompare]::new(17);
+
+    test("map starts empty", 0 == map._length);
+
+    map.insert(1, 100);
+    map.insert(2, 200);
+    map.insert(3, 300);
+    test("map length is 3", 3 == map._length);
+
+    var p = map.find(1);
+    test("find key 1", p != NULL);
+    if p != NULL then
+        test("key 1 maps to 100", 100 == p.val);
+    end
+
+    p = map.find(2);
+    test("find key 2", p != NULL);
+    if p != NULL then
+        test("key 2 maps to 200", 200 == p.val);
+    end
+
+    test("contains key 3", map.contains(3));
+    test("does not contain key 99", not map.contains(99));
+
+    // Update existing key
+    map.insert(2, 999);
+    p = map.find(2);
+    if p != NULL then
+        test("updated key 2 maps to 999", 999 == p.val);
+    end
+    test("length still 3 after update", 3 == map._length);
+
+    // Remove
+    map.remove(1);
+    test("length is 2 after remove", 2 == map._length);
+    test("no longer contains key 1", not map.contains(1));
+
+    // Stress test with many entries
+    var i = 0;
+    while i < 1000 do
+        map.insert(i, i * i);
+        i += 1;
+    end
+
+    test("contains 500", map.contains(500));
+    p = map.find(500);
+    if p != NULL then
+        test("500 maps to 250000", 250000 == p.val);
+    end
+
+    test("contains 999", map.contains(999));
+    p = map.find(999);
+    if p != NULL then
+        test("999 maps to 998001", 998001 == p.val);
+    end
+
+    printf("generic method tests done.\n");
+    return 0;
+end

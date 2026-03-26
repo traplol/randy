@@ -1,0 +1,93 @@
+#include std/core
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Test malloc and free basic
+    var p = malloc(64);
+    test("malloc returns non-null", p != NULL);
+
+    // Write and read back
+    u64!(p, 3735928559);
+    test("write and read u64", 3735928559 == u64@(p));
+
+    // Test u8 read/write
+    u8!(p, 66);
+    test("u8 write/read", 66 == cast(u8@(p), int));
+
+    // Test u16 read/write
+    u16!(p, 4660);
+    test("u16 write/read", 4660 == cast(u16@(p), int));
+
+    // Test u32 read/write
+    u32!(p, 305419896);
+    test("u32 write/read", 305419896 == cast(u32@(p), int));
+
+    free(p);
+
+    // Test calloc zeros memory
+    var c = calloc(16, 8);
+    test("calloc returns non-null", c != NULL);
+    var i = 0;
+    var all_zero = true;
+    while i < 16 do
+        if u64@(c + i * 8) != 0 then
+            all_zero = false;
+        end
+        i += 1;
+    end
+    test("calloc zeros memory", all_zero);
+    free(c);
+
+    // Test memset
+    var buf = malloc(32);
+    memset(buf, 170, 32);
+    test("memset first byte", 170 == cast(u8@(buf), int));
+    test("memset last byte", 170 == cast(u8@(buf + 31), int));
+    free(buf);
+
+    // Test memcpy
+    var src = malloc(16);
+    var dst = malloc(16);
+    i = 0;
+    while i < 16 do
+        u8!(src + i, i + 1);
+        i += 1;
+    end
+    memcpy(dst, src, 16);
+    i = 0;
+    var copy_ok = true;
+    while i < 16 do
+        if cast(u8@(dst + i), int) != i + 1 then
+            copy_ok = false;
+        end
+        i += 1;
+    end
+    test("memcpy copies correctly", copy_ok);
+    free(src);
+    free(dst);
+
+    // Test memmove with overlapping regions
+    var overlap = malloc(32);
+    i = 0;
+    while i < 16 do
+        u8!(overlap + i, i + 10);
+        i += 1;
+    end
+    // Move 12 bytes from offset 0 to offset 4 (overlapping)
+    memmove(overlap + 4, overlap, 12);
+    test("memmove preserves src start", 10 == cast(u8@(overlap), int));
+    test("memmove overlap byte 4", 10 == cast(u8@(overlap + 4), int));
+    test("memmove overlap byte 5", 11 == cast(u8@(overlap + 5), int));
+    test("memmove overlap byte 15", 21 == cast(u8@(overlap + 15), int));
+    free(overlap);
+
+    printf("memory tests done.\n");
+    return 0;
+end

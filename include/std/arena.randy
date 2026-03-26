@@ -36,7 +36,7 @@ def arena_elem_size arena in
     return u64@(arena + TARENA_elem_size);
 end
 
-def arena_at arena, idx in
+def arena_at arena: ptr, idx -> ptr in
     // TODO: Bounds check & abort
     return arena + TARENA_buffer + (idx * u64@(arena + TARENA_elem_size));
 end

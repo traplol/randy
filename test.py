@@ -71,10 +71,12 @@ def get_extra_flags(path):
             opts[flags[0]] = flags[1:]
     return opts
 
+MUSL_LIBC = os.environ.get("MUSL_LIBC", "/tmp/musl-install/lib/libc.so")
+
 def make_compile_command(randy_file, out_file, extra_flags):
-    return ["bin/randy", "-c", randy_file, "-o", out_file, "-I", "include"] + \
+    return [MUSL_LIBC, "bin/randy", "-c", randy_file, "-o", out_file, "-I", "include"] + \
         extra_flags + \
-        ["-ld", "-dynamic-linker", "/home/max/workspace/musl-1.2.4/lib/libc.so", "-lc"]
+        ["-ld", "-dynamic-linker", MUSL_LIBC, "-lc"]
     
 def record(path_to_file):
     # create out directory if it doesn"t exist

@@ -1,0 +1,113 @@
+#include std/core
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+// Single field struct
+struct Single in
+    val: int;
+end
+
+// Struct with all small types
+struct Mixed in
+    a: char;
+    b: int;
+    c: bool;
+    d: cstr;
+end
+
+// Deeply nested value structs (4 levels)
+struct Level4 in
+    val: int;
+end
+
+struct Level3 in
+    inner: Level4;
+    x: int;
+end
+
+struct Level2 in
+    inner: Level3;
+    y: int;
+end
+
+struct Level1 in
+    inner: Level2;
+    z: int;
+end
+
+// Struct containing a method that returns self type
+struct Counter in
+    count: int;
+
+    def inc self in
+        self.count += 1;
+    end
+
+    def get self -> int in
+        return self.count;
+    end
+end
+
+def make_counter -> Counter& in
+    var c = cast(malloc(__sizeof(Counter)), Counter&);
+    c.count = 0;
+    return c;
+end
+
+def main in
+    // Single field struct
+    var s = cast(malloc(__sizeof(Single)), Single&);
+    s.val = 42;
+    test("single field struct", 42 == s.val);
+    free(s);
+
+    // Mixed types struct
+    var m = cast(malloc(__sizeof(Mixed)), Mixed&);
+    m.a = 'Z';
+    m.b = 12345;
+    m.c = true;
+    m.d = "hello";
+    test("mixed struct char", 'Z' == m.a);
+    test("mixed struct int", 12345 == m.b);
+    test("mixed struct bool", m.c);
+    test("mixed struct cstr", cstr_eq("hello", m.d));
+    free(m);
+
+    // Deep nesting (4 levels)
+    var l1 = cast(malloc(__sizeof(Level1)), Level1&);
+    l1.z = 1;
+    l1.inner.y = 2;
+    l1.inner.inner.x = 3;
+    l1.inner.inner.inner.val = 4;
+    test("level1.z", 1 == l1.z);
+    test("level1.inner.y", 2 == l1.inner.y);
+    test("level1.inner.inner.x", 3 == l1.inner.inner.x);
+    test("level1.inner.inner.inner.val", 4 == l1.inner.inner.inner.val);
+
+    // Modify deepest level
+    l1.inner.inner.inner.val = 999;
+    test("deep modify", 999 == l1.inner.inner.inner.val);
+    free(l1);
+
+    // Counter with methods
+    var c = make_counter();
+    test("counter starts at 0", 0 == c.get());
+    c.inc();
+    c.inc();
+    c.inc();
+    test("counter after 3 inc", 3 == c.get());
+    free(c);
+
+    // Sizeof checks
+    test("sizeof Single >= 8", __sizeof(Single) >= 8);
+    test("sizeof Level1 >= sizeof Level2", __sizeof(Level1) >= __sizeof(Level2));
+
+    printf("struct edge tests done.\n");
+    return 0;
+end

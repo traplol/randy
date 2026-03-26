@@ -1,0 +1,8 @@
+// -nocompile
+#include std/core
+
+def main in
+    // Use of undefined variable should fail
+    printf("%d\n", undefined_variable);
+    return 0;
+end

@@ -1,0 +1,15 @@
+pass: single field struct
+pass: mixed struct char
+pass: mixed struct int
+pass: mixed struct bool
+pass: mixed struct cstr
+pass: level1.z
+pass: level1.inner.y
+pass: level1.inner.inner.x
+pass: level1.inner.inner.inner.val
+pass: deep modify
+pass: counter starts at 0
+pass: counter after 3 inc
+pass: sizeof Single >= 8
+pass: sizeof Level1 >= sizeof Level2
+struct edge tests done.

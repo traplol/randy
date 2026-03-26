@@ -1,0 +1,17 @@
+pass: outer length is 4
+pass: inner[0] length is 4
+pass: inner[0][0] is 0
+pass: inner[0][3] is 3
+pass: inner[2][1] is 21
+pass: inner[3][3] is 33
+pass: inner[1] length is 5 after push
+pass: inner[1][4] is 99
+pass: string vector length is 4
+pass: string vector[0]
+pass: string vector[3]
+pass: string& vector length is 3
+pass: string& vector[0]
+pass: string& vector[1]
+pass: string& vector[2]
+pass: modified string through vector
+nested generics tests done.

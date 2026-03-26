@@ -1,0 +1,71 @@
+#include std/core
+#include std/arena
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Test basic arena creation
+    var arena = make_arena(10, 8);
+    test("arena length is 10", 10 == arena_len(arena));
+    test("arena elem_size is 8", 8 == arena_elem_size(arena));
+
+    // Test set and read back via pointer
+    var i = 0;
+    while i < 10 do
+        var val = (i + 1) * 100;
+        u64!(arena_at(arena, i), val);
+        i += 1;
+    end
+
+    i = 0;
+    while i < 10 do
+        var val = u64@(arena_at(arena, i));
+        test("arena read back correct", (i + 1) * 100 == val);
+        i += 1;
+    end
+
+    // Test arena_set with memcpy semantics
+    var src = malloc(8);
+    u64!(src, 99999);
+    arena_set(arena, 5, src);
+    test("arena_set writes correctly", 99999 == u64@(arena_at(arena, 5)));
+    free(src);
+
+    // Test overwrite
+    u64!(arena_at(arena, 0), 42);
+    test("arena overwrite works", 42 == u64@(arena_at(arena, 0)));
+
+    // Other slots unchanged
+    test("arena slot 1 unchanged", 200 == u64@(arena_at(arena, 1)));
+
+    free_arena(arena);
+
+    // Test arena with elem_size 1 (byte arena)
+    var byte_arena = make_arena(256, 1);
+    test("byte arena length is 256", 256 == arena_len(byte_arena));
+    test("byte arena elem_size is 1", 1 == arena_elem_size(byte_arena));
+
+    i = 0;
+    while i < 256 do
+        u8!(arena_at(byte_arena, i), i);
+        i += 1;
+    end
+
+    i = 0;
+    while i < 256 do
+        var b = cast(u8@(arena_at(byte_arena, i)), int);
+        test("byte arena read back", i == b);
+        i += 1;
+    end
+
+    free_arena(byte_arena);
+
+    printf("arena tests done.\n");
+    return 0;
+end

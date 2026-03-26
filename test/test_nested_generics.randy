@@ -1,0 +1,84 @@
+#include std/core
+#include std/vector
+#include std/string
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Test Vector of Vectors (Vector[Vector[int]&]&)
+    var outer = Vector[Vector[int]&]::new(4);
+
+    var i = 0;
+    while i < 4 do
+        var inner = Vector[int]::new(4);
+        var j = 0;
+        while j < 4 do
+            inner.push(i * 10 + j);
+            j += 1;
+        end
+        outer.push(inner);
+        i += 1;
+    end
+
+    test("outer length is 4", 4 == outer.length);
+    test("inner[0] length is 4", 4 == outer.get(0).length);
+    test("inner[0][0] is 0", 0 == outer.get(0).get(0));
+    test("inner[0][3] is 3", 3 == outer.get(0).get(3));
+    test("inner[2][1] is 21", 21 == outer.get(2).get(1));
+    test("inner[3][3] is 33", 33 == outer.get(3).get(3));
+
+    // Modify nested vector
+    outer.get(1).push(99);
+    test("inner[1] length is 5 after push", 5 == outer.get(1).length);
+    test("inner[1][4] is 99", 99 == outer.get(1).get(4));
+
+    // Clean up
+    i = 0;
+    while i < outer.length do
+        outer.get(i).delete();
+        i += 1;
+    end
+    outer.delete();
+
+    // Test Vector of cstrings
+    var strs = Vector[cstr]::new(4);
+    strs.push("hello");
+    strs.push("world");
+    strs.push("foo");
+    strs.push("bar");
+    test("string vector length is 4", 4 == strs.length);
+    test("string vector[0]", cstr_eq("hello", strs.get(0)));
+    test("string vector[3]", cstr_eq("bar", strs.get(3)));
+    strs.delete();
+
+    // Test Vector of String& (heap strings in a vector)
+    var svec = Vector[String&]::new(4);
+    var s1 = String::new_from_cstr("alpha");
+    var s2 = String::new_from_cstr("beta");
+    var s3 = String::new_from_cstr("gamma");
+    svec.push(s1);
+    svec.push(s2);
+    svec.push(s3);
+    test("string& vector length is 3", 3 == svec.length);
+    test("string& vector[0]", cstr_eq("alpha", svec.get(0).cstr()));
+    test("string& vector[1]", cstr_eq("beta", svec.get(1).cstr()));
+    test("string& vector[2]", cstr_eq("gamma", svec.get(2).cstr()));
+
+    // Modify through the vector
+    svec.get(0).push('!');
+    test("modified string through vector", cstr_eq("alpha!", svec.get(0).cstr()));
+
+    s1.delete();
+    s2.delete();
+    s3.delete();
+    svec.delete();
+
+    printf("nested generics tests done.\n");
+    return 0;
+end

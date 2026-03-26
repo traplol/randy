@@ -1,0 +1,14 @@
+pass: timespec sec is 10
+pass: timespec nsec is 500
+pass: empty timespec sec is 0
+pass: empty timespec nsec is 0
+pass: monotonic time sec >= 0
+pass: monotonic time nsec >= 0
+pass: monotonic time nsec < 1 billion
+pass: monotonic time advances
+pass: realtime sec > 0
+pass: realtime nsec >= 0
+pass: realtime nsec < 1 billion
+pass: usleep(10000) slept at least 5000us
+pass: usleep(10000) slept less than 1s
+time tests done.

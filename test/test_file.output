@@ -1,0 +1,13 @@
+pass: test file exists
+pass: nonexistent file does not exist
+pass: test file is readable
+pass: nonexistent file is not readable
+pass: open_for_write returns valid fd
+pass: write_file returns correct count
+pass: written file exists
+pass: written file is readable
+pass: open_for_read returns valid fd
+pass: read_file returns correct count
+pass: read back matches written data
+pass: getcwd returns non-empty string
+file tests done.

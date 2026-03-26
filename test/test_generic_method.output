@@ -1,0 +1,17 @@
+pass: map starts empty
+pass: map length is 3
+pass: find key 1
+pass: key 1 maps to 100
+pass: find key 2
+pass: key 2 maps to 200
+pass: contains key 3
+pass: does not contain key 99
+pass: updated key 2 maps to 999
+pass: length still 3 after update
+pass: length is 2 after remove
+pass: no longer contains key 1
+pass: contains 500
+pass: 500 maps to 250000
+pass: contains 999
+pass: 999 maps to 998001
+generic method tests done.

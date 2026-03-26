@@ -1,0 +1,15 @@
+pass: malloc returns non-null
+pass: write and read u64
+pass: u8 write/read
+pass: u16 write/read
+pass: u32 write/read
+pass: calloc returns non-null
+pass: calloc zeros memory
+pass: memset first byte
+pass: memset last byte
+pass: memcpy copies correctly
+pass: memmove preserves src start
+pass: memmove overlap byte 4
+pass: memmove overlap byte 5
+pass: memmove overlap byte 15
+memory tests done.

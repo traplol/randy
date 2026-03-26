@@ -1,0 +1,30 @@
+pass: 2 + 3 = 5
+pass: 10 - 7 = 3
+pass: 6 * 7 = 42
+pass: 100 / 10 = 10
+pass: 17 % 5 = 2
+pass: -1 + 1 = 0
+pass: -5 * -3 = 15
+pass: -10 / 2 = -5
+pass: 10 / -2 = -5
+pass: -7 % 3
+pass: 7 % -3
+pass: 2 + 3 * 4 = 14
+pass: (2 + 3) * 4 = 20
+pass: 10 - 2 * 3 = 4
+pass: 10 / 2 + 3 = 8
+pass: 5 < 10
+pass: not 10 < 5
+pass: 5 <= 5
+pass: 5 <= 10
+pass: 10 > 5
+pass: 5 >= 5
+pass: 5 == 5
+pass: 5 != 6
+pass: billion * 2
+pass: billion + billion
+pass: chain: ((1+2)*3)-1 = 8
+pass: 0 * big = 0
+pass: 0 + 0 = 0
+pass: big - big = 0
+arithmetic tests done.

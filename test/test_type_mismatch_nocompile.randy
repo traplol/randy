@@ -1,0 +1,12 @@
+// -nocompile
+#include std/core
+
+def add a: int, b: int -> int in
+    return a + b;
+end
+
+def main in
+    // Pass cstr where int expected - should fail type checking
+    var result = add("hello", "world");
+    return 0;
+end
