@@ -1,0 +1,5 @@
+pass: enum equals itself
+pass: enum not equals different
+pass: enum reassign
+pass: enum not red after reassign
+pass: enum in if/elif

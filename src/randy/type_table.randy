@@ -218,6 +218,8 @@ def type_is_scalar self: Type& in
         return true;
     elif type_is_def(self) then
         return true;
+    elif type_is_enum(self) then
+        return true;
     end
     return false;
 end

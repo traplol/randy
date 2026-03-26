@@ -1,0 +1,38 @@
+#include std/core
+
+enum Color in
+    Red;
+    Green;
+    Blue;
+end
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    var c = Color::Red;
+    test("enum equals itself", c == Color::Red);
+    test("enum not equals different", c != Color::Green);
+
+    c = Color::Blue;
+    test("enum reassign", c == Color::Blue);
+    test("enum not red after reassign", c != Color::Red);
+
+    // Test in if/elif chains
+    var name = "unknown";
+    if c == Color::Red then
+        name = "red";
+    elif c == Color::Green then
+        name = "green";
+    elif c == Color::Blue then
+        name = "blue";
+    end
+    test("enum in if/elif", cstr_eq(name, "blue"));
+
+    return 0;
+end
