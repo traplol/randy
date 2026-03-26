@@ -1,0 +1,74 @@
+#include std/core
+#include std/map
+#include std/string
+
+def test msg, cond in
+    if cond then printf("pass: %s\n", msg);
+    else printf("fail: %s\n", msg);
+    end
+end
+
+def cstr_hash s: cstr -> int in
+    var hash = 5381;
+    var c = cast(u8@(s), char);
+    while c do
+        hash = hash * 33 + c;
+        s += 1;
+        c = cast(u8@(s), char);
+    end
+    return hash;
+end
+
+def main in
+    var m = Map::new(0, cstr_eq, cstr_hash);
+
+    // Insert several entries
+    m.set("alpha", 1);
+    m.set("beta", 2);
+    m.set("gamma", 3);
+    m.set("delta", 4);
+    test("length after inserts", m.length == 4);
+
+    // Iterate and sum values
+    var sum = 0;
+    var count = 0;
+    var cur = m.iter_begin();
+    var e = m.iter_end();
+    while cur != e do
+        sum += cast(cur.val, int);
+        count += 1;
+        cur = m.iter_next(cur);
+    end
+    test("iteration count", count == 4);
+    test("iteration sum", sum == 10);
+
+    // Iterate after removal
+    m.remove("beta");
+    test("length after remove", m.length == 3);
+
+    sum = 0;
+    count = 0;
+    cur = m.iter_begin();
+    e = m.iter_end();
+    while cur != e do
+        sum += cast(cur.val, int);
+        count += 1;
+        cur = m.iter_next(cur);
+    end
+    test("iteration after remove count", count == 3);
+    test("iteration after remove sum", sum == 8);
+
+    // Empty map iteration
+    var empty = Map::new(0, NULL, NULL);
+    cur = empty.iter_begin();
+    e = empty.iter_end();
+    test("empty map begin == end", cur == e);
+
+    // Overwrite value and re-iterate
+    m.set("alpha", 100);
+    test("length unchanged after overwrite", m.length == 3);
+    var found = m.find("alpha");
+    test("overwrite value", cast(found.val, int) == 100);
+
+    return 0;
+end

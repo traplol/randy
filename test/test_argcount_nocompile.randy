@@ -1,0 +1,11 @@
+// -nocompile
+#include std/core
+
+def foo a: int, b: int -> int in
+    return a + b;
+end
+
+def main in
+    foo(1, 2, 3);
+    return 0;
+end

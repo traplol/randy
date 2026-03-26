@@ -1,0 +1,13 @@
+pass: outer x
+pass: shadowed x in if
+pass: outer x restored after if
+pass: shadowed x in while
+pass: outer x restored after while
+pass: shadow depth 1
+pass: shadow depth 2
+pass: shadow depth 3
+pass: back to depth 2
+pass: back to depth 1
+pass: back to outer y
+pass: shadow int with cstr
+pass: int val restored

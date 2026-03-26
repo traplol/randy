@@ -1,0 +1,76 @@
+#include std/core
+#include std/string
+
+def test msg, cond in
+    if cond then printf("pass: %s\n", msg);
+    else printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Basic creation and length
+    var s = String::new(0);
+    test("new string empty", s.length == 0);
+
+    // Push characters
+    s.push('h');
+    s.push('i');
+    test("push length", s.length == 2);
+    test("get char 0", s.get(0) == 'h');
+    test("get char 1", s.get(1) == 'i');
+
+    // cstr conversion
+    test("cstr eq", cstr_eq(s.cstr(), "hi"));
+
+    // append_cstr
+    s.append_cstr(" world");
+    test("append_cstr", cstr_eq(s.cstr(), "hi world"));
+    test("append_cstr length", s.length == 8);
+
+    // append_int
+    var n = String::new(0);
+    n.append_int(42);
+    test("append_int", cstr_eq(n.cstr(), "42"));
+
+    n.reset();
+    n.append_int(0);
+    test("append_int zero", cstr_eq(n.cstr(), "0"));
+
+    n.reset();
+    n.append_int(-123);
+    test("append_int negative", cstr_eq(n.cstr(), "-123"));
+
+    // reset
+    s.reset();
+    test("reset clears", s.length == 0);
+
+    // String equality
+    var a = String::new(0);
+    var b = String::new(0);
+    a.append_cstr("hello");
+    b.append_cstr("hello");
+    test("string eq same", string_eq(a, b));
+
+    b.reset();
+    b.append_cstr("world");
+    test("string eq diff", not string_eq(a, b));
+
+    // Large string (trigger realloc)
+    var big = String::new(4);
+    var i = 0;
+    while i < 200 do
+        big.push('x');
+        i += 1;
+    end
+    test("large string length", big.length == 200);
+    test("large string char", big.get(199) == 'x');
+
+    // delete
+    big.delete();
+    n.delete();
+    a.delete();
+    b.delete();
+    s.delete();
+
+    return 0;
+end

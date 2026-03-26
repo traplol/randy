@@ -1,0 +1,8 @@
+// -nocompile
+#include std/core
+
+def main in
+    var x = 42;
+    x();
+    return 0;
+end

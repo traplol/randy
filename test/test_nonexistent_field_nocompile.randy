@@ -1,0 +1,13 @@
+// -nocompile
+#include std/core
+
+struct Point in
+    x: int;
+    y: int;
+end
+
+def main in
+    var p = cast(malloc(__sizeof(Point)), Point&);
+    printf("%d\n", p.z);
+    return 0;
+end

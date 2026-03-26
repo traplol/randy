@@ -1,0 +1,9 @@
+pass: length after inserts
+pass: iteration count
+pass: iteration sum
+pass: length after remove
+pass: iteration after remove count
+pass: iteration after remove sum
+pass: empty map begin == end
+pass: length unchanged after overwrite
+pass: overwrite value

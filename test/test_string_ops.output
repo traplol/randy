@@ -1,0 +1,15 @@
+pass: new string empty
+pass: push length
+pass: get char 0
+pass: get char 1
+pass: cstr eq
+pass: append_cstr
+pass: append_cstr length
+pass: append_int
+pass: append_int zero
+pass: append_int negative
+pass: reset clears
+pass: string eq same
+pass: string eq diff
+pass: large string length
+pass: large string char

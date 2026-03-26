@@ -1,0 +1,56 @@
+#include std/core
+
+def test msg, cond in
+    if cond then printf("pass: %s\n", msg);
+    else printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    var x = 10;
+    test("outer x", x == 10);
+
+    // Shadow in if block
+    if true then
+        var x = 20;
+        test("shadowed x in if", x == 20);
+    end
+    test("outer x restored after if", x == 10);
+
+    // Shadow in while block
+    var i = 0;
+    while i < 1 do
+        var x = 30;
+        test("shadowed x in while", x == 30);
+        i += 1;
+    end
+    test("outer x restored after while", x == 10);
+
+    // Nested shadowing
+    var y = 1;
+    if true then
+        var y = 2;
+        test("shadow depth 1", y == 2);
+        if true then
+            var y = 3;
+            test("shadow depth 2", y == 3);
+            if true then
+                var y = 4;
+                test("shadow depth 3", y == 4);
+            end
+            test("back to depth 2", y == 3);
+        end
+        test("back to depth 1", y == 2);
+    end
+    test("back to outer y", y == 1);
+
+    // Shadow with different types
+    var val = 42;
+    if true then
+        var val = "hello";
+        test("shadow int with cstr", cstr_eq(val, "hello"));
+    end
+    test("int val restored", val == 42);
+
+    return 0;
+end

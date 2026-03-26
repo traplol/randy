@@ -1,0 +1,6 @@
+pass: fn ptr call
+pass: fn ptr reassign
+pass: fn ptr as arg (add)
+pass: fn ptr as arg (sub)
+pass: fn ptr as arg (mul)
+pass: fn ptr from branch

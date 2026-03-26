@@ -1,0 +1,41 @@
+#include std/core
+
+def add a: int, b: int -> int in return a + b; end
+def mul a: int, b: int -> int in return a * b; end
+def sub a: int, b: int -> int in return a - b; end
+
+def apply op: (int, int -> int), a: int, b: int -> int in
+    return op(a, b);
+end
+
+def test msg, cond in
+    if cond then printf("pass: %s\n", msg);
+    else printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Store function in variable and call
+    var f = add;
+    test("fn ptr call", f(3, 4) == 7);
+
+    // Reassign
+    f = mul;
+    test("fn ptr reassign", f(3, 4) == 12);
+
+    // Pass function pointer as argument
+    test("fn ptr as arg (add)", apply(add, 10, 3) == 13);
+    test("fn ptr as arg (sub)", apply(sub, 10, 3) == 7);
+    test("fn ptr as arg (mul)", apply(mul, 10, 3) == 30);
+
+    // Function pointer in if/elif
+    var op = add;
+    var mode = 2;
+    if mode == 0 then op = add;
+    elif mode == 1 then op = sub;
+    elif mode == 2 then op = mul;
+    end
+    test("fn ptr from branch", op(5, 6) == 30);
+
+    return 0;
+end
