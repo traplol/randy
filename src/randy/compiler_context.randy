@@ -178,12 +178,12 @@ def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
         var kind = global_info_kind(gi);
         var label = global_info_label(gi);
         var value = global_info_value(gi);
-        if kind == GIK_String then
+        if kind == GIK::String then
             str.append_cstr(label);
             str.append_cstr(": .quad ");
             str.append_cstr(value);
             cc_out(cctx, str.cstr());
-        elif kind == GIK_Integer then
+        elif kind == GIK::Integer then
             str.append_cstr(label);
             str.append_cstr(": .quad ");
             str.append_int(cast(value, int));
