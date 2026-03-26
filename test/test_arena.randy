@@ -11,60 +11,60 @@ end
 
 def main in
     // Test basic arena creation
-    var arena = make_arena(10, 8);
-    test("arena length is 10", 10 == arena_len(arena));
-    test("arena elem_size is 8", 8 == arena_elem_size(arena));
+    var arena = Arena::new(10, 8);
+    test("arena length is 10", 10 == arena.length);
+    test("arena elem_size is 8", 8 == arena.elem_size);
 
     // Test set and read back via pointer
     var i = 0;
     while i < 10 do
         var val = (i + 1) * 100;
-        u64!(arena_at(arena, i), val);
+        u64!(arena.at(i), val);
         i += 1;
     end
 
     i = 0;
     while i < 10 do
-        var val = u64@(arena_at(arena, i));
+        var val = u64@(arena.at(i));
         test("arena read back correct", (i + 1) * 100 == val);
         i += 1;
     end
 
-    // Test arena_set with memcpy semantics
+    // Test arena set with memcpy semantics
     var src = malloc(8);
     u64!(src, 99999);
-    arena_set(arena, 5, src);
-    test("arena_set writes correctly", 99999 == u64@(arena_at(arena, 5)));
+    arena.set(5, src);
+    test("arena set writes correctly", 99999 == u64@(arena.at(5)));
     free(src);
 
     // Test overwrite
-    u64!(arena_at(arena, 0), 42);
-    test("arena overwrite works", 42 == u64@(arena_at(arena, 0)));
+    u64!(arena.at(0), 42);
+    test("arena overwrite works", 42 == u64@(arena.at(0)));
 
     // Other slots unchanged
-    test("arena slot 1 unchanged", 200 == u64@(arena_at(arena, 1)));
+    test("arena slot 1 unchanged", 200 == u64@(arena.at(1)));
 
-    free_arena(arena);
+    arena.delete();
 
     // Test arena with elem_size 1 (byte arena)
-    var byte_arena = make_arena(256, 1);
-    test("byte arena length is 256", 256 == arena_len(byte_arena));
-    test("byte arena elem_size is 1", 1 == arena_elem_size(byte_arena));
+    var byte_arena = Arena::new(256, 1);
+    test("byte arena length is 256", 256 == byte_arena.length);
+    test("byte arena elem_size is 1", 1 == byte_arena.elem_size);
 
     i = 0;
     while i < 256 do
-        u8!(arena_at(byte_arena, i), i);
+        u8!(byte_arena.at(i), i);
         i += 1;
     end
 
     i = 0;
     while i < 256 do
-        var b = cast(u8@(arena_at(byte_arena, i)), int);
+        var b = cast(u8@(byte_arena.at(i)), int);
         test("byte arena read back", i == b);
         i += 1;
     end
 
-    free_arena(byte_arena);
+    byte_arena.delete();
 
     printf("arena tests done.\n");
     return 0;

@@ -312,33 +312,33 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
 end
 
 struct TypeScope in
-    types: map; // (cstr, int) : the types within the current scope
+    types: Map&; // (cstr, int) : the types within the current scope
     parent: TypeScope&;
     enclosing: Type&;
 end
 
 def make_type_scope parent: TypeScope& -> TypeScope& in
     var self = cast(malloc(__sizeof(TypeScope)), TypeScope&);
-    self.types = make_map(0, cstr_eq, cstr_hash);
+    self.types = Map::new(0, cstr_eq, cstr_hash);
     self.parent = parent;
     self.enclosing = NULL;
     return self;
 end
 
 def type_scope_find self, tt, name -> Type& in
-    var found = map_find(self.types, name);
+    var found = self.types.find(name);
     if found then
-        return tt_get_type_by_id(tt, cast(map_pair_val(found), int));
+        return tt_get_type_by_id(tt, cast(found.val, int));
     end
     return NULL;
 end
 
 struct TypeTable in
     type_scope: TypeScope&;
-    top_type_scope: map; // fast reference to the top-level type scope.
+    top_type_scope: Map&; // fast reference to the top-level type scope.
     all_types: Vector[Type&]&;  // all types; type_id is index into this Vector&
     names: Vector[cstr]&;  // type_id is index into this Vector&, may have NULLs
-    type_substitutes: map; // (type, type) map : replace the key type with val type
+    type_substitutes: Map&; // (type, type) map : replace the key type with val type
     void_type: Type&;
     any_type: Type&;
     int_type: Type&;
@@ -346,34 +346,34 @@ struct TypeTable in
     ptr_type: Type&;
     cstr_type: Type&;
     bool_type: Type&;
-    ast_types: map;    // (ast, type) map : ast -> type
+    ast_types: Map&;    // (ast, type) map : ast -> type
     made_change: bool; // where any changes to the ast_types map made?
 end
 
-def _tt_make_type tyk, name, size, type_ids, types, names, scope in
+def _tt_make_type tyk, name, size, type_ids: Map&, types, names, scope in
     var type_idx = types.length;
     var t = make_type(tyk, type_idx, scope, size);
-    map_set(type_ids, name, type_idx);
+    type_ids.set(name, type_idx);
     types.push(t);
     names.push(name);
     return t;
 end
 
-def _tt_make_ref_type type, name, type_ids, types, names in
+def _tt_make_ref_type type, name, type_ids: Map&, types, names in
     assert(not type_ref_to_this(type));
     var type_idx = types.length;
     var t = make_type_reference(type_idx, type);
     type_set_ref_to_this(type, t);
     if name then
-        map_set(type_ids, name, type_idx);
+        type_ids.set(name, type_idx);
     end
     types.push(t);
     names.push(name);
     return t;
 end
 
-def _tt_make_type_alias type, name, type_ids, types, names in
-    map_set(type_ids, name, types.length);
+def _tt_make_type_alias type, name, type_ids: Map&, types, names in
+    type_ids.set(name, types.length);
     types.push(type);
     names.push(name);
 end
@@ -387,7 +387,7 @@ def make_type_table -> TypeTable& in
     self.top_type_scope = type_ids;
     self.all_types = types;
     self.names = names;
-    self.ast_types = make_map(0, NULL, NULL);
+    self.ast_types = Map::new(0, NULL, NULL);
     self.type_substitutes = NULL;
 
     var void_t = _tt_make_type(TypeKind::Void, "void", 0, type_ids, types, names, self.type_scope);
@@ -442,31 +442,31 @@ def tt_pop_scope self in
     self.type_scope = self.type_scope.parent;
 end
 
-def tt_cur_scope self -> map in
+def tt_cur_scope self -> Map& in
     return self.type_scope.types;
 end
 
-def tt_top_scope self -> map in
+def tt_top_scope self -> Map& in
     return self.top_type_scope;
 end
 
 def tt_get_ast_type self, ast -> Type& in
-    var found = map_find(self.ast_types, ast);
+    var found = self.ast_types.find(ast);
     if found then
-        return map_pair_val(found);
+        return found.val;
     end
     return NULL;
 end
 
 def tt_set_ast_type self, ast, type in
-    var found = map_find(self.ast_types, ast);
+    var found = self.ast_types.find(ast);
     if not found then
-        map_set(self.ast_types, ast, type);
+        self.ast_types.set(ast, type);
         self.made_change = true;
     else
-        var old_type = map_pair_val(found);
+        var old_type = found.val;
         if type != self.any_type and type != old_type then
-            map_set(self.ast_types, ast, type);
+            self.ast_types.set(ast, type);
             self.made_change = true;
         end
     end
@@ -481,13 +481,11 @@ end
 
 def tt_dump_scope self, scope in
     var types = scope.types;
-    var cur = map_begin(types);
+    var cur = types.iter_begin();
     printf("========= %p =========\n", scope);
-    while cur != map_end(types) do
-        var key = map_pair_key(cur);
-        var val = map_pair_val(cur);
-        printf("key = %s, val = %d\n", key, val);
-        cur = map_next(types, cur);
+    while cur != types.iter_end() do
+        printf("key = %s, val = %d\n", cur.key, cur.val);
+        cur = types.iter_next(cur);
     end
 end
 
@@ -498,9 +496,9 @@ end
 def tt_get_type_or_null self, name -> Type& in
     var cur = self.type_scope;
     while cur do
-        var found = map_find(cur.types, name);
+        var found = cur.types.find(name);
         if found then
-            return self.all_types.get(cast(map_pair_val(found), int));
+            return self.all_types.get(cast(found.val, int));
         end
         cur = cur.parent;
     end
@@ -543,7 +541,7 @@ def tt_get_type_or_make_undefined self, name -> Type& in
     // Bar local to Foo hasn't been defined yet. How do we fix this?
     // The current solution is to "catch" the local 'Bar' type in Fig 2 as being undefined
     // and overwrite the type "act" as the outer 'Bar' type
-    map_set(tt_cur_scope(self), name, type_idx);
+    tt_cur_scope(self).set(name, type_idx);
     self.all_types.push(type);
     self.names.push(name);
     return type;
@@ -561,17 +559,17 @@ end
 def tt_set_local_type self, type in
     var name = tt_get_type_name(self, type);
     if name then
-        map_set(tt_cur_scope(self), name, type_id(type));
+        tt_cur_scope(self).set(name, type_id(type));
     end
 end
 
 def tt_promote_type self, type in
     tt_set_local_type(self, type);
     if type.scope.parent != NULL then
-        var map = type.scope.types;
-        var cur = map_begin(map);
-        while cur != map_end(map) do
-            var ty_id = cast(map_pair_val(cur), int);
+        var m = type.scope.types;
+        var cur = m.iter_begin();
+        while cur != m.iter_end() do
+            var ty_id = cast(cur.val, int);
             var ty = tt_get_type_by_id(self, ty_id);
             assert(ty);
             if ty.kind == TypeKind::Undefined then
@@ -580,7 +578,7 @@ def tt_promote_type self, type in
                     ty.enclosed = ty.enclosed.enclosed;
                 end
             end
-            cur = map_next(map, cur);
+            cur = m.iter_next(cur);
         end
     end
 end
@@ -601,9 +599,9 @@ def tt_substitute_type self, type -> Type& in
         assert(not type_is_reference(deref_type), "TODO: support substituting multiple dereferences\n");
     end
 
-    var found = map_find(self.type_substitutes, deref_type);
+    var found = self.type_substitutes.find(deref_type);
     if found then
-        type = map_pair_val(found);
+        type = found.val;
         if is_ref_type then
             type = tt_reference_to_type(self, type);
         end
@@ -664,20 +662,20 @@ end
 def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, instance in
     // TODO: will also need a way of flagging all of the src_types as ignored when calculating below
     tt_push_scope(self);
-    var type_sub_map = make_map(src_params.length, NULL, NULL);
+    var type_sub_map = Map::new(src_params.length, NULL, NULL);
     var i = 0; var len = src_params.length;
     while i < len do
         var src = src_params.get(i);
-        map_set(type_sub_map, src, dst_params.get(i));
+        type_sub_map.set(src, dst_params.get(i));
         tt_set_local_type(self, src);
         i += 1;
     end
-    map_set(type_sub_map, type, instance);
+    type_sub_map.set(type, instance);
     var prev = self.type_substitutes;
     self.type_substitutes = type_sub_map;
     var ast_copy = _ast_deep_copy(ast, self, st);
     self.type_substitutes = prev;
-    free_map(type_sub_map);
+    type_sub_map.delete();
     tt_pop_scope(self);
     return ast_copy;
 end
@@ -989,24 +987,24 @@ def tt_detect_cycles self, stype in
 end
 
 def tt_check_struct_for_field_name_collisions self, type in
-    var member_name_map = make_map(0, cstr_eq, cstr_hash);
+    var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var fields = type_struct_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
         var fname = field.name;
         var ftoke = field.token;
-        var found = map_find(member_name_map, fname);
+        var found = member_name_map.find(fname);
         if found then
             printf("ERROR: struct `");
             tt_print_type_name(self, type);
             printf("` already contains a member named `%s.`\n", fname);
             print_token_loc(ftoke);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), Token&));
+            print_token_loc(cast(found.val, Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, fname, ftoke);
+        member_name_map.set(fname, ftoke);
         i += 1;
     end
 
@@ -1014,66 +1012,66 @@ def tt_check_struct_for_field_name_collisions self, type in
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);
-        var found = map_find(member_name_map, def_.name);
+        var found = member_name_map.find(def_.name);
         if found then
             printf("ERROR: struct `");
             tt_print_type_name(self, type);
             printf("` already contains a member named `%s.`\n", def_.name);
             print_token_loc(def_.token);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), Token&));
+            print_token_loc(cast(found.val, Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, def_.name, def_.token);
+        member_name_map.set(def_.name, def_.token);
         i += 1;
     end
-    free_map(member_name_map);
+    member_name_map.delete();
 end
 
 def tt_check_enum_for_field_name_collisions self, type in
-    var member_name_map = make_map(0, cstr_eq, cstr_hash);
+    var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var enum_vals = type_enum_values(type);
     var i = 0; var len = enum_vals.length;
     while i < len do
         var ev = enum_vals.get(i);
-        var found = map_find(member_name_map, ev.name);
+        var found = member_name_map.find(ev.name);
         if found then
             printf("ERROR: enum `");
             tt_print_type_name(self, type);
             printf("` already contains a member named `%s.`\n", ev.name);
             print_token_loc(ev.token);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), Token&));
+            print_token_loc(cast(found.val, Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, ev.name, ev.token);
+        member_name_map.set(ev.name, ev.token);
         i += 1;
     end
-    free_map(member_name_map);
+    member_name_map.delete();
 end
 
 def tt_check_union_for_field_name_collisions self, type in
-    var member_name_map = make_map(0, cstr_eq, cstr_hash);
+    var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var fields = type_union_fields(type);
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
         var fname = field.name;
         var ftoke = field.token;
-        var found = map_find(member_name_map, fname);
+        var found = member_name_map.find(fname);
         if found then
             printf("ERROR: union `");
             tt_print_type_name(self, type);
             printf("` already contains a member named `%s.`\n", fname);
             print_token_loc(ftoke);
             printf("NOTE: it was previously defined here\n");
-            print_token_loc(cast(map_pair_val(found), Token&));
+            print_token_loc(cast(found.val, Token&));
             g_Errors += 1;
         end
-        map_set(member_name_map, fname, ftoke);
+        member_name_map.set(fname, ftoke);
         i += 1;
     end
-    free_map(member_name_map);
+    member_name_map.delete();
 end
 
 def tt_calculate_structs self in
@@ -1162,9 +1160,9 @@ def scope_resolve_lhs tt: TypeTable&, ast: Ast&, error: bool -> Type& in
         var scope = type_scope(lhs_type);
         assert(scope);
 
-        var found = map_find(scope.types, name);
+        var found = scope.types.find(name);
         if found then
-            return tt_get_type_by_id(tt, cast(map_pair_val(found), int));
+            return tt_get_type_by_id(tt, cast(found.val, int));
         end
         return NULL;
     elif ast.kind == AstK::Type then
@@ -1219,9 +1217,9 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
         end
         var scope = type_scope(type);
         assert(scope);
-        var found = map_find(scope.types, member);
+        var found = scope.types.find(member);
         if found then
-            return tt_get_type_by_id(tt, cast(map_pair_val(found), int));
+            return tt_get_type_by_id(tt, cast(found.val, int));
         end
         if error then
             printf("ERROR: type `");

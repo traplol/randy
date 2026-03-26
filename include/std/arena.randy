@@ -2,46 +2,38 @@
 #include core
 #include memory
 
-// The Arena data structure is distinct from the vector in that it constitutes a
-// fixed-size, contiguous buffer. Unlike vector, it lacks a direct mechanism for
-// reading values because we do not allow memory dereferencing of arbitrary size.
-// Nevertheless, it does furnish a means to compute the memory address corresponding
-// to a specific index, which suffices for most practical purposes since passing
-// by value is limited to 8 bytes.
+// The Arena data structure is a fixed-size, contiguous buffer with index-based
+// access. It returns pointers to element slots since we cannot dereference
+// memory of arbitrary size — but since passing by value is limited to 8 bytes,
+// pointer access to slots suffices for most practical purposes.
 
-const TARENA_length = 0;
-const TARENA_elem_size = 8;
-const TARENA_buffer = 16;
+struct Arena in
+    length: int;
+    elem_size: int;
+    buffer: ptr;
 
-def make_arena init, elem_size in
-    var arena = malloc(TARENA_buffer + (init * elem_size));
-    u64!(arena + TARENA_length, init);
-    u64!(arena + TARENA_elem_size, elem_size);
-    return arena;
-end
+    def new init: int, elem_size: int in
+        var self = cast(malloc(__sizeof(Arena)), Arena&);
+        self.length = init;
+        self.elem_size = elem_size;
+        self.buffer = malloc(init * elem_size);
+        return self;
+    end
 
-def free_arena arena in
-    free(arena);
-end
+    def delete self in
+        if self then
+            free(self.buffer);
+            free(self);
+        end
+    end
 
-def arena_buf arena in
-    return u64@(arena + TARENA_buffer);
-end
+    def at self, idx: int -> ptr in
+        // TODO: Bounds check & abort
+        return self.buffer + (idx * self.elem_size);
+    end
 
-def arena_len arena in
-    return u64@(arena + TARENA_length);
-end
-
-def arena_elem_size arena in
-    return u64@(arena + TARENA_elem_size);
-end
-
-def arena_at arena: ptr, idx -> ptr in
-    // TODO: Bounds check & abort
-    return arena + TARENA_buffer + (idx * u64@(arena + TARENA_elem_size));
-end
-
-def arena_set arena, idx, val in
-    // TODO: Bounds check & abort
-    memcpy(arena_at(arena, idx), val, u64@(arena + TARENA_elem_size));
+    def set self, idx: int, val: ptr in
+        // TODO: Bounds check & abort
+        memcpy(self.at(idx), val, self.elem_size);
+    end
 end

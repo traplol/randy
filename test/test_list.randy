@@ -2,22 +2,22 @@
 #include std/list
 
 def main in
-    var list = make_list();
+    var list = List::new();
 
     var i = 0;
     printf("Append to list\n");
     while i < 10 do
-        list_append(list, i);
+        list.append(cast(i, ptr));
         i += 1;
     end
 
     printf("Enumerate the list\n");
-    var cur = list_head(list);
+    var cur = list.head;
     while cur do
-        printf("%d\n", list_node_data(cur));
-        cur = list_node_next(cur);
+        printf("%d\n", cur.data);
+        cur = cur.next;
     end
 
-    free_list(list);
+    list.delete();
     return 0;
 end

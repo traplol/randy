@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow
+
+### Wrapper scripts for noisy commands
+
+When running builds or tests that produce verbose output, prefer creating small shell scripts (in `scripts/`) that suppress noise and print a single-line result (e.g. "PASS"/"FAIL", "BUILD OK"/"BUILD FAILED"). This avoids wasting tokens on hundreds of lines of output when only the outcome matters. If the command fails, run it again directly (without the wrapper) to inspect the full error output.
+
+### Git
+
+After making changes, always run the test suite before pushing. If all tests pass and changes are complete, go ahead and push to origin.
+
+### Testing after code changes
+
+After modifying any compiler source (`src/randy/`) or standard library (`include/std/`), always run the test suite (`python3 test.py run`). For compiler changes, also run `./bootstrap.sh` to verify self-hosting. Do not push code that fails tests.
+
 ## Project Overview
 
 Randy is a self-hosting compiled programming language targeting x86_64 Linux. The compiler is written in Randy itself and emits x86_64 assembly, linked against musl libc. The project status is archived/experimental.
@@ -41,7 +55,7 @@ There are two levels of testing:
 ### Unit/feature tests
 
 ```bash
-python3 test.py run              # Run all 41 tests
+python3 test.py run              # Run all tests
 python3 test.py run test_hello   # Run a single test (shows diff on failure)
 python3 test.py record test_foo  # Record expected output for a new/updated test
 ```
@@ -92,6 +106,15 @@ The compiler source is in `src/randy/` (18 files, ~10.8k lines). Key modules by 
 - **Utilities:** `utils.randy`, `bits.randy`
 
 The standard library is in `include/std/` (15 files, ~1.8k lines): generic data structures (`Vector[T]`, `Hashmap[K,V,KHash,KCompare]`, `Set`, `Map`, `Queue`, `List`), memory management (`memory.randy`, `arena.randy`), system interfaces (`syscall.randy`, `file.randy`, `process.randy`), and core types (`core.randy`, `string.randy`).
+
+## Source index files
+
+Each source directory contains an `INDEX.md` with a one-line directory description, a one-line description per file, and key public function signatures.
+
+- `src/randy/INDEX.md` — compiler modules
+- `include/std/INDEX.md` — standard library modules
+
+**When modifying a source file, update the corresponding `INDEX.md`** — add, remove, or update signatures to match. Keep descriptions to one sentence.
 
 ## Language Syntax Notes
 

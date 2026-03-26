@@ -24,36 +24,36 @@ end
 
 def test_cstr_map in
     printf("Testing set with cstrings.\n");
-    var map = make_map(16, cstr_eq, cstr_hash);
+    var map = Map::new(16, cstr_eq, cstr_hash);
 
-    test("map is empty", 0 == map_len(map));
+    test("map is empty", 0 == map.length);
 
-    map_set(map, "hello world", 42);
-    test("map length is 1", 1 == map_len(map));
-    test("map contains \"hello world\"", map_find(map, "hello world"));
-    var pair = map_find(map, "hello world");
+    map.set("hello world", 42);
+    test("map length is 1", 1 == map.length);
+    test("map contains \"hello world\"", map.find("hello world"));
+    var pair = map.find("hello world");
     if pair != NULL then
-        test("map maps \"hello world\" to 42", 42 == map_pair_val(pair));
+        test("map maps \"hello world\" to 42", 42 == pair.val);
     end
 
-    map_set(map, "hello world", 123);
-    test("map length is 1", 1 == map_len(map));
-    pair = map_find(map, "hello world");
+    map.set("hello world", 123);
+    test("map length is 1", 1 == map.length);
+    pair = map.find("hello world");
     if pair != NULL then
-        test("map maps \"hello world\" to 123", 123 == map_pair_val(pair));
+        test("map maps \"hello world\" to 123", 123 == pair.val);
     end
 
-    map_set(map, "helloworld", 456);
-    test("map length is 2", 2 == map_len(map));
-    test("map contains \"helloworld\"", map_find(map, "helloworld"));
-    pair = map_find(map, "helloworld");
+    map.set("helloworld", 456);
+    test("map length is 2", 2 == map.length);
+    test("map contains \"helloworld\"", map.find("helloworld"));
+    pair = map.find("helloworld");
     if pair != NULL then
-        test("map maps \"helloworld\" to 456", 456 == map_pair_val(pair));
+        test("map maps \"helloworld\" to 456", 456 == pair.val);
     end
 
-    map_remove(map, "hello world");
-    test("map supports removal", 1 == map_len(map));
-    test("map no longer contains \"hello world\"", not map_find(map, "hello world"));
+    map.remove("hello world");
+    test("map supports removal", 1 == map.length);
+    test("map no longer contains \"hello world\"", not map.find("hello world"));
 end
 
 def main in

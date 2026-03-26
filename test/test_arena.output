@@ -10,7 +10,7 @@ pass: arena read back correct
 pass: arena read back correct
 pass: arena read back correct
 pass: arena read back correct
-pass: arena_set writes correctly
+pass: arena set writes correctly
 pass: arena overwrite works
 pass: arena slot 1 unchanged
 pass: byte arena length is 256

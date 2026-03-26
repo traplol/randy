@@ -760,16 +760,16 @@ def make_ir_context -> ir_context in
     var self = calloc(1, sizeof_TIR_CONTEXT);
     u64!(self + TIR_CONTEXT_instructions, Vector[ir_instr]::new(0));
     u64!(self + TIR_CONTEXT_label_id, 0);
-    u64!(self + TIR_CONTEXT_strings, make_map(0, string_eq, string_hash));
-    u64!(self + TIR_CONTEXT_externs, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_strings, Map::new(0, string_eq, string_hash));
+    u64!(self + TIR_CONTEXT_externs, Map::new(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_labels, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
-    u64!(self + TIR_CONTEXT_constants, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_constants, Map::new(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_src_locs, Vector[SrcLoc&]::new(0));
     u64!(self + TIR_CONTEXT_file_set, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
     u64!(self + TIR_CONTEXT_files, Vector[cstr]::new(0));
-    u64!(self + TIR_CONTEXT_defs, make_map(0, NULL, NULL));
-    u64!(self + TIR_CONTEXT_def_locals, Vector[map]::new(0));
-    u64!(self + TIR_CONTEXT_globals_map, make_map(0, cstr_eq, cstr_hash));
+    u64!(self + TIR_CONTEXT_defs, Map::new(0, NULL, NULL));
+    u64!(self + TIR_CONTEXT_def_locals, Vector[Map&]::new(0));
+    u64!(self + TIR_CONTEXT_globals_map, Map::new(0, cstr_eq, cstr_hash));
     u64!(self + TIR_CONTEXT_globals, Vector[global_info]::new(0));
     u64!(self + TIR_CONTEXT_break_dests, Vector[cstr]::new(0));
     u64!(self + TIR_CONTEXT_conti_dests, Vector[cstr]::new(0));
@@ -779,16 +779,16 @@ end
 
 def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector[ir_instr]&); end
 def ir_tuples self: ir_context in return cast(u64@(self + TIR_CONTEXT_tuple_lits), Vector[TupleLiteral&]&); end
-def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), map); end
-def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), map); end
+def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), Map&); end
+def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), Map&); end
 def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
-def ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), map); end
+def ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), Map&); end
 def ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector[SrcLoc&]&); end
 def ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
 def ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector[cstr]&); end
-def ir_defs self: ir_context in return cast(u64@(self + TIR_CONTEXT_defs), map); end
-def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector[map]&); end
-def ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), map); end
+def ir_defs self: ir_context in return cast(u64@(self + TIR_CONTEXT_defs), Map&); end
+def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector[Map&]&); end
+def ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), Map&); end
 def ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), Vector[global_info]&); end
 def ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), Vector[cstr]&); end
 def ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), Vector[cstr]&); end
@@ -823,16 +823,16 @@ def ir_current_src_loc self in
 end
 
 def ir_push_scope self in
-    ir_def_locals(self).push(make_map(0, cstr_eq, cstr_hash));
+    ir_def_locals(self).push(Map::new(0, cstr_eq, cstr_hash));
     ir_append(self, make_ir_scope_open());
 end
 
 def ir_pop_scope self in
     var vec = ir_def_locals(self);
-    var map = vec.back();
+    var m = cast(vec.back(), Map&);
     vec.pop();
     ir_append(self, make_ir_scope_close());
-    free_map(map);
+    m.delete();
 end
 
 def ir_cur_scope self in
@@ -841,7 +841,7 @@ end
 
 def ir_new_def self, ident, params, ast, symbol, tt in
     var defs = ir_defs(self);
-    var found = map_find(defs, ident);
+    var found = defs.find(ident);
     if found then
         printf("ERROR: def `%s` already defined\n", ident);
         print_ast_src_loc(ast);
@@ -863,7 +863,7 @@ def ir_new_def self, ident, params, ast, symbol, tt in
 
     var label_cstr = label.cstr();
     ir_labels(self).insert(label_cstr);
-    map_set(defs, symbol_name(symbol), make_def_info(label_cstr, false));
+    defs.set(symbol_name(symbol), make_def_info(label_cstr, false));
 
     assert(ir_def_locals(self).length == 0,
         "Compiler bug: def locals not empty when creating new def\n");
@@ -880,13 +880,13 @@ def ir_new_local self, ident, st in
     var offset = 0;
     var i = 0; var len = def_locals.length;
     while i < len do
-        var map = def_locals.get(i);
-        local_idx += map_len(map);
-        var cur = map_begin(map);
-        while cur != map_end(map) do
-            var local_info = cast(map_pair_val(cur), local_info);
+        var m = def_locals.get(i);
+        local_idx += m.length;
+        var cur = m.iter_begin();
+        while cur != m.iter_end() do
+            var local_info = cast(cur.val, local_info);
             offset += local_info_size(local_info);
-            cur = map_next(map, cur);
+            cur = m.iter_next(cur);
         end
         i += 1;
     end
@@ -902,7 +902,7 @@ def ir_new_local self, ident, st in
         end
 
     end
-    map_set(ir_cur_scope(self), ident, make_local_info(local_idx, offset, size));
+    ir_cur_scope(self).set(ident, make_local_info(local_idx, offset, size));
     if local_idx + 1 > ir_num_locals(self) then
         u64!(self + TIR_CONTEXT_num_locals, local_idx + 1);
     end
@@ -927,14 +927,14 @@ end
 
 def ir_string_label self, string in
     var strings = ir_strings(self);
-    var found = map_find(strings, string);
+    var found = strings.find(string);
     if found then
-        return map_pair_val(found);
+        return found.val;
     end
 
     var label = ir_new_label(self, "C");
     ir_labels(self).insert(label);
-    map_set(strings, string, label);
+    strings.set(string, label);
 
     return label;
 end
@@ -952,7 +952,7 @@ end
 
 def ir_is_def self, ident in
     //var sym = st_get_symbol(g_SymbolTable, ident);
-    if map_find(ir_defs(self), ident) != NULL then
+    if ir_defs(self).find(ident) != NULL then
         return true;
     else
         return false;
@@ -960,29 +960,29 @@ def ir_is_def self, ident in
 end
 
 def ir_get_def self, ident in
-    var found = map_find(ir_defs(self), ident);
-    return map_pair_val(found);
+    var found = ir_defs(self).find(ident);
+    return found.val;
 end
 
 def ir_is_extern self, ident in
-    return map_find(ir_externs(self), ident) != NULL;
+    return ir_externs(self).find(ident) != NULL;
 end
 
 def ir_get_extern self, ident in
-    var found = map_find(ir_externs(self), ident);
-    return map_pair_val(found);
+    var found = ir_externs(self).find(ident);
+    return found.val;
 end
 
 def ir_add_extern self, ident, params, is_varargs in
     var def_info = make_def_info(ident, is_varargs);
-    map_set(ir_externs(self), ident, def_info);
+    ir_externs(self).set(ident, def_info);
 end
 
 def ir_is_local self, ident in
     var def_locals = ir_def_locals(self);
     var i = 0; var len = def_locals.length;
     while i < len do
-        if map_find(def_locals.get(i), ident) then
+        if def_locals.get(i).find(ident) then
             return true;
         end
         i += 1;
@@ -991,7 +991,7 @@ def ir_is_local self, ident in
 end
 
 def ir_is_cur_scope_local self, ident in
-    if map_find(ir_cur_scope(self), ident) then
+    if ir_cur_scope(self).find(ident) then
         return true;
     end
     return false;
@@ -1002,9 +1002,9 @@ def ir_get_local self, ident in
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
-        found = map_find(def_locals.get(i), ident);
+        found = def_locals.get(i).find(ident);
         if found then
-            return local_info_n(map_pair_val(found));
+            return local_info_n(found.val);
         end
         i -= 1;
     end
@@ -1016,9 +1016,9 @@ def ir_get_local_offset self, ident in
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
-        found = map_find(def_locals.get(i), ident);
+        found = def_locals.get(i).find(ident);
         if found then
-            return local_info_offs(map_pair_val(found));
+            return local_info_offs(found.val);
         end
         i -= 1;
     end
@@ -1026,39 +1026,39 @@ def ir_get_local_offset self, ident in
 end
 
 def ir_is_const self, ident in
-    return map_find(ir_constants(self), ident) != NULL;
+    return ir_constants(self).find(ident) != NULL;
 end
 
 def ir_get_const self, ident in
-    var found = map_find(ir_constants(self), ident);
-    return cast(map_pair_val(found), ConstInfo&);
+    var found = ir_constants(self).find(ident);
+    return cast(found.val, ConstInfo&);
 end
 
 def ir_add_const self, ident, value in
-    map_set(ir_constants(self), ident, value);
+    ir_constants(self).set(ident, value);
 end
 
 def ir_is_global self, ident in
-    return map_find(ir_globals_map(self), ident) != NULL;
+    return ir_globals_map(self).find(ident) != NULL;
 end
 
 def ir_get_global self, ident in
-    var found = map_find(ir_globals_map(self), ident);
-    return map_pair_val(found);
+    var found = ir_globals_map(self).find(ident);
+    return found.val;
 end
 
 def ir_add_global_string self, ident, value in
     var label = ir_new_label(self, "G");
     var val_label = ir_string_label(self, value);
     var gi = make_global_info(GIK_String, label, val_label);
-    map_set(ir_globals_map(self), ident, gi);
+    ir_globals_map(self).set(ident, gi);
     ir_globals(self).push(gi);
 end
 
 def ir_add_global_int self, ident, value in
     var label = ir_new_label(self, "G");
     var gi = make_global_info(GIK_Integer, label, value);
-    map_set(ir_globals_map(self), ident, gi);
+    ir_globals_map(self).set(ident, gi);
     ir_globals(self).push(gi);
 end
 

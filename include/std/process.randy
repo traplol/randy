@@ -11,47 +11,47 @@ def fork in
 end
 
 const P_PID = 1;
-def waitpid pid: int, siginfo: siginfo, options: int in
+def waitpid pid: int, siginfo: ptr, options: int in
     return cast(syscall(SYS_waitid, P_PID, pid, siginfo, options), int);
 end
 
-const TSIGINFO_si_signo  = 0;
-const TSIGINFO_si_code   = 8;
-const TSIGINFO_si_value  = 24;
-const TSIGINFO_si_errno  = 4;
-const TSIGINFO_si_pid    = 16;
-const TSIGINFO_si_uid    = 20;
-const TSIGINFO_si_addr   = 16;
-const TSIGINFO_si_status = 24;
-const TSIGINFO_si_band   = 16;
-const sizeof_TSIGINFO    = 128;
+// siginfo_t is 128 bytes with overlapping fields (union layout),
+// so we use raw buffer access rather than a struct.
+struct Siginfo in
+    _buf: ptr;
 
-def make_siginfo -> siginfo in
-    return cast(malloc(sizeof_TSIGINFO), siginfo);
+    def new in
+        var self = cast(malloc(__sizeof(Siginfo)), Siginfo&);
+        self._buf = calloc(1, 128);
+        return self;
+    end
+
+    def delete self in
+        if self then
+            free(self._buf);
+            free(self);
+        end
+    end
+
+    def si_signo self -> int in return cast(u32@(self._buf + 0), int); end
+    def si_errno self -> int in return cast(u32@(self._buf + 4), int); end
+    def si_code self -> int in return cast(u32@(self._buf + 8), int); end
+    def si_pid self -> int in return cast(u32@(self._buf + 16), int); end
+    def si_uid self -> int in return cast(u32@(self._buf + 20), int); end
+    def si_status self -> int in return cast(u32@(self._buf + 24), int); end
+    def si_value self -> int in return cast(u64@(self._buf + 24), int); end
+    def si_addr self -> int in return cast(u64@(self._buf + 16), int); end
+    def si_band self -> int in return cast(u64@(self._buf + 16), int); end
 end
-
-def free_siginfo self: siginfo in
-    free(self);
-end
-
-def siginfo_si_signo self: siginfo in return cast(u32@(self + TSIGINFO_si_signo), int); end
-def siginfo_si_code self: siginfo in return cast(u32@(self + TSIGINFO_si_code), int); end
-def siginfo_si_value self: siginfo in return cast(u64@(self + TSIGINFO_si_value), int); end
-def siginfo_si_errno self: siginfo in return cast(u32@(self + TSIGINFO_si_errno), int); end
-def siginfo_si_pid self: siginfo in return cast(u32@(self + TSIGINFO_si_pid), int); end
-def siginfo_si_uid self: siginfo in return cast(u32@(self + TSIGINFO_si_uid), int); end
-def siginfo_si_addr self: siginfo in return cast(u64@(self + TSIGINFO_si_addr), int); end
-def siginfo_si_status self: siginfo in return cast(u32@(self + TSIGINFO_si_status), int); end
-def siginfo_si_band self: siginfo in return cast(u64@(self + TSIGINFO_si_band), int); end
 
 def subprocess_blocking path: cstr, argv: ptr, envp: ptr in
     var pid = fork();
-    if pid == 0 then // child def
+    if pid == 0 then // child
         return execve(path, argv, envp);
     else
-        var siginfo = make_siginfo();
-        waitpid(pid, siginfo, 4);
-        free_siginfo(siginfo);
+        var si = Siginfo::new();
+        waitpid(pid, si._buf, 4);
+        si.delete();
     end
     return 0;
 end
