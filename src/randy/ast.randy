@@ -640,10 +640,8 @@ def print_ast_src_loc self: Ast& in
 end
 
 def _print_indent indent: int in
-    var i = 0;
-    while i < indent do
+    for i in 0..indent do
         printf("    ");
-        i += 1;
     end
 end
 
@@ -676,8 +674,7 @@ end
 def _print_ast_string ast, indent in
     printf("\"");
     var string = ast.u.string;
-    var i = 0; var len = string.length;
-    while i < len do
+    for i in 0..string.length do
         var c = string.get(i);
         if c == '\n' then
             printf("\\n");
@@ -692,7 +689,6 @@ def _print_ast_string ast, indent in
         else
             printf("%c", c);
         end
-        i += 1;
     end
     printf("\"");
 end
@@ -945,14 +941,12 @@ def _print_ast_struct ast, indent in
     tt_print_type_name(g_TypeTable, ast.u.struct_.type);
     printf(" in\n");
     var fields = ast.u.struct_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         _print_indent(indent+1);
         printf("%s: ", field.name);
         tt_print_type_name(g_TypeTable, field.type);
         printf(";\n");
-        i += 1;
     end
     _print_indent(indent); printf("end\n");
 end
@@ -962,14 +956,12 @@ def _print_ast_union ast, indent in
     tt_print_type_name(g_TypeTable, ast.u.union_.type);
     printf(" in\n");
     var fields = ast.u.union_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         _print_indent(indent+1);
         printf("%s: ", field.name);
         tt_print_type_name(g_TypeTable, field.type);
         printf(";\n");
-        i += 1;
     end
     _print_indent(indent); printf("end\n");
 end
@@ -1019,12 +1011,10 @@ def _print_ast_enum ast, indent in
     var enum_vals = ast.u.enum_.values;
 
     printf("enum %s in\n", enum_name);
-    var i = 0; var len = enum_vals.length;
-    while i < len do
+    for i in 0..enum_vals.length do
         _print_indent(indent + 1);
         var ev = enum_vals.get(i);
         printf("%s = %d;\n", ev.name, ev.value);
-        i += 1;
     end
     _print_indent(indent);
     printf("end\n");
@@ -1119,10 +1109,8 @@ def check_ast_kind expect: AstK, ast: Ast& in
 end
 
 def print_whole_ast roots in
-    var i = 0; var len = roots.length;
-    while i < len do
+    for i in 0..roots.length do
         print_ast(roots.get(i));
-        i += 1;
     end
 end
 
@@ -1202,8 +1190,7 @@ def _ast_deep_copy_def ast, tt, st in
     st_push_scope(st);
     var def_copy_params = Vector[cstr]::new(def_params.length);
     var def_copy_params_types = Vector[Type&]::new(def_params.length);
-    var i = 0; var len = def_params.length;
-    while i < len do
+    for i in 0..def_params.length do
         var param = def_params.get(i);
         var param_sym = st_get_exact_symbol(st, param);
         assert(param_sym);
@@ -1212,7 +1199,6 @@ def _ast_deep_copy_def ast, tt, st in
         param_copy_sym.type = tt_substitute_type(tt, param_sym.type);
         def_copy_params_types.push(param_copy_sym.type);
         def_copy_params.push(param_copy); // push the cstr not the symbol!
-        i += 1;
     end
     var return_type = tt_substitute_type(tt, def_sym.type.u.def_.return_type);
     def_copy_sym.type = tt_make_anon_def(tt,
@@ -1292,21 +1278,18 @@ def _ast_deep_copy_struct ast, tt, st in
     st_push_scope(st);
     var fields = ast.u.struct_.fields;
     var fields_copy = Vector[Field&]::new(fields.length);
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         // fields aren't actually resolved with symbols so no need to create a copy of those
         var field_copy = fields.get(i).copy();
         field_copy.type = tt_substitute_type(tt, field_copy.type);
         fields_copy.push(field_copy);
-        i += 1;
     end
     var struct_type = tt_substitute_type(tt, ast.u.struct_.type);
     var struct_changed = struct_type != ast.u.struct_.type;
     var defs = ast.u.struct_.body;
     var defs_copy = Vector[Ast&]::new(defs.length);
     var defs_copy_symbols = Vector[Symbol&]::new(defs.length);
-    i = 0; len = defs.length;
-    while i < len do
+    for i in 0..defs.length do
         var def_ = defs.get(i);
         assert(def_.kind == AstK::Def);
         var def_copy = _ast_deep_copy_def(def_, tt, st);
@@ -1315,7 +1298,6 @@ def _ast_deep_copy_struct ast, tt, st in
         def_copy_sym.owned_by = struct_type;
         defs_copy.push(def_copy);
         defs_copy_symbols.push(def_copy_sym);
-        i += 1;
     end
     var struct_copy = Ast::new_struct(ast.token, struct_type, fields_copy, defs_copy);
     if struct_changed then
@@ -1331,13 +1313,11 @@ def _ast_deep_copy_union ast, tt, st in
     st_push_scope(st);
     var fields = ast.u.union_.fields;
     var fields_copy = Vector[Field&]::new(fields.length);
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         // fields aren't actually resolved with symbols so no need to create a copy of those
         var field_copy = fields.get(i).copy();
         field_copy.type = tt_substitute_type(tt, field_copy.type);
         fields_copy.push(field_copy);
-        i += 1;
     end
     var union_type = tt_substitute_type(tt, ast.u.union_.type);
     var union_changed = union_type != ast.u.union_.type;

@@ -16,11 +16,9 @@ def main in
     test("arena elem_size is 8", 8 == arena.elem_size);
 
     // Test set and read back via pointer
-    var i = 0;
-    while i < 10 do
+    for i in 0..10 do
         var val = (i + 1) * 100;
         u64!(arena.at(i), val);
-        i += 1;
     end
 
     i = 0;

@@ -62,18 +62,15 @@ end
 def test_large_string in
     printf("Testing strings can be large.\n");
     var str = String::new(0);
-    var i = 0; var n = 500000000;
-    while i < n do
+    var n = 500000000;
+    for i in 0..n do
         str.push('a');
-        i += 1;
     end
-    i = 0;
-    while i < n do
+    for i in 0..n do
         if str.get(i) != 'a' then
             printf("string contents incorrect.\n");
             break;
         end
-        i += 1;
     end
     test("string len is correct", n == str.length);
 end

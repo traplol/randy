@@ -216,12 +216,10 @@ def string_eq string_a: String&, string_b: String& -> bool in
         return false;
     end
 
-    var i = 0;
-    while i < a_len do
+    for i in 0..a_len do
         if string_a.get(i) != string_b.get(i) then
             return false;
         end
-        i += 1;
     end
     return true;
 end

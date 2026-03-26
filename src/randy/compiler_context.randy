@@ -108,20 +108,16 @@ end
 
 def cc_out_files irctx: IrContext&, cctx: CompilerContext& in
     var files = irctx.files;
-    var i = 0;
-    while i < files.length do
+    for i in 0..files.length do
         cc_out_file(cctx, i, files.get(i));
         cctx.file_map.set(files.get(i), i);
-        i += 1;
     end
 end
 
 def cc_out_instructions irctx: IrContext&, cctx: CompilerContext& in
     var instructions = irctx.instructions;
-    var i = 0;
-    while i < instructions.length do
+    for i in 0..instructions.length do
         x86_64_emit_instruction(cctx, instructions.get(i));
-        i += 1;
     end
 end
 
@@ -167,20 +163,16 @@ def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
     end
 
     var tuples = irctx.tuple_lits;
-    i = 0; len = tuples.length;
-    while i < len do
+    for i in 0..tuples.length do
         str.reset();
         var tup = tuples.get(i);
         str.append_cstr(tup.label);
         str.append_cstr(": .quad 0"); // length
-        var j = 0;
-        while j < tup.slots do
+        for j in 0..tup.slots do
             str.append_cstr(", 0"); // slot for each tuple element
-            j += 1;
         end
         cc_out(cctx, ".align 8");
         cc_out(cctx, str.cstr());
-        i += 1;
     end
 
     cc_out(cctx, ".section .rodata, \"a\"");
@@ -201,26 +193,22 @@ def cc_lines_to_file cctx: CompilerContext&, path: cstr in
         printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
         return false;
     end
-    var i = 0; var j = 0;
     var BUFLEN = 4096;
     var buffer = malloc(BUFLEN);
     var buffer_end = buffer + BUFLEN;
     var p = buffer;
 
     var lines = cctx.out_lines;
-    var num_lines = lines.length;
-    var line; var line_len;
-    while i < num_lines do
+    var line;
+    for i in 0..lines.length do
         line = lines.get(i);
-        j = 0; line_len = line.length;
-        while j < line_len do
+        for j in 0..line.length do
             if p == buffer_end then
                 write_file(fd, buffer, BUFLEN);
                 p = buffer;
             end
             u8!(p, line.get(j));
             p += 1;
-            j += 1;
         end
         if p == buffer_end then
             write_file(fd, buffer, BUFLEN);
@@ -228,7 +216,6 @@ def cc_lines_to_file cctx: CompilerContext&, path: cstr in
         end
         u8!(p, '\n');
         p += 1;
-        i += 1;
     end
     if p != buffer then
         write_file(fd, buffer, p - buffer);

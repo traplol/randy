@@ -22,11 +22,9 @@ struct Interp in
 end
 
 def comptime_eval_vector interp, vector, st, tt, depth in
-    var i = 0; var len = vector.length;
-    while i < len do
+    for i in 0..vector.length do
         var e = comptime_eval1(interp, vector.get(i), st, tt, depth);
         vector.set(i, e);
-        i += 1;
     end
 end
 
@@ -239,8 +237,7 @@ def comptime_eval_scope_resolve interp, ast, st, tt, depth in
     var member = rhs.u.ident;
     if type.kind == TypeKind::Enum then
         var enum_vals = type.u.enum_.values;
-        var i = 0; var len = enum_vals.length;
-        while i < len do
+        for i in 0..enum_vals.length do
             var ev = enum_vals.get(i);
             if cstr_eq(ev.name, member) then
                 if not ev.cache_value then
@@ -248,7 +245,6 @@ def comptime_eval_scope_resolve interp, ast, st, tt, depth in
                 end
                 return ev.cache_value;
             end
-            i += 1;
         end
         assert(false, "Error should have been reported in type checker, type Enum::Value doesn't exist\n");
     else
@@ -367,8 +363,7 @@ def _comptime_offsetof ast, tt, base_offset in
         assert(false, "Compiler bug: __offsetof on non-struct and non-union type\n");
     end
 
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
             if lhs then
@@ -377,7 +372,6 @@ def _comptime_offsetof ast, tt, base_offset in
                 return base_offset + field.bit_offset;
             end
         end
-        i += 1;
     end
 
     assert(false, "Compiler bug: 'no field named' should have been taken care of type inference\n");
@@ -441,10 +435,8 @@ end
 
 def comptime_eval type_table, symbol_table, compile_order in
     var interp = Interp::new();
-    var i = 0; var len = compile_order.length;
-    while i < len do
+    for i in 0..compile_order.length do
         comptime_eval1(interp, compile_order.get(i), symbol_table, type_table, 0);
-        i += 1;
     end
 end
 
@@ -456,10 +448,8 @@ def _emit_deferred_stmts target: Vector[Ast&]&, defers: Vector[Vector[Ast&]&]&, 
     var d = defers.length - 1;
     while d >= from do
         var defer_body: Vector[Ast&]& = defers.get(d);
-        var s = 0;
-        while s < defer_body.length do
+        for s in 0..defer_body.length do
             target.push(defer_body.get(s));
-            s += 1;
         end
         d -= 1;
     end
@@ -470,14 +460,11 @@ def _rewrite_defers_in_body body: Vector[Ast&]&, parent_defers: Vector[Vector[As
     var defers = Vector[Vector[Ast&]&]::new(0);
 
     // Copy parent defers
-    var pi = 0;
-    while pi < parent_defers.length do
+    for pi in 0..parent_defers.length do
         defers.push(parent_defers.get(pi));
-        pi += 1;
     end
 
-    var i = 0;
-    while i < body.length do
+    for i in 0..body.length do
         var ast = body.get(i);
         if ast.kind == AstK::Defer then
             defers.push(ast.u.defer_);
@@ -494,7 +481,6 @@ def _rewrite_defers_in_body body: Vector[Ast&]&, parent_defers: Vector[Vector[As
         else
             new_body.push(ast);
         end
-        i += 1;
     end
 
     // At end of body, emit only defers added in this scope (not parent defers)
@@ -519,14 +505,12 @@ def _rewrite_defers_in_body body: Vector[Ast&]&, parent_defers: Vector[Vector[As
 end
 
 def rewrite_defers compile_order: Vector[Ast&]& in
-    var i = 0; var len = compile_order.length;
-    while i < len do
+    for i in 0..compile_order.length do
         var ast = compile_order.get(i);
         if ast.kind == AstK::Def then
             var empty_defers = Vector[Vector[Ast&]&]::new(0);
             _rewrite_defers_in_body(ast.u.def_.body, empty_defers);
             empty_defers.delete();
         end
-        i += 1;
     end
 end

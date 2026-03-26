@@ -56,11 +56,9 @@ def mono_type ...args: int in
         printf("empty args\n");
         return;
     end
-    var i = 0;
-    while i < args.length do
+    for i in 0..args.length do
         var xx = args.get(i);
         printf("args.get(%d) = %d\n", i, xx);
-        i += 1;
     end
 end
 

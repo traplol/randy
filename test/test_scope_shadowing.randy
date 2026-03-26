@@ -18,11 +18,9 @@ def main in
     test("outer x restored after if", x == 10);
 
     // Shadow in while block
-    var i = 0;
-    while i < 1 do
+    for i in 0..1 do
         var x = 30;
         test("shadowed x in while", x == 30);
-        i += 1;
     end
     test("outer x restored after while", x == 10);
 

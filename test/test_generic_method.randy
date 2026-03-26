@@ -63,10 +63,8 @@ def main in
     test("no longer contains key 1", not map.contains(1));
 
     // Stress test with many entries
-    var i = 0;
-    while i < 1000 do
+    for i in 0..1000 do
         map.insert(i, i * i);
-        i += 1;
     end
 
     test("contains 500", map.contains(500));

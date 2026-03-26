@@ -3,10 +3,8 @@
 #include std/core
 
 def main argc: int, argv: ptr in
-    var i = 0;
-    while i < argc do
+    for i in 0..argc do
         printf("arg%d = %s\n", i, u64@(argv + i*8));
-        i += 1;
     end
     return 0;
 end

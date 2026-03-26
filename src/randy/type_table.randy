@@ -139,8 +139,7 @@ def make_type_tuple id: int, types: Vector[Type&]&, mono_type: Type& in
     self.u.tuple.types = types;
     self.u.tuple.mono_type = mono_type;
     if mono_type != NULL then
-        var i = 0; var len = types.length;
-        while i < len do
+        for i in 0..types.length do
             assert(types.get(i) == mono_type, "Compiler bug: a mono-type tuple does't have a mono-type list.\n");
         end
     end
@@ -191,14 +190,12 @@ def _basic_def_type_match tt, lhs, rhs in
         return false;
     end
 
-    var i = 0; var len = lhs_params.length;
-    while i < len do
+    for i in 0..lhs_params.length do
         var a = lhs_params.get(i);
         var b = rhs_params.get(i);
         if not types_assignable(tt, a, b) then
             return false;
         end
-        i += 1;
     end
     return true;
 end
@@ -217,12 +214,10 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
     end
     if lhs.kind == TypeKind::Tuple and rhs.kind == TypeKind::Tuple then
         if lhs.u.tuple.mono_type != NULL then
-            var i = 0; var len = rhs.u.tuple.types.length;
-            while i < len do
+            for i in 0..rhs.u.tuple.types.length do
                 if rhs.u.tuple.types.get(i) != lhs.u.tuple.mono_type then
                     return false;
                 end
-                i += 1;
             end
         end
         return true;
@@ -585,12 +580,10 @@ def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, in
     // TODO: will also need a way of flagging all of the src_types as ignored when calculating below
     tt_push_scope(self);
     var type_sub_map = Map::new(src_params.length, NULL, NULL);
-    var i = 0; var len = src_params.length;
-    while i < len do
+    for i in 0..src_params.length do
         var src = src_params.get(i);
         type_sub_map.set(src, dst_params.get(i));
         tt_set_local_type(self, src);
-        i += 1;
     end
     type_sub_map.set(type, instance);
     var prev = self.type_substitutes;
@@ -617,15 +610,13 @@ def tt_get_type_instance_of self, st, type, params in
         var generic_params = type.params;
         assert(params.length == generic_params.length, "forgot to verify params length\n");
         var same = true;
-        var i = 0; var len = params.length;
-        while i < len do
+        for i in 0..params.length do
             var src_type = generic_params.get(i);
             var dst_type = params.get(i);
             if not types_eq(src_type, dst_type) then
                 same = false;
                 break;
             end
-            i += 1;
         end
         if same then
             return type;
@@ -637,22 +628,18 @@ def tt_get_type_instance_of self, st, type, params in
             instances = Vector[Type&]::new(8);
             type.instances = instances;
         else
-            var i = 0; var len = instances.length;
-            while i < len do
+            for i in 0..instances.length do
                 var inst = instances.get(i);
                 var inst_params = inst.params;
                 assert(params.length == inst_params.length, "forgot to verify params.length\n");
-                var j = 0; var jlen = inst_params.length;
-                while j < jlen do
+                for j in 0..inst_params.length do
                     if not types_eq(params.get(j), inst_params.get(j)) then
                         break;
                     end
-                    j += 1;
                 end
-                if j == jlen then
+                if j == inst_params.length then
                     return inst;
                 end
-                i += 1;
             end
         end
 
@@ -804,8 +791,7 @@ def tt_calculate_struct self, stype, again_q in
     end
     var bit_offs = 0;
     var ptr_align = false;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         var ftype = field.type;
         if ftype.kind == TypeKind::GenericParam then
@@ -835,7 +821,6 @@ def tt_calculate_struct self, stype, again_q in
                 bit_offs = size;
             end
         end
-        i += 1;
     end
     if ptr_align then
         bit_offs = (bit_offs + (PTR_BITS-1)) & -PTR_BITS;
@@ -855,8 +840,7 @@ def tt_detect_cycles self, stype in
     else
         fields = stype.u.union_.fields;
     end
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         var ftype = field.type;
         if ftype == stype then // immediate self-reference
@@ -870,7 +854,6 @@ def tt_detect_cycles self, stype in
                 q.enqueue(ftype);
             end
         end
-        i += 1;
     end
 
     while q.length() != 0 do
@@ -885,8 +868,7 @@ def tt_detect_cycles self, stype in
         else
             fields = v.u.union_.fields;
         end
-        i = 0; len = fields.length;
-        while i < len do
+        for i in 0..fields.length do
             var field = fields.get(i);
             var ftype = field.type;
             if ftype == stype then
@@ -900,7 +882,6 @@ def tt_detect_cycles self, stype in
                     q.enqueue(ftype);
                 end
             end
-            i += 1;
         end
     end
     q.delete();
@@ -911,8 +892,7 @@ end
 def tt_check_struct_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var fields = type.u.struct_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         var fname = field.name;
         var ftoke = field.token;
@@ -927,12 +907,10 @@ def tt_check_struct_for_field_name_collisions self, type in
             g_Errors += 1;
         end
         member_name_map.set(fname, ftoke);
-        i += 1;
     end
 
     var defs = type.u.struct_.defs;
-    i = 0; len = defs.length;
-    while i < len do
+    for i in 0..defs.length do
         var def_ = defs.get(i);
         var found = member_name_map.find(def_.name);
         if found then
@@ -945,7 +923,6 @@ def tt_check_struct_for_field_name_collisions self, type in
             g_Errors += 1;
         end
         member_name_map.set(def_.name, def_.token);
-        i += 1;
     end
     member_name_map.delete();
 end
@@ -953,8 +930,7 @@ end
 def tt_check_enum_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var enum_vals = type.u.enum_.values;
-    var i = 0; var len = enum_vals.length;
-    while i < len do
+    for i in 0..enum_vals.length do
         var ev = enum_vals.get(i);
         var found = member_name_map.find(ev.name);
         if found then
@@ -967,7 +943,6 @@ def tt_check_enum_for_field_name_collisions self, type in
             g_Errors += 1;
         end
         member_name_map.set(ev.name, ev.token);
-        i += 1;
     end
     member_name_map.delete();
 end
@@ -975,8 +950,7 @@ end
 def tt_check_union_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
     var fields = type.u.union_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         var fname = field.name;
         var ftoke = field.token;
@@ -991,7 +965,6 @@ def tt_check_union_for_field_name_collisions self, type in
             g_Errors += 1;
         end
         member_name_map.set(fname, ftoke);
-        i += 1;
     end
     member_name_map.delete();
 end
@@ -1116,18 +1089,15 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
     if type.kind == TypeKind::Struct then
         var member = rhs.u.ident;
         var fields = type.u.struct_.fields;
-        var i = 0; var len = fields.length;
-        while i < len do
+        for i in 0..fields.length do
             var field = fields.get(i);
             if cstr_eq(member, field.name) then
                 return field.type;
             end
-            i += 1;
         end
 
         var defs = type.u.struct_.defs;
-        i = 0; len = defs.length;
-        while i < len do
+        for i in 0..defs.length do
             var def_ = defs.get(i);
             var def_name = def_.name;
             if cstr_eq(member, def_name) then
@@ -1136,7 +1106,6 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
                 assert(def_type.kind == TypeKind::Def);
                 return def_type;
             end
-            i += 1;
         end
         var scope = type.scope;
         assert(scope);
@@ -1186,8 +1155,7 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
     if type.kind == TypeKind::Struct then
         var member = rhs.u.ident;
         var defs = type.u.struct_.defs;
-        var i = 0; var len = defs.length;
-        while i < len do
+        for i in 0..defs.length do
             var def_ = defs.get(i);
             var def_name = def_.name;
             if cstr_eq(member, def_name) then
@@ -1196,7 +1164,6 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
                 assert(def_type.kind == TypeKind::Def);
                 return def_;
             end
-            i += 1;
         end
         if error then
             printf("ERROR: type `");

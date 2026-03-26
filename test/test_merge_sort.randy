@@ -41,10 +41,8 @@ def merge_sort arr in
     var left = Vector[int]::new(mid);
     var right = Vector[int]::new(arr.length - mid);
 
-    var i = 0;
-    while i < mid do
+    for i in 0..mid do
         left.push(arr.get(i));
-        i += 1;
     end
 
     i = mid;
@@ -83,10 +81,8 @@ def main in
     arr.push(0);
 
     printf("Unsorted vector:\n");
-    var i = 0;
-    while i < arr.length do
+    for i in 0..arr.length do
         printf("%d ", arr.get(i));
-        i += 1;
     end
     putchar('\n');
 

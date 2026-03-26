@@ -8,8 +8,7 @@
 def next_state state in
     var next = String::new(0);
     var left; var center; var right;
-    var i = 0; var len = state.length;
-    while i < len do
+    for i in 0..state.length do
         if i == 0 then
             left = ' ';
         else
@@ -18,7 +17,7 @@ def next_state state in
 
         center = state.get(i);
 
-        if i+1 == len then
+        if i+1 == state.length then
             right = ' ';
         else
             right = state.get(i+1);
@@ -33,7 +32,6 @@ def next_state state in
         elif left == ' ' and center == ' ' and right == '*' then next.push('*');
         elif left == ' ' and center == ' ' and right == ' ' then next.push(' ');
         end
-        i += 1;
     end
     return next;
 end

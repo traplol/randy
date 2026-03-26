@@ -67,8 +67,7 @@ def _compile_order_visit_type tt, st, type, seen, order in
     seen.insert(type);
     if type.kind == TypeKind::Struct then
         var defs = type.u.struct_.defs;
-        var i = 0; var len = defs.length;
-        while i < len do
+        for i in 0..defs.length do
             var sym = defs.get(i);
             if not seen.contains(sym) then
                 seen.insert(sym);
@@ -77,35 +76,28 @@ def _compile_order_visit_type tt, st, type, seen, order in
                 assert(def_, "AST for symbol %s was null\n", sym.name);
                 _compile_order_def(tt, st, def_, seen, order);
             end
-            i += 1;
         end
 
         var fields = type.u.struct_.fields;
-        i = 0; len = fields.length;
-        while i < len do
+        for i in 0..fields.length do
             var field = fields.get(i);
             _compile_order_visit_type(tt, st, field.type, seen, order);
-            i += 1;
         end
     elif type.kind == TypeKind::Enum then
         // nothing
     elif type.kind == TypeKind::Union then
         var fields = type.u.union_.fields;
-        var i = 0; var len = fields.length;
-        while i < len do
+        for i in 0..fields.length do
             var field = fields.get(i);
             _compile_order_visit_type(tt, st, field.type, seen, order);
-            i += 1;
         end
     end
 end
 
 def _compile_order_visit_vector tt, st, vector, seen, order in
-    var i = 0; var len = vector.length;
-    while i < len do
+    for i in 0..vector.length do
         var stmt = vector.get(i);
         _compile_order_visit(tt, st, stmt, seen, order);
-        i += 1;
     end
 end
 
@@ -118,8 +110,7 @@ def compile_order_main roots, type_table, symbol_table -> Vector[Ast&]& in
     var main_def: Ast& = NULL;
     var exit_def: Ast& = NULL;
     var compile_order = Vector[Ast&]::new(128);
-    var i = 0; var len = roots.length;
-    while i < len do
+    for i in 0..roots.length do
         var ast = roots.get(i);
         if ast.kind == AstK::Def then
             if cstr_eq("main", ast.u.def_.ident) then
@@ -130,7 +121,6 @@ def compile_order_main roots, type_table, symbol_table -> Vector[Ast&]& in
         else
             compile_order.push(ast);
         end
-        i += 1;
     end
     if not main_def then
         compile_order.delete();

@@ -3,24 +3,20 @@
 def test_defer_before_loop in
     // Defer declared before loop should run at function exit
     defer printf("function cleanup\n");
-    var i = 0;
-    while i < 3 do
+    for i in 0..3 do
         printf("loop %d\n", i);
-        i += 1;
     end
 end
 
 def test_defer_with_break in
     // Defer declared before loop runs at function exit, not at break
     defer printf("function cleanup\n");
-    var i = 0;
-    while i < 10 do
+    for i in 0..10 do
         if i == 3 then
             printf("breaking\n");
             break;
         end
         printf("loop %d\n", i);
-        i += 1;
     end
     printf("after loop\n");
 end
@@ -28,13 +24,11 @@ end
 def test_return_inside_loop -> int in
     // Defer runs before return even inside a loop
     defer printf("cleanup on return\n");
-    var i = 0;
-    while i < 10 do
+    for i in 0..10 do
         if i == 2 then
             printf("returning from loop\n");
             return i;
         end
-        i += 1;
     end
     return -1;
 end

@@ -70,10 +70,8 @@ def assemble_and_link asm_path, obj_path, exe_path, ld_flags in
     ld_args.push("-o");
     ld_args.push(exe_path);
     ld_args.push(obj_path);
-    var i = 0; var len = ld_flags.length;
-    while i < len do
+    for i in 0..ld_flags.length do
         ld_args.push(ld_flags.get(i));
-        i += 1;
     end
     ld_args.push(NULL);
     subprocess_blocking("/usr/bin/ld", ld_args.buffer, NULL);

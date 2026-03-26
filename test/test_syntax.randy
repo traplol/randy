@@ -67,10 +67,8 @@ end
 
 def count_to_n n in
     // Define a variable with "var"
-    var i = 0;
-    while i < n do
+    for i in 0..n do
         printf("num=%d\n", i);
-        i += 1;
     end 
 end
 
@@ -157,10 +155,8 @@ def main in
 
     printf("num=%d\n", not 123);
 
-    var i = 0;
-    while i < 46 do
+    for i in 0..46 do
         printf("hello world. i = %d, %d, %d, %d\n", i, i % 3, i % 5, i % 15);
-        i += 1;
     end
 
     printf("num=%d\n", SYS_write);

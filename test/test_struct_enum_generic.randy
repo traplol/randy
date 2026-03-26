@@ -66,13 +66,11 @@ def main in
 
     // Count horizontal waypoints
     var h_count = 0;
-    var i = 0;
-    while i < path.length do
+    for i in 0..path.length do
         var w = cast(path.get(i), Waypoint&);
         if w.is_horizontal() then
             h_count += 1;
         end
-        i += 1;
     end
     test("counted horizontal", h_count == 2);
 

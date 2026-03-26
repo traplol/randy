@@ -58,13 +58,11 @@ const PLAYER_NAME = "abcdefghijklmnopqrstuvwxyz";
 
 def make_players n: int in
     var players = Vector[Player&]::new(n);
-    var i = 0;
-    while i < n do
+    for i in 0..n do
         var player = make_player(PLAYER_NAME, 100 + i, i * 11, i * i);
         Player::move(player, 10, 20);
         Player::take_damage(player, 30);
         players.push(player);
-        i += 1;
     end
     return players;
 end
@@ -73,8 +71,7 @@ def test_many_players in
     printf("test_many_players: creating many `Player` objects.\n");
     var players = make_players(100000);
     printf("test_many_players: checking the player fields are correct.\n");
-    var i = 0; var len = players.length;
-    while i < len do
+    for i in 0..players.length do
         var player = players.get(i);
         if player.name != PLAYER_NAME then
             printf("test_many_players:fail on player.name\n");
@@ -92,14 +89,11 @@ def test_many_players in
             printf("test_many_players:fail on player.pos.y\n");
             return false;
         end
-        i += 1;
     end
 
     printf("test_many_players: freeing the `Player` objects.\n");
-    i = 0;
-    while i < len do
+    for i in 0..players.length do
         free_player(players.get(i));
-        i += 1;
     end
     players.delete();
     printf("test_many_players: pass\n");
@@ -136,14 +130,11 @@ end
 def test_many_foos in
     printf("test_many_foos: making many `Foo` objects.\n");
     var foos = Vector[Foo&]::new(100000);
-    var i = 0; var len = foos.capacity;
-    while i < len do
+    for i in 0..foos.capacity do
         foos.push(make_foo(i, i * i, i * i * i));
-        i += 1;
     end
     printf("test_many_foos: checking `Foo` objects fields are correct.\n");
-    i = 0;
-    while i < len do
+    for i in 0..foos.length do
         var foo = foos.get(i);
         if foo.a != i then
             printf("test_many_foos: fail on foo.a\n");
@@ -157,14 +148,11 @@ def test_many_foos in
             printf("test_many_foos: fail on foo.bar.baz.c\n");
             return false;
         end
-        i += 1;
     end
 
     printf("test_many_foos: freeing the `Foo` objects.\n");
-    i = 0;
-    while i < len do
+    for i in 0..foos.length do
         free_foo(foos.get(i));
-        i += 1;
     end
     foos.delete();
     printf("test_many_foos: pass\n");

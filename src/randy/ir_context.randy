@@ -839,8 +839,7 @@ def ir_new_local self, ident, st in
     var def_locals = self.def_locals;
     var local_idx = 0;
     var offset = 0;
-    var i = 0; var len = def_locals.length;
-    while i < len do
+    for i in 0..def_locals.length do
         var m = def_locals.get(i);
         local_idx += m.length;
         var cur = m.iter_begin();
@@ -849,7 +848,6 @@ def ir_new_local self, ident, st in
             offset += li.size;
             cur = m.iter_next(cur);
         end
-        i += 1;
     end
     var size = 0;
     if g_Experimental then
@@ -941,12 +939,10 @@ end
 
 def ir_is_local self, ident in
     var def_locals = self.def_locals;
-    var i = 0; var len = def_locals.length;
-    while i < len do
+    for i in 0..def_locals.length do
         if def_locals.get(i).find(ident) then
             return true;
         end
-        i += 1;
     end
     return false;
 end
@@ -1119,11 +1115,9 @@ def ir_emit_call self, ast, st, tt in
     if len > 0 then
         ir_append(self, IrInstr::new_alloc_temps(len));
     end
-    var i = 0;
-    while i < len do
+    for i in 0..len do
         ir_compile(self, args.get(i), st, tt);
         ir_append(self, IrInstr::new_store_temp(i));
-        i += 1;
     end
 
     i = 0;
@@ -1374,13 +1368,11 @@ def ir_emit_def self, ast, st, tt in
     ir_push_scope(self);
     ir_append(self, insn);
 
-    var i = 0; var len = params.length;
-    while i < len do
+    for i in 0..params.length do
         var param = params.get(i);
         var n = ir_new_local(self, param, st);
         var offs = ir_get_local_offset(self, param);
         ir_append(self, IrInstr::new_set_local_arg(param, n, i, offs));
-        i += 1;
     end
     ir_emit_body(self, ast.u.def_.body, st, tt);
     insn.nlocals = self.num_locals;
@@ -1596,13 +1588,11 @@ def _ir_find_field type: Type&, member: cstr -> Field& in
     elif type.kind == TypeKind::Union then
         fields = type.u.union_.fields;
     end
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field: Field& = fields.get(i);
         if cstr_eq(field.name, member) then
             return field;
         end
-        i += 1;
     end
     return NULL;
 end
@@ -1736,13 +1726,11 @@ def ir_emit_tuple_literal self, ast, st, tt in
     ir_append(self, IrInstr::new_ptr_write(INT_BITS));
 
     if len != 0 then
-        var i = 0;
-        while i < len do
+        for i in 0..len do
             ir_compile(self, ast.u.tuple_literal.args.get(i), st, tt);
             ir_append(self, IrInstr::new_push_label(tuple_label));
             ir_append(self, IrInstr::new_ptr_offs((1 + i) * PTR_BITS));
             ir_append(self, IrInstr::new_ptr_write(PTR_BITS));
-            i += 1;
         end
     end
 
@@ -1887,17 +1875,13 @@ def ir_compile_roots self: IrContext&, roots: Vector[Ast&]&, symbol_table: Symbo
 
     if false then
         // compile everything in order
-        var i = 0; var len = roots.length;
-        while i < len do
+        for i in 0..roots.length do
             ir_compile(self, roots.get(i), symbol_table, type_table);
-            i += 1;
         end
     else
         // or only compile the call/reference graph
-        var i = 0; var len = compile_order.length;
-        while i < len do
+        for i in 0..compile_order.length do
             ir_compile(self, compile_order.get(i), symbol_table, type_table);
-            i += 1;
         end
     end
 
@@ -1916,9 +1900,7 @@ end
 
 def ir_print_whole_ir self: IrContext& in
     var instrs = self.instructions;
-    var i = 0; var len = instrs.length;
-    while i < len do
+    for i in 0..instrs.length do
         print_ir(instrs.get(i));
-        i += 1;
     end
 end

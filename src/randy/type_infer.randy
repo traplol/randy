@@ -50,11 +50,9 @@ def ti_pop_def self in
 end
 
 def ti_infer_vector self, tt, st, vector in
-    var i = 0; var len = vector.length;
-    while i < len do
+    for i in 0..vector.length do
         var ast = vector.get(i);
         ti_infer(self, tt, st, ast);
-        i += 1;
     end
 end
 
@@ -446,10 +444,8 @@ end
 def ti_infer_pointer_write self, tt, st, ast -> Type& in
     check_ast_kind(AstK::PointerWrite, ast);
     var args = ast.u.ptr_op.args;
-    var i = 0; var len = args.length;
-    while i < len do
+    for i in 0..args.length do
         ti_infer(self, tt, st, args.get(i));
-        i += 1;
     end
     return tt.void_type;
 end
@@ -490,36 +486,30 @@ end
 def _ti_get_field_type_rewrite_if_def type, member, ast in
     assert(type.kind == TypeKind::Struct);
     var fields = type.u.struct_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
             return field.type;
         end
-        i += 1;
     end
     var defs = type.u.struct_.defs;
-    i = 0; len = defs.length;
-    while i < len do
+    for i in 0..defs.length do
         var def_ = defs.get(i);
         if cstr_eq(def_.name, member) then
             ast_change_member_access_to_scope_access(ast, type, def_);
             return def_.type;
         end
-        i += 1;
     end
     return NULL;
 end
 
 def _ti_get_union_field_type type, member in
     var fields = type.u.union_.fields;
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
             return field.type;
         end
-        i += 1;
     end
     return NULL;
 end
@@ -628,22 +618,18 @@ def ti_infer_tuple_literal self, tt, st, ast in
     else
         types = Vector[Type&]::new(ast.u.tuple_literal.args.length);
         ast.u.tuple_literal.type = tt_make_tuple(tt, types, NULL);
-        var i = 0; var len = ast.u.tuple_literal.args.length;
-        while i < len do
+        for i in 0..ast.u.tuple_literal.args.length do
             types.push(tt.any_type);
-            i += 1;
         end
     end
 
     assert(types.length == ast.u.tuple_literal.args.length);
-    var i = 0; var len = ast.u.tuple_literal.args.length;
-    while i < len do
+    for i in 0..ast.u.tuple_literal.args.length do
         var type = ti_infer(self, tt, st, ast.u.tuple_literal.args.get(i));
         var lhs_type = types.get(i);
         if lhs_type == tt.any_type then
             types.set(i, type);
         end
-        i += 1;
     end
 
     return ast.u.tuple_literal.type;
@@ -723,10 +709,8 @@ def ti_infer self, tt, st, ast -> Type& in
 end
 
 def _type_infer_impl self, type_table, symbol_table, ast_nodes in
-    var i = 0; var len = ast_nodes.length;
-    while i < len do
+    for i in 0..ast_nodes.length do
         ti_infer(self, type_table, symbol_table, ast_nodes.get(i));
-        i += 1;
     end
 
     // TODO: prove this terminates or design an alternate solution.

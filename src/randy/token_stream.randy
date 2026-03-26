@@ -34,12 +34,10 @@ struct TokenStream in
         if tk == k then
             return true;
         end
-        var i = 0;
-        while i < tks.length do
+        for i in 0..tks.length do
             if tks.get(i) == k then
                 return true;
             end
-            i += 1;
         end
         return false;
     end

@@ -838,8 +838,7 @@ def _for_insert_incr_before_continue body: Vector[Ast&]&, incr_name: cstr, incr_
     // This is needed because for loops desugar to while loops, and continue
     // would skip the increment at the end of the body.
     var new_body = Vector[Ast&]::new(body.length);
-    var i = 0;
-    while i < body.length do
+    for i in 0..body.length do
         var ast: Ast& = body.get(i);
         if ast.kind == AstK::Continue then
             new_body.push(Ast::new_assign_op(incr_token, incr_name, TK::PlusEq, Ast::new_integer(incr_token, 1)));
@@ -851,7 +850,6 @@ def _for_insert_incr_before_continue body: Vector[Ast&]&, incr_name: cstr, incr_
         else
             new_body.push(ast);
         end
-        i += 1;
     end
     body.length = 0;
     i = 0;
@@ -1023,10 +1021,8 @@ def parse_def ts, st, tt in
     ts.expect(TK::KW_in);
 
     var param_types = Vector[Type&]::new(param_symbols.length);
-    var i = 0; var len = param_symbols.length;
-    while i < len do
+    for i in 0..param_symbols.length do
         param_types.push(param_symbols.get(i).type);
-        i += 1;
     end
     param_symbols.delete();
     var def_type = tt_make_anon_def(tt, return_type, param_types, varargs);
@@ -1218,8 +1214,7 @@ def parse_struct ts, st, tt in
     struct_type.u.struct_.fields = fields;
     struct_type.u.struct_.defs = def_symbols;
 
-    var i = 0; var len = def_symbols.length;
-    while i < len do
+    for i in 0..def_symbols.length do
         var def_sym = def_symbols.get(i);
         assert(not def_sym.owned_by);
         def_sym.owned_by = struct_type;
@@ -1247,7 +1242,6 @@ def parse_struct ts, st, tt in
                 end
             end
         end
-        i += 1;
     end
 
     var ast = Ast::new_struct(struct_, struct_type, fields, inner_ast);

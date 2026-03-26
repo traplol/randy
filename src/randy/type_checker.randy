@@ -71,14 +71,12 @@ def _tc_check_is_int_like tt, ast, type in
 end
 
 def tc_check_body self, tt, st, body in
-    var i = 0; var len = body.length;
-    while i < len do
+    for i in 0..body.length do
         var ast = body.get(i);
         tc_check(self, tt, st, ast);
         if ast.kind == AstK::Return then
             break;
         end
-        i += 1;
     end
 end
 
@@ -109,8 +107,7 @@ def tc_check_call self, tt, st, ast in
 
     var param_types = call_type.u.def_.parameters;
     var args = ast.u.call.args;
-    var i = 0; var len = min(param_types.length, args.length);
-    while i < len do
+    for i in 0..min(param_types.length, args.length) do
         var arg = args.get(i);
         tc_check(self, tt, st, arg);
         var param_type = param_types.get(i);
@@ -132,16 +129,13 @@ def tc_check_call self, tt, st, ast in
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
-        i += 1;
     end
 
-    len = args.length;
-    while i < len do
+    for i in min(param_types.length, args.length)..args.length do
         tc_check(self, tt, st, args.get(i));
-        i += 1;
     end
 
-    if (i < param_types.length) or (i > param_types.length and not call_type.u.def_.varargs) then
+    if (args.length < param_types.length) or (args.length > param_types.length and not call_type.u.def_.varargs) then
         var expr = ast.u.call.expr;
         if expr.kind == AstK::Ident then
             printf("ERROR: call to `%s` expects %d arguments but got %d.\n",
@@ -273,14 +267,12 @@ def tc_check_def self, tt, st, ast in
     end
     if errors.length > 0 then
         printf("ERROR: in def `%s`: \n", ast.u.def_.ident);
-        i = 0; len = errors.length;
-        while i < len do
+        for i in 0..errors.length do
             var sym = errors.get(i);
             var type = sym.type;
             printf("ERROR: `%s` has type `", sym.name);
             tt_print_type_name(tt, type);
             printf(".`\n");
-            i += 1;
         end
         print_ast_src_loc(ast);
         g_Errors += 1;
@@ -408,14 +400,12 @@ def tc_check_member_access self, tt, st, ast in
     elif type.kind == TypeKind::Union then
         fields = type.u.union_.fields;
     end
-    var i = 0; var len = fields.length;
-    while i < len do
+    for i in 0..fields.length do
         var field = fields.get(i);
         if cstr_eq(field.name, member) then
             found = true;
             break;
         end
-        i += 1;
     end
 
     if not found then
@@ -474,13 +464,11 @@ def tc_check_scope_resolve self, tt, st, ast in
     var member = rhs.u.ident;
     if type.kind == TypeKind::Enum then
         var enum_vals = type.u.enum_.values;
-        var i = 0; var len = enum_vals.length;
-        while i < len do
+        for i in 0..enum_vals.length do
             var ev = enum_vals.get(i);
             if cstr_eq(ev.name, member) then
                 return; // OK. found enum value
             end
-            i += 1;
         end
         printf("ERROR: enum `");
         tt_print_type_name(tt, type);
@@ -489,8 +477,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         g_Errors += 1;
     elif type.kind == TypeKind::Struct then
         var fields = type.u.struct_.fields;
-        var i = 0; var len = fields.length;
-        while i < len do
+        for i in 0..fields.length do
             var field = fields.get(i);
             if cstr_eq(field.name, member) then
                 printf("ERROR: cannot directly reference instance field `%s` from struct `");
@@ -500,17 +487,14 @@ def tc_check_scope_resolve self, tt, st, ast in
                 g_Errors += 1;
                 return; // OK. found field
             end
-            i += 1;
         end
 
         var defs = type.u.struct_.defs;
-        i = 0; len = defs.length;
-        while i < len do
+        for i in 0..defs.length do
             var def_sym = defs.get(i);
             if cstr_eq(def_sym.name, member) then
                 return; // OK. found def
             end
-            i += 1;
         end
 
         printf("ERROR: struct `");
@@ -579,10 +563,8 @@ end
 def tc_check_tuple_literal self, tt, st, ast in
     check_ast_kind(AstK::TupleLiteral, ast);
     assert(ast.u.tuple_literal.type, "Compiler bug: Tuple literal with no type\n");
-    var i = 0; var len = ast.u.tuple_literal.args.length;
-    while i < len do
+    for i in 0..ast.u.tuple_literal.args.length do
         tc_check(self, tt, st, ast.u.tuple_literal.args.get(i));
-        i += 1;
     end
 end
 
@@ -655,10 +637,8 @@ end
 
 def type_check type_table, symbol_table, compile_order: Vector[Ast&]& in
     var type_checker = TypeCheck::new();
-    var i = 0; var len = compile_order.length;
-    while i < len do
+    for i in 0..compile_order.length do
         tc_check(type_checker, type_table, symbol_table, compile_order.get(i));
-        i += 1;
     end
     TypeCheck::delete(type_checker);
 end

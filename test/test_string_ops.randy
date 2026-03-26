@@ -57,10 +57,8 @@ def main in
 
     // Large string (trigger realloc)
     var big = String::new(4);
-    var i = 0;
-    while i < 200 do
+    for i in 0..200 do
         big.push('x');
-        i += 1;
     end
     test("large string length", big.length == 200);
     test("large string char", big.get(199) == 'x');

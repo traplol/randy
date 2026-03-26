@@ -51,10 +51,8 @@ end
 def string_hash string: String& -> int in
     var hash = 5381;
     var len = string.length;
-    var i = 0;
-    while i < len do
+    for i in 0..len do
         hash = hash * 33 + string.get(i);
-        i += 1;
     end
     return hash;
 end
