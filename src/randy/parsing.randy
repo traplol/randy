@@ -95,8 +95,14 @@ def parse_type ts, st, tt, is_instance in
             return tt_get_or_create_slice_type(tt, type);
         elif ts.peekk(TK::Integer) then
             var n_tok = ts.next();
+            var n = cast(n_tok.value, int);
+            if n <= 0 then
+                printf("ERROR: array length must be a positive integer, got %d.\n", n);
+                print_token_loc(n_tok);
+                exit(1);
+            end
             ts.expect(TK::RSquare);
-            return tt_get_or_create_array_type(tt, type, cast(n_tok.value, int));
+            return tt_get_or_create_array_type(tt, type, n);
         end
         ts.idx = saved_idx; // not a slice/array, let generic params handle it
     end
