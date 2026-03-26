@@ -8,26 +8,26 @@ const O_RDWR = 2;
 const O_CREAT = 64;
 const O_TRUNC = 512;
 
-def close fd: fd -> int in
+def close fd: int -> int in
     return cast(syscall(SYS_close, fd), int);
 end
 
-def open_for_read path: cstr -> fd in
-    return cast(syscall(SYS_open, path, O_RDONLY), fd);
+def open_for_read path: cstr -> int in
+    return cast(syscall(SYS_open, path, O_RDONLY), int);
 end
 
-def open_for_write path: cstr -> fd in
+def open_for_write path: cstr -> int in
     var mask = cast(syscall(SYS_umask, 0), int);
     syscall(SYS_umask, mask);
     // 438 is 0666 or -rw-rw-rw-
-    return cast(syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask), fd);
+    return cast(syscall(SYS_open, path, O_CREAT | O_WRONLY | O_TRUNC, 438 & ~mask), int);
 end
 
-def read_file fd: fd, buf: ptr, count: int -> int in
+def read_file fd: int, buf: ptr, count: int -> int in
     return cast(syscall(SYS_read, fd, buf, count), int);
 end
 
-def write_file fd: fd, buf: ptr, count: int -> int in
+def write_file fd: int, buf: ptr, count: int -> int in
     return cast(syscall(SYS_write, fd, buf, count), int);
 end
 
