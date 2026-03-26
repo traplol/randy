@@ -11,20 +11,20 @@ end
 
 def main in
     // Test timespec creation
-    var ts = make_timespec(10, 500);
+    var ts = Timespec::new(10, 500);
     test("timespec sec is 10", 10 == ts.tv_sec);
     test("timespec nsec is 500", 500 == ts.tv_nsec);
-    free_timespec(ts);
+    Timespec::delete(ts);
 
     // Test make_empty_timespec
-    var empty = make_empty_timespec();
+    var empty = Timespec::new(0, 0);
     test("empty timespec sec is 0", 0 == empty.tv_sec);
     test("empty timespec nsec is 0", 0 == empty.tv_nsec);
-    free_timespec(empty);
+    Timespec::delete(empty);
 
     // Test monotonic clock reads
-    var t1 = make_empty_timespec();
-    var t2 = make_empty_timespec();
+    var t1 = Timespec::new(0, 0);
+    var t2 = Timespec::new(0, 0);
     time(t1);
     test("monotonic time sec >= 0", t1.tv_sec >= 0);
     test("monotonic time nsec >= 0", t1.tv_nsec >= 0);
@@ -34,20 +34,20 @@ def main in
     time(t2);
     test("monotonic time advances", t2.tv_sec >= t1.tv_sec);
 
-    free_timespec(t1);
-    free_timespec(t2);
+    Timespec::delete(t1);
+    Timespec::delete(t2);
 
     // Test realtime clock
-    var rt = make_empty_timespec();
+    var rt = Timespec::new(0, 0);
     clock(rt);
     test("realtime sec > 0", rt.tv_sec > 0);
     test("realtime nsec >= 0", rt.tv_nsec >= 0);
     test("realtime nsec < 1 billion", rt.tv_nsec < CLOCK_NS_BOUNDS);
-    free_timespec(rt);
+    Timespec::delete(rt);
 
     // Test usleep with timing
-    var before = make_empty_timespec();
-    var after = make_empty_timespec();
+    var before = Timespec::new(0, 0);
+    var after = Timespec::new(0, 0);
     time(before);
     usleep(10000); // 10ms
     time(after);
@@ -63,8 +63,8 @@ def main in
     test("usleep(10000) slept at least 5000us", elapsed_us >= 5000);
     test("usleep(10000) slept less than 1s", elapsed_us < 1000000);
 
-    free_timespec(before);
-    free_timespec(after);
+    Timespec::delete(before);
+    Timespec::delete(after);
 
     printf("time tests done.\n");
     return 0;

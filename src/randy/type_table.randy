@@ -1206,9 +1206,9 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
         i = 0; len = defs.length;
         while i < len do
             var def_ = defs.get(i);
-            var def_name = symbol_name(def_);
+            var def_name = def_.name;
             if cstr_eq(member, def_name) then
-                var def_type = symbol_type(def_);
+                var def_type = def_.type;
                 assert(def_type);
                 assert(type_is_def(def_type));
                 return def_type;
@@ -1266,9 +1266,9 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
         var i = 0; var len = defs.length;
         while i < len do
             var def_ = defs.get(i);
-            var def_name = symbol_name(def_);
+            var def_name = def_.name;
             if cstr_eq(member, def_name) then
-                var def_type = symbol_type(def_);
+                var def_type = def_.type;
                 assert(def_type);
                 assert(type_is_def(def_type));
                 return def_;

@@ -4,22 +4,22 @@ struct TypeInfer in
     cur_defs: Vector[Symbol&]&;
     did_returns: String&;
     again: Set[Symbol&, PtrHashCompare, PtrHashCompare]&;
-end
 
-def make_type_infer -> TypeInfer& in
-    var self: TypeInfer& = malloc(__sizeof(TypeInfer));
-    self.cur_defs = Vector[Symbol&]::new(0);
-    self.did_returns = String::new(0);
-    self.again = Set[Symbol&, PtrHashCompare, PtrHashCompare]::new(0);
-    return self;
-end
+    def new -> TypeInfer& in
+        var self: TypeInfer& = malloc(__sizeof(TypeInfer));
+        self.cur_defs = Vector[Symbol&]::new(0);
+        self.did_returns = String::new(0);
+        self.again = Set[Symbol&, PtrHashCompare, PtrHashCompare]::new(0);
+        return self;
+    end
 
-def free_type_infer self: TypeInfer& in
-    if self then
-        self.cur_defs.delete();
-        self.did_returns.delete();
-        self.again.delete();
-        free(self);
+    def delete self in
+        if self then
+            self.cur_defs.delete();
+            self.did_returns.delete();
+            self.again.delete();
+            free(self);
+        end
     end
 end
 
@@ -746,7 +746,7 @@ def _type_infer_impl self, type_table, symbol_table, ast_nodes in
 end
 
 def type_infer type_table, symbol_table, ast_nodes, repeat in
-    var self = make_type_infer();
+    var self = TypeInfer::new();
 
     _type_infer_impl(self, type_table, symbol_table, ast_nodes);
 
@@ -756,5 +756,5 @@ def type_infer type_table, symbol_table, ast_nodes, repeat in
         _type_infer_impl(self, type_table, symbol_table, ast_nodes);
     end
 
-    free_type_infer(self);
+    TypeInfer::delete(self);
 end

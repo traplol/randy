@@ -137,7 +137,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                        temp.push(c);
                    end
                 end
-                tokens.push(make_token(get_ident_kind(temp), temp.cstr(), temp.cstr(), line_no, filename));
+                tokens.push(Token::new(get_ident_kind(temp), temp.cstr(), temp.cstr(), line_no, filename));
             elif is_digit(c) then
                 temp = String::new(2);
                 temp.push(c);
@@ -149,7 +149,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                    end
                 end
                 val = int_from_string(temp);
-                tokens.push(make_token(TK::Integer, temp.cstr(), cast(val, ptr), line_no, filename));
+                tokens.push(Token::new(TK::Integer, temp.cstr(), cast(val, ptr), line_no, filename));
             elif c == '"' then
                 temp = String::new(2);
                 i += 1; // skip open quote
@@ -166,7 +166,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                     i += 1;
                 end
                 i += 1; // skip close quote
-                tokens.push(make_token(TK::String, temp.cstr(), temp, line_no, filename));
+                tokens.push(Token::new(TK::String, temp.cstr(), temp, line_no, filename));
             elif c == '\'' then
                 temp = String::new(2);
                 i += 1; // skip open quote
@@ -180,7 +180,7 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                 end
                 temp.push(c);
                 i += 2; // skip char and close quote
-                tokens.push(make_token(TK::Char, temp.cstr(), cast(c, ptr), line_no, filename));
+                tokens.push(Token::new(TK::Char, temp.cstr(), cast(c, ptr), line_no, filename));
             elif c == '#' then
                 var directive = String::new(2);
                 var arg = String::new(2);
@@ -221,160 +221,160 @@ def _lex_code filename, code, include_paths, included_already -> Vector[Token&]&
                 directive.delete();
                 arg.delete();
             elif c == ';' then
-                tokens.push(make_token(TK::Semicolon, ";", ";", line_no, filename));
+                tokens.push(Token::new(TK::Semicolon, ";", ";", line_no, filename));
                 i += 1;
             elif c == ':' then
                 if code.get(i + 1) == ':' then
-                    tokens.push(make_token(TK::ColonColon, "::", "::", line_no, filename));
+                    tokens.push(Token::new(TK::ColonColon, "::", "::", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Colon, ":", ":", line_no, filename));
+                    tokens.push(Token::new(TK::Colon, ":", ":", line_no, filename));
                     i += 1;
                 end
             elif c == ',' then
-                tokens.push(make_token(TK::Comma, ",", ",", line_no, filename));
+                tokens.push(Token::new(TK::Comma, ",", ",", line_no, filename));
                 i += 1;
             elif c == '(' then
-                tokens.push(make_token(TK::LParen, "(", "(", line_no, filename));
+                tokens.push(Token::new(TK::LParen, "(", "(", line_no, filename));
                 i += 1;
             elif c == ')' then
-                tokens.push(make_token(TK::RParen, ")", ")", line_no, filename));
+                tokens.push(Token::new(TK::RParen, ")", ")", line_no, filename));
                 i += 1;
             elif c == '[' then
-                tokens.push(make_token(TK::LSquare, "[", "[", line_no, filename));
+                tokens.push(Token::new(TK::LSquare, "[", "[", line_no, filename));
                 i += 1;
             elif c == ']' then
-                tokens.push(make_token(TK::RSquare, "]", "]", line_no, filename));
+                tokens.push(Token::new(TK::RSquare, "]", "]", line_no, filename));
                 i += 1;
             elif c == '{' then
-                tokens.push(make_token(TK::LCurly, "{", "{", line_no, filename));
+                tokens.push(Token::new(TK::LCurly, "{", "{", line_no, filename));
                 i += 1;
             elif c == '}' then
-                tokens.push(make_token(TK::RCurly, "}", "}", line_no, filename));
+                tokens.push(Token::new(TK::RCurly, "}", "}", line_no, filename));
                 i += 1;
             elif c == '+' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::PlusEq, "+=", "+=", line_no, filename));
+                    tokens.push(Token::new(TK::PlusEq, "+=", "+=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Plus, "+", "+", line_no, filename));
+                    tokens.push(Token::new(TK::Plus, "+", "+", line_no, filename));
                     i += 1;
                 end
             elif c == '-' then
                 if code.get(i + 1) == '>' then
-                    tokens.push(make_token(TK::RightArrow, "->", "->", line_no, filename));
+                    tokens.push(Token::new(TK::RightArrow, "->", "->", line_no, filename));
                     i += 2;
                 elif code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::MinusEq, "-=", "-=", line_no, filename));
+                    tokens.push(Token::new(TK::MinusEq, "-=", "-=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Minus, "-", "-", line_no, filename));
+                    tokens.push(Token::new(TK::Minus, "-", "-", line_no, filename));
                     i += 1;
                 end
             elif c == '*' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::StarEq, "*=", "*=", line_no, filename));
+                    tokens.push(Token::new(TK::StarEq, "*=", "*=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Star, "*", "*", line_no, filename));
+                    tokens.push(Token::new(TK::Star, "*", "*", line_no, filename));
                     i += 1;
                 end
             elif c == '/' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::SlashEq, "/=", "/=", line_no, filename));
+                    tokens.push(Token::new(TK::SlashEq, "/=", "/=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Slash, "/", "/", line_no, filename));
+                    tokens.push(Token::new(TK::Slash, "/", "/", line_no, filename));
                     i += 1;
                 end
             elif c == '%' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::PercentEq, "%=", "%=", line_no, filename));
+                    tokens.push(Token::new(TK::PercentEq, "%=", "%=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Percent, "%", "%", line_no, filename));
+                    tokens.push(Token::new(TK::Percent, "%", "%", line_no, filename));
                     i += 1;
                 end
             elif c == '|' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::BarEq, "|=", "|=", line_no, filename));
+                    tokens.push(Token::new(TK::BarEq, "|=", "|=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Bar, "|", "|", line_no, filename));
+                    tokens.push(Token::new(TK::Bar, "|", "|", line_no, filename));
                     i += 1;
                 end
             elif c == '&' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::AmperEq, "&=", "&=", line_no, filename));
+                    tokens.push(Token::new(TK::AmperEq, "&=", "&=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Amper, "&", "&", line_no, filename));
+                    tokens.push(Token::new(TK::Amper, "&", "&", line_no, filename));
                     i += 1;
                 end
             elif c == '^' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::CaretEq, "^=", "^=", line_no, filename));
+                    tokens.push(Token::new(TK::CaretEq, "^=", "^=", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Caret, "^", "^", line_no, filename));
+                    tokens.push(Token::new(TK::Caret, "^", "^", line_no, filename));
                     i += 1;
                 end
             elif c == '~' then
-                tokens.push(make_token(TK::Tilde, "~", "~", line_no, filename));
+                tokens.push(Token::new(TK::Tilde, "~", "~", line_no, filename));
                 i += 1;
             elif c == '.' then
                 if code.get(i + 1) == '.' and code.get(i + 2) == '.' then
-                    tokens.push(make_token(TK::Ellipsis, "...", "...", line_no, filename));
+                    tokens.push(Token::new(TK::Ellipsis, "...", "...", line_no, filename));
                     i += 3;
                 else
-                    tokens.push(make_token(TK::Dot, ".", ".", line_no, filename));
+                    tokens.push(Token::new(TK::Dot, ".", ".", line_no, filename));
                     i += 1;
                 end
             elif c == '!' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::NotEq, "!=", "!=", line_no, filename));
+                    tokens.push(Token::new(TK::NotEq, "!=", "!=", line_no, filename));
                     i += 2;
                 else
                     _unrecognized_char(filename, line_no, c);
                 end
             elif c == '<' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::LessEq, "<=", "<=", line_no, filename));
+                    tokens.push(Token::new(TK::LessEq, "<=", "<=", line_no, filename));
                     i += 2;
                 elif code.get(i + 1) == '<' then
                     if code.get(i + 2) == '=' then
-                        tokens.push(make_token(TK::LShiftEq, "<<=", "<<=", line_no, filename));
+                        tokens.push(Token::new(TK::LShiftEq, "<<=", "<<=", line_no, filename));
                         i += 3;
                     else
-                        tokens.push(make_token(TK::LShift, "<<", "<<", line_no, filename));
+                        tokens.push(Token::new(TK::LShift, "<<", "<<", line_no, filename));
                         i += 2;
                     end
                 else
-                    tokens.push(make_token(TK::Less, "<", "<", line_no, filename));
+                    tokens.push(Token::new(TK::Less, "<", "<", line_no, filename));
                     i += 1;
                 end
             elif c == '>' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::GreaterEq, ">=", ">=", line_no, filename));
+                    tokens.push(Token::new(TK::GreaterEq, ">=", ">=", line_no, filename));
                     i += 2;
                 elif code.get(i + 1) == '>' then
                     if code.get(i + 2) == '=' then
-                        tokens.push(make_token(TK::RShiftEq, ">>=", ">>=", line_no, filename));
+                        tokens.push(Token::new(TK::RShiftEq, ">>=", ">>=", line_no, filename));
                         i += 3;
                     else
-                        tokens.push(make_token(TK::RShift, ">>", ">>", line_no, filename));
+                        tokens.push(Token::new(TK::RShift, ">>", ">>", line_no, filename));
                         i += 2;
                     end
                 else
-                    tokens.push(make_token(TK::Greater, ">", ">", line_no, filename));
+                    tokens.push(Token::new(TK::Greater, ">", ">", line_no, filename));
                     i += 1;
                 end
             elif c == '=' then
                 if code.get(i + 1) == '=' then
-                    tokens.push(make_token(TK::EqEq, "==", "==", line_no, filename));
+                    tokens.push(Token::new(TK::EqEq, "==", "==", line_no, filename));
                     i += 2;
                 else
-                    tokens.push(make_token(TK::Assign, "=", "=", line_no, filename));
+                    tokens.push(Token::new(TK::Assign, "=", "=", line_no, filename));
                     i += 1;
                 end
             else

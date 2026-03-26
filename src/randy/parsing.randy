@@ -154,15 +154,15 @@ def parse_var ts, st, tt in
         printf("ERROR: var `%s` already defined.\n", ident.value);
         print_token_loc(ident);
         printf("NOTE: It was previously defined here:\n");
-        print_token_loc(symbol_token(symbol));
+        print_token_loc(symbol.token);
         exit(1);
     end
     symbol = st_make_local(st, ident.value, ident);
-    symbol_set_type(symbol, type); // OK if type is NULL
+    symbol.type = type; // OK if type is NULL
     if expr then
-        return Ast::new_var_assign(var_, symbol_name(symbol), expr);
+        return Ast::new_var_assign(var_, symbol.name, expr);
     end
-    return Ast::new_var_decl(var_, symbol_name(symbol));
+    return Ast::new_var_decl(var_, symbol.name);
 end
 
 def parse_if_else ts, st, tt, expect in
@@ -242,7 +242,7 @@ def parse_assign_op ts, st, tt, lhs, op in
         if not symbol then
             symbol = st_prepare_undef(st, lhs.u.ident, lhs.token);
         end
-        return Ast::new_assign_op(op_tk, symbol_name(symbol), op, expr);
+        return Ast::new_assign_op(op_tk, symbol.name, op, expr);
     elif k == AstK::MemberAccess then
         return Ast::new_assign_member(op_tk, lhs, op, expr);
     else
@@ -377,7 +377,7 @@ def parse_assert ts, st, tt in
 
     printf_args.push(Ast::new_string(assert_, String::new_from_cstr("Assertion failed:\n")));
     body.push(Ast::new_call(assert_,
-                        Ast::new_ident(assert_, symbol_name(printf_symbol)),
+                        Ast::new_ident(assert_, printf_symbol.name),
                         printf_args));
 
     var len = assert_args.length;
@@ -389,7 +389,7 @@ def parse_assert ts, st, tt in
             i += 1;
         end
         body.push(Ast::new_call(assert_,
-                            Ast::new_ident(assert_, symbol_name(printf_symbol)),
+                            Ast::new_ident(assert_, printf_symbol.name),
                             printf_args));
     end
 
@@ -401,10 +401,10 @@ def parse_assert ts, st, tt in
     string.push('\n');
     printf_args.push(Ast::new_string(assert_, string));
     body.push(Ast::new_call(assert_,
-                        Ast::new_ident(assert_, symbol_name(printf_symbol)),
+                        Ast::new_ident(assert_, printf_symbol.name),
                         printf_args));
     body.push(Ast::new_call(assert_,
-                        Ast::new_ident(assert_, symbol_name(abort_symbol)), Vector[Ast&]::new(0)));
+                        Ast::new_ident(assert_, abort_symbol.name), Vector[Ast&]::new(0)));
 
     test = Ast::new_prefix(assert_, TK::KW_not, test);
     var ast = Ast::new_if_else(assert_, test, body, Vector[Ast&]::new(0));
@@ -457,7 +457,7 @@ def parse_primary ts, st, tt -> Ast& in
         if not symbol then
             symbol = st_prepare_undef(st, ident.value, ident);
         end
-        return Ast::new_ident(peek, symbol_name(symbol));
+        return Ast::new_ident(peek, symbol.name);
     elif k == TK::Integer or k == TK::Char then
         return Ast::new_integer(peek, cast(ts.next().value, int));
     elif k == TK::String then
@@ -840,13 +840,13 @@ def parse_def ts, st, tt in
     var ident = ts.expect(TK::Ident);
     var def_symbol = st_get_symbol_here(st, ident.value);
     if def_symbol then
-        if symbol_is_undef(def_symbol) then
-            symbol_set_kind(def_symbol, SymbolKind::Def);
+        if def_symbol.kind == SymbolKind::Undef then
+            def_symbol.kind = SymbolKind::Def;
         else
             printf("ERROR: def `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(def_symbol));
+            print_token_loc(def_symbol.token);
             exit(1);
         end
     else
@@ -959,8 +959,8 @@ def parse_const ts, st, tt in
     if not symbol then
         symbol = st_make_const(st, ident.value, ident);
     end
-    symbol_set_type(symbol, type);
-    return Ast::new_const(const_, symbol_name(symbol), expr);
+    symbol.type = type;
+    return Ast::new_const(const_, symbol.name, expr);
 end
 
 def parse_extern ts, st, tt in
@@ -971,20 +971,20 @@ def parse_extern ts, st, tt in
     var is_varargs = false;
     var extern_symbol = st_get_symbol_here(st, ident.value);
     if extern_symbol then
-        if symbol_is_undef(extern_symbol) then
-            symbol_set_kind(extern_symbol, SymbolKind::Extern);
+        if extern_symbol.kind == SymbolKind::Undef then
+            extern_symbol.kind = SymbolKind::Extern;
         else
             printf("ERROR: extern `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(extern_symbol));
+            print_token_loc(extern_symbol.token);
             exit(1);
         end
     else
         extern_symbol = st_make_extern(st, ident.value, ident);
     end
-    symbol_set_type(extern_symbol, type);
-    return Ast::new_extern(extern_, symbol_name(extern_symbol), type);
+    extern_symbol.type = type;
+    return Ast::new_extern(extern_, extern_symbol.name, type);
 end
 
 def parse_asm ts, st, tt in
@@ -995,13 +995,13 @@ def parse_asm ts, st, tt in
     ts.expect(TK::KW_end);
     var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
-        if symbol_is_undef(symbol) then
-            symbol_set_kind(symbol, SymbolKind::Asm);
+        if symbol.kind == SymbolKind::Undef then
+            symbol.kind = SymbolKind::Asm;
         else
             printf("ERROR: asm `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(symbol));
+            print_token_loc(symbol.token);
             exit(1);
         end
     else
@@ -1009,8 +1009,8 @@ def parse_asm ts, st, tt in
     end
 
     var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[Type&]::new(0), true);
-    symbol_set_type(symbol, def_type);
-    return Ast::new_inline_asm(asm_, symbol_name(symbol), cast(asmcode.value, String&).cstr());
+    symbol.type = def_type;
+    return Ast::new_inline_asm(asm_, symbol.name, cast(asmcode.value, String&).cstr());
 end
 
 def parse_global ts, st, tt in
@@ -1029,20 +1029,20 @@ def parse_global ts, st, tt in
     end
     var symbol = st_get_symbol_here(st, ident.value);
     if symbol then
-        if symbol_is_undef(symbol) then
-            symbol_set_kind(symbol, SymbolKind::Global);
+        if symbol.kind == SymbolKind::Undef then
+            symbol.kind = SymbolKind::Global;
         else
             printf("ERROR: global `%s` already defined.\n", ident.value);
             print_token_loc(ident);
             printf("NOTE: It was previously defined here:\n");
-            print_token_loc(symbol_token(symbol));
+            print_token_loc(symbol.token);
             exit(1);
         end
     else
         symbol = st_make_global(st, ident.value, ident);
     end
-    symbol_set_type(symbol, type);
-    return Ast::new_global(global_, symbol_name(symbol), expr);
+    symbol.type = type;
+    return Ast::new_global(global_, symbol.name, expr);
 end
 
 def parse_struct ts, st, tt in

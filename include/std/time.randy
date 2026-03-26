@@ -5,21 +5,17 @@
 struct Timespec in
     tv_sec: int;
     tv_nsec: int;
-end
 
-def make_timespec sec, nsec in
-    var self = cast(malloc(__sizeof(Timespec)), Timespec&);
-    self.tv_sec = sec;
-    self.tv_nsec = nsec;
-    return self;
-end
+    def new sec, nsec in
+        var self = cast(malloc(__sizeof(Timespec)), Timespec&);
+        self.tv_sec = sec;
+        self.tv_nsec = nsec;
+        return self;
+    end
 
-def make_empty_timespec in
-    return make_timespec(0, 0);
-end
-
-def free_timespec self: Timespec& in
-    free(self);
+    def delete self in
+        free(self);
+    end
 end
 
 const CLOCK_REALTIME      = 0;
@@ -46,9 +42,9 @@ def usleep usec in
     var sec = usec / CLOCK_S_PER_US;
     var rem = usec % CLOCK_S_PER_US;
     // FIXME: when we allow stack allocations put these on the stack!
-    var sleeptime = make_timespec(sec, rem * CLOCK_US_PER_NS);
-    var remtime = make_empty_timespec();
+    var sleeptime = Timespec::new(sec, rem * CLOCK_US_PER_NS);
+    var remtime = Timespec::new(0, 0);
     syscall(SYS_nanosleep, sleeptime, remtime);
-    free_timespec(sleeptime);
-    free_timespec(remtime);
+    Timespec::delete(sleeptime);
+    Timespec::delete(remtime);
 end

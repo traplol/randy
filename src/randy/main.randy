@@ -88,8 +88,8 @@ def main argc: int, argv: ptr in
         printf("No input file.\n");
         return 1;
     else
-        var true_starttime = make_empty_timespec();
-        var true_endtime = make_empty_timespec();
+        var true_starttime = Timespec::new(0, 0);
+        var true_endtime = Timespec::new(0, 0);
         time(true_starttime);
 
         var include_paths = Vector[String&]::new(8);
@@ -189,8 +189,8 @@ def main argc: int, argv: ptr in
         end
         include_paths.push(source_dir);
 
-        var starttime = make_empty_timespec();
-        var endtime = make_empty_timespec();
+        var starttime = Timespec::new(0, 0);
+        var endtime = Timespec::new(0, 0);
 
         // Compilation phases are as follows:
         // 1) lex source code into tokens and resolve directives

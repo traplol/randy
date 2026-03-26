@@ -821,7 +821,7 @@ def ir_new_def self, ident, params, ast, symbol, tt in
 
     var label_cstr = label.cstr();
     self.labels.insert(label_cstr);
-    defs.set(symbol_name(symbol), make_def_info(label_cstr, false));
+    defs.set(symbol.name, make_def_info(label_cstr, false));
 
     assert(self.def_locals.length == 0,
         "Compiler bug: def locals not empty when creating new def\n");
@@ -852,7 +852,7 @@ def ir_new_local self, ident, st in
     if g_Experimental then
         var sym = st_get_symbol(st, ident);
         assert(sym);
-        var type = symbol_type(sym);
+        var type = sym.type;
         assert(type);
         size = type_size(type);
         if offset + size > self.locals_size then
@@ -1232,7 +1232,7 @@ def ir_emit_var_decl self, ast, st, tt in
         "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
     assert(sym);
-    var sym_type = symbol_type(sym);
+    var sym_type = sym.type;
     assert(sym_type and type_size(sym_type) != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     ir_new_local(self, ident, st);
@@ -1245,7 +1245,7 @@ def ir_emit_var_assign self, ast, st, tt in
         "Compiler bug: Error should have been handled earlier.\n");
     var sym = st_get_symbol(st, ident);
     assert(sym);
-    var sym_type = symbol_type(sym);
+    var sym_type = sym.type;
     assert(sym_type and type_size(sym_type) != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     var val = ast.u.var_assign.expr;
@@ -1840,23 +1840,23 @@ def ir_resolve_lazy_idents self in
             token = ir.ident();
             var symbol = ir.symbol();
             var new_ir;
-            if ir_is_const(self, symbol_name(symbol)) then
-                var info = ir_get_const(self, symbol_name(symbol));
+            if ir_is_const(self, symbol.name) then
+                var info = ir_get_const(self, symbol.name);
                 if info.kind == CIK::String then
                     new_ir = make_ir_push_label(info.value);
                 elif info.kind == CIK::Integer then
                     new_ir = make_ir_push_int(info.value);
                 end
-            elif ir_is_def(self, symbol_name(symbol)) then
-                info = ir_get_def(self, symbol_name(symbol));
+            elif ir_is_def(self, symbol.name) then
+                info = ir_get_def(self, symbol.name);
                 new_ir = make_ir_push_label(info.label);
-            elif ir_is_extern(self, symbol_name(symbol)) then
-                info = ir_get_extern(self, symbol_name(symbol));
+            elif ir_is_extern(self, symbol.name) then
+                info = ir_get_extern(self, symbol.name);
                 new_ir = make_ir_push_label(info.label);
-            elif ir_is_label(self, symbol_name(symbol)) then
-                new_ir = make_ir_push_label(symbol_name(symbol));
+            elif ir_is_label(self, symbol.name) then
+                new_ir = make_ir_push_label(symbol.name);
             else
-                printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
+                printf("ERROR: Undeclared identifier: `%s`\n", symbol.name);
                 print_token_loc(token);
                 exit(1);
             end
@@ -1867,16 +1867,16 @@ def ir_resolve_lazy_idents self in
             var symbol = ir.symbol();
             var nargs = ir.nargs();
             var call = NULL;
-            if ir_is_def(self, symbol_name(symbol)) then
-                info = ir_get_def(self, symbol_name(symbol));
+            if ir_is_def(self, symbol.name) then
+                info = ir_get_def(self, symbol.name);
                 call = make_ir_call(info.label, info.varargs);
-            elif ir_is_extern(self, symbol_name(symbol)) then
-                info = ir_get_extern(self, symbol_name(symbol));
+            elif ir_is_extern(self, symbol.name) then
+                info = ir_get_extern(self, symbol.name);
                 call = make_ir_call(info.label, info.varargs);
-            elif ir_is_label(self, symbol_name(symbol)) then
-                call = make_ir_call(symbol_name(symbol), false);
+            elif ir_is_label(self, symbol.name) then
+                call = make_ir_call(symbol.name, false);
             else
-                printf("ERROR: Undeclared identifier: `%s`\n", symbol_name(symbol));
+                printf("ERROR: Undeclared identifier: `%s`\n", symbol.name);
                 print_token_loc(token);
                 exit(1);
             end

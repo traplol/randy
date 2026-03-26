@@ -184,29 +184,29 @@ struct Token in
     cstr: cstr;
     value: ptr; // FIXME Union(int, cstr)
     src_loc: SrcLoc&;
+
+    def new kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> Token& in
+        var self = cast(malloc(__sizeof(Token)), Token&);
+        self.kind = kind;
+        self.cstr = cstr;
+        self.value = value;
+        self.src_loc = cast(malloc(__sizeof(SrcLoc)), SrcLoc&);
+        self.src_loc.filename = filename;
+        self.src_loc.line = line;
+        return self;
+    end
+
+    def delete self in
+        if self then
+            free(self.src_loc);
+            free(self);
+        end
+    end
 end
 
 struct SrcLoc in
     filename: cstr;
     line: int;
-end
-
-def make_token kind: TK, cstr: cstr, value: ptr, line: int, filename: cstr -> Token& in
-    var self = cast(malloc(__sizeof(Token)), Token&);
-    self.kind = kind;
-    self.cstr = cstr;
-    self.value = value;
-    self.src_loc = cast(malloc(__sizeof(SrcLoc)), SrcLoc&);
-    self.src_loc.filename = filename;
-    self.src_loc.line = line;
-    return self;
-end
-
-def free_token self: Token& in
-    if self then
-        free(self.src_loc);
-        free(self);
-    end
 end
 
 def print_token self: Token& in

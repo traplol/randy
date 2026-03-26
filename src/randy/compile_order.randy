@@ -9,15 +9,15 @@ def _compile_order_visit tt, st, stmt, seen, order in
         _compile_order_visit(tt, st, stmt.u.call.expr, seen, order);
     elif k == AstK::Ident then
         var sym = st_get_symbol(st, stmt.u.ident);
-        if symbol_is_def(sym) then
+        if sym.kind == SymbolKind::Def then
             if seen.contains(sym) then
                 return;
             end
             seen.insert(sym);
-            var type = symbol_type(sym);
-            assert(type, "Type for %s was null.\n", symbol_name(sym));
+            var type = sym.type;
+            assert(type, "Type for %s was null.\n", sym.name);
             var def_ = type_ast(type);
-            assert(def_, "AST for symbol %s was null\n", symbol_name(sym));
+            assert(def_, "AST for symbol %s was null\n", sym.name);
             _compile_order_def(tt, st, def_, seen, order);
         end
     elif k == AstK::BinOp then

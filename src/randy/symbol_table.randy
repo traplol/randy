@@ -21,37 +21,16 @@ struct Symbol in
     // and lookup globals/externs/functions
     label: cstr;
     is_varargs: bool;
+
+    def new kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
+        var self = cast(calloc(1, __sizeof(Symbol)), Symbol&);
+        self.kind = kind;
+        self.name = name;
+        self.token = token;
+        return self;
+    end
 end
 
-def make_symbol kind: SymbolKind, name: cstr, token: Token& -> Symbol& in
-    var self = cast(malloc(__sizeof(Symbol)), Symbol&);
-    self.kind = kind;
-    self.name = name;
-    self.token = token;
-    self.type = NULL;
-    self.owned_by = NULL;
-    self.label = NULL;
-    self.is_varargs = false;
-    return self;
-end
-
-def symbol_kind self: Symbol& -> SymbolKind in return self.kind; end
-def symbol_name self: Symbol& -> cstr in return self.name; end
-def symbol_token self: Symbol& -> Token& in return self.token; end
-def symbol_type self: Symbol& -> Type& in return self.type; end
-
-def symbol_set_kind self: Symbol&, kind: SymbolKind in self.kind = kind; end
-def symbol_set_type self: Symbol&, type: Type& in self.type = type; end
-
-def symbol_is_undef self: Symbol& in return self.kind == SymbolKind::Undef; end
-def symbol_is_const self: Symbol& in return self.kind == SymbolKind::Const; end
-def symbol_is_global self: Symbol& in return self.kind == SymbolKind::Global; end
-def symbol_is_def self: Symbol& in return self.kind == SymbolKind::Def; end
-def symbol_is_extern self: Symbol& in return self.kind == SymbolKind::Extern; end
-def symbol_is_asm self: Symbol& in return self.kind == SymbolKind::Asm; end
-def symbol_is_param self: Symbol& in return self.kind == SymbolKind::Param; end
-def symbol_is_local self: Symbol& in return self.kind == SymbolKind::Local; end
-def symbol_is_enum self: Symbol& in return self.kind == SymbolKind::Enum; end
 
 // This symbol table keeps track of identifiers relative to scope and internalizes
 // those idents to a specific id. In this case the id happens to be the same cstr
@@ -81,7 +60,7 @@ def st_make_symbol self: SymbolTable&, kind: SymbolKind, ident: cstr, token: Tok
         print_token_loc(token);
         assert(false, "Compiler bug: making a local (%d) symbol that already exists: `%s`\n", kind, ident);
     end
-    var symbol = make_symbol(kind, ident, token);
+    var symbol = Symbol::new(kind, ident, token);
     self.all_symbols.set(ident, symbol);
     local_scope.set(ident, symbol);
     return symbol;
@@ -125,7 +104,7 @@ def st_prepare_undef self, ident, token in
         print_token_loc(token);
         assert(false, "Compiler bug: making an undef symbol that already exists: `%s`\n", ident);
     end
-    var symbol = make_symbol(SymbolKind::Undef, ident, token);
+    var symbol = Symbol::new(SymbolKind::Undef, ident, token);
     self.all_symbols.set(ident, symbol);
     top_scope.set(ident, symbol);
     return symbol;

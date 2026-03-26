@@ -2,34 +2,33 @@
 struct TypeCheck in
     current_def_name: cstr;
     current_def_type: Type&;
-end
 
-def make_type_check -> TypeCheck& in
-    var self = cast(calloc(1, __sizeof(TypeCheck)), TypeCheck&);
-    return self;
-end
+    def new -> TypeCheck& in
+        return cast(calloc(1, __sizeof(TypeCheck)), TypeCheck&);
+    end
 
-def free_type_check self: TypeCheck& in
-    free(self);
+    def delete self in
+        free(self);
+    end
 end
 
 def _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
-    var sym_type = symbol_type(lhs_sym);
+    var sym_type = lhs_sym.type;
     if not sym_type or sym_type == tt_any_type(tt) then
-        printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
+        printf("ERROR: Type of `%s` could not be inferred.\n", lhs_sym.name);
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
 
     var rhs_type = tt_get_ast_type(tt, rhs_expr);
     if not rhs_type or rhs_type == tt_any_type(tt) then
-        printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
+        printf("ERROR: Type of assignment to `%s` could not be inferred.\n", lhs_sym.name);
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
 
     if not types_assignable(tt, sym_type, rhs_type) then
-        printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
+        printf("ERROR: The type of `%s` is `", lhs_sym.name);
         tt_print_type_name(tt, sym_type);
         printf("` which is not assignable by `");
         tt_print_type_name(tt, rhs_type);
@@ -52,7 +51,7 @@ end
 
 def _tc_check_ident_has_type st, ident, ast in
     var sym = st_get_symbol(st, ident);
-    var type = symbol_type(sym);
+    var type = sym.type;
     if not type or type_size(type) == 0 then
         printf("ERROR: type of `%s` is undefined.\n", ident);
         print_ast_src_loc(ast);
@@ -224,16 +223,16 @@ def tc_check_assign_op self, tt, st, ast in
         tc_check(self, tt, st, expr);
         _tc_check_ident_type(tt, lhs_sym, expr, ast);
     else
-        var lhs_type = symbol_type(lhs_sym);
+        var lhs_type = lhs_sym.type;
         if not lhs_type or lhs_type == tt_any_type(tt) then
-            printf("ERROR: Type of `%s` could not be inferred.\n", symbol_name(lhs_sym));
+            printf("ERROR: Type of `%s` could not be inferred.\n", lhs_sym.name);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
 
         var rhs_type = tt_get_ast_type(tt, ast.u.assign_op.expr);
         if not rhs_type or rhs_type == tt_any_type(tt) then
-            printf("ERROR: Type of assignment to `%s` could not be inferred.\n", symbol_name(lhs_sym));
+            printf("ERROR: Type of assignment to `%s` could not be inferred.\n", lhs_sym.name);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
@@ -246,7 +245,7 @@ def tc_check_assign_op self, tt, st, ast in
             return; // TODO: Verify this is correct behaviour.
         end
 
-        printf("ERROR: The type of `%s` is `", symbol_name(lhs_sym));
+        printf("ERROR: The type of `%s` is `", lhs_sym.name);
         tt_print_type_name(tt, lhs_type);
         printf("` which is not assignable by `");
         tt_print_type_name(tt, rhs_type);
@@ -266,7 +265,7 @@ def tc_check_def self, tt, st, ast in
         var param = params.get(i);
         var param_sym = st_get_symbol(st, param);
         assert(param_sym);
-        var param_type = symbol_type(param_sym);
+        var param_type = param_sym.type;
         if not param_type or type_size(param_type) == 0 then
             errors.push(param_sym);
         end
@@ -277,8 +276,8 @@ def tc_check_def self, tt, st, ast in
         i = 0; len = errors.length;
         while i < len do
             var sym = errors.get(i);
-            var type = symbol_type(sym);
-            printf("ERROR: `%s` has type `", symbol_name(sym));
+            var type = sym.type;
+            printf("ERROR: `%s` has type `", sym.name);
             tt_print_type_name(tt, type);
             printf(".`\n");
             i += 1;
@@ -289,8 +288,8 @@ def tc_check_def self, tt, st, ast in
     var sym = st_get_symbol(st, ast.u.def_.ident);
     assert(sym);
 
-    self.current_def_name = symbol_name(sym);
-    self.current_def_type = symbol_type(sym);
+    self.current_def_name = sym.name;
+    self.current_def_type = sym.type;
 
     tc_check_body(self, tt, st, ast.u.def_.body);
 
@@ -654,11 +653,11 @@ def tc_check self, tt, st, ast in
 end
 
 def type_check type_table, symbol_table, compile_order: Vector[Ast&]& in
-    var type_checker = make_type_check();
+    var type_checker = TypeCheck::new();
     var i = 0; var len = compile_order.length;
     while i < len do
         tc_check(type_checker, type_table, symbol_table, compile_order.get(i));
         i += 1;
     end
-    free_type_check(type_checker);
+    TypeCheck::delete(type_checker);
 end

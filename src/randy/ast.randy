@@ -787,7 +787,7 @@ def _print_ast_def ast, indent in
         printf(" %s", param_name);
         var param_sym = st_get_symbol(g_SymbolTable, param_name);
         assert(param_sym, "psym is NULL");
-        var param_type = symbol_type(param_sym);
+        var param_type = param_sym.type;
         if param_type then
             printf(": ");
             tt_print_type_name(g_TypeTable, param_type);
@@ -797,7 +797,7 @@ def _print_ast_def ast, indent in
             printf(",");
         end
     end
-    var def_type = symbol_type(def_sym);
+    var def_type = def_sym.type;
     if def_type then
         assert(type_is_def(def_type), "def_type not def.\n");
         var ret_type = type_def_return_type(def_type);
@@ -1128,7 +1128,7 @@ end
 
 def _ast_deep_copy_ident ast, tt, st in
     var sym = st_get_symbol(st, ast.u.ident);
-    return Ast::new_ident(ast.token, symbol_name(sym));
+    return Ast::new_ident(ast.token, sym.name);
 end
 
 def _ast_deep_copy_integer ast, tt, st in
@@ -1166,7 +1166,7 @@ def _ast_deep_copy_var_decl ast, tt, st in
     var copy_ident = strdup(ident);
     var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
     copy_sym.type = tt_substitute_type(tt, ident_sym.type);
-    return Ast::new_var_decl(ast.token, symbol_name(copy_sym));
+    return Ast::new_var_decl(ast.token, copy_sym.name);
 end
 
 def _ast_deep_copy_var_assign ast, tt, st in
@@ -1177,7 +1177,7 @@ def _ast_deep_copy_var_assign ast, tt, st in
     var copy_sym = st_make_local(st, copy_ident, ident_sym.token);
     copy_sym.type = tt_substitute_type(tt, ident_sym.type);
     var assign_expr_copy = _ast_deep_copy(ast.u.var_assign.expr, tt, st);
-    return Ast::new_var_assign(ast.token, symbol_name(copy_sym), assign_expr_copy);
+    return Ast::new_var_assign(ast.token, copy_sym.name, assign_expr_copy);
 end
 
 def _ast_deep_copy_def ast, tt, st in
