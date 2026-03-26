@@ -1,0 +1,80 @@
+#include std/core
+#include std/vector
+
+enum Direction in
+    North;
+    South;
+    East;
+    West;
+end
+
+struct Waypoint in
+    x: int;
+    y: int;
+    dir: Direction;
+
+    def new x: int, y: int, dir: Direction in
+        var self = cast(malloc(__sizeof(Waypoint)), Waypoint&);
+        self.x = x;
+        self.y = y;
+        self.dir = dir;
+        return self;
+    end
+
+    def is_horizontal self -> bool in
+        return self.dir == Direction::East or self.dir == Direction::West;
+    end
+
+    def is_vertical self -> bool in
+        return self.dir == Direction::North or self.dir == Direction::South;
+    end
+end
+
+def test msg, cond in
+    if cond then
+        printf("pass: %s\n", msg);
+    else
+        printf("fail: %s\n", msg);
+    end
+end
+
+def main in
+    // Struct with enum field
+    var wp = Waypoint::new(10, 20, Direction::North);
+    test("struct enum field ==", wp.dir == Direction::North);
+    test("struct enum field !=", wp.dir != Direction::East);
+    test("struct method using enum", wp.is_vertical());
+    test("struct method using enum 2", not wp.is_horizontal());
+
+    // Enum field in generic container
+    var path = Vector[Waypoint&]::new(0);
+    path.push(Waypoint::new(0, 0, Direction::East));
+    path.push(Waypoint::new(5, 0, Direction::North));
+    path.push(Waypoint::new(5, 5, Direction::West));
+
+    test("vector length", path.length == 3);
+
+    var first = cast(path.get(0), Waypoint&);
+    var second = cast(path.get(1), Waypoint&);
+    var third = cast(path.get(2), Waypoint&);
+
+    test("generic get enum field 0", first.dir == Direction::East);
+    test("generic get enum field 1", second.dir == Direction::North);
+    test("generic get enum field 2", third.dir == Direction::West);
+    test("generic method dispatch", first.is_horizontal());
+    test("generic method dispatch 2", second.is_vertical());
+
+    // Count horizontal waypoints
+    var h_count = 0;
+    var i = 0;
+    while i < path.length do
+        var w = cast(path.get(i), Waypoint&);
+        if w.is_horizontal() then
+            h_count += 1;
+        end
+        i += 1;
+    end
+    test("counted horizontal", h_count == 2);
+
+    return 0;
+end

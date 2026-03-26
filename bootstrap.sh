@@ -48,3 +48,4 @@ fi
 
 # If cmp succeeds then we can, in theory, close the bootstrap loop
 cp bootstrap/randy2 bin/randy
+echo "BOOTSTRAP SUCCESS"

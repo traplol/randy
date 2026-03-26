@@ -14,25 +14,39 @@ def test msg, cond in
     end
 end
 
+def color_name c: Color -> cstr in
+    if c == Color::Red then return "red";
+    elif c == Color::Green then return "green";
+    elif c == Color::Blue then return "blue";
+    end
+    return "unknown";
+end
+
 def main in
     var c = Color::Red;
-    test("enum equals itself", c == Color::Red);
-    test("enum not equals different", c != Color::Green);
+    test("enum == itself", c == Color::Red);
+    test("enum != different", c != Color::Green);
+    test("enum != different 2", c != Color::Blue);
 
     c = Color::Blue;
-    test("enum reassign", c == Color::Blue);
-    test("enum not red after reassign", c != Color::Red);
+    test("enum reassign ==", c == Color::Blue);
+    test("enum reassign != old", c != Color::Red);
 
-    // Test in if/elif chains
-    var name = "unknown";
-    if c == Color::Red then
-        name = "red";
-    elif c == Color::Green then
-        name = "green";
-    elif c == Color::Blue then
-        name = "blue";
-    end
-    test("enum in if/elif", cstr_eq(name, "blue"));
+    // != symmetry
+    test("!= is symmetric", Color::Green != Color::Red);
+
+    // Test in if/elif dispatch
+    test("enum dispatch", cstr_eq(color_name(c), "blue"));
+    test("enum dispatch 2", cstr_eq(color_name(Color::Red), "red"));
+
+    // Enum as function parameter and return
+    var g = Color::Green;
+    test("enum param/return", cstr_eq(color_name(g), "green"));
+
+    // All three are distinct
+    test("red != green", Color::Red != Color::Green);
+    test("green != blue", Color::Green != Color::Blue);
+    test("red != blue", Color::Red != Color::Blue);
 
     return 0;
 end

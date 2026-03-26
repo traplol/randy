@@ -1,0 +1,11 @@
+pass: struct enum field ==
+pass: struct enum field !=
+pass: struct method using enum
+pass: struct method using enum 2
+pass: vector length
+pass: generic get enum field 0
+pass: generic get enum field 1
+pass: generic get enum field 2
+pass: generic method dispatch
+pass: generic method dispatch 2
+pass: counted horizontal
