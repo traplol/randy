@@ -362,11 +362,13 @@ def ti_infer_assign_op self, tt, st, ast -> Type& in
     var op = ast.u.assign_op.op;
     var type = ti_infer(self, tt, st, ast.u.assign_op.expr);
 
-    if op != TK::Assign and type.kind != TypeKind::Int_like then
+    if op != TK::Assign and type.kind != TypeKind::Int_like
+        and type.kind != TypeKind::Any
+        and type.kind != TypeKind::Reference then
         printf("WARN: `");
         tt_print_type_name(tt, type);
-        printf("` is not a primitive type and cannot be used with TODO: get operator string\n");
-        printf(".`\nNOTE: The expression is: ");
+        printf("` is not a primitive type and cannot be used with compound assignment\n");
+        printf("NOTE: The expression is: ");
         print_ast(ast);
         print_token_loc(ast.token);
         return tt.void_type;
