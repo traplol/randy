@@ -799,8 +799,8 @@ def _print_ast_def ast, indent in
     end
     var def_type = def_sym.type;
     if def_type then
-        assert(type_is_def(def_type), "def_type not def.\n");
-        var ret_type = type_def_return_type(def_type);
+        assert(def_type.kind == TypeKind::Def, "def_type not def.\n");
+        var ret_type = def_type.u.def_.return_type;
         printf(" -> ");
         tt_print_type_name(g_TypeTable, ret_type);
     end
@@ -1201,13 +1201,13 @@ def _ast_deep_copy_def ast, tt, st in
         def_copy_params.push(param_copy); // push the cstr not the symbol!
         i += 1;
     end
-    var return_type = tt_substitute_type(tt, type_def_return_type(def_sym.type));
+    var return_type = tt_substitute_type(tt, def_sym.type.u.def_.return_type);
     def_copy_sym.type = tt_make_anon_def(tt,
-                            return_type, def_copy_params_types, type_def_varargs(def_sym.type));
+                            return_type, def_copy_params_types, def_sym.type.u.def_.varargs);
     var def_copy_body = _ast_deep_copy_vector(ast.u.def_.body, tt, st);
     st_pop_scope(st);
     var copy_ast = Ast::new_def(ast.token, def_copy_ident, def_copy_params, def_copy_body);
-    type_set_ast(def_copy_sym.type, copy_ast);
+    def_copy_sym.type.ast = copy_ast;
     return copy_ast;
 end
 
@@ -1306,9 +1306,9 @@ def _ast_deep_copy_struct ast, tt, st in
     end
     var struct_copy = Ast::new_struct(ast.token, struct_type, fields_copy, defs_copy);
     if struct_changed then
-        type_set_ast(struct_type, struct_copy);
-        type_set_struct_fields(struct_type, fields_copy);
-        type_set_struct_defs(struct_type, defs_copy_symbols);
+        struct_type.ast = struct_copy;
+        struct_type.u.struct_.fields = fields_copy;
+        struct_type.u.struct_.defs = defs_copy_symbols;
     end
     st_pop_scope(st);
     return struct_copy;
@@ -1330,8 +1330,8 @@ def _ast_deep_copy_union ast, tt, st in
     var union_changed = union_type != ast.u.union_.type;
     var union_copy = Ast::new_union(ast.token, union_type, fields_copy);
     if union_changed then
-        type_set_ast(union_type, union_copy);
-        type_set_union_fields(union_type, fields_copy);
+        union_type.ast = union_copy;
+        union_type.u.union_.fields = fields_copy;
     end
     st_pop_scope(st);
     return union_copy;

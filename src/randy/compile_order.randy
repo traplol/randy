@@ -16,7 +16,7 @@ def _compile_order_visit tt, st, stmt, seen, order in
             seen.insert(sym);
             var type = sym.type;
             assert(type, "Type for %s was null.\n", sym.name);
-            var def_ = type_ast(type);
+            var def_ = type.ast;
             assert(def_, "AST for symbol %s was null\n", sym.name);
             _compile_order_def(tt, st, def_, seen, order);
         end
@@ -65,32 +65,32 @@ def _compile_order_visit_type tt, st, type, seen, order in
         return;
     end
     seen.insert(type);
-    if type_is_struct(type) then
-        var defs = type_struct_defs(type);
+    if type.kind == TypeKind::Struct then
+        var defs = type.u.struct_.defs;
         var i = 0; var len = defs.length;
         while i < len do
             var sym = defs.get(i);
             if not seen.contains(sym) then
                 seen.insert(sym);
                 assert(sym.type, "Type for %s was null.\n", sym.name);
-                var def_ = type_ast(sym.type);
+                var def_ = sym.type.ast;
                 assert(def_, "AST for symbol %s was null\n", sym.name);
                 _compile_order_def(tt, st, def_, seen, order);
             end
             i += 1;
         end
 
-        var fields = type_struct_fields(type);
+        var fields = type.u.struct_.fields;
         i = 0; len = fields.length;
         while i < len do
             var field = fields.get(i);
             _compile_order_visit_type(tt, st, field.type, seen, order);
             i += 1;
         end
-    elif type_is_enum(type) then
+    elif type.kind == TypeKind::Enum then
         // nothing
-    elif type_is_union(type) then
-        var fields = type_union_fields(type);
+    elif type.kind == TypeKind::Union then
+        var fields = type.u.union_.fields;
         var i = 0; var len = fields.length;
         while i < len do
             var field = fields.get(i);

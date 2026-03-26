@@ -26,7 +26,7 @@ end
 def parse_def_type ts, st, tt, is_instance in
     ts.expect(TK::LParen);
     var param_types = Vector[Type&]::new(0);
-    var ret_type = tt_void_type(tt);
+    var ret_type = tt.void_type;
     var varargs = false;
     while true do
         if ts.peekk(TK::RParen) then
@@ -97,8 +97,8 @@ def parse_type ts, st, tt, is_instance in
         while ts.peekk(TK::Ident) do
             var type = parse_type(ts, st, tt, true);
             generic_params.push(type);
-            if not is_instance and type_is_undefined(type) then
-                type_set_kind(type, TypeKind::GenericParam);
+            if not is_instance and type.kind == TypeKind::Undefined then
+                type.kind = TypeKind::GenericParam;
             end
             if ts.peekk(TK::RSquare) then
                 break;
@@ -108,10 +108,10 @@ def parse_type ts, st, tt, is_instance in
         ts.expect(TK::RSquare);
     end
 
-    if type_is_generic(type) and not generic_params then
-        assert(type_params(type));
+    if type.is_generic and not generic_params then
+        assert(type.params);
         printf("ERROR: type `%s` expects %d type parameters.\n",
-               type_ident.value, type_params(type).length);
+               type_ident.value, type.params.length);
         print_token_loc(type_ident);
         exit(1);
     end
@@ -120,8 +120,8 @@ def parse_type ts, st, tt, is_instance in
         if is_instance then
             type = tt_get_type_instance_of(tt, st, type, generic_params);
         else
-            type_set_is_generic(type, true);
-            type_set_params(type, generic_params);
+            type.is_generic = true;
+            type.params = generic_params;
         end
     end
 
@@ -857,7 +857,7 @@ def parse_def ts, st, tt in
     var body = Vector[Ast&]::new(0);
     var params = Vector[cstr]::new(0);
     var param_symbols = Vector[Symbol&]::new(0);
-    var any_type = tt_any_type(tt);
+    var any_type = tt.any_type;
     while ts.peekk(TK::Ident) do
         var param_id = ts.next();
         var param_symbol = st_get_symbol_here(st, param_id.value);
@@ -1008,7 +1008,7 @@ def parse_asm ts, st, tt in
         symbol = st_make_asm(st, ident.value, ident);
     end
 
-    var def_type = tt_make_anon_def(tt, tt_ptr_type(tt), Vector[Type&]::new(0), true);
+    var def_type = tt_make_anon_def(tt, tt.ptr_type, Vector[Type&]::new(0), true);
     symbol.type = def_type;
     return Ast::new_inline_asm(asm_, symbol.name, cast(asmcode.value, String&).cstr());
 end
@@ -1055,7 +1055,7 @@ def parse_struct ts, st, tt in
 
     if not ts.accept(TK::KW_in) then
         struct_type = parse_type(ts, st, tt, false);
-        if not type_is_undefined(struct_type) then
+        if struct_type.kind != TypeKind::Undefined then
             printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, struct_type));
         end
         ts.expect(TK::KW_in);
@@ -1113,9 +1113,9 @@ def parse_struct ts, st, tt in
     st_pop_scope(st);
     ts.expect(TK::KW_end);
 
-    type_set_kind(struct_type, TypeKind::Struct);
-    type_set_struct_fields(struct_type, fields);
-    type_set_struct_defs(struct_type, def_symbols);
+    struct_type.kind = TypeKind::Struct;
+    struct_type.u.struct_.fields = fields;
+    struct_type.u.struct_.defs = def_symbols;
 
     var i = 0; var len = def_symbols.length;
     while i < len do
@@ -1129,7 +1129,7 @@ def parse_struct ts, st, tt in
             var def_params = def_.u.def_.params;
             if def_params.length > 0 and cstr_eq("self", def_params.front()) then
                 var first_param = def_params.front();
-                var param_types = type_def_parameters(def_type);
+                var param_types = def_type.u.def_.parameters;
                 var first_param_type = param_types.front();
                 var ref_type = tt_reference_to_type(tt, struct_type);
                 if first_param_type == tt.any_type then
@@ -1150,7 +1150,7 @@ def parse_struct ts, st, tt in
     end
 
     var ast = Ast::new_struct(struct_, struct_type, fields, inner_ast);
-    type_set_ast(struct_type, ast);
+    struct_type.ast = ast;
     tt_pop_scope(tt);
     tt_promote_type(tt, struct_type);
     return ast;
@@ -1161,7 +1161,7 @@ def parse_enum ts, st, tt in
     var ident = ts.expect(TK::Ident);
     ts.expect(TK::KW_in);
     var enum_type = tt_get_type_or_make_undefined(tt, ident.value);
-    if not type_is_undefined(enum_type) then
+    if enum_type.kind != TypeKind::Undefined then
         printf("ERROR: type `%s` already defined.\n", ident.value);
         print_token_loc(ident);
         exit(1);
@@ -1186,9 +1186,9 @@ def parse_enum ts, st, tt in
     end
     ts.expect(TK::KW_end);
 
-    type_set_kind(enum_type, TypeKind::Enum);
-    type_set_enum_values(enum_type, values);
-    type_set_size(enum_type, PTR_BITS);
+    enum_type.kind = TypeKind::Enum;
+    enum_type.u.enum_.values = values;
+    enum_type.size = PTR_BITS;
     return Ast::new_enum(enum_, ident.value, enum_type, values);
 end
 
@@ -1197,14 +1197,14 @@ def parse_union ts, st, tt in
     var union_ = ts.expect(TK::KW_union);
     var fields = Vector[Field&]::new(0);
     var union_type;
-    // if not type_is_undefined(union_type) then
+    // if union_type.kind != TypeKind::Undefined then
     //     printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
     // end
     // ts.expect(TK::KW_in);
 
     if not ts.accept(TK::KW_in) then
         union_type = parse_type(ts, st, tt, false);
-        if not type_is_undefined(union_type) then
+        if union_type.kind != TypeKind::Undefined then
             printf("ERROR: type `%s` already defined.\n", tt_get_type_name(tt, union_type));
         end
         ts.expect(TK::KW_in);
@@ -1247,11 +1247,11 @@ def parse_union ts, st, tt in
     st_pop_scope(st);
     ts.expect(TK::KW_end);
 
-    type_set_kind(union_type, TypeKind::Union);
-    type_set_union_fields(union_type, fields);
+    union_type.kind = TypeKind::Union;
+    union_type.u.union_.fields = fields;
 
     var ast = Ast::new_union(union_, union_type, fields);
-    type_set_ast(union_type, ast);
+    union_type.ast = ast;
     tt_pop_scope(tt);
     tt_promote_type(tt, union_type);
     return ast;

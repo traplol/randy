@@ -107,7 +107,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
     end
 
     // TODO: put this check in type checker
-    if not type_is_def(call_type) then
+    if call_type.kind != TypeKind::Def then
         ti_infer_vector(self, tt, st, ast.u.call.args);
         return tt.any_type;
     end
@@ -118,22 +118,22 @@ def ti_infer_call self, tt, st, ast -> Type& in
         call_type = call_symbol.type;
     elif expr.kind == AstK::ScopeResolve then
         call_type = scope_resolve_type(tt, expr, false);
-        if not type_is_def(call_type) then
+        if call_type.kind != TypeKind::Def then
             ti_infer_vector(self, tt, st, ast.u.call.args);
             return tt.any_type;
         end
-        var def_ = type_ast(call_type);
+        var def_ = call_type.ast;
         assert(def_, "Compiler bug: call_type has no def ast\n");
         call_symbol = st_get_symbol(st, def_.u.def_.ident);
         assert(call_symbol, "Compiler bug: def has no symbol\n");
     end
 
-    if not type_is_def(call_type) then
+    if call_type.kind != TypeKind::Def then
         ti_infer_vector(self, tt, st, ast.u.call.args);
         return tt.any_type;
     end
 
-    var def_ast = type_ast(call_type);
+    var def_ast = call_type.ast;
     var def_params = NULL;
     if def_ast then
         def_params = def_ast.u.def_.params;
@@ -151,7 +151,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
             assert(param_type);
             if types_eq(obj_type, param_type) then
                 args.insert_front(object);
-            elif type_is_reference(param_type) and types_eq(tt_reference_to_type(tt, obj_type), param_type) then
+            elif param_type.kind == TypeKind::Reference and types_eq(tt_reference_to_type(tt, obj_type), param_type) then
                 var obj_ref = Ast::new_get_reference(object.token, object);
                 args.insert_front(obj_ref);
             end
@@ -162,7 +162,7 @@ def ti_infer_call self, tt, st, ast -> Type& in
         if call_type.u.def_.varargs then
             if param_types.length > 0 and type_is_empty_tuple(param_types.back()) then
                 var n_varargs = args.length - (param_types.length - 1);
-                if n_varargs == 1 and type_is_tuple(ti_infer(self, tt, st, args.back())) then
+                if n_varargs == 1 and ti_infer(self, tt, st, args.back()).kind == TypeKind::Tuple then
                     var last_arg = args.back();
                     if last_arg.kind == AstK::Ident then
                         var sym = st_get_symbol(st, last_arg.u.ident);
@@ -223,14 +223,14 @@ def ti_infer_call self, tt, st, ast -> Type& in
         i += 1;
     end
     if changed then
-        var def_ast = type_ast(call_type);
+        var def_ast = call_type.ast;
         if def_ast and not self.again.contains(call_symbol) then
             self.again.insert(call_symbol);
             // FIXME: is there a better way to do this without recursion?
             ti_infer_def(self, tt, st, def_ast);
         end
     end
-    return type_def_return_type(call_type);
+    return call_type.u.def_.return_type;
 end
 
 def ti_infer_binop self, tt, st, ast -> Type& in
@@ -289,8 +289,8 @@ def ti_infer_binop self, tt, st, ast -> Type& in
         return ptr;
     end
 
-    if type_is_int_like(lhs) and type_is_int_like(rhs) then
-        if type_size(lhs) > type_size(rhs) then
+    if lhs.kind == TypeKind::Int_like and rhs.kind == TypeKind::Int_like then
+        if lhs.size > rhs.size then
             return lhs;
         else
             return rhs;
@@ -310,12 +310,12 @@ def ti_infer_return self, tt, st, ast -> Type& in
     end
     var cur_def = ti_current_def(self);
     var def_type = cur_def.type;
-    assert(type_is_def(def_type), "def_type not def type");
-    var ret_type = type_def_return_type(def_type);
+    assert(def_type.kind == TypeKind::Def, "def_type not def type");
+    var ret_type = def_type.u.def_.return_type;
     var any = tt.any_type;
     if not ret_type or ret_type == any then
-        type_set_def_return_type(def_type, type);
-    elif type_is_reference(ret_type) and type == any then
+        def_type.u.def_.return_type = type;
+    elif ret_type.kind == TypeKind::Reference and type == any then
         // nothing
     elif not types_assignable(tt, type, ret_type) then
         // error message is handled in type checker
@@ -340,7 +340,7 @@ def _ti_infer_assignment tt, symbol, rhs_type, rhs_expr -> Type& in
     var any = tt.any_type;
     if not sym_type or sym_type == any then
         symbol.type = rhs_type;
-    elif type_is_reference(sym_type) and rhs_type == any then
+    elif sym_type.kind == TypeKind::Reference and rhs_type == any then
         // nothing
     elif sym_type == tt.ptr_type and rhs_type != any then
         // this handles the case of `var x = NULL; x = Vector::new(0);`
@@ -362,7 +362,7 @@ def ti_infer_assign_op self, tt, st, ast -> Type& in
     var op = ast.u.assign_op.op;
     var type = ti_infer(self, tt, st, ast.u.assign_op.expr);
 
-    if op != TK::Assign and not type_is_int_like(type) then
+    if op != TK::Assign and type.kind != TypeKind::Int_like then
         printf("WARN: `");
         tt_print_type_name(tt, type);
         printf("` is not a primitive type and cannot be used with TODO: get operator string\n");
@@ -389,13 +389,13 @@ def ti_infer_def self, tt, st, ast -> Type& in
     ti_push_def(self, symbol);
     ti_infer_vector(self, tt, st, ast.u.def_.body);
     var def_type = symbol.type;
-    assert(type_is_def(def_type),
+    assert(def_type.kind == TypeKind::Def,
            "Compiler bug: def type is not actually def type.\n");
     // don't handle the case where function is declared with a type but doesn't return here
     // because we'll let the IR compiler determine that.
     // it'just needless complexity to deal with checking every branch for returns here.
-    if not ti_did_return(self) and type_def_return_type(def_type) == tt.any_type then
-        type_set_def_return_type(def_type, tt.void_type);
+    if not ti_did_return(self) and def_type.u.def_.return_type == tt.any_type then
+        def_type.u.def_.return_type = tt.void_type;
     end
     ti_pop_def(self);
     return tt.void_type;
@@ -486,8 +486,8 @@ def ti_infer_cast self, tt, st, ast -> Type& in
 end
 
 def _ti_get_field_type_rewrite_if_def type, member, ast in
-    assert(type_is_struct(type));
-    var fields = type_struct_fields(type);
+    assert(type.kind == TypeKind::Struct);
+    var fields = type.u.struct_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -496,7 +496,7 @@ def _ti_get_field_type_rewrite_if_def type, member, ast in
         end
         i += 1;
     end
-    var defs = type_struct_defs(type);
+    var defs = type.u.struct_.defs;
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);
@@ -510,7 +510,7 @@ def _ti_get_field_type_rewrite_if_def type, member, ast in
 end
 
 def _ti_get_union_field_type type, member in
-    var fields = type_union_fields(type);
+    var fields = type.u.union_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -527,27 +527,27 @@ def ti_infer_member_access self, tt, st, ast in
     var type = ti_infer(self, tt, st, ast.u.member_access.expr);
     var member = ast.u.member_access.member;
     var ftype = NULL;
-    if type_is_struct(type) then
+    if type.kind == TypeKind::Struct then
         ftype = _ti_get_field_type_rewrite_if_def(type, member, ast);
-    elif type_is_reference(type) then
-        var ref_type = type_deref_type(type);
+    elif type.kind == TypeKind::Reference then
+        var ref_type = type.u.deref_type;
         assert(ref_type, "reference type has no deref type");
-        if not type_is_struct(ref_type) then
+        if ref_type.kind != TypeKind::Struct then
             printf("FIXME: this error message sucks! File \"%s\", line %d\n", __FILE__, __LINE__);
             printf("ERROR: type `");
             tt_print_type_name(tt, ref_type);
-            printf("` is not a struct; it's a (%d). did you forget a cast?\n", type_kind(ref_type));
+            printf("` is not a struct; it's a (%d). did you forget a cast?\n", ref_type.kind);
             printf("NOTE: the expression was: ");
             print_ast(ast);
             print_ast_src_loc(ast);
             exit(1);
         end
         ftype = _ti_get_field_type_rewrite_if_def(ref_type, member, ast);
-    elif type_is_enum(type) then
+    elif type.kind == TypeKind::Enum then
         return type;
-    elif type_is_union(type) then
+    elif type.kind == TypeKind::Union then
         return _ti_get_union_field_type(type, member);
-    elif type_is_tuple(type) then
+    elif type.kind == TypeKind::Tuple then
         if cstr_eq("length", member) then
             ast_change_member_access_to_tuple_length(ast);
             ftype = tt.int_type;
@@ -659,7 +659,7 @@ def ti_infer_tuple_get self, tt, st, ast in
         ti_infer(self, tt, st, ast.u.tuple_get.idx);
     end
 
-    if type_is_tuple(type) and type.u.tuple.mono_type then
+    if type.kind == TypeKind::Tuple and type.u.tuple.mono_type then
         return type.u.tuple.mono_type;
     else
         return tt.any_type;

@@ -108,7 +108,7 @@ def make_type_undefined id: int, scope: TypeScope& in
 end
 
 def make_type_reference id: int, type: Type& in
-    var self = make_type(TypeKind::Reference, id, type_scope(type), PTR_BITS);
+    var self = make_type(TypeKind::Reference, id, type.scope, PTR_BITS);
     self.u.deref_type = type;
     return self;
 end
@@ -161,67 +161,13 @@ def copy_type_with_id type: Type&, id: int, scope: TypeScope& in
     return copy;
 end
 
-def type_kind self: Type& in return self.kind; end
-def type_is_generic self: Type& in return self.is_generic; end
-def type_size self: Type& in return self.size; end
-def type_id self: Type& in return self.id; end
-def type_params self: Type& in return self.params; end
-def type_scope self: Type& in return self.scope; end
-def type_instances self: Type& in return self.instances; end
-def type_ast self: Type& in return self.ast; end
-def type_deref_type self: Type& in return self.u.deref_type; end
-def type_ref_to_this self: Type& in return self.ref_to_this; end
-def type_def_return_type self: Type& in return self.u.def_.return_type; end
-def type_def_parameters self: Type& in return self.u.def_.parameters; end
-def type_def_varargs self: Type& in return self.u.def_.varargs; end
-def type_struct_fields self: Type& in return self.u.struct_.fields; end
-def type_struct_defs self: Type& in return self.u.struct_.defs; end
-def type_enum_values self: Type& in return self.u.enum_.values; end
-def type_union_fields self: Type& in return self.u.union_.fields; end
-
-def type_set_kind self: Type&, kind: TypeKind in self.kind = kind; end
-def type_set_is_generic self: Type&, val: bool in self.is_generic = val; end
-def type_set_size self: Type&, size: int in self.size = size; end
-def type_set_params self: Type&, params: Vector[Type&]& in self.params = params; end
-def type_set_instances self: Type&, instances: Vector[Type&]& in self.instances = instances; end
-def type_set_ast self: Type&, ast: Ast& in self.ast = ast; end
-def type_set_deref_type self: Type&, type: Type& in self.u.deref_type = type; end
-def type_set_ref_to_this self: Type&, type: Type& in self.ref_to_this = type; end
-def type_set_def_return_type self: Type&, type: Type& in self.u.def_.return_type = type; end
-def type_set_def_parameters self: Type&, params: Vector[Symbol]& in self.u.def_.parameters = params; end
-def type_set_def_varargs self: Type&, varargs: bool in self.u.def_.varargs = varargs; end
-def type_set_struct_fields self: Type&, fields: Vector[Field&]& in self.u.struct_.fields = fields; end
-def type_set_struct_defs self: Type&, defs: Vector[Symbol&]& in self.u.struct_.defs = defs; end
-def type_set_enum_values self: Type&, values: Vector[EnumValue&]& in self.u.enum_.values = values; end
-def type_set_union_fields self: Type&, fields: Vector[Field&]& in self.u.union_.fields = fields; end
-
-def type_is_undefined self: Type& in return self.kind == TypeKind::Undefined; end
-def type_is_void self: Type& in return self.kind == TypeKind::Void; end
-def type_is_any self: Type& in return self.kind == TypeKind::Any; end
-def type_is_int_like self: Type& in return self.kind == TypeKind::Int_like; end
-def type_is_reference self: Type& in return self.kind == TypeKind::Reference; end
-def type_is_struct self: Type& in return self.kind == TypeKind::Struct; end
-def type_is_def self: Type& in return self.kind == TypeKind::Def; end
-def type_is_enum self: Type& in return self.kind == TypeKind::Enum; end
-def type_is_union self: Type& in return self.kind == TypeKind::Union; end
-def type_is_generic_param self: Type& in return self.kind == TypeKind::GenericParam; end
-def type_is_tuple self: Type& in return self.kind == TypeKind::Tuple; end
-
 def type_is_empty_tuple self: Type& in
     return self.kind == TypeKind::Tuple and self.u.tuple.types.length == 0;
 end
 
 def type_is_scalar self: Type& in
-    if type_is_int_like(self) then
-        return true;
-    elif type_is_reference(self) then
-        return true;
-    elif type_is_def(self) then
-        return true;
-    elif type_is_enum(self) then
-        return true;
-    end
-    return false;
+    var k = self.kind;
+    return k == TypeKind::Int_like or k == TypeKind::Reference or k == TypeKind::Def or k == TypeKind::Enum;
 end
 
 def types_eq a: Type&, b: Type& in
@@ -230,23 +176,23 @@ def types_eq a: Type&, b: Type& in
     if a == b then
         return true;
     end
-    if type_id(a) == type_id(b) then
+    if a.id == b.id then
         return true;
     end
-    if type_is_reference(a) and type_is_reference(b) then
-        return types_eq(type_deref_type(a), type_deref_type(b));
+    if a.kind == TypeKind::Reference and b.kind == TypeKind::Reference then
+        return types_eq(a.u.deref_type, b.u.deref_type);
     end
     return false;
 end
 
 def _basic_def_type_match tt, lhs, rhs in
-    if type_def_varargs(lhs) != type_def_varargs(rhs) then
+    if lhs.u.def_.varargs != rhs.u.def_.varargs then
         return false;
-    elif not types_assignable(tt, type_def_return_type(lhs), type_def_return_type(rhs)) then
+    elif not types_assignable(tt, lhs.u.def_.return_type, rhs.u.def_.return_type) then
         return false;
     end
-    var lhs_params = type_def_parameters(lhs);
-    var rhs_params = type_def_parameters(rhs);
+    var lhs_params = lhs.u.def_.parameters;
+    var rhs_params = rhs.u.def_.parameters;
     if lhs_params.length != rhs_params.length then
         return false;
     end
@@ -267,15 +213,15 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
     if types_eq(lhs, rhs) then
         return true;
     end
-    var ptr = tt_ptr_type(tt);
-    var cstr = tt_cstr_type(tt);
-    var char = tt_char_type(tt);
-    var int = tt_int_type(tt);
-    var bool = tt_bool_type(tt);
-    if type_is_int_like(lhs) and type_is_int_like(rhs) then
+    var ptr = tt.ptr_type;
+    var cstr = tt.cstr_type;
+    var char = tt.char_type;
+    var int = tt.int_type;
+    var bool = tt.bool_type;
+    if lhs.kind == TypeKind::Int_like and rhs.kind == TypeKind::Int_like then
         return true;
     end
-    if type_is_tuple(lhs) and type_is_tuple(rhs) then
+    if lhs.kind == TypeKind::Tuple and rhs.kind == TypeKind::Tuple then
         if lhs.u.tuple.mono_type != NULL then
             var i = 0; var len = rhs.u.tuple.types.length;
             while i < len do
@@ -292,20 +238,20 @@ def types_assignable tt: TypeTable&, lhs: Type&, rhs: Type& in
         return true;
     elif lhs == cstr and rhs == ptr then // TODO FIXME: cstr should not accept ptr
         return true;
-    elif lhs == ptr and type_is_int_like(rhs) then // TODO FIXME: ptr should not accept int-like
+    elif lhs == ptr and rhs.kind == TypeKind::Int_like then // TODO FIXME: ptr should not accept int-like
         return true;
-    elif lhs == ptr and type_is_reference(rhs) then
+    elif lhs == ptr and rhs.kind == TypeKind::Reference then
         return true;
-    elif type_is_reference(lhs) and rhs == ptr then // TODO FIXME: ref should not accept ptr
+    elif lhs.kind == TypeKind::Reference and rhs == ptr then // TODO FIXME: ref should not accept ptr
         return true;
-    elif type_is_def(lhs) and type_is_def(rhs) then
+    elif lhs.kind == TypeKind::Def and rhs.kind == TypeKind::Def then
         return _basic_def_type_match(tt, lhs, rhs);
-    elif lhs == ptr and type_is_def(rhs) then
+    elif lhs == ptr and rhs.kind == TypeKind::Def then
         return true;
-    elif type_is_def(lhs) and rhs == ptr then // TODO FIXME: function should not accept ptr
+    elif lhs.kind == TypeKind::Def and rhs == ptr then // TODO FIXME: function should not accept ptr
         return true;
     // TODO FIXME: this is a hack so int literals, which are `int`s can be assigned to chars.
-    elif lhs == char and type_is_int_like(rhs) then
+    elif lhs == char and rhs.kind == TypeKind::Int_like then
         return true;
     elif lhs == bool and type_is_scalar(rhs) then
         return true;
@@ -362,10 +308,10 @@ def _tt_make_type tyk, name, size, type_ids: Map&, types, names, scope in
 end
 
 def _tt_make_ref_type type, name, type_ids: Map&, types, names in
-    assert(not type_ref_to_this(type));
+    assert(not type.ref_to_this);
     var type_idx = types.length;
     var t = make_type_reference(type_idx, type);
-    type_set_ref_to_this(type, t);
+    type.ref_to_this = t;
     if name then
         type_ids.set(name, type_idx);
     end
@@ -422,14 +368,6 @@ def make_type_table -> TypeTable& in
     return self;
 end
 
-def tt_any_type self: TypeTable& in return self.any_type; end
-def tt_void_type self: TypeTable& in return self.void_type; end
-def tt_int_type self: TypeTable& in return self.int_type; end
-def tt_ptr_type self: TypeTable& in return self.ptr_type; end
-def tt_cstr_type self: TypeTable& in return self.cstr_type; end
-def tt_bool_type self: TypeTable& in return self.bool_type; end
-def tt_char_type self: TypeTable& in return self.char_type; end
-
 def tt_set_enclosing self, enclosing in
     self.type_scope.enclosing = enclosing;
 end
@@ -448,9 +386,6 @@ def tt_cur_scope self -> Map& in
     return self.type_scope.types;
 end
 
-def tt_top_scope self -> Map& in
-    return self.top_type_scope;
-end
 
 def tt_get_ast_type self, ast -> Type& in
     var found = self.ast_types.find(ast);
@@ -475,10 +410,10 @@ def tt_set_ast_type self, ast, type in
 end
 
 def tt_get_type_name self, type -> cstr in
-    while type_is_reference(type) and type_deref_type(type) do
-        type = type_deref_type(type);
+    while type.kind == TypeKind::Reference and type.u.deref_type do
+        type = type.u.deref_type;
     end
-    return self.names.get(type_id(type));
+    return self.names.get(type.id);
 end
 
 def tt_dump_scope self, scope in
@@ -550,10 +485,10 @@ def tt_get_type_or_make_undefined self, name -> Type& in
 end
 
 def tt_reference_to_type self, type -> Type& in
-    var ref = type_ref_to_this(type);
+    var ref = type.ref_to_this;
     if not ref then
         ref = _tt_make_ref_type(type, NULL, NULL, self.all_types, self.names);
-        type_set_ref_to_this(type, ref);
+        type.ref_to_this = ref;
     end
     return ref;
 end
@@ -561,7 +496,7 @@ end
 def tt_set_local_type self, type in
     var name = tt_get_type_name(self, type);
     if name then
-        tt_cur_scope(self).set(name, type_id(type));
+        tt_cur_scope(self).set(name, type.id);
     end
 end
 
@@ -594,11 +529,11 @@ def tt_substitute_type self, type -> Type& in
     end
     var deref_type = type;
     var is_ref_type = false;
-    if type_is_reference(deref_type) then
+    if deref_type.kind == TypeKind::Reference then
         is_ref_type = true;
-        deref_type = type_deref_type(type);
+        deref_type = type.u.deref_type;
         assert(deref_type);
-        assert(not type_is_reference(deref_type), "TODO: support substituting multiple dereferences\n");
+        assert(deref_type.kind != TypeKind::Reference, "TODO: support substituting multiple dereferences\n");
     end
 
     var found = self.type_substitutes.find(deref_type);
@@ -610,7 +545,7 @@ def tt_substitute_type self, type -> Type& in
         return type;
     end
 
-    if type_is_tuple(deref_type) then
+    if deref_type.kind == TypeKind::Tuple then
         var made_subst = false;
         var tuple_types = deref_type.u.tuple.types;
         var i = 0; var len = tuple_types.length;
@@ -634,7 +569,7 @@ def tt_substitute_type self, type -> Type& in
         return tt_make_tuple(self, subst_types, subst_mono);
     end
 
-    var params = type_params(deref_type);
+    var params = deref_type.params;
     if params and params.length > 0 then
         var i = 0; var len = params.length;
         var new_params = Vector[Type&]::new(len);
@@ -683,18 +618,18 @@ def _tt_copy_ast_replacing_types self, st, ast, src_params, dst_params, type, in
 end
 
 def _tt_instantiate_generic_type_impl self, st, type, params, instance_type in
-    assert(type_params(type));
+    assert(type.params);
     assert(params);
-    assert(type_params(type).length == params.length, "forgot to verify type_params lengths match\n");
-    assert(type_ast(type), "forgot to set type ast\n");
-    var instance_ast = _tt_copy_ast_replacing_types(self, st, type_ast(type), type_params(type), params, type, instance_type);
+    assert(type.params.length == params.length, "forgot to verify type_params lengths match\n");
+    assert(type.ast, "forgot to set type ast\n");
+    var instance_ast = _tt_copy_ast_replacing_types(self, st, type.ast, type.params, params, type, instance_type);
 end
 
 def tt_get_type_instance_of self, st, type, params in
-    if type_is_undefined(type) then
+    if type.kind == TypeKind::Undefined then
         // need to register for later instantiation.
-        assert(type_is_generic(type));
-        var generic_params = type_params(type);
+        assert(type.is_generic);
+        var generic_params = type.params;
         assert(params.length == generic_params.length, "forgot to verify params length\n");
         var same = true;
         var i = 0; var len = params.length;
@@ -712,15 +647,15 @@ def tt_get_type_instance_of self, st, type, params in
         end
         assert(false, "not implemented: need to register type instance for later instantiation\n");
     else
-        var instances = type_instances(type);
+        var instances = type.instances;
         if not instances then
             instances = Vector[Type&]::new(8);
-            type_set_instances(type, instances);
+            type.instances = instances;
         else
             var i = 0; var len = instances.length;
             while i < len do
                 var inst = instances.get(i);
-                var inst_params = type_params(inst);
+                var inst_params = inst.params;
                 assert(params.length == inst_params.length, "forgot to verify params.length\n");
                 var j = 0; var jlen = inst_params.length;
                 while j < jlen do
@@ -741,9 +676,9 @@ def tt_get_type_instance_of self, st, type, params in
         self.all_types.push(instance_type);
         var type_name = tt_get_type_name(self, type);
         self.names.push(type_name);
-        type_set_is_generic(instance_type, false);
-        type_set_params(instance_type, params); // used for looking up existing instances.
-        type_set_ref_to_this(instance_type, NULL); // clear the old ref type
+        instance_type.is_generic = false;
+        instance_type.params = params; // used for looking up existing instances.
+        instance_type.ref_to_this = NULL; // clear the old ref type
         var ref_type = tt_reference_to_type(self, instance_type);
         instances.push(instance_type);
         _tt_instantiate_generic_type_impl(self, st, type, params, instance_type);
@@ -789,16 +724,16 @@ end
 def _tt_append_type_repr self, string, type in
     if not type then
         string.append_cstr("{null}");
-    elif type_is_def(type) then
+    elif type.kind == TypeKind::Def then
         var name = tt_get_def_type_name(self, type);
         string.append_string(name);
         name.delete();
     else
         var refs = 0;
         var deref_type = type;
-        while type_is_reference(deref_type) do
+        while deref_type.kind == TypeKind::Reference do
             refs += 1;
-            deref_type = type_deref_type(deref_type);
+            deref_type = deref_type.u.deref_type;
         end
 
         if deref_type.enclosed then
@@ -810,7 +745,7 @@ def _tt_append_type_repr self, string, type in
         var name = tt_get_type_name(self, deref_type);
         if name then
             string.append_cstr(name);
-        elif type_is_tuple(deref_type) then
+        elif deref_type.kind == TypeKind::Tuple then
             string.append_cstr("tuple");
             if deref_type.u.tuple.mono_type != NULL then
                 string.append_cstr(" of ");
@@ -818,11 +753,11 @@ def _tt_append_type_repr self, string, type in
             end
         else
             string.append_cstr("<type id ");
-            string.append_int(type_id(deref_type));
+            string.append_int(deref_type.id);
             string.push('>');
         end
 
-        var params = type_params(deref_type);
+        var params = deref_type.params;
         if params and params.length > 0 then
             string.push('[');
             var i = 0; var len = params.length;
@@ -843,14 +778,14 @@ def _tt_append_type_repr self, string, type in
 end
 
 def tt_get_def_type_name self, type -> String& in
-    if not type_is_def(type) then
+    if type.kind != TypeKind::Def then
         return NULL;
     end
 
     var string = String::new(20);
     string.push('(');
-    var params = type_def_parameters(type);
-    var ret_ty = type_def_return_type(type);
+    var params = type.u.def_.parameters;
+    var ret_ty = type.u.def_.return_type;
 
     var i = 0; var len = params.length;
     while i < len do
@@ -872,15 +807,15 @@ def tt_get_def_type_name self, type -> String& in
 end
 
 def tt_calculate_struct self, stype, again_q in
-    if type_size(stype) != TYPE_NEEDS_SIZING then
+    if stype.size != TYPE_NEEDS_SIZING then
         return;
     end
-    assert(type_is_struct(stype) or type_is_union(stype));
+    assert(stype.kind == TypeKind::Struct or stype.kind == TypeKind::Union);
     var fields;
-    if type_is_struct(stype) then
-        fields = type_struct_fields(stype);
+    if stype.kind == TypeKind::Struct then
+        fields = stype.u.struct_.fields;
     else
-        fields = type_union_fields(stype);
+        fields = stype.u.union_.fields;
     end
     var bit_offs = 0;
     var ptr_align = false;
@@ -888,25 +823,25 @@ def tt_calculate_struct self, stype, again_q in
     while i < len do
         var field = fields.get(i);
         var ftype = field.type;
-        if type_is_generic_param(ftype) then
+        if ftype.kind == TypeKind::GenericParam then
             // FIXME: this shouldn't happen but it does...
-            type_set_is_generic(stype, true);
+            stype.is_generic = true;
             return;
         end
 
-        if type_is_reference(ftype) and not ptr_align then
+        if ftype.kind == TypeKind::Reference and not ptr_align then
             ptr_align = true;
         end
 
-        var size = type_size(ftype);
+        var size = ftype.size;
         if size == TYPE_NEEDS_SIZING then
             again_q.enqueue(stype);
             return;
         end
-        if not type_is_struct(ftype) and not type_is_union(ftype) then
+        if ftype.kind != TypeKind::Struct and ftype.kind != TypeKind::Union then
             bit_offs = (bit_offs + (size - 1)) & -size; // align to nearest boundary
         end
-        if type_is_struct(stype) then
+        if stype.kind == TypeKind::Struct then
             field.bit_offset = bit_offs;
             bit_offs += size;
         else
@@ -920,7 +855,7 @@ def tt_calculate_struct self, stype, again_q in
     if ptr_align then
         bit_offs = (bit_offs + (PTR_BITS-1)) & -PTR_BITS;
     end
-    type_set_size(stype, bit_offs);
+    stype.size = bit_offs;
 end
 
 def tt_detect_cycles self, stype in
@@ -930,10 +865,10 @@ def tt_detect_cycles self, stype in
 
     explored.insert(stype);
     var fields;
-    if type_is_struct(stype) then
-        fields = type_struct_fields(stype);
+    if stype.kind == TypeKind::Struct then
+        fields = stype.u.struct_.fields;
     else
-        fields = type_union_fields(stype);
+        fields = stype.u.union_.fields;
     end
     var i = 0; var len = fields.length;
     while i < len do
@@ -945,7 +880,7 @@ def tt_detect_cycles self, stype in
             return true;
         end
         if not explored.contains(ftype) then
-            if type_is_struct(ftype) or type_is_union(ftype) then
+            if ftype.kind == TypeKind::Struct or ftype.kind == TypeKind::Union then
                 explored.insert(ftype);
                 q.enqueue(ftype);
             end
@@ -960,10 +895,10 @@ def tt_detect_cycles self, stype in
             explored.delete();
             return true;
         end
-        if type_is_struct(v) then
-            fields = type_struct_fields(v);
+        if v.kind == TypeKind::Struct then
+            fields = v.u.struct_.fields;
         else
-            fields = type_union_fields(v);
+            fields = v.u.union_.fields;
         end
         i = 0; len = fields.length;
         while i < len do
@@ -975,7 +910,7 @@ def tt_detect_cycles self, stype in
                 return true;
             end
             if not explored.contains(ftype) then
-                if type_is_struct(ftype) or type_is_union(ftype) then
+                if ftype.kind == TypeKind::Struct or ftype.kind == TypeKind::Union then
                     explored.insert(ftype);
                     q.enqueue(ftype);
                 end
@@ -990,7 +925,7 @@ end
 
 def tt_check_struct_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
-    var fields = type_struct_fields(type);
+    var fields = type.u.struct_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -1010,7 +945,7 @@ def tt_check_struct_for_field_name_collisions self, type in
         i += 1;
     end
 
-    var defs = type_struct_defs(type);
+    var defs = type.u.struct_.defs;
     i = 0; len = defs.length;
     while i < len do
         var def_ = defs.get(i);
@@ -1032,7 +967,7 @@ end
 
 def tt_check_enum_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
-    var enum_vals = type_enum_values(type);
+    var enum_vals = type.u.enum_.values;
     var i = 0; var len = enum_vals.length;
     while i < len do
         var ev = enum_vals.get(i);
@@ -1054,7 +989,7 @@ end
 
 def tt_check_union_for_field_name_collisions self, type in
     var member_name_map = Map::new(0, cstr_eq, cstr_hash);
-    var fields = type_union_fields(type);
+    var fields = type.u.union_.fields;
     var i = 0; var len = fields.length;
     while i < len do
         var field = fields.get(i);
@@ -1080,38 +1015,38 @@ def tt_calculate_structs self in
     assert(self.type_scope.parent == NULL, "Compiler bug: calculating stucts but not at top scope\n");
     var to_calc = Queue[Type&]::new(0);
     var i = 0; var len = self.all_types.length;
-    var void = tt_void_type(self);
+    var void = self.void_type;
     while i < len do
         var type = self.all_types.get(i);
-        if type_is_generic(type) or type_is_generic_param(type) then
+        if type.is_generic or type.kind == TypeKind::GenericParam then
             // skip generics because they aren't concrete types and their concrete instances
             // should also be in this list.
             i += 1;
             continue;
-        elif type_is_undefined(type) then
+        elif type.kind == TypeKind::Undefined then
             var name = tt_get_type_name(self, type);
             if name then
                 // HACK this is a bit of a hack to allow the FIXME in tt_get_type_or_make_undefined to work.
                 var outer = tt_get_type_or_null(self, name);
-                if outer and not type_is_undefined(outer) then
+                if outer and outer.kind != TypeKind::Undefined then
                     memcpy(type, outer, __sizeof(Type));
                     continue;
                 end
             end
             printf("WARN: type `%s` is still undefined!\n", tt_get_type_name(self, type));
-            type_set_size(type, PTR_BITS);
-            type_set_kind(type, TypeKind::Reference);
-            type_set_deref_type(type, void);
-        elif type_is_struct(type) and type_size(type) == TYPE_NEEDS_SIZING then
+            type.size = PTR_BITS;
+            type.kind = TypeKind::Reference;
+            type.u.deref_type = void;
+        elif type.kind == TypeKind::Struct and type.size == TYPE_NEEDS_SIZING then
             to_calc.enqueue(type);
-        elif type_is_union(type) and type_size(type) == TYPE_NEEDS_SIZING then
+        elif type.kind == TypeKind::Union and type.size == TYPE_NEEDS_SIZING then
             to_calc.enqueue(type);
         end
-        if type_is_struct(type) then
+        if type.kind == TypeKind::Struct then
             tt_check_struct_for_field_name_collisions(self, type);
-        elif type_is_enum(type) then
+        elif type.kind == TypeKind::Enum then
             tt_check_enum_for_field_name_collisions(self, type);
-        elif type_is_union(type) then
+        elif type.kind == TypeKind::Union then
             tt_check_union_for_field_name_collisions(self, type);
         end
         i += 1;
@@ -1159,7 +1094,7 @@ def scope_resolve_lhs tt: TypeTable&, ast: Ast&, error: bool -> Type& in
         var rhs = ast.u.scope_resolve.rhs;
         assert(rhs.kind == AstK::Ident);
         var name = rhs.u.ident;
-        var scope = type_scope(lhs_type);
+        var scope = lhs_type.scope;
         assert(scope);
 
         var found = scope.types.find(name);
@@ -1192,9 +1127,9 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
     end
     assert(rhs.kind == AstK::Ident);
 
-    if type_is_struct(type) then
+    if type.kind == TypeKind::Struct then
         var member = rhs.u.ident;
-        var fields = type_struct_fields(type);
+        var fields = type.u.struct_.fields;
         var i = 0; var len = fields.length;
         while i < len do
             var field = fields.get(i);
@@ -1204,7 +1139,7 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
             i += 1;
         end
 
-        var defs = type_struct_defs(type);
+        var defs = type.u.struct_.defs;
         i = 0; len = defs.length;
         while i < len do
             var def_ = defs.get(i);
@@ -1212,12 +1147,12 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
             if cstr_eq(member, def_name) then
                 var def_type = def_.type;
                 assert(def_type);
-                assert(type_is_def(def_type));
+                assert(def_type.kind == TypeKind::Def);
                 return def_type;
             end
             i += 1;
         end
-        var scope = type_scope(type);
+        var scope = type.scope;
         assert(scope);
         var found = scope.types.find(member);
         if found then
@@ -1230,10 +1165,10 @@ def scope_resolve_type tt: TypeTable&, ast: Ast&, error: bool -> Type& in
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
-        return tt_any_type(tt);
-    elif type_is_enum(type) then
+        return tt.any_type;
+    elif type.kind == TypeKind::Enum then
         return type;
-    elif type_is_union(type) then
+    elif type.kind == TypeKind::Union then
         assert(false, "scope resolve for unions not implemented yet.\n");
     elif error then
         printf("ERROR: type `");
@@ -1262,9 +1197,9 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
     end
     assert(rhs.kind == AstK::Ident);
 
-    if type_is_struct(type) then
+    if type.kind == TypeKind::Struct then
         var member = rhs.u.ident;
-        var defs = type_struct_defs(type);
+        var defs = type.u.struct_.defs;
         var i = 0; var len = defs.length;
         while i < len do
             var def_ = defs.get(i);
@@ -1272,7 +1207,7 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
             if cstr_eq(member, def_name) then
                 var def_type = def_.type;
                 assert(def_type);
-                assert(type_is_def(def_type));
+                assert(def_type.kind == TypeKind::Def);
                 return def_;
             end
             i += 1;
@@ -1285,9 +1220,9 @@ def scope_resolve_def tt: TypeTable&, ast: Ast&, error: bool -> Symbol& in
             g_Errors += 1;
         end
         return NULL;
-    elif type_is_enum(type) then
+    elif type.kind == TypeKind::Enum then
         return NULL;
-    elif type_is_union(type) then
+    elif type.kind == TypeKind::Union then
         assert(false, "scope_resolve_def for unions not implemented yet.\n");
     elif error then
         printf("ERROR: type `");

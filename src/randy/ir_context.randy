@@ -811,7 +811,7 @@ def ir_new_def self, ident, params, ast, symbol, tt in
     var label = String::new(20); // @LEAK
     if symbol.owned_by then
         label.push('_');
-        label.append_int(type_id(symbol.owned_by));
+        label.append_int(symbol.owned_by.id);
         label.push('_');
         var name = tt_get_type_name(tt, symbol.owned_by);
         if name then
@@ -856,7 +856,7 @@ def ir_new_local self, ident, st in
         assert(sym);
         var type = sym.type;
         assert(type);
-        size = type_size(type);
+        size = type.size;
         if offset + size > self.locals_size then
             self.locals_size = offset + size;
         end
@@ -1235,7 +1235,7 @@ def ir_emit_var_decl self, ast, st, tt in
     var sym = st_get_symbol(st, ident);
     assert(sym);
     var sym_type = sym.type;
-    assert(sym_type and type_size(sym_type) != 0,
+    assert(sym_type and sym_type.size != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     ir_new_local(self, ident, st);
 end
@@ -1248,7 +1248,7 @@ def ir_emit_var_assign self, ast, st, tt in
     var sym = st_get_symbol(st, ident);
     assert(sym);
     var sym_type = sym.type;
-    assert(sym_type and type_size(sym_type) != 0,
+    assert(sym_type and sym_type.size != 0,
         "Compiler bug: Error should have been handled in type checker.\n");
     var val = ast.u.var_assign.expr;
     ir_compile(self, val, st, tt);
@@ -1361,7 +1361,7 @@ def ir_emit_assign_member self, ast, st, tt in
         ir_compile(self, lhs, st, tt);
     end
     var lhs_type = tt_get_ast_type(tt, lhs);
-    var size = type_size(lhs_type);
+    var size = lhs_type.size;
     ir_append(self, IrInstr::new_ptr_write(size));
 end
 
@@ -1446,7 +1446,7 @@ def ir_emit_pointer_op self, ast, st, tt in
         var type_ast = args.back();
         assert(type_ast.kind == AstK::Type);
         var type = type_ast.u.type;
-        size = type_size(type);
+        size = type.size;
     end
     var op = ast.u.ptr_op.op;
     if op == PointerOp::Read then
@@ -1517,8 +1517,8 @@ def ir_emit_extern self, ast, st, tt in
     var ident = ast.u.extern_.ident;
     var type = ast.u.extern_.type;
     var is_varargs = false;
-    if type_is_def(type) then
-        is_varargs = type_def_varargs(type);
+    if type.kind == TypeKind::Def then
+        is_varargs = type.u.def_.varargs;
     end
     ir_add_extern(self, ident, NULL, is_varargs);
 end
@@ -1602,16 +1602,16 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         var member = head.u.member_access.member;
         var type = tt_get_ast_type(tt, head.u.member_access.expr);
         var _type = type;
-        while type_is_reference(_type) do
-            _type = type_deref_type(_type);
+        while _type.kind == TypeKind::Reference do
+            _type = _type.u.deref_type;
         end
-        assert(type_is_struct(_type) or type_is_union(_type),
+        assert(_type.kind == TypeKind::Struct or _type.kind == TypeKind::Union,
                "Error should have been reported in type checker\n");
         var fields;
-        if type_is_struct(_type) then
-            fields = type_struct_fields(_type);
-        elif type_is_union(_type) then
-            fields = type_union_fields(_type);
+        if _type.kind == TypeKind::Struct then
+            fields = _type.u.struct_.fields;
+        elif _type.kind == TypeKind::Union then
+            fields = _type.u.union_.fields;
         end
         var field: Field& = NULL;
         var i = 0; var len = fields.length;
@@ -1631,7 +1631,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
         var offs = field.bit_offset;
         assert(offs >= 0, "Compiler bug: field offset should be >= 0\n");
         offset += offs;
-        if type_is_reference(type) then
+        if type.kind == TypeKind::Reference then
             deref_stack.push(offset);
             offset = 0;
         end
@@ -1640,7 +1640,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 
     var head_type = tt_get_ast_type(tt, head);
     assert(head_type);
-    if type_is_struct(head_type) and head.kind == AstK::Ident then
+    if head_type.kind == TypeKind::Struct and head.kind == AstK::Ident then
         // For the time being, we can allow small structs that fit inside a register to trivially
         // be stack allocated.
         if head_type.size > PTR_BITS then
@@ -1664,17 +1664,17 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
 
     if deref then
         var type = tt_get_ast_type(tt, ast.u.member_access.expr);
-        if type_is_reference(type) then
-            type = type_deref_type(type);
+        if type.kind == TypeKind::Reference then
+            type = type.u.deref_type;
             assert(type, "TODO: Type is reference but has no ref type\n");
         end
-        assert(type_is_struct(type) or type_is_union(type),
+        assert(type.kind == TypeKind::Struct or type.kind == TypeKind::Union,
                "TODO: catch this bug in type checker.\n");
         var fields;
-        if type_is_struct(type) then
-            fields = type_struct_fields(type);
-        elif type_is_union(type) then
-            fields = type_union_fields(type);
+        if type.kind == TypeKind::Struct then
+            fields = type.u.struct_.fields;
+        elif type.kind == TypeKind::Union then
+            fields = type.u.union_.fields;
         end
         var i = 0; var len = fields.length;
         var member = ast.u.member_access.member;
@@ -1686,7 +1686,7 @@ def ir_emit_member_access self, ast, st, tt, deref: bool in
             end
             i += 1;
         end
-        var size = type_size(field.type);
+        var size = field.type.size;
         assert(size > 0, "Compiler bug: size cannot be zero for auto-deref\n");
         assert(size <= PTR_BITS, "TODO: support larger than memory read: %d\n", size);
         ir_append(self, IrInstr::new_ptr_read(size));

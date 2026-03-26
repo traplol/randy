@@ -237,7 +237,7 @@ def comptime_eval_scope_resolve interp, ast, st, tt, depth in
     assert(type, "Compiler bug: should have caught this error in type checker.\n");
     assert(rhs.kind == AstK::Ident);
     var member = rhs.u.ident;
-    if type_is_enum(type) then
+    if type.kind == TypeKind::Enum then
         var enum_vals = type.u.enum_.values;
         var i = 0; var len = enum_vals.length;
         while i < len do

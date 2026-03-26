@@ -14,14 +14,14 @@ end
 
 def _tc_check_ident_type tt, lhs_sym, rhs_expr, ast in
     var sym_type = lhs_sym.type;
-    if not sym_type or sym_type == tt_any_type(tt) then
+    if not sym_type or sym_type == tt.any_type then
         printf("ERROR: Type of `%s` could not be inferred.\n", lhs_sym.name);
         print_ast_src_loc(ast);
         g_Errors += 1;
     end
 
     var rhs_type = tt_get_ast_type(tt, rhs_expr);
-    if not rhs_type or rhs_type == tt_any_type(tt) then
+    if not rhs_type or rhs_type == tt.any_type then
         printf("ERROR: Type of assignment to `%s` could not be inferred.\n", lhs_sym.name);
         print_ast_src_loc(ast);
         g_Errors += 1;
@@ -52,7 +52,7 @@ end
 def _tc_check_ident_has_type st, ident, ast in
     var sym = st_get_symbol(st, ident);
     var type = sym.type;
-    if not type or type_size(type) == 0 then
+    if not type or type.size == 0 then
         printf("ERROR: type of `%s` is undefined.\n", ident);
         print_ast_src_loc(ast);
         g_Errors += 1;
@@ -60,7 +60,7 @@ def _tc_check_ident_has_type st, ident, ast in
 end
 
 def _tc_check_is_int_like tt, ast, type in
-    if type_is_int_like(type) then
+    if type.kind == TypeKind::Int_like then
         return;
     end
     printf("ERROR: used type `");
@@ -92,7 +92,7 @@ def tc_check_call self, tt, st, ast in
     tc_check(self, tt, st, ast.u.call.expr);
     var call_type = tt_get_ast_type(tt, ast.u.call.expr);
     assert(call_type);
-    if not type_is_def(call_type) then
+    if call_type.kind != TypeKind::Def then
         if ast.u.call.expr == AstK::Ident then
             printf("ERROR: `%s` which has type `", ast.u.call.expr.u.ident);
         else
@@ -107,7 +107,7 @@ def tc_check_call self, tt, st, ast in
         return;
     end
 
-    var param_types = type_def_parameters(call_type);
+    var param_types = call_type.u.def_.parameters;
     var args = ast.u.call.args;
     var i = 0; var len = min(param_types.length, args.length);
     while i < len do
@@ -141,7 +141,7 @@ def tc_check_call self, tt, st, ast in
         i += 1;
     end
 
-    if (i < param_types.length) or (i > param_types.length and not type_def_varargs(call_type)) then
+    if (i < param_types.length) or (i > param_types.length and not call_type.u.def_.varargs) then
         var expr = ast.u.call.expr;
         if expr.kind == AstK::Ident then
             printf("ERROR: call to `%s` expects %d arguments but got %d.\n",
@@ -171,7 +171,7 @@ end
 def tc_check_return self, tt, st, ast in
     check_ast_kind(AstK::Return, ast);
     assert(self.current_def_type);
-    var return_type = type_def_return_type(self.current_def_type);
+    var return_type = self.current_def_type.u.def_.return_type;
     var expr = ast.u.return_;
     if expr then
         tc_check(self, tt, st, expr);
@@ -187,7 +187,7 @@ def tc_check_return self, tt, st, ast in
             print_token_loc(ast.token);
             g_Errors += 1;
         end
-    elif return_type != tt_void_type(tt) then
+    elif return_type != tt.void_type then
         printf("ERROR: Return type for `%s` is `", self.current_def_name);
         tt_print_type_name(tt, return_type);
         printf("` cannot return `void.`\n");
@@ -224,22 +224,22 @@ def tc_check_assign_op self, tt, st, ast in
         _tc_check_ident_type(tt, lhs_sym, expr, ast);
     else
         var lhs_type = lhs_sym.type;
-        if not lhs_type or lhs_type == tt_any_type(tt) then
+        if not lhs_type or lhs_type == tt.any_type then
             printf("ERROR: Type of `%s` could not be inferred.\n", lhs_sym.name);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
 
         var rhs_type = tt_get_ast_type(tt, ast.u.assign_op.expr);
-        if not rhs_type or rhs_type == tt_any_type(tt) then
+        if not rhs_type or rhs_type == tt.any_type then
             printf("ERROR: Type of assignment to `%s` could not be inferred.\n", lhs_sym.name);
             print_ast_src_loc(ast);
             g_Errors += 1;
         end
 
-        if op == TK::PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        if op == TK::PlusEq and lhs_type.kind == TypeKind::Reference and rhs_type.kind == TypeKind::Int_like then
             return; // reference += int_like
-        elif op == TK::MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+        elif op == TK::MinusEq and lhs_type.kind == TypeKind::Reference and rhs_type.kind == TypeKind::Int_like then
             return; // reference -= int_like
         elif types_assignable(tt, lhs_type, rhs_type) then
             return; // TODO: Verify this is correct behaviour.
@@ -259,14 +259,14 @@ def tc_check_def self, tt, st, ast in
     check_ast_kind(AstK::Def, ast);
     var params = ast.u.def_.params;
     var i = 0; var len = params.length;
-    var any = tt_any_type(tt);
+    var any = tt.any_type;
     var errors = Vector[Symbol&]::new(0);
     while i < len do
         var param = params.get(i);
         var param_sym = st_get_symbol(st, param);
         assert(param_sym);
         var param_type = param_sym.type;
-        if not param_type or type_size(param_type) == 0 then
+        if not param_type or param_type.size == 0 then
             errors.push(param_sym);
         end
         i += 1;
@@ -379,7 +379,7 @@ def tc_check_member_access self, tt, st, ast in
     var member = ast.u.member_access.member;
     tc_check(self, tt, st, expr);
     var type = tt_get_ast_type(tt, expr);
-    if not type or type_size(type) == 0 then
+    if not type or type.size == 0 then
         printf("ERROR: attempting to access member `%s` on undefined type.\n", member);
         printf("NOTE: the expression is:");
         print_ast(ast);
@@ -388,11 +388,11 @@ def tc_check_member_access self, tt, st, ast in
         return;
     end
 
-    while type_is_reference(type) do
-        type = type_deref_type(type);
+    while type.kind == TypeKind::Reference do
+        type = type.u.deref_type;
     end
 
-    if not type_is_struct(type) and not type_is_union(type) then
+    if type.kind != TypeKind::Struct and type.kind != TypeKind::Union then
         printf("ERROR: attempting to access member `%s` with '.' operator on non-struct type.\n", member);
         printf("NOTE: the expression is:");
         print_ast(ast);
@@ -403,10 +403,10 @@ def tc_check_member_access self, tt, st, ast in
 
     var found = false;
     var fields;
-    if type_is_struct(type) then
-        fields = type_struct_fields(type);
-    elif type_is_union(type) then
-        fields = type_union_fields(type);
+    if type.kind == TypeKind::Struct then
+        fields = type.u.struct_.fields;
+    elif type.kind == TypeKind::Union then
+        fields = type.u.union_.fields;
     end
     var i = 0; var len = fields.length;
     while i < len do
@@ -445,9 +445,9 @@ def tc_check_assign_member self, tt, st, ast in
         if types_assignable(tt, lhs_type, rhs_type) then
             return;
         end
-    elif op == TK::PlusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+    elif op == TK::PlusEq and lhs_type.kind == TypeKind::Reference and rhs_type.kind == TypeKind::Int_like then
         return; // reference += int_like
-    elif op == TK::MinusEq and type_is_reference(lhs_type) and type_is_int_like(rhs_type) then
+    elif op == TK::MinusEq and lhs_type.kind == TypeKind::Reference and rhs_type.kind == TypeKind::Int_like then
         return; // reference -= int_like
     elif types_assignable(tt, lhs_type, rhs_type) then
         return; // TODO: Verify this is correct behaviour.
@@ -456,9 +456,9 @@ def tc_check_assign_member self, tt, st, ast in
     assert(lhs.kind == AstK::MemberAccess);
     printf("ERROR: the type of `%s` is `", lhs.u.member_access.member);
     tt_print_type_name(tt, lhs_type);
-    printf("` (%d) which is not assignable by `", type_id(lhs_type));
+    printf("` (%d) which is not assignable by `", lhs_type.id);
     tt_print_type_name(tt, rhs_type);
-    printf(".` (%d)\n", type_id(rhs_type));
+    printf(".` (%d)\n", rhs_type.id);
     print_ast_src_loc(ast);
     g_Errors += 1;
 end
@@ -472,8 +472,8 @@ def tc_check_scope_resolve self, tt, st, ast in
     var rhs = ast.u.scope_resolve.rhs;
     assert(rhs.kind == AstK::Ident);
     var member = rhs.u.ident;
-    if type_is_enum(type) then
-        var enum_vals = type_enum_values(type);
+    if type.kind == TypeKind::Enum then
+        var enum_vals = type.u.enum_.values;
         var i = 0; var len = enum_vals.length;
         while i < len do
             var ev = enum_vals.get(i);
@@ -487,8 +487,8 @@ def tc_check_scope_resolve self, tt, st, ast in
         printf("` has no value `%s.`\n", member);
         print_ast_src_loc(ast);
         g_Errors += 1;
-    elif type_is_struct(type) then
-        var fields = type_struct_fields(type);
+    elif type.kind == TypeKind::Struct then
+        var fields = type.u.struct_.fields;
         var i = 0; var len = fields.length;
         while i < len do
             var field = fields.get(i);
@@ -503,7 +503,7 @@ def tc_check_scope_resolve self, tt, st, ast in
             i += 1;
         end
 
-        var defs = type_struct_defs(type);
+        var defs = type.u.struct_.defs;
         i = 0; len = defs.length;
         while i < len do
             var def_sym = defs.get(i);
@@ -518,7 +518,7 @@ def tc_check_scope_resolve self, tt, st, ast in
         printf("` has no member `%s.`\n", member);
         print_ast_src_loc(ast);
         g_Errors += 1;
-    elif type_is_union(type) then
+    elif type.kind == TypeKind::Union then
         assert(false, "TODO: scope resolution operator for unions\n");
     else
         printf("ERROR: type `");
@@ -569,7 +569,7 @@ def tc_check_static_assert self, tt, st, ast in
     end
 
     var arg1_type = tt_get_ast_type(tt, args.get(1));
-    if not types_eq(arg1_type, tt_cstr_type(tt)) then
+    if not types_eq(arg1_type, tt.cstr_type) then
         printf("ERROR: the second argument to 'static_assert' must be a cstr value\n");
         print_ast_src_loc(args.get(1));
         g_Errors += 1;
@@ -590,7 +590,7 @@ def tc_check_tuple_length self, tt, st, ast in
     check_ast_kind(AstK::TupleLength, ast);
     tc_check(self, tt, st, ast.u.tuple_length.expr);
     var type = tt_get_ast_type(tt, ast.u.tuple_length.expr);
-    assert(type_is_tuple(type), "Compiler bug: inferred TupleLength from non-tuple expr.\n");
+    assert(type.kind == TypeKind::Tuple, "Compiler bug: inferred TupleLength from non-tuple expr.\n");
 end
 
 def tc_check_tuple_get self, tt, st, ast in
@@ -598,7 +598,7 @@ def tc_check_tuple_get self, tt, st, ast in
     tc_check(self, tt, st, ast.u.tuple_get.expr);
     tc_check(self, tt, st, ast.u.tuple_get.idx);
     var tup_type = tt_get_ast_type(tt, ast.u.tuple_get.expr);
-    assert(type_is_tuple(tup_type), "Compiler bug: inferred TupleLength from non-tuple expr.\n");
+    assert(tup_type.kind == TypeKind::Tuple, "Compiler bug: inferred TupleLength from non-tuple expr.\n");
     assert(ast.u.tuple_get.idx != NULL);
     var idx_type = tt_get_ast_type(tt, ast.u.tuple_get.idx);
     _tc_check_is_int_like(tt, ast, idx_type);
