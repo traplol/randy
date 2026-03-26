@@ -139,15 +139,14 @@ struct IrInstr in
     def n self -> int in return cast(self.slot_b, int); end
     def nargs self -> int in return cast(self.slot_b, int); end
     def params self -> Vector[cstr]& in return cast(self.slot_b, Vector[cstr]&); end
-    def ir_size self -> int in return cast(self.slot_b, int); end
+    def size self -> int in return cast(self.slot_b, int); end
 
     // slot_c accessors
     def value self -> int in return cast(self.slot_c, int); end
-    def ir_varargs self -> bool in return cast(self.slot_c, bool); end
+    def varargs self -> bool in return cast(self.slot_c, bool); end
     def asm_code self -> cstr in return cast(self.slot_c, cstr); end
     def arg self -> int in return cast(self.slot_c, int); end
-    def ir_src_name self -> cstr in return cast(self.slot_c, cstr); end
-    def ir_offset self -> int in return cast(self.slot_c, int); end
+    def offset self -> int in return cast(self.slot_c, int); end
     def symbol self -> Symbol& in return cast(self.slot_c, Symbol&); end
 end
 
@@ -652,8 +651,6 @@ def make_def_info label: cstr, varargs: bool -> DefInfo& in
     self.varargs = varargs;
     return self;
 end
-
-
 enum CIK in
     String;
     Integer;
@@ -691,8 +688,6 @@ def make_global_info kind: GlobalInfoKind, label: cstr, value: ptr -> GlobalInfo
     self.value = value;
     return self;
 end
-
-
 struct LocalInfo in
     n: int;
     offs: int;
@@ -706,8 +701,6 @@ def make_local_info n: int, offs: int, size: int -> LocalInfo& in
     self.size = size;
     return self;
 end
-
-
 struct TupleLiteral in
     label: cstr;
     slots: int;
@@ -760,8 +753,6 @@ struct IrContext in
         return self;
     end
 end
-
-
 def ir_append self, insn in
     insn.src_loc = ir_current_src_loc(self);
     var vec = self.instructions;
@@ -964,7 +955,7 @@ def ir_is_cur_scope_local self, ident in
     return false;
 end
 
-def ir_get_local self, ident in
+def ir_get_local self, ident -> int in
     var def_locals = self.def_locals;
     var i = def_locals.length - 1;
     var found;
@@ -978,7 +969,7 @@ def ir_get_local self, ident in
     assert(false, "Compiler bug: didn't check `ir_is_local` before calling `ir_get_local`\n");
 end
 
-def ir_get_local_offset self, ident in
+def ir_get_local_offset self, ident -> int in
     var def_locals = self.def_locals;
     var i = def_locals.length - 1;
     var found;

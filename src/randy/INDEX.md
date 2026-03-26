@@ -107,9 +107,14 @@ comptime_eval_binop / comptime_eval_call / comptime_eval_if_else / ...
 
 ## ir_context.randy — stack-based intermediate representation: 56+ instruction types
 ```
-// IRK_* constants: PushInt, PushLabel, Call, OpAdd, OpSub, OpMul, OpDiv, ...
+enum IrKind in GetLocal; PushLabel; PushInt; Call; OpAdd; OpSub; ... end
+struct IrInstr in kind: IrKind; src_loc: SrcLoc&; slot_a/b/c: ptr; ... end
+  methods: label() name() ident() n() nargs() value() varargs() size() offset() symbol() ...
+struct IrContext in instructions; strings; externs; defs; globals; ... end
+struct DefInfo in label: cstr; varargs: bool; end
+struct GlobalInfo in kind: GlobalInfoKind; label: cstr; value: ptr; end
+struct LocalInfo in n: int; offs: int; size: int; end
 make_ir_push_int(value) / make_ir_call(label, varargs) / make_ir_goto(label) / ...
-ir_instr_kind(self) / ir_instr_name(self) / ir_instr_label(self) / ir_instr_value(self)
 ```
 
 ## ir_v2.randy — experimental alternative IR (MachineIR with register model)
@@ -120,7 +125,8 @@ MachineIRContext::new() / next_reg() / new_label()
 
 ## compiler_context.randy — assembly output accumulation and source file mapping
 ```
-make_compiler_context(debug: bool) -> compiler_context
+struct CompilerContext in out_lines; file_map; nodebug; ... end
+CompilerContext::new(debug) -> CompilerContext&
 cc_out(self, cstr) / cc_out_label(self, cstr) / cc_out_string(self, string)
 cc_out_src_loc(self, src_loc) / cc_out_files(irctx, cctx)
 cc_print_lines(self)

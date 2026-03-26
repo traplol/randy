@@ -156,7 +156,7 @@ def x86_64_emit_call cc, ir in
         return;
     end
 
-    if ir.ir_varargs() then
+    if ir.varargs() then
         cc_out(cc, "    xor %al, %al");
     end
     var str = String::new(20);
@@ -501,7 +501,7 @@ def x86_64_emit_ptr_read cc, ir in
     check_ir_kind(IrKind::PtrRead, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir.src_loc);
-    var size = ir.ir_size();
+    var size = ir.size();
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    xorl %edx, %edx");
     var str = String::new(20);
@@ -536,7 +536,7 @@ def x86_64_emit_ptr_write cc, ir in
     check_ir_kind(IrKind::PtrWrite, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir.src_loc);
-    var size = ir.ir_size();
+    var size = ir.size();
     cc_out(cc, "    popq %rax"); // -- ptr
     cc_out(cc, "    popq %rdx"); // -- value
     var str = String::new(20);
@@ -569,7 +569,7 @@ end
 def x86_64_emit_ptr_copy cc, ir in
     check_ir_kind(IrKind::PtrCopy, ir);
     //print_ir(ir);
-    var bits = ir.ir_size();
+    var bits = ir.size();
     if bits <= 0 then
         return;
     end
@@ -695,7 +695,7 @@ end
 def x86_64_emit_ptr_offset cc, ir in
     check_ir_kind(IrKind::PtrOffset, ir);
     //print_ir(ir);
-    var offset = ir.ir_offset() / BYTE_BITS;
+    var offset = ir.offset() / BYTE_BITS;
     if offset == 0 then
         return;
     end
