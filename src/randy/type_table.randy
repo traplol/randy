@@ -4,19 +4,19 @@ struct Field in
     name: cstr;
     bit_offset: int;
     token: Token&;
-end
 
-def make_field type, name, bit_offset, token -> Field& in
-    var self: Field& = malloc(__sizeof(Field));
-    self.type = type;
-    self.name = name;
-    self.bit_offset = bit_offset;
-    self.token = token;
-    return self;
-end
+    def new type, name, bit_offset, token -> Field& in
+        var self: Field& = malloc(__sizeof(Field));
+        self.type = type;
+        self.name = name;
+        self.bit_offset = bit_offset;
+        self.token = token;
+        return self;
+    end
 
-def field_make_copy self: Field& in
-    return make_field(self.type, self.name, self.bit_offset, self.token);
+    def copy self -> Field& in
+        return Field::new(self.type, self.name, self.bit_offset, self.token);
+    end
 end
 
 struct EnumValue in
@@ -24,15 +24,15 @@ struct EnumValue in
     name: cstr;
     value: Ast&;
     cache_value: ptr;
-end
 
-def make_enum_value token: Token&, name: cstr, value: Ast& -> EnumValue& in
-    var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
-    self.token = token;
-    self.name = name;
-    self.value = value;
-    self.cache_value = NULL;
-    return self;
+    def new token: Token&, name: cstr, value: Ast& -> EnumValue& in
+        var self = cast(malloc(__sizeof(EnumValue)), EnumValue&);
+        self.token = token;
+        self.name = name;
+        self.value = value;
+        self.cache_value = NULL;
+        return self;
+    end
 end
 
 enum TypeKind in
@@ -315,14 +315,14 @@ struct TypeScope in
     types: Map&; // (cstr, int) : the types within the current scope
     parent: TypeScope&;
     enclosing: Type&;
-end
 
-def make_type_scope parent: TypeScope& -> TypeScope& in
-    var self = cast(malloc(__sizeof(TypeScope)), TypeScope&);
-    self.types = Map::new(0, cstr_eq, cstr_hash);
-    self.parent = parent;
-    self.enclosing = NULL;
-    return self;
+    def new parent: TypeScope& -> TypeScope& in
+        var self = cast(malloc(__sizeof(TypeScope)), TypeScope&);
+        self.types = Map::new(0, cstr_eq, cstr_hash);
+        self.parent = parent;
+        self.enclosing = NULL;
+        return self;
+    end
 end
 
 def type_scope_find self, tt, name -> Type& in
@@ -382,7 +382,7 @@ def make_type_table -> TypeTable& in
     var self: TypeTable& = calloc(1, __sizeof(TypeTable));
     var types = Vector[Type&]::new(0);
     var names = Vector[cstr]::new(0);
-    self.type_scope = make_type_scope(NULL);
+    self.type_scope = TypeScope::new(NULL);
     var type_ids = self.type_scope.types;
     self.top_type_scope = type_ids;
     self.all_types = types;
@@ -433,7 +433,7 @@ def tt_set_enclosing self, enclosing in
 end
 
 def tt_push_scope self in
-    self.type_scope = make_type_scope(self.type_scope);
+    self.type_scope = TypeScope::new(self.type_scope);
 end
 
 def tt_pop_scope self in

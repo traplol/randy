@@ -1282,7 +1282,7 @@ def _ast_deep_copy_struct ast, tt, st in
     var i = 0; var len = fields.length;
     while i < len do
         // fields aren't actually resolved with symbols so no need to create a copy of those
-        var field_copy = field_make_copy(fields.get(i));
+        var field_copy = fields.get(i).copy();
         field_copy.type = tt_substitute_type(tt, field_copy.type);
         fields_copy.push(field_copy);
         i += 1;
@@ -1321,7 +1321,7 @@ def _ast_deep_copy_union ast, tt, st in
     var i = 0; var len = fields.length;
     while i < len do
         // fields aren't actually resolved with symbols so no need to create a copy of those
-        var field_copy = field_make_copy(fields.get(i));
+        var field_copy = fields.get(i).copy();
         field_copy.type = tt_substitute_type(tt, field_copy.type);
         fields_copy.push(field_copy);
         i += 1;
