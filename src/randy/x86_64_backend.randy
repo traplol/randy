@@ -800,7 +800,7 @@ def x86_64_emit_negative cc, ir in
     cc_out(cc, "    pushq %rax");
 end
 
-def x86_64_emit_instruction cc: compiler_context, ir: ir_instr in
+def x86_64_emit_instruction cc: CompilerContext&, ir: IrInstr& in
     var k = ir_instr_kind(ir);
     if k == IRK_GetLocal then x86_64_emit_get_local(cc, ir);
     elif k == IRK_PushLabel then x86_64_emit_push_label(cc, ir);
@@ -863,7 +863,7 @@ def x86_64_emit_instruction cc: compiler_context, ir: ir_instr in
     end
 end
 
-def x86_64_emit_start cc: compiler_context, main_def: cstr, exit_def: cstr in
+def x86_64_emit_start cc: CompilerContext&, main_def: cstr, exit_def: cstr in
     cc_out(cc, "    .global _start");
     cc_out(cc, "    .align 16");
     cc_out(cc, "_start:");

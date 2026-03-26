@@ -113,352 +113,340 @@ def ir_instr_kind_cstr k: int -> cstr in
     return "IRK_OUT_OF_RANGE";
 end
 
-const TIR_INSTR_kind     = 0;
-const TIR_INSTR_src_loc  = 8;
+// IrInstr uses union-style overlapping fields:
+//   slot_a (offset 16): name / ident / local / label
+//   slot_b (offset 24): n / nargs / params / size
+//   slot_c (offset 32): value / symbol / varargs / asm / arg / src_name / offset
+struct IrInstr in
+    kind: int;
+    src_loc: SrcLoc&;
+    slot_a: ptr;    // name, ident, local, label
+    slot_b: ptr;    // n, nargs, params, size
+    slot_c: ptr;    // value, symbol, varargs, asm, arg, src_name, offset
+    nlocals: int;
+    expr_size: int;
+    expr_offs: int;
+end
 
-const TIR_INSTR_name     = 16;
-const TIR_INSTR_ident    = 16;
-const TIR_INSTR_local    = 16;
-const TIR_INSTR_label    = 16;
+def ir_instr_kind self: IrInstr& -> int in return self.kind; end
+def ir_instr_src_loc self: IrInstr& -> SrcLoc& in return self.src_loc; end
+def ir_instr_name self: IrInstr& -> cstr in return cast(self.slot_a, cstr); end
+def ir_instr_ident self: IrInstr& -> Token& in return cast(self.slot_a, Token&); end
+def ir_instr_local self: IrInstr& -> int in return cast(self.slot_a, int); end
+def ir_instr_label self: IrInstr& -> cstr in return cast(self.slot_a, cstr); end
+def ir_instr_n self: IrInstr& -> int in return cast(self.slot_b, int); end
+def ir_instr_nargs self: IrInstr& -> int in return cast(self.slot_b, int); end
+def ir_instr_params self: IrInstr& -> Vector[cstr]& in return cast(self.slot_b, Vector[cstr]&); end
+def ir_instr_size self: IrInstr& -> int in return cast(self.slot_b, int); end
+def ir_instr_value self: IrInstr& -> int in return cast(self.slot_c, int); end
+def ir_instr_varargs self: IrInstr& -> bool in return cast(self.slot_c, bool); end
+def ir_instr_asm self: IrInstr& -> cstr in return cast(self.slot_c, cstr); end
+def ir_instr_arg self: IrInstr& -> int in return cast(self.slot_c, int); end
+def ir_instr_src_name self: IrInstr& -> cstr in return cast(self.slot_c, cstr); end
+def ir_instr_offset self: IrInstr& -> int in return cast(self.slot_c, int); end
+def ir_instr_symbol self: IrInstr& -> Symbol& in return cast(self.slot_c, Symbol&); end
+def ir_instr_nlocals self: IrInstr& -> int in return self.nlocals; end
+def ir_instr_expr_size self: IrInstr& -> int in return self.expr_size; end
+def ir_instr_expr_offs self: IrInstr& -> int in return self.expr_offs; end
 
-const TIR_INSTR_n        = 24;
-const TIR_INSTR_nargs    = 24;
-const TIR_INSTR_params   = 24;
-const TIR_INSTR_size     = 24;
-
-const TIR_INSTR_value    = 32;
-const TIR_INSTR_symbol   = 32;
-const TIR_INSTR_varargs  = 32;
-const TIR_INSTR_asm      = 32;
-const TIR_INSTR_arg      = 32;
-const TIR_INSTR_src_name = 32;
-const TIR_INSTR_offset   = 32;
-
-const TIR_INSTR_nlocals  = 40;
-
-const TIR_INSTR_expr_size = 48;
-const TIR_INSTR_expr_offs = 56;
-const sizeof_TIR_INSTR   = 64;
-
-def ir_instr_kind self: ir_instr in return cast(u64@(self + TIR_INSTR_kind), int); end
-def ir_instr_src_loc self: ir_instr in return cast(u64@(self + TIR_INSTR_src_loc), SrcLoc&); end
-def ir_instr_name self: ir_instr in return cast(u64@(self + TIR_INSTR_name), cstr); end
-def ir_instr_ident self: ir_instr in return cast(u64@(self + TIR_INSTR_ident), Token&); end
-def ir_instr_local self: ir_instr in return cast(u64@(self + TIR_INSTR_local), int); end
-def ir_instr_label self: ir_instr in return cast(u64@(self + TIR_INSTR_label), cstr); end
-def ir_instr_n self: ir_instr in return cast(u64@(self + TIR_INSTR_n), int); end
-def ir_instr_nargs self: ir_instr in return cast(u64@(self + TIR_INSTR_nargs), int); end
-def ir_instr_params self: ir_instr in return cast(u64@(self + TIR_INSTR_params), Vector[cstr]&); end
-def ir_instr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_size), int); end
-def ir_instr_value self: ir_instr in return cast(u64@(self + TIR_INSTR_value), int); end
-def ir_instr_varargs self: ir_instr in return cast(u64@(self + TIR_INSTR_varargs), bool); end
-def ir_instr_asm self: ir_instr in return cast(u64@(self + TIR_INSTR_asm), cstr); end
-def ir_instr_arg self: ir_instr in return cast(u64@(self + TIR_INSTR_arg), int); end
-def ir_instr_src_name self: ir_instr in return cast(u64@(self + TIR_INSTR_src_name), cstr); end
-def ir_instr_nlocals self: ir_instr in return cast(u64@(self + TIR_INSTR_nlocals), int); end
-def ir_instr_offset self: ir_instr in return cast(u64@(self + TIR_INSTR_offset), int); end
-def ir_instr_expr_size self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_size), int); end
-def ir_instr_expr_offs self: ir_instr in return cast(u64@(self + TIR_INSTR_expr_offs), int); end
-def ir_instr_symbol self: ir_instr in return cast(u64@(self + TIR_INSTR_symbol), Symbol&); end
-
-def make_ir_alloc_temps n -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_AllocTemps);
-    u64!(self + TIR_INSTR_n, n);
-    return cast(self, ir_instr);
+def make_ir_alloc_temps n -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_AllocTemps;
+    self.slot_b = n;
+    return self;
 end
-def make_ir_call label, varargs -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_Call);
-    u64!(self + TIR_INSTR_label, label);
-    u64!(self + TIR_INSTR_varargs, varargs);
-    return cast(self, ir_instr);
+def make_ir_call label, varargs -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_Call;
+    self.slot_a = label;
+    self.slot_c = varargs;
+    return self;
 end
-def make_ir_lazy_ident ident, symbol -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_LazyIdent);
-    u64!(self + TIR_INSTR_ident, ident);
-    u64!(self + TIR_INSTR_symbol, symbol);
-    return cast(self, ir_instr);
+def make_ir_lazy_ident ident, symbol -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_LazyIdent;
+    self.slot_a = ident;
+    self.slot_c = symbol;
+    return self;
 end
-def make_ir_call_lazy_ident ident, symbol, nargs -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_CallLazyIdent);
-    u64!(self + TIR_INSTR_ident, ident);
-    u64!(self + TIR_INSTR_symbol, symbol);
-    u64!(self + TIR_INSTR_nargs, nargs);
-    return cast(self, ir_instr);
+def make_ir_call_lazy_ident ident, symbol, nargs -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_CallLazyIdent;
+    self.slot_a = ident;
+    self.slot_c = symbol;
+    self.slot_b = nargs;
+    return self;
 end
-def make_ir_close_def src_name, name -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_CloseDef);
-    u64!(self + TIR_INSTR_src_name, src_name);
-    u64!(self + TIR_INSTR_name, name);
-    return cast(self, ir_instr);
+def make_ir_close_def src_name, name -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_CloseDef;
+    self.slot_c = src_name;
+    self.slot_a = name;
+    return self;
 end
-def make_ir_free_temps n -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_FreeTemps);
-    u64!(self + TIR_INSTR_n, n);
-    return cast(self, ir_instr);
+def make_ir_free_temps n -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_FreeTemps;
+    self.slot_b = n;
+    return self;
 end
-def make_ir_get_local local, n, offs: int -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_GetLocal);
-    u64!(self + TIR_INSTR_local, local);
-    u64!(self + TIR_INSTR_n, n);
-    u64!(self + TIR_INSTR_expr_offs, offs);
-    return cast(self, ir_instr);
+def make_ir_get_local local, n, offs: int -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_GetLocal;
+    self.slot_a = local;
+    self.slot_b = n;
+    self.expr_offs = offs;
+    return self;
 end
-def make_ir_ref_local local, n, offs: int -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_RefLocal);
-    u64!(self + TIR_INSTR_local, local);
-    u64!(self + TIR_INSTR_n, n);
-    u64!(self + TIR_INSTR_expr_offs, offs);
-    return cast(self, ir_instr);
+def make_ir_ref_local local, n, offs: int -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_RefLocal;
+    self.slot_a = local;
+    self.slot_b = n;
+    self.expr_offs = offs;
+    return self;
 end
-def make_ir_goto label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_Goto);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_goto label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_Goto;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_goto_false label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_GotoFalse);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_goto_false label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_GotoFalse;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_goto_top_false label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_GotoTopFalse);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_goto_top_false label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_GotoTopFalse;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_goto_top_true label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_GotoTopTrue);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_goto_top_true label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_GotoTopTrue;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_inline_asm name, asmcode -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_InlineAsm);
-    u64!(self + TIR_INSTR_name, name);
-    u64!(self + TIR_INSTR_asm, asmcode);
-    return cast(self, ir_instr);
+def make_ir_inline_asm name, asmcode -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_InlineAsm;
+    self.slot_a = name;
+    self.slot_c = asmcode;
+    return self;
 end
-def make_ir_label label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_Label);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_label label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_Label;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_bit_not -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_BitNot);
-    return cast(self, ir_instr);
+def make_ir_bit_not -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_BitNot;
+    return self;
 end
-def make_ir_logic_not -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_LogicNot);
-    return cast(self, ir_instr);
+def make_ir_logic_not -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_LogicNot;
+    return self;
 end
-def make_ir_negative -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_Negative);
-    return cast(self, ir_instr);
+def make_ir_negative -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_Negative;
+    return self;
 end
-def make_ir_scope_open -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_ScopeOpen);
-    return cast(self, ir_instr);
+def make_ir_scope_open -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_ScopeOpen;
+    return self;
 end
-def make_ir_scope_close -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_ScopeClose);
-    return cast(self, ir_instr);
+def make_ir_scope_close -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_ScopeClose;
+    return self;
 end
-def make_ir_new_def src_name, name, params -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_NewDef);
-    u64!(self + TIR_INSTR_src_name, src_name);
-    u64!(self + TIR_INSTR_name, name);
-    u64!(self + TIR_INSTR_params, params);
-    return cast(self, ir_instr);
+def make_ir_new_def src_name, name, params -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_NewDef;
+    self.slot_c = src_name;
+    self.slot_a = name;
+    self.slot_b = params;
+    return self;
 end
-def make_ir_simple_op op -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, op);
-    return cast(self, ir_instr);
+def make_ir_simple_op op -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = op;
+    return self;
 end
-def make_ir_pop_call -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PopCall);
-    return cast(self, ir_instr);
+def make_ir_pop_call -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PopCall;
+    return self;
 end
-def make_ir_pop_return -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PopReturn);
-    return cast(self, ir_instr);
+def make_ir_pop_return -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PopReturn;
+    return self;
 end
-def make_ir_ptr_read size -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PtrRead);
-    u64!(self + TIR_INSTR_size, size);
-    return cast(self, ir_instr);
+def make_ir_ptr_read size -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PtrRead;
+    self.slot_b = size;
+    return self;
 end
-def make_ir_ptr_write size -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PtrWrite);
-    u64!(self + TIR_INSTR_size, size);
-    return cast(self, ir_instr);
+def make_ir_ptr_write size -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PtrWrite;
+    self.slot_b = size;
+    return self;
 end
-def make_ir_ptr_copy size -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PtrCopy);
-    u64!(self + TIR_INSTR_size, size);
-    return cast(self, ir_instr);
+def make_ir_ptr_copy size -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PtrCopy;
+    self.slot_b = size;
+    return self;
 end
-def make_ir_ptr_offs offset -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PtrOffset);
-    u64!(self + TIR_INSTR_offset, offset);
-    return cast(self, ir_instr);
+def make_ir_ptr_offs offset -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PtrOffset;
+    self.slot_c = offset;
+    return self;
 end
-def make_ir_push_int value -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PushInt);
-    u64!(self + TIR_INSTR_value, value);
-    return cast(self, ir_instr);
+def make_ir_push_int value -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PushInt;
+    self.slot_c = value;
+    return self;
 end
-def make_ir_push_label label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_PushLabel);
-    u64!(self + TIR_INSTR_label, label);
-    return cast(self, ir_instr);
+def make_ir_push_label label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_PushLabel;
+    self.slot_a = label;
+    return self;
 end
-def make_ir_return_void -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_ReturnVoid);
-    return cast(self, ir_instr);
+def make_ir_return_void -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_ReturnVoid;
+    return self;
 end
-def make_ir_set_arg_temp n -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_SetArgTemp);
-    u64!(self + TIR_INSTR_n, n);
-    return cast(self, ir_instr);
+def make_ir_set_arg_temp n -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_SetArgTemp;
+    self.slot_b = n;
+    return self;
 end
-def make_ir_set_local local, n, offs: int -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_SetLocal);
-    u64!(self + TIR_INSTR_local, local);
-    u64!(self + TIR_INSTR_n, n);
-    u64!(self + TIR_INSTR_expr_offs, offs);
-    return cast(self, ir_instr);
+def make_ir_set_local local, n, offs: int -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_SetLocal;
+    self.slot_a = local;
+    self.slot_b = n;
+    self.expr_offs = offs;
+    return self;
 end
-def make_ir_set_local_arg local, local_n, arg, offs: int -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_SetLocalArg);
-    u64!(self + TIR_INSTR_local, local);
-    u64!(self + TIR_INSTR_n, local_n);
-    u64!(self + TIR_INSTR_arg, arg);
-    u64!(self + TIR_INSTR_expr_offs, offs);
-    return cast(self, ir_instr);
+def make_ir_set_local_arg local, local_n, arg, offs: int -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_SetLocalArg;
+    self.slot_a = local;
+    self.slot_b = local_n;
+    self.slot_c = arg;
+    self.expr_offs = offs;
+    return self;
 end
-def make_ir_store_temp n -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_StoreTemp);
-    u64!(self + TIR_INSTR_n, n);
-    return cast(self, ir_instr);
+def make_ir_store_temp n -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_StoreTemp;
+    self.slot_b = n;
+    return self;
 end
-def make_ir_drop_top -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_DropTop);
-    return cast(self, ir_instr);
+def make_ir_drop_top -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_DropTop;
+    return self;
 end
-def make_ir_set_global name, label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_SetGlobal);
-    u64!(self + TIR_INSTR_label, label);
-    u64!(self + TIR_INSTR_src_name, name);
-    return cast(self, ir_instr);
+def make_ir_set_global name, label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_SetGlobal;
+    self.slot_a = label;
+    self.slot_c = name;
+    return self;
 end
-def make_ir_get_global name, label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_GetGlobal);
-    u64!(self + TIR_INSTR_label, label);
-    u64!(self + TIR_INSTR_src_name, name);
-    return cast(self, ir_instr);
+def make_ir_get_global name, label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_GetGlobal;
+    self.slot_a = label;
+    self.slot_c = name;
+    return self;
 end
-def make_ir_ref_global name, label -> ir_instr in
-    var self = calloc(1, sizeof_TIR_INSTR);
-    u64!(self + TIR_INSTR_kind, IRK_RefGlobal);
-    u64!(self + TIR_INSTR_label, label);
-    u64!(self + TIR_INSTR_src_name, name);
-    return cast(self, ir_instr);
+def make_ir_ref_global name, label -> IrInstr& in
+    var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
+    self.kind = IRK_RefGlobal;
+    self.slot_a = label;
+    self.slot_c = name;
+    return self;
 end
 def print_ir_alloc_temps self in
     printf("(IR.AllocTemps ");
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d)\n", self.slot_b);
 end
 def print_ir_call self in
     printf("(IR.Call ");
-    printf("label='%s', ", u64@(self + TIR_INSTR_label));
-    printf("varargs=%d)\n", u64@(self + TIR_INSTR_varargs));
+    printf("label='%s', ", self.slot_a);
+    printf("varargs=%d)\n", self.slot_c);
 end
 def print_ir_call_lazy_ident self in
     printf("(IR.CallLazyIdent ");
-    printf("ident=<Token:%s>, ", cast(u64@(self + TIR_INSTR_ident), Token&).value);
-    printf("nargs=%d)\n", u64@(self + TIR_INSTR_nargs));
+    printf("ident=<Token:%s>, ", cast(self.slot_a, Token&).value);
+    printf("nargs=%d)\n", self.slot_b);
 end
 def print_ir_lazy_ident self in
     printf("(IR.LazyIdent ");
-    printf("ident=<Token:%s>)\n", cast(u64@(self + TIR_INSTR_ident), Token&).value);
+    printf("ident=<Token:%s>)\n", cast(self.slot_a, Token&).value);
 end
 def print_ir_close_def self in
     printf("(IR.CloseDef ");
-    printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
-    printf("name='%s')\n", u64@(self + TIR_INSTR_name));
+    printf("src_name='%s', ", self.slot_c);
+    printf("name='%s')\n", self.slot_a);
 end
 def print_ir_free_temps self in
     printf("(IR.FreeTemps ");
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d)\n", self.slot_b);
 end
 def print_ir_get_local self in
     printf("(IR.GetLocal ");
-    printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
+    printf("local='%s', ", self.slot_a);
+    printf("n=%d, offs=%d)\n", self.slot_b, self.expr_offs);
 end
 def print_ir_ref_local self in
     printf("(IR.RefLocal ");
-    printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
+    printf("local='%s', ", self.slot_a);
+    printf("n=%d, offs=%d)\n", self.slot_b, self.expr_offs);
 end
 def print_ir_goto self in
     printf("(IR.Goto ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_goto_false self in
     printf("(IR.GotoFalse ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_goto_top_false self in
     printf("(IR.GotoTopFalse ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_goto_top_true self in
     printf("(IR.GotoTopTrue ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_inline_asm self in
     printf("(IR.InlineAsm ");
-    printf("name='%s', asm=\"...\")\n", u64@(self + TIR_INSTR_name));
+    printf("name='%s', asm=\"...\")\n", self.slot_a);
 end
 def print_ir_label self in
     printf("(IR.Label ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_bit_not self in
     printf("(IR.BitNot)\n");
@@ -477,10 +465,10 @@ def print_ir_scope_close self in
 end
 def print_ir_new_def self in
     printf("(IR.NewDef ");
-    printf("src_name='%s', ", u64@(self + TIR_INSTR_src_name));
-    printf("name='%s', ", u64@(self + TIR_INSTR_name));
+    printf("src_name='%s', ", self.slot_c);
+    printf("name='%s', ", self.slot_a);
     printf("params=[");
-    var params = cast(u64@(self + TIR_INSTR_params), Vector[cstr]&);
+    var params = cast(self.slot_b, Vector[cstr]&);
     var i = 0; var len = params.length;
     while i < len do
         printf("'%s'", params.get(i));
@@ -489,8 +477,8 @@ def print_ir_new_def self in
             printf(", ");
         end
     end
-    printf("], nlocals=%d, ", u64@(self + TIR_INSTR_nlocals));
-    printf("expr_size=%d)\n", u64@(self + TIR_INSTR_expr_size));
+    printf("], nlocals=%d, ", self.nlocals);
+    printf("expr_size=%d)\n", self.expr_size);
 end
 def print_ir_op_add self in
     printf("(IR.OpAdd)\n");
@@ -533,69 +521,69 @@ def print_ir_pop_return self in
 end
 def print_ir_ptr_read self in
     printf("(IR.PtrRead ");
-    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+    printf("size=%d)\n", self.slot_b);
 end
 def print_ir_ptr_write self in
     printf("(IR.PtrWrite ");
-    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+    printf("size=%d)\n", self.slot_b);
 end
 def print_ir_ptr_copy self in
     printf("(IR.PtrCopy ");
-    printf("size=%d)\n", u64@(self + TIR_INSTR_size));
+    printf("size=%d)\n", self.slot_b);
 end
 def print_ir_ptr_offset self in
     printf("(IR.PtrOffset ");
-    printf("offset=%d)\n", u64@(self + TIR_INSTR_offset));
+    printf("offset=%d)\n", self.slot_c);
 end
 def print_ir_push_int self in
     printf("(IR.PushInt ");
-    printf("value=%d)\n", u64@(self + TIR_INSTR_value));
+    printf("value=%d)\n", self.slot_c);
 end
 def print_ir_push_label self in
     printf("(IR.PushLabel ");
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_return_void self in
     printf("(IR.ReturnVoid)\n");
 end
 def print_ir_set_arg_temp self in
     printf("(IR.SetArgTemp ");
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d)\n", self.slot_b);
 end
 def print_ir_set_local self in
     printf("(IR.SetLocal ");
-    printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d, offs=%d)\n", u64@(self + TIR_INSTR_n), u64@(self + TIR_INSTR_expr_offs));
+    printf("local='%s', ", self.slot_a);
+    printf("n=%d, offs=%d)\n", self.slot_b, self.expr_offs);
 end
 def print_ir_set_local_arg self in
     printf("(IR.SetLocalArg ");
-    printf("local='%s', ", u64@(self + TIR_INSTR_local));
-    printf("n=%d, ", u64@(self + TIR_INSTR_n));
-    printf("arg=%d, offs=%d)\n", u64@(self + TIR_INSTR_arg), u64@(self + TIR_INSTR_expr_offs));
+    printf("local='%s', ", self.slot_a);
+    printf("n=%d, ", self.slot_b);
+    printf("arg=%d, offs=%d)\n", self.slot_c, self.expr_offs);
 end
 def print_ir_store_temp self in
     printf("(IR.StoreTemp ");
-    printf("n=%d)\n", u64@(self + TIR_INSTR_n));
+    printf("n=%d)\n", self.slot_b);
 end
 def print_ir_drop_top self in
     printf("(IR.DropTop)\n");
 end
 def print_ir_set_global self in
     printf("(IR.SetGlobal ");
-    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("global='%s', ", self.slot_c);
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_get_global self in
     printf("(IR.GetGlobal ");
-    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("global='%s', ", self.slot_c);
+    printf("label='%s')\n", self.slot_a);
 end
 def print_ir_ref_global self in
     printf("(IR.RefGlobal ");
-    printf("global='%s', ", u64@(self + TIR_INSTR_src_name));
-    printf("label='%s')\n", u64@(self + TIR_INSTR_label));
+    printf("global='%s', ", self.slot_c);
+    printf("label='%s')\n", self.slot_a);
 end
-def print_ir ir: ir_instr in
+def print_ir ir: IrInstr& in
     var k = ir_instr_kind(ir);
     if k == IRK_AllocTemps then print_ir_alloc_temps(ir);
     elif k == IRK_Call then print_ir_call(ir);
@@ -650,23 +638,21 @@ def print_ir ir: ir_instr in
     end
 end
 
-const TDEF_INFO_label = 0;    // cstr
-const TDEF_INFO_varargs = 16; // bool
-const sizeof_TDEF_INFO = 24;
-
-def make_def_info label: cstr, varargs: bool -> def_info in
-    var self = malloc(sizeof_TDEF_INFO);
-    u64!(self + TDEF_INFO_label, label);
-    u64!(self + TDEF_INFO_varargs, varargs);
-    return cast(self, def_info);
+struct DefInfo in
+    label: cstr;
+    _pad: ptr;
+    varargs: bool;
 end
 
-def def_info_label self: def_info -> cstr in
-    return cast(u64@(self + TDEF_INFO_label), cstr);
+def make_def_info label: cstr, varargs: bool -> DefInfo& in
+    var self = cast(calloc(1, __sizeof(DefInfo)), DefInfo&);
+    self.label = label;
+    self.varargs = varargs;
+    return self;
 end
-def def_info_varargs self: def_info -> bool in
-    return cast(u8@(self + TDEF_INFO_varargs), bool);
-end
+
+def def_info_label self: DefInfo& -> cstr in return self.label; end
+def def_info_varargs self: DefInfo& -> bool in return self.varargs; end
 
 enum CIK in
     String;
@@ -687,41 +673,44 @@ def make_const_info kind: CIK, value: ptr, ast_value: Ast& -> ConstInfo& in
     return self;
 end
 
-const TGLOBAL_INFO_kind = 0;
-const TGLOBAL_INFO_label = 8;
-const TGLOBAL_INFO_value = 16;
-const sizeof_TGLOBAL_INFO = 24;
 const GIK_String = 0;
 const GIK_Integer = 1;
 
-def make_global_info kind: int, label: cstr, value: ptr -> global_info in
-    var self = malloc(sizeof_TGLOBAL_INFO);
-    u64!(self + TGLOBAL_INFO_kind, kind);
-    u64!(self + TGLOBAL_INFO_label, label);
-    u64!(self + TGLOBAL_INFO_value, value);
-    return cast(self, global_info);
+struct GlobalInfo in
+    kind: int;
+    label: cstr;
+    value: ptr;
 end
 
-def global_info_kind self: global_info in return cast(u64@(self + TGLOBAL_INFO_kind), int); end
-def global_info_label self: global_info in return cast(u64@(self + TGLOBAL_INFO_label), cstr); end
-def global_info_value self: global_info in return cast(u64@(self + TGLOBAL_INFO_value), ptr); end
-
-const TLOCAL_INFO_n = 0;
-const TLOCAL_INFO_offs = 8;
-const TLOCAL_INFO_size = 16;
-const sizeof_TLOCAL_INFO = 24;
-
-def make_local_info n: int, offs: int, size: int -> local_info in
-    var self = malloc(sizeof_TLOCAL_INFO);
-    u64!(self + TLOCAL_INFO_n, n);
-    u64!(self + TLOCAL_INFO_offs, offs);
-    u64!(self + TLOCAL_INFO_size, size);
-    return cast(self, local_info);
+def make_global_info kind: int, label: cstr, value: ptr -> GlobalInfo& in
+    var self = cast(malloc(__sizeof(GlobalInfo)), GlobalInfo&);
+    self.kind = kind;
+    self.label = label;
+    self.value = value;
+    return self;
 end
 
-def local_info_n self: local_info in return cast(u64@(self + TLOCAL_INFO_n), int); end
-def local_info_offs self: local_info in return cast(u64@(self + TLOCAL_INFO_offs), int); end
-def local_info_size self: local_info in return cast(u64@(self + TLOCAL_INFO_size), int); end
+def global_info_kind self: GlobalInfo& -> int in return self.kind; end
+def global_info_label self: GlobalInfo& -> cstr in return self.label; end
+def global_info_value self: GlobalInfo& -> ptr in return self.value; end
+
+struct LocalInfo in
+    n: int;
+    offs: int;
+    size: int;
+end
+
+def make_local_info n: int, offs: int, size: int -> LocalInfo& in
+    var self = cast(malloc(__sizeof(LocalInfo)), LocalInfo&);
+    self.n = n;
+    self.offs = offs;
+    self.size = size;
+    return self;
+end
+
+def local_info_n self: LocalInfo& -> int in return self.n; end
+def local_info_offs self: LocalInfo& -> int in return self.offs; end
+def local_info_size self: LocalInfo& -> int in return self.size; end
 
 struct TupleLiteral in
     label: cstr;
@@ -735,68 +724,67 @@ struct TupleLiteral in
     end
 end
 
-const TIR_CONTEXT_instructions =  0;  // ir_instruction Vector&
-const TIR_CONTEXT_label_id     =  8;  // int
-const TIR_CONTEXT_strings      = 16;  // (string, cstr) map      : String& -> label
-const TIR_CONTEXT_externs      = 24;  // (cstr, def_info) map   : name -> def_info
-const TIR_CONTEXT_labels       = 32;  // string set : all labels
-const TIR_CONTEXT_constants    = 40;  // (cstr, const_info) map  : name -> const_info
-const TIR_CONTEXT_src_locs     = 48;  // src_loc Vector&
-const TIR_CONTEXT_file_set     = 56;  // cstr set : paths
-const TIR_CONTEXT_files        = 64;  // cstr Vector&
-const TIR_CONTEXT_defs         = 72;  // (cstr, def_info) map   : name -> def_info
-const TIR_CONTEXT_def_locals   = 80;  // (cstr, local_info) map Vector&  : stack of scope: name -> location
-const TIR_CONTEXT_globals_map  = 88;  // (cstr, global_info) map : name -> global_info
-// Order of definition is preserved in the `globals' Vector&.
-const TIR_CONTEXT_globals      = 96;  // global_info Vector&
-const TIR_CONTEXT_break_dests  = 104; // cstr Vector& -> label to goto
-const TIR_CONTEXT_conti_dests  = 112; // cstr Vector& -> label to goto
-const TIR_CONTEXT_num_locals   = 120; // int : max number of locals allocated
-const TIR_CONTEXT_locals_size  = 128; // int : max size needed for all locals
-const TIR_CONTEXT_tuple_lits   = 136; // Vector[TupleLiteral&]&
-const sizeof_TIR_CONTEXT       = 144;
+struct IrContext in
+    instructions: Vector[IrInstr&]&;
+    label_id: int;
+    strings: Map&;
+    externs: Map&;
+    labels: Set[cstr, CstrHashCompare, CstrHashCompare]&;
+    constants: Map&;
+    src_locs: Vector[SrcLoc&]&;
+    file_set: Set[cstr, CstrHashCompare, CstrHashCompare]&;
+    files: Vector[cstr]&;
+    defs: Map&;
+    def_locals: Vector[Map&]&;
+    globals_map: Map&;
+    globals: Vector[GlobalInfo&]&;
+    break_dests: Vector[cstr]&;
+    conti_dests: Vector[cstr]&;
+    num_locals: int;
+    locals_size: int;
+    tuple_lits: Vector[TupleLiteral&]&;
 
-def make_ir_context -> ir_context in
-    var self = calloc(1, sizeof_TIR_CONTEXT);
-    u64!(self + TIR_CONTEXT_instructions, Vector[ir_instr]::new(0));
-    u64!(self + TIR_CONTEXT_label_id, 0);
-    u64!(self + TIR_CONTEXT_strings, Map::new(0, string_eq, string_hash));
-    u64!(self + TIR_CONTEXT_externs, Map::new(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_labels, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
-    u64!(self + TIR_CONTEXT_constants, Map::new(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_src_locs, Vector[SrcLoc&]::new(0));
-    u64!(self + TIR_CONTEXT_file_set, Set[cstr, CstrHashCompare, CstrHashCompare]::new(0));
-    u64!(self + TIR_CONTEXT_files, Vector[cstr]::new(0));
-    u64!(self + TIR_CONTEXT_defs, Map::new(0, NULL, NULL));
-    u64!(self + TIR_CONTEXT_def_locals, Vector[Map&]::new(0));
-    u64!(self + TIR_CONTEXT_globals_map, Map::new(0, cstr_eq, cstr_hash));
-    u64!(self + TIR_CONTEXT_globals, Vector[global_info]::new(0));
-    u64!(self + TIR_CONTEXT_break_dests, Vector[cstr]::new(0));
-    u64!(self + TIR_CONTEXT_conti_dests, Vector[cstr]::new(0));
-    u64!(self + TIR_CONTEXT_tuple_lits, Vector[TupleLiteral&]::new(0));
-    return cast(self, ir_context);
+    def new in
+        var self = cast(calloc(1, __sizeof(IrContext)), IrContext&);
+        self.instructions = Vector[IrInstr&]::new(0);
+        self.strings = Map::new(0, string_eq, string_hash);
+        self.externs = Map::new(0, cstr_eq, cstr_hash);
+        self.labels = Set[cstr, CstrHashCompare, CstrHashCompare]::new(0);
+        self.constants = Map::new(0, cstr_eq, cstr_hash);
+        self.src_locs = Vector[SrcLoc&]::new(0);
+        self.file_set = Set[cstr, CstrHashCompare, CstrHashCompare]::new(0);
+        self.files = Vector[cstr]::new(0);
+        self.defs = Map::new(0, NULL, NULL);
+        self.def_locals = Vector[Map&]::new(0);
+        self.globals_map = Map::new(0, cstr_eq, cstr_hash);
+        self.globals = Vector[GlobalInfo&]::new(0);
+        self.break_dests = Vector[cstr]::new(0);
+        self.conti_dests = Vector[cstr]::new(0);
+        self.tuple_lits = Vector[TupleLiteral&]::new(0);
+        return self;
+    end
 end
 
-def ir_instructions self: ir_context in return cast(u64@(self + TIR_CONTEXT_instructions), Vector[ir_instr]&); end
-def ir_tuples self: ir_context in return cast(u64@(self + TIR_CONTEXT_tuple_lits), Vector[TupleLiteral&]&); end
-def ir_strings self: ir_context in return cast(u64@(self + TIR_CONTEXT_strings), Map&); end
-def ir_externs self: ir_context in return cast(u64@(self + TIR_CONTEXT_externs), Map&); end
-def ir_labels self: ir_context in return cast(u64@(self + TIR_CONTEXT_labels), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
-def ir_constants self: ir_context in return cast(u64@(self + TIR_CONTEXT_constants), Map&); end
-def ir_src_locs self: ir_context in return cast(u64@(self + TIR_CONTEXT_src_locs), Vector[SrcLoc&]&); end
-def ir_file_set self: ir_context in return cast(u64@(self + TIR_CONTEXT_file_set), Set[cstr, CstrHashCompare, CstrHashCompare]&); end
-def ir_files self: ir_context in return cast(u64@(self + TIR_CONTEXT_files), Vector[cstr]&); end
-def ir_defs self: ir_context in return cast(u64@(self + TIR_CONTEXT_defs), Map&); end
-def ir_def_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_def_locals), Vector[Map&]&); end
-def ir_globals_map self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals_map), Map&); end
-def ir_globals self: ir_context in return cast(u64@(self + TIR_CONTEXT_globals), Vector[global_info]&); end
-def ir_break_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_break_dests), Vector[cstr]&); end
-def ir_continue_dests self: ir_context in return cast(u64@(self + TIR_CONTEXT_conti_dests), Vector[cstr]&); end
-def ir_num_locals self: ir_context in return cast(u64@(self + TIR_CONTEXT_num_locals), int); end
-def ir_locals_size self: ir_context in return cast(u64@(self + TIR_CONTEXT_locals_size), int); end
+def ir_instructions self: IrContext& in return self.instructions; end
+def ir_tuples self: IrContext& in return self.tuple_lits; end
+def ir_strings self: IrContext& in return self.strings; end
+def ir_externs self: IrContext& in return self.externs; end
+def ir_labels self: IrContext& in return self.labels; end
+def ir_constants self: IrContext& in return self.constants; end
+def ir_src_locs self: IrContext& in return self.src_locs; end
+def ir_file_set self: IrContext& in return self.file_set; end
+def ir_files self: IrContext& in return self.files; end
+def ir_defs self: IrContext& in return self.defs; end
+def ir_def_locals self: IrContext& in return self.def_locals; end
+def ir_globals_map self: IrContext& in return self.globals_map; end
+def ir_globals self: IrContext& in return self.globals; end
+def ir_break_dests self: IrContext& in return self.break_dests; end
+def ir_continue_dests self: IrContext& in return self.conti_dests; end
+def ir_num_locals self: IrContext& in return self.num_locals; end
+def ir_locals_size self: IrContext& in return self.locals_size; end
 
 def ir_append self, insn in
-    u64!(insn + TIR_INSTR_src_loc, ir_current_src_loc(self));
+    insn.src_loc = ir_current_src_loc(self);
     var vec = ir_instructions(self);
     vec.push(insn);
 end
@@ -819,7 +807,7 @@ def ir_pop_src_loc self in
 end
 
 def ir_current_src_loc self in
-    ir_src_locs(self).back();
+    return ir_src_locs(self).back();
 end
 
 def ir_push_scope self in
@@ -867,8 +855,8 @@ def ir_new_def self, ident, params, ast, symbol, tt in
 
     assert(ir_def_locals(self).length == 0,
         "Compiler bug: def locals not empty when creating new def\n");
-    u64!(self + TIR_CONTEXT_num_locals, 0);
-    u64!(self + TIR_CONTEXT_locals_size, 0);
+    self.num_locals = 0;
+    self.locals_size = 0;
     symbol.label = label_cstr;
     symbol.is_varargs = false;
     return label_cstr;
@@ -884,8 +872,8 @@ def ir_new_local self, ident, st in
         local_idx += m.length;
         var cur = m.iter_begin();
         while cur != m.iter_end() do
-            var local_info = cast(cur.val, local_info);
-            offset += local_info_size(local_info);
+            var li = cast(cur.val, LocalInfo&);
+            offset += local_info_size(li);
             cur = m.iter_next(cur);
         end
         i += 1;
@@ -898,20 +886,20 @@ def ir_new_local self, ident, st in
         assert(type);
         size = type_size(type);
         if offset + size > ir_locals_size(self) then
-            u64!(self + TIR_CONTEXT_locals_size, offset + size);
+            self.locals_size = offset + size;
         end
 
     end
     ir_cur_scope(self).set(ident, make_local_info(local_idx, offset, size));
     if local_idx + 1 > ir_num_locals(self) then
-        u64!(self + TIR_CONTEXT_num_locals, local_idx + 1);
+        self.num_locals = local_idx + 1;
     end
     return local_idx;
 end
 
 def ir_new_label self, hint in
-    var label_id = cast(u64@(self + TIR_CONTEXT_label_id), int);
-    u64!(self + TIR_CONTEXT_label_id, label_id + 1);
+    var label_id = self.label_id;
+    self.label_id = label_id + 1;
 
     var label = String::new(13); // @LEAK
     label.append_cstr(".L");
@@ -1423,8 +1411,8 @@ def ir_emit_def self, ast, st, tt in
         i += 1;
     end
     ir_emit_body(self, ast.u.def_.body, st, tt);
-    u64!(insn + TIR_INSTR_nlocals, ir_num_locals(self));
-    u64!(insn + TIR_INSTR_expr_size, ir_locals_size(self));
+    insn.nlocals = ir_num_locals(self);
+    insn.expr_size = ir_locals_size(self);
     ir_append(self, make_ir_close_def(ident, label));
     ir_pop_scope(self);
 end
@@ -1823,7 +1811,7 @@ def ir_emit_cast self, ast, st, tt in
     ir_compile(self, ast.u.cast_.expr, st, tt);
 end
 
-def ir_compile self: ir_context, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
+def ir_compile self: IrContext&, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
     var k = ast.kind;
     ir_push_src_loc(self, ast.token.src_loc);
     if k == AstK::Ident then ir_emit_ident(self, ast, st, tt);
@@ -1902,7 +1890,7 @@ def ir_resolve_lazy_idents self in
                 print_token_loc(token);
                 exit(1);
             end
-            u64!(new_ir + TIR_INSTR_src_loc, token.src_loc);
+            new_ir.src_loc = token.src_loc;
             instrs.set(i, new_ir);
         elif k == IRK_CallLazyIdent then
             token = ir_instr_ident(ir);
@@ -1922,14 +1910,14 @@ def ir_resolve_lazy_idents self in
                 print_token_loc(token);
                 exit(1);
             end
-            u64!(call + TIR_INSTR_src_loc, token.src_loc);
+            call.src_loc = token.src_loc;
             instrs.set(i, call);
         end
         i += 1;
     end
 end
 
-def ir_compile_roots self: ir_context, roots: Vector[Ast&]&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector[Ast&]& in
+def ir_compile_roots self: IrContext&, roots: Vector[Ast&]&, symbol_table: SymbolTable&, type_table: TypeTable&, compile_order: Vector[Ast&]& in
 
     if false then
         // compile everything in order
@@ -1960,7 +1948,7 @@ def check_ir_kind expect, ir in
     end
 end
 
-def ir_print_whole_ir self: ir_context in
+def ir_print_whole_ir self: IrContext& in
     var instrs = ir_instructions(self);
     var i = 0; var len = instrs.length;
     while i < len do

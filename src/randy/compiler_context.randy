@@ -1,47 +1,43 @@
 
-const TCOMPILER_CONTEXT_out_lines     = 0;  // string Vector&
-const TCOMPILER_CONTEXT_def_src_name = 8;
-const TCOMPILER_CONTEXT_def_name     = 16;
-const TCOMPILER_CONTEXT_def_params   = 24;
-const TCOMPILER_CONTEXT_def_locals   = 32;
-const TCOMPILER_CONTEXT_file_map      = 40; // (cstr, int) : path -> id
-const TCOMPILER_CONTEXT_nodebug       = 48; // bool
-const sizeof_TCOMPILER_CONTEXT        = 56;
+struct CompilerContext in
+    out_lines: Vector[String&]&;
+    def_src_name: cstr;
+    def_name: cstr;
+    def_params: ptr;
+    def_locals: ptr;
+    file_map: Map&;
+    nodebug: bool;
 
-def make_compiler_context debug: bool -> compiler_context in
-    var self = malloc(sizeof_TCOMPILER_CONTEXT);
-    var lines = Vector[String&]::new(0);
-    u64!(self + TCOMPILER_CONTEXT_out_lines, lines);
-    u64!(self + TCOMPILER_CONTEXT_def_src_name, NULL);
-    u64!(self + TCOMPILER_CONTEXT_def_name, NULL);
-    u64!(self + TCOMPILER_CONTEXT_def_params, NULL);
-    u64!(self + TCOMPILER_CONTEXT_def_locals, NULL);
-    u64!(self + TCOMPILER_CONTEXT_file_map, Map::new(0, cstr_eq, cstr_hash));
-    u64!(self + TCOMPILER_CONTEXT_nodebug, not debug);
-    return cast(self, compiler_context);
+    def new debug: bool in
+        var self = cast(calloc(1, __sizeof(CompilerContext)), CompilerContext&);
+        self.out_lines = Vector[String&]::new(0);
+        self.file_map = Map::new(0, cstr_eq, cstr_hash);
+        self.nodebug = not debug;
+        return self;
+    end
 end
 
-def compiler_context_file_map self: compiler_context in
-    return cast(u64@(self + TCOMPILER_CONTEXT_file_map), Map&);
+def compiler_context_file_map self: CompilerContext& -> Map& in
+    return self.file_map;
 end
-def compiler_context_lines self: compiler_context in
-    return cast(u64@(self + TCOMPILER_CONTEXT_out_lines), Vector[String&]&);
+def compiler_context_lines self: CompilerContext& -> Vector[String&]& in
+    return self.out_lines;
 end
-def compiler_context_nodebug self: compiler_context in
-    return cast(u64@(self + TCOMPILER_CONTEXT_nodebug), bool);
+def compiler_context_nodebug self: CompilerContext& -> bool in
+    return self.nodebug;
 end
 
-def compiler_context_get_file_id self: compiler_context, path: cstr in
-    var found = compiler_context_file_map(self).find(path);
+def compiler_context_get_file_id self: CompilerContext&, path: cstr in
+    var found = self.file_map.find(path);
     return cast(found.val, int);
 end
 
-def compiler_context_add_file self:compiler_context, path: cstr, id: int in
-    compiler_context_file_map(self).set(path, id);
+def compiler_context_add_file self: CompilerContext&, path: cstr, id: int in
+    self.file_map.set(path, id);
 end
 
-def cc_print_lines self: compiler_context in
-    var lines = u64@(self + TCOMPILER_CONTEXT_out_lines);
+def cc_print_lines self: CompilerContext& in
+    var lines = self.out_lines;
     var len = lines.length;
     var i = 0;
     while i < len do
@@ -50,7 +46,7 @@ def cc_print_lines self: compiler_context in
     end
 end
 
-def cc_out self: compiler_context, cstr: cstr in
+def cc_out self: CompilerContext&, cstr: cstr in
     var lines = compiler_context_lines(self);
     var string = String::new(128);
     string.append_cstr(cstr);
@@ -58,7 +54,7 @@ def cc_out self: compiler_context, cstr: cstr in
     //printf("%s\n", cstr);
 end
 
-def cc_out_global self: compiler_context, cstr: cstr in
+def cc_out_global self: CompilerContext&, cstr: cstr in
     var str = String::new(128);
     str.append_cstr("    .global ");
     str.append_cstr(cstr);
@@ -66,7 +62,7 @@ def cc_out_global self: compiler_context, cstr: cstr in
     str.delete();
 end
 
-def cc_out_extern self: compiler_context, cstr: cstr in
+def cc_out_extern self: CompilerContext&, cstr: cstr in
     var str = String::new(128);
     str.append_cstr(".extern ");
     str.append_cstr(cstr);
@@ -74,7 +70,7 @@ def cc_out_extern self: compiler_context, cstr: cstr in
     str.delete();
 end
 
-def cc_out_label self: compiler_context, cstr: cstr in
+def cc_out_label self: CompilerContext&, cstr: cstr in
     var str = String::new(128);
     str.append_cstr(cstr);
     str.push(':');
@@ -82,7 +78,7 @@ def cc_out_label self: compiler_context, cstr: cstr in
     str.delete();
 end
 
-def cc_out_string self: compiler_context, string: String& in
+def cc_out_string self: CompilerContext&, string: String& in
     // strings are represented in the format:
     // .byte NNN, NNN, NNN, 0
     // we can then assume the maximum length the string be is
@@ -110,7 +106,7 @@ def cc_out_string self: compiler_context, string: String& in
     str.delete();
 end
 
-def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
+def cc_out_src_loc self: CompilerContext&, src_loc: SrcLoc& in
     if not src_loc then
         return;
     end
@@ -127,7 +123,7 @@ def cc_out_src_loc self: compiler_context, src_loc: SrcLoc& in
     str.delete();
 end
 
-def cc_out_file self: compiler_context, idx: int, filename: cstr in
+def cc_out_file self: CompilerContext&, idx: int, filename: cstr in
     var str = String::new(128);
     str.append_cstr("    .file ");
     str.append_int(idx);
@@ -138,7 +134,7 @@ def cc_out_file self: compiler_context, idx: int, filename: cstr in
     str.delete();
 end
 
-def cc_out_files irctx: ir_context, cctx: compiler_context in
+def cc_out_files irctx: IrContext&, cctx: CompilerContext& in
     var files = ir_files(irctx);
     var i = 0;
     while i < files.length do
@@ -148,7 +144,7 @@ def cc_out_files irctx: ir_context, cctx: compiler_context in
     end
 end
 
-def cc_out_instructions irctx: ir_context, cctx: compiler_context in
+def cc_out_instructions irctx: IrContext&, cctx: CompilerContext& in
     var instructions = ir_instructions(irctx);
     var i = 0;
     while i < instructions.length do
@@ -157,7 +153,7 @@ def cc_out_instructions irctx: ir_context, cctx: compiler_context in
     end
 end
 
-def cc_out_externs irctx: ir_context, cctx: compiler_context in
+def cc_out_externs irctx: IrContext&, cctx: CompilerContext& in
     var externs = ir_externs(irctx);
     var cur_extern = externs.iter_begin();
     var end_extern = externs.iter_end();
@@ -167,7 +163,7 @@ def cc_out_externs irctx: ir_context, cctx: compiler_context in
     end
 end
 
-def cc_out_data_section irctx: ir_context, cctx: compiler_context in
+def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
     cc_out(cctx, ".data");
     cc_out(cctx, ".align 8");
     cc_out(cctx, "__argc__: .quad 0");
@@ -227,7 +223,7 @@ def cc_out_data_section irctx: ir_context, cctx: compiler_context in
     end
 end
 
-def cc_lines_to_file cctx: compiler_context, path: cstr in
+def cc_lines_to_file cctx: CompilerContext&, path: cstr in
     var fd = open_for_write(path);
     if fd < 0 then
         printf("Open for write failed with (%d), path was: '%s'\n", fd, path);
@@ -270,6 +266,6 @@ def cc_lines_to_file cctx: compiler_context, path: cstr in
     return true;
 end
 
-def cc_out_start self: compiler_context, main_def: cstr, exit_def: cstr in
+def cc_out_start self: CompilerContext&, main_def: cstr, exit_def: cstr in
     x86_64_emit_start(self, main_def, exit_def);
 end

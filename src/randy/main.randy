@@ -289,7 +289,7 @@ def main argc: int, argv: ptr in
         if g_Experimental then
             ir_v2(type_table, symbol_table, compile_order);
         else
-            var irctx = make_ir_context();
+            var irctx = IrContext::new();
             ir_compile_roots(irctx, roots, symbol_table, type_table, compile_order);
             time(endtime);
             if verbosity > 0 then
@@ -322,7 +322,7 @@ def main argc: int, argv: ptr in
             time(starttime);
             ////////////////////////////////////////////////////////////////////////////////////////////
             // 11) Generate target arch from IR
-            var cctx = make_compiler_context(debug);
+            var cctx = CompilerContext::new(debug);
             cc_out(cctx, ".text");
             cc_out_files(irctx, cctx);
             cc_out_instructions(irctx, cctx);
