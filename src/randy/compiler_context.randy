@@ -17,24 +17,6 @@ struct CompilerContext in
     end
 end
 
-def compiler_context_file_map self: CompilerContext& -> Map& in
-    return self.file_map;
-end
-def compiler_context_lines self: CompilerContext& -> Vector[String&]& in
-    return self.out_lines;
-end
-def compiler_context_nodebug self: CompilerContext& -> bool in
-    return self.nodebug;
-end
-
-def compiler_context_get_file_id self: CompilerContext&, path: cstr in
-    var found = self.file_map.find(path);
-    return cast(found.val, int);
-end
-
-def compiler_context_add_file self: CompilerContext&, path: cstr, id: int in
-    self.file_map.set(path, id);
-end
 
 def cc_print_lines self: CompilerContext& in
     var lines = self.out_lines;
@@ -47,7 +29,7 @@ def cc_print_lines self: CompilerContext& in
 end
 
 def cc_out self: CompilerContext&, cstr: cstr in
-    var lines = compiler_context_lines(self);
+    var lines = self.out_lines;
     var string = String::new(128);
     string.append_cstr(cstr);
     lines.push(string);
@@ -110,11 +92,11 @@ def cc_out_src_loc self: CompilerContext&, src_loc: SrcLoc& in
     if not src_loc then
         return;
     end
-    if compiler_context_nodebug(self) then
+    if self.nodebug then
         return;
     end
     var str = String::new(32);
-    var id = compiler_context_get_file_id(self, src_loc.filename);
+    var id = cast(self.file_map.find(src_loc.filename).val, int);
     str.append_cstr("    .loc ");
     str.append_int(id);
     str.push(' ');
@@ -135,17 +117,17 @@ def cc_out_file self: CompilerContext&, idx: int, filename: cstr in
 end
 
 def cc_out_files irctx: IrContext&, cctx: CompilerContext& in
-    var files = ir_files(irctx);
+    var files = irctx.files;
     var i = 0;
     while i < files.length do
         cc_out_file(cctx, i, files.get(i));
-        compiler_context_add_file(cctx, files.get(i), i);
+        cctx.file_map.set(files.get(i), i);
         i += 1;
     end
 end
 
 def cc_out_instructions irctx: IrContext&, cctx: CompilerContext& in
-    var instructions = ir_instructions(irctx);
+    var instructions = irctx.instructions;
     var i = 0;
     while i < instructions.length do
         x86_64_emit_instruction(cctx, instructions.get(i));
@@ -154,7 +136,7 @@ def cc_out_instructions irctx: IrContext&, cctx: CompilerContext& in
 end
 
 def cc_out_externs irctx: IrContext&, cctx: CompilerContext& in
-    var externs = ir_externs(irctx);
+    var externs = irctx.externs;
     var cur_extern = externs.iter_begin();
     var end_extern = externs.iter_end();
     while cur_extern != end_extern do
@@ -169,15 +151,15 @@ def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
     cc_out(cctx, "__argc__: .quad 0");
     cc_out(cctx, "__argv__: .quad 0");
 
-    var globals = ir_globals(irctx);
+    var globals = irctx.globals;
     var i = 0; var len = globals.length;
     var str = String::new(0);
     while i < len do
         str.reset();
         var gi = globals.get(i);
-        var kind = global_info_kind(gi);
-        var label = global_info_label(gi);
-        var value = global_info_value(gi);
+        var kind = gi.kind;
+        var label = gi.label;
+        var value = gi.value;
         if kind == GlobalInfoKind::String then
             str.append_cstr(label);
             str.append_cstr(": .quad ");
@@ -194,7 +176,7 @@ def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
         i += 1;
     end
 
-    var tuples = ir_tuples(irctx);
+    var tuples = irctx.tuple_lits;
     i = 0; len = tuples.length;
     while i < len do
         str.reset();
@@ -212,7 +194,7 @@ def cc_out_data_section irctx: IrContext&, cctx: CompilerContext& in
     end
 
     cc_out(cctx, ".section .rodata, \"a\"");
-    var strings = ir_strings(irctx);
+    var strings = irctx.strings;
     var cur_string = strings.iter_begin();
     var end_string = strings.iter_end();
     while cur_string != end_string do
@@ -235,7 +217,7 @@ def cc_lines_to_file cctx: CompilerContext&, path: cstr in
     var buffer_end = buffer + BUFLEN;
     var p = buffer;
 
-    var lines = compiler_context_lines(cctx);
+    var lines = cctx.out_lines;
     var num_lines = lines.length;
     var line; var line_len;
     while i < num_lines do

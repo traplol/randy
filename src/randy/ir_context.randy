@@ -128,28 +128,28 @@ struct IrInstr in
     nlocals: int;
     expr_size: int;
     expr_offs: int;
-end
 
-def ir_instr_kind self: IrInstr& -> IrKind in return self.kind; end
-def ir_instr_src_loc self: IrInstr& -> SrcLoc& in return self.src_loc; end
-def ir_instr_name self: IrInstr& -> cstr in return cast(self.slot_a, cstr); end
-def ir_instr_ident self: IrInstr& -> Token& in return cast(self.slot_a, Token&); end
-def ir_instr_local self: IrInstr& -> int in return cast(self.slot_a, int); end
-def ir_instr_label self: IrInstr& -> cstr in return cast(self.slot_a, cstr); end
-def ir_instr_n self: IrInstr& -> int in return cast(self.slot_b, int); end
-def ir_instr_nargs self: IrInstr& -> int in return cast(self.slot_b, int); end
-def ir_instr_params self: IrInstr& -> Vector[cstr]& in return cast(self.slot_b, Vector[cstr]&); end
-def ir_instr_size self: IrInstr& -> int in return cast(self.slot_b, int); end
-def ir_instr_value self: IrInstr& -> int in return cast(self.slot_c, int); end
-def ir_instr_varargs self: IrInstr& -> bool in return cast(self.slot_c, bool); end
-def ir_instr_asm self: IrInstr& -> cstr in return cast(self.slot_c, cstr); end
-def ir_instr_arg self: IrInstr& -> int in return cast(self.slot_c, int); end
-def ir_instr_src_name self: IrInstr& -> cstr in return cast(self.slot_c, cstr); end
-def ir_instr_offset self: IrInstr& -> int in return cast(self.slot_c, int); end
-def ir_instr_symbol self: IrInstr& -> Symbol& in return cast(self.slot_c, Symbol&); end
-def ir_instr_nlocals self: IrInstr& -> int in return self.nlocals; end
-def ir_instr_expr_size self: IrInstr& -> int in return self.expr_size; end
-def ir_instr_expr_offs self: IrInstr& -> int in return self.expr_offs; end
+    // slot_a accessors
+    def name self -> cstr in return cast(self.slot_a, cstr); end
+    def ident self -> Token& in return cast(self.slot_a, Token&); end
+    def local self -> int in return cast(self.slot_a, int); end
+    def label self -> cstr in return cast(self.slot_a, cstr); end
+
+    // slot_b accessors
+    def n self -> int in return cast(self.slot_b, int); end
+    def nargs self -> int in return cast(self.slot_b, int); end
+    def params self -> Vector[cstr]& in return cast(self.slot_b, Vector[cstr]&); end
+    def ir_size self -> int in return cast(self.slot_b, int); end
+
+    // slot_c accessors
+    def value self -> int in return cast(self.slot_c, int); end
+    def ir_varargs self -> bool in return cast(self.slot_c, bool); end
+    def asm_code self -> cstr in return cast(self.slot_c, cstr); end
+    def arg self -> int in return cast(self.slot_c, int); end
+    def ir_src_name self -> cstr in return cast(self.slot_c, cstr); end
+    def ir_offset self -> int in return cast(self.slot_c, int); end
+    def symbol self -> Symbol& in return cast(self.slot_c, Symbol&); end
+end
 
 def make_ir_alloc_temps n -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
@@ -586,7 +586,7 @@ def print_ir_ref_global self in
     printf("label='%s')\n", self.slot_a);
 end
 def print_ir ir: IrInstr& in
-    var k = ir_instr_kind(ir);
+    var k = ir.kind;
     if k == IrKind::AllocTemps then print_ir_alloc_temps(ir);
     elif k == IrKind::Call then print_ir_call(ir);
     elif k == IrKind::CallLazyIdent then print_ir_call_lazy_ident(ir);
@@ -653,8 +653,6 @@ def make_def_info label: cstr, varargs: bool -> DefInfo& in
     return self;
 end
 
-def def_info_label self: DefInfo& -> cstr in return self.label; end
-def def_info_varargs self: DefInfo& -> bool in return self.varargs; end
 
 enum CIK in
     String;
@@ -694,9 +692,6 @@ def make_global_info kind: GlobalInfoKind, label: cstr, value: ptr -> GlobalInfo
     return self;
 end
 
-def global_info_kind self: GlobalInfo& -> GlobalInfoKind in return self.kind; end
-def global_info_label self: GlobalInfo& -> cstr in return self.label; end
-def global_info_value self: GlobalInfo& -> ptr in return self.value; end
 
 struct LocalInfo in
     n: int;
@@ -712,9 +707,6 @@ def make_local_info n: int, offs: int, size: int -> LocalInfo& in
     return self;
 end
 
-def local_info_n self: LocalInfo& -> int in return self.n; end
-def local_info_offs self: LocalInfo& -> int in return self.offs; end
-def local_info_size self: LocalInfo& -> int in return self.size; end
 
 struct TupleLiteral in
     label: cstr;
@@ -769,58 +761,41 @@ struct IrContext in
     end
 end
 
-def ir_instructions self: IrContext& in return self.instructions; end
-def ir_tuples self: IrContext& in return self.tuple_lits; end
-def ir_strings self: IrContext& in return self.strings; end
-def ir_externs self: IrContext& in return self.externs; end
-def ir_labels self: IrContext& in return self.labels; end
-def ir_constants self: IrContext& in return self.constants; end
-def ir_src_locs self: IrContext& in return self.src_locs; end
-def ir_file_set self: IrContext& in return self.file_set; end
-def ir_files self: IrContext& in return self.files; end
-def ir_defs self: IrContext& in return self.defs; end
-def ir_def_locals self: IrContext& in return self.def_locals; end
-def ir_globals_map self: IrContext& in return self.globals_map; end
-def ir_globals self: IrContext& in return self.globals; end
-def ir_break_dests self: IrContext& in return self.break_dests; end
-def ir_continue_dests self: IrContext& in return self.conti_dests; end
-def ir_num_locals self: IrContext& in return self.num_locals; end
-def ir_locals_size self: IrContext& in return self.locals_size; end
 
 def ir_append self, insn in
     insn.src_loc = ir_current_src_loc(self);
-    var vec = ir_instructions(self);
+    var vec = self.instructions;
     vec.push(insn);
 end
 
 def ir_push_src_loc self, src_loc in
-    var src_locs = ir_src_locs(self);
+    var src_locs = self.src_locs;
     src_locs.push(src_loc);
 
     var filename = src_loc.filename;
-    var fileset = ir_file_set(self);
+    var fileset = self.file_set;
     if not fileset.contains(filename) then
         fileset.insert(filename);
-        var files = ir_files(self);
+        var files = self.files;
         files.push(filename);
     end
 end
 
 def ir_pop_src_loc self in
-    ir_src_locs(self).pop();
+    self.src_locs.pop();
 end
 
 def ir_current_src_loc self in
-    return ir_src_locs(self).back();
+    return self.src_locs.back();
 end
 
 def ir_push_scope self in
-    ir_def_locals(self).push(Map::new(0, cstr_eq, cstr_hash));
+    self.def_locals.push(Map::new(0, cstr_eq, cstr_hash));
     ir_append(self, make_ir_scope_open());
 end
 
 def ir_pop_scope self in
-    var vec = ir_def_locals(self);
+    var vec = self.def_locals;
     var m = cast(vec.back(), Map&);
     vec.pop();
     ir_append(self, make_ir_scope_close());
@@ -828,11 +803,11 @@ def ir_pop_scope self in
 end
 
 def ir_cur_scope self in
-    return ir_def_locals(self).back();
+    return self.def_locals.back();
 end
 
 def ir_new_def self, ident, params, ast, symbol, tt in
-    var defs = ir_defs(self);
+    var defs = self.defs;
     var found = defs.find(ident);
     if found then
         printf("ERROR: def `%s` already defined\n", ident);
@@ -854,10 +829,10 @@ def ir_new_def self, ident, params, ast, symbol, tt in
     label.append_cstr(ident);
 
     var label_cstr = label.cstr();
-    ir_labels(self).insert(label_cstr);
+    self.labels.insert(label_cstr);
     defs.set(symbol_name(symbol), make_def_info(label_cstr, false));
 
-    assert(ir_def_locals(self).length == 0,
+    assert(self.def_locals.length == 0,
         "Compiler bug: def locals not empty when creating new def\n");
     self.num_locals = 0;
     self.locals_size = 0;
@@ -867,7 +842,7 @@ def ir_new_def self, ident, params, ast, symbol, tt in
 end
 
 def ir_new_local self, ident, st in
-    var def_locals = ir_def_locals(self);
+    var def_locals = self.def_locals;
     var local_idx = 0;
     var offset = 0;
     var i = 0; var len = def_locals.length;
@@ -877,7 +852,7 @@ def ir_new_local self, ident, st in
         var cur = m.iter_begin();
         while cur != m.iter_end() do
             var li = cast(cur.val, LocalInfo&);
-            offset += local_info_size(li);
+            offset += li.size;
             cur = m.iter_next(cur);
         end
         i += 1;
@@ -889,13 +864,13 @@ def ir_new_local self, ident, st in
         var type = symbol_type(sym);
         assert(type);
         size = type_size(type);
-        if offset + size > ir_locals_size(self) then
+        if offset + size > self.locals_size then
             self.locals_size = offset + size;
         end
 
     end
     ir_cur_scope(self).set(ident, make_local_info(local_idx, offset, size));
-    if local_idx + 1 > ir_num_locals(self) then
+    if local_idx + 1 > self.num_locals then
         self.num_locals = local_idx + 1;
     end
     return local_idx;
@@ -913,19 +888,19 @@ def ir_new_label self, hint in
     label.append_int(label_id);
 
     var label_cstr = label.cstr();
-    ir_labels(self).insert(label_cstr);
+    self.labels.insert(label_cstr);
     return label_cstr;
 end
 
 def ir_string_label self, string in
-    var strings = ir_strings(self);
+    var strings = self.strings;
     var found = strings.find(string);
     if found then
         return found.val;
     end
 
     var label = ir_new_label(self, "C");
-    ir_labels(self).insert(label);
+    self.labels.insert(label);
     strings.set(string, label);
 
     return label;
@@ -933,45 +908,45 @@ end
 
 def ir_tuple_label self, slots in
     var label = ir_new_label(self, "T");
-    ir_labels(self).insert(label);
-    ir_tuples(self).push(TupleLiteral::new(label, slots));
+    self.labels.insert(label);
+    self.tuple_lits.push(TupleLiteral::new(label, slots));
     return label;
 end
 
 def ir_is_label self, ident in
-    return ir_labels(self).contains(ident);
+    return self.labels.contains(ident);
 end
 
 def ir_is_def self, ident in
     //var sym = st_get_symbol(g_SymbolTable, ident);
-    if ir_defs(self).find(ident) != NULL then
+    if self.defs.find(ident) != NULL then
         return true;
     else
         return false;
     end
 end
 
-def ir_get_def self, ident in
-    var found = ir_defs(self).find(ident);
-    return found.val;
+def ir_get_def self, ident -> DefInfo& in
+    var found = self.defs.find(ident);
+    return cast(found.val, DefInfo&);
 end
 
 def ir_is_extern self, ident in
-    return ir_externs(self).find(ident) != NULL;
+    return self.externs.find(ident) != NULL;
 end
 
-def ir_get_extern self, ident in
-    var found = ir_externs(self).find(ident);
-    return found.val;
+def ir_get_extern self, ident -> DefInfo& in
+    var found = self.externs.find(ident);
+    return cast(found.val, DefInfo&);
 end
 
 def ir_add_extern self, ident, params, is_varargs in
     var def_info = make_def_info(ident, is_varargs);
-    ir_externs(self).set(ident, def_info);
+    self.externs.set(ident, def_info);
 end
 
 def ir_is_local self, ident in
-    var def_locals = ir_def_locals(self);
+    var def_locals = self.def_locals;
     var i = 0; var len = def_locals.length;
     while i < len do
         if def_locals.get(i).find(ident) then
@@ -990,13 +965,13 @@ def ir_is_cur_scope_local self, ident in
 end
 
 def ir_get_local self, ident in
-    var def_locals = ir_def_locals(self);
+    var def_locals = self.def_locals;
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
         found = def_locals.get(i).find(ident);
         if found then
-            return local_info_n(found.val);
+            return cast(found.val, LocalInfo&).n;
         end
         i -= 1;
     end
@@ -1004,13 +979,13 @@ def ir_get_local self, ident in
 end
 
 def ir_get_local_offset self, ident in
-    var def_locals = ir_def_locals(self);
+    var def_locals = self.def_locals;
     var i = def_locals.length - 1;
     var found;
     while i >= 0 do
         found = def_locals.get(i).find(ident);
         if found then
-            return local_info_offs(found.val);
+            return cast(found.val, LocalInfo&).offs;
         end
         i -= 1;
     end
@@ -1018,52 +993,52 @@ def ir_get_local_offset self, ident in
 end
 
 def ir_is_const self, ident in
-    return ir_constants(self).find(ident) != NULL;
+    return self.constants.find(ident) != NULL;
 end
 
 def ir_get_const self, ident in
-    var found = ir_constants(self).find(ident);
+    var found = self.constants.find(ident);
     return cast(found.val, ConstInfo&);
 end
 
 def ir_add_const self, ident, value in
-    ir_constants(self).set(ident, value);
+    self.constants.set(ident, value);
 end
 
 def ir_is_global self, ident in
-    return ir_globals_map(self).find(ident) != NULL;
+    return self.globals_map.find(ident) != NULL;
 end
 
-def ir_get_global self, ident in
-    var found = ir_globals_map(self).find(ident);
-    return found.val;
+def ir_get_global self, ident -> GlobalInfo& in
+    var found = self.globals_map.find(ident);
+    return cast(found.val, GlobalInfo&);
 end
 
 def ir_add_global_string self, ident, value in
     var label = ir_new_label(self, "G");
     var val_label = ir_string_label(self, value);
     var gi = make_global_info(GlobalInfoKind::String, label, val_label);
-    ir_globals_map(self).set(ident, gi);
-    ir_globals(self).push(gi);
+    self.globals_map.set(ident, gi);
+    self.globals.push(gi);
 end
 
 def ir_add_global_int self, ident, value in
     var label = ir_new_label(self, "G");
     var gi = make_global_info(GlobalInfoKind::Integer, label, value);
-    ir_globals_map(self).set(ident, gi);
-    ir_globals(self).push(gi);
+    self.globals_map.set(ident, gi);
+    self.globals.push(gi);
 end
 
 def ir_push_break_dest self, dest in
-    ir_break_dests(self).push(dest);
+    self.break_dests.push(dest);
 end
 
 def ir_pop_break_dest self in
-    ir_break_dests(self).pop();
+    self.break_dests.pop();
 end
 
 def ir_get_break_dest self in
-    var dests = ir_break_dests(self);
+    var dests = self.break_dests;
     if dests.length == 0 then
         return NULL;
     end
@@ -1071,15 +1046,15 @@ def ir_get_break_dest self in
 end
 
 def ir_push_continue_dest self, dest in
-    ir_continue_dests(self).push(dest);
+    self.conti_dests.push(dest);
 end
 
 def ir_pop_continue_dest self in
-    ir_continue_dests(self).pop();
+    self.conti_dests.pop();
 end
 
 def ir_get_continue_dest self in
-    var dests = ir_continue_dests(self);
+    var dests = self.conti_dests;
     if dests.length == 0 then
         return NULL;
     end
@@ -1119,13 +1094,13 @@ def ir_emit_ident self, ast, st, tt in
         end
     elif ir_is_def(self, ident) then
         var def_info = ir_get_def(self, ident);
-        ir_append(self, make_ir_push_label(def_info_label(def_info)));
+        ir_append(self, make_ir_push_label(def_info.label));
     elif ir_is_extern(self, ident) then
         var extern_info = ir_get_extern(self, ident);
-        ir_append(self, make_ir_push_label(def_info_label(extern_info)));
+        ir_append(self, make_ir_push_label(extern_info.label));
     elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
-        ir_append(self, make_ir_get_global(ident, global_info_label(gi)));
+        ir_append(self, make_ir_get_global(ident, gi.label));
     else
         ir_append(self, make_ir_lazy_ident(ast.token, st_get_symbol(st, ident)));
     end
@@ -1172,10 +1147,10 @@ def ir_emit_call self, ast, st, tt in
         var info;
         if ir_is_def(self, ident) then
             info = ir_get_def(self, ident);
-            ir_append(self, make_ir_call(def_info_label(info), def_info_varargs(info)));
+            ir_append(self, make_ir_call(info.label, info.varargs));
         elif ir_is_extern(self, ident) then
             info = ir_get_extern(self, ident);
-            ir_append(self, make_ir_call(def_info_label(info), def_info_varargs(info)));
+            ir_append(self, make_ir_call(info.label, info.varargs));
         elif ir_is_label(self, ident) then
             ir_append(self, make_ir_call(ident, false));
         elif ir_is_local(self, ident) then
@@ -1300,7 +1275,7 @@ def ir_emit_assign_op self, ast, st, tt in
             ir_append(self, make_ir_get_local(ident, n, offs));
         elif ir_is_global(self, ident) then
             var gi = ir_get_global(self, ident);
-            var label = global_info_label(gi);
+            var label = gi.label;
             ir_append(self, make_ir_get_global(ident, label));
             else
         //ir_append(self, make_ir_lazy_ident(ast.token));
@@ -1340,7 +1315,7 @@ def ir_emit_assign_op self, ast, st, tt in
         ir_append(self, make_ir_set_local(ident, n, offs));
     elif ir_is_global(self, ident) then
         var gi = ir_get_global(self, ident);
-        var label = global_info_label(gi);
+        var label = gi.label;
         ir_append(self, make_ir_set_global(ident, label));
     else
         print_ast_src_loc(ast);
@@ -1415,8 +1390,8 @@ def ir_emit_def self, ast, st, tt in
         i += 1;
     end
     ir_emit_body(self, ast.u.def_.body, st, tt);
-    insn.nlocals = ir_num_locals(self);
-    insn.expr_size = ir_locals_size(self);
+    insn.nlocals = self.num_locals;
+    insn.expr_size = self.locals_size;
     ir_append(self, make_ir_close_def(ident, label));
     ir_pop_scope(self);
 end
@@ -1561,7 +1536,7 @@ def ir_emit_inline_asm self, ast, st, tt in
     var asm_name = ast.u.inline_asm.ident;
     var asm_code = ast.u.inline_asm.asmcode;
     ir_append(self, make_ir_inline_asm(asm_name, asm_code));
-    ir_labels(self).insert(asm_name);
+    self.labels.insert(asm_name);
 end
 
 def ir_emit_global self, ast, st, tt in
@@ -1743,7 +1718,7 @@ def ir_emit_get_reference self, ast, st, tt in
             ir_append(self, make_ir_ref_local(ident, n, offs));
         elif ir_is_global(self, ident) then
             var gi = ir_get_global(self, ident);
-            ir_append(self, make_ir_ref_global(ident, global_info_label(gi)));
+            ir_append(self, make_ir_ref_global(ident, gi.label));
         else
             assert(false, "TODO: `%s` is not a local nor global, how to get reference?\n", ident);
         end
@@ -1863,16 +1838,16 @@ def ir_compile self: IrContext&, ast: Ast&, st: SymbolTable&, tt: TypeTable& in
 end
 
 def ir_resolve_lazy_idents self in
-    var instrs = ir_instructions(self);
+    var instrs = self.instructions;
     var i = 0; var len = instrs.length;
     var k; var ir; var token;
     var info = NULL;
     while i < len do
         ir = instrs.get(i);
-        k = ir_instr_kind(ir);
+        k = ir.kind;
         if k == IrKind::LazyIdent then
-            token = ir_instr_ident(ir);
-            var symbol = ir_instr_symbol(ir);
+            token = ir.ident();
+            var symbol = ir.symbol();
             var new_ir;
             if ir_is_const(self, symbol_name(symbol)) then
                 var info = ir_get_const(self, symbol_name(symbol));
@@ -1883,10 +1858,10 @@ def ir_resolve_lazy_idents self in
                 end
             elif ir_is_def(self, symbol_name(symbol)) then
                 info = ir_get_def(self, symbol_name(symbol));
-                new_ir = make_ir_push_label(def_info_label(info));
+                new_ir = make_ir_push_label(info.label);
             elif ir_is_extern(self, symbol_name(symbol)) then
                 info = ir_get_extern(self, symbol_name(symbol));
-                new_ir = make_ir_push_label(def_info_label(info));
+                new_ir = make_ir_push_label(info.label);
             elif ir_is_label(self, symbol_name(symbol)) then
                 new_ir = make_ir_push_label(symbol_name(symbol));
             else
@@ -1897,16 +1872,16 @@ def ir_resolve_lazy_idents self in
             new_ir.src_loc = token.src_loc;
             instrs.set(i, new_ir);
         elif k == IrKind::CallLazyIdent then
-            token = ir_instr_ident(ir);
-            var symbol = ir_instr_symbol(ir);
-            var nargs = ir_instr_nargs(ir);
+            token = ir.ident();
+            var symbol = ir.symbol();
+            var nargs = ir.nargs();
             var call = NULL;
             if ir_is_def(self, symbol_name(symbol)) then
                 info = ir_get_def(self, symbol_name(symbol));
-                call = make_ir_call(def_info_label(info), def_info_varargs(info));
+                call = make_ir_call(info.label, info.varargs);
             elif ir_is_extern(self, symbol_name(symbol)) then
                 info = ir_get_extern(self, symbol_name(symbol));
-                call = make_ir_call(def_info_label(info), def_info_varargs(info));
+                call = make_ir_call(info.label, info.varargs);
             elif ir_is_label(self, symbol_name(symbol)) then
                 call = make_ir_call(symbol_name(symbol), false);
             else
@@ -1943,7 +1918,7 @@ def ir_compile_roots self: IrContext&, roots: Vector[Ast&]&, symbol_table: Symbo
 end
 
 def check_ir_kind expect, ir in
-    var actual = ir_instr_kind(ir);
+    var actual = ir.kind;
     if expect != actual then
         printf("check_ir_kind failed: expected %s, actual was %s\n",
             ir_instr_kind_cstr(expect),
@@ -1953,7 +1928,7 @@ def check_ir_kind expect, ir in
 end
 
 def ir_print_whole_ir self: IrContext& in
-    var instrs = ir_instructions(self);
+    var instrs = self.instructions;
     var i = 0; var len = instrs.length;
     while i < len do
         print_ir(instrs.get(i));

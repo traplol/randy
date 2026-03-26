@@ -15,10 +15,10 @@ end
 def x86_64_emit_get_local cc, ir in
     check_ir_kind(IrKind::GetLocal, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    cc_out_src_loc(cc, ir.src_loc);
+    var offs = (ir.n() + 1) * REG_SIZE;
     if g_Experimental then
-        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+        offs = (ir.expr_offs + PTR_BITS) / BYTE_BITS;
     end
     var str = String::new(20);
     str.append_cstr("    movq -");
@@ -32,10 +32,10 @@ end
 def x86_64_emit_ref_local cc, ir in
     check_ir_kind(IrKind::RefLocal, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    cc_out_src_loc(cc, ir.src_loc);
+    var offs = (ir.n() + 1) * REG_SIZE;
     if g_Experimental then
-        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+        offs = (ir.expr_offs + PTR_BITS) / BYTE_BITS;
     end
     var str = String::new(20);
     str.append_cstr("    leaq -");
@@ -49,10 +49,10 @@ end
 def x86_64_emit_push_label cc, ir in
     check_ir_kind(IrKind::PushLabel, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     var str = String::new(20);
     str.append_cstr("    leaq ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     str.append_cstr(", %rax");
     cc_out(cc, str.cstr());
     str.delete();
@@ -62,9 +62,9 @@ end
 def x86_64_emit_push_int cc, ir in
     check_ir_kind(IrKind::PushInt, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     var str = String::new(20);
-    var val = ir_instr_value(ir);
+    var val = ir.value();
     if (0-2147483649) < val and val < 4294967296 then
         str.append_cstr("    movq $");
     else
@@ -80,9 +80,9 @@ end
 def x86_64_emit_alloc_temps cc, ir in
     check_ir_kind(IrKind::AllocTemps, ir);
     //print_ir(ir);
-    var n = ir_instr_n(ir);
+    var n = ir.n();
     if n > 0 then
-        cc_out_src_loc(cc, ir_instr_src_loc(ir));
+        cc_out_src_loc(cc, ir.src_loc);
         var offs = (n+1) * REG_SIZE;
         var str = String::new(20);
         str.append_cstr("    subq $");
@@ -96,9 +96,9 @@ end
 def x86_64_emit_free_temps cc, ir in
     check_ir_kind(IrKind::FreeTemps, ir);
     //print_ir(ir);
-    var n = ir_instr_n(ir);
+    var n = ir.n();
     if n > 0 then
-        cc_out_src_loc(cc, ir_instr_src_loc(ir));
+        cc_out_src_loc(cc, ir.src_loc);
         var offs = (n+1) * REG_SIZE;
         var str = String::new(20);
         str.append_cstr("    addq $");
@@ -112,8 +112,8 @@ end
 def x86_64_emit_store_temp cc, ir in
     check_ir_kind(IrKind::StoreTemp, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    cc_out_src_loc(cc, ir.src_loc);
+    var offs = (ir.n() + 1) * REG_SIZE;
     cc_out(cc, "    popq %rax");
     var str = String::new(20);
     str.append_cstr("    movq %rax, ");
@@ -126,8 +126,8 @@ end
 def x86_64_emit_set_arg_temp cc, ir in
     check_ir_kind(IrKind::SetArgTemp, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var n = ir_instr_n(ir);
+    cc_out_src_loc(cc, ir.src_loc);
+    var n = ir.n();
     var offs = (n + 1) * REG_SIZE;
     var str = String::new(20);
     if n < SYSV_REGISTERS then
@@ -147,21 +147,21 @@ end
 def x86_64_emit_call cc, ir in
     check_ir_kind(IrKind::Call, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
 
-    if cstr_eq("__builtin_break", ir_instr_label(ir)) then
+    if cstr_eq("__builtin_break", ir.label()) then
         cc_out(cc, "    int3");
         // needed to satisfy the DropTop that gets emitted after this "call"
         cc_out(cc, "    subq $8, %rsp");
         return;
     end
 
-    if ir_instr_varargs(ir) then
+    if ir.ir_varargs() then
         cc_out(cc, "    xor %al, %al");
     end
     var str = String::new(20);
     str.append_cstr("    call ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     cc_out(cc, str.cstr());
     str.delete();
     cc_out(cc, "    pushq %rax");
@@ -170,7 +170,7 @@ end
 def x86_64_emit_pop_call cc, ir in
     check_ir_kind(IrKind::PopCall, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rcx");
     cc_out(cc, "    xor %al, %al");
     cc_out(cc, "    call *%rcx");
@@ -180,7 +180,7 @@ end
 def x86_64_emit_op_add cc, ir in
     check_ir_kind(IrKind::OpAdd, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    addq %rdx, %rax");
@@ -190,7 +190,7 @@ end
 def x86_64_emit_op_sub cc, ir in
     check_ir_kind(IrKind::OpSub, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    subq %rdx, %rax");
@@ -200,7 +200,7 @@ end
 def x86_64_emit_op_mul cc, ir in
     check_ir_kind(IrKind::OpMul, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    imulq %rdx, %rax");
@@ -210,7 +210,7 @@ end
 def x86_64_emit_op_div cc, ir in
     check_ir_kind(IrKind::OpDiv, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rcx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    cqto");
@@ -221,7 +221,7 @@ end
 def x86_64_emit_op_mod cc, ir in
     check_ir_kind(IrKind::OpMod, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rcx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    cqto");
@@ -232,7 +232,7 @@ end
 def x86_64_emit_op_bit_xor cc, ir in
     check_ir_kind(IrKind::OpBitXOR, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    xorq %rdx, %rax");
@@ -242,7 +242,7 @@ end
 def x86_64_emit_op_bit_and cc, ir in
     check_ir_kind(IrKind::OpBitAND, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    andq %rdx, %rax");
@@ -252,7 +252,7 @@ end
 def x86_64_emit_op_bit_or cc, ir in
     check_ir_kind(IrKind::OpBitOR, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rdx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    orq %rdx, %rax");
@@ -262,7 +262,7 @@ end
 def x86_64_emit_op_bit_shift_l cc, ir in
     check_ir_kind(IrKind::OpBitShiftL, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rcx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    salq %cl, %rax");
@@ -272,7 +272,7 @@ end
 def x86_64_emit_op_bit_shift_r cc, ir in
     check_ir_kind(IrKind::OpBitShiftR, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rcx"); // -- b
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    sarq %cl, %rax");
@@ -296,49 +296,49 @@ end
 def x86_64_emit_op_eq cc, ir in
     check_ir_kind(IrKind::OpEq, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "sete");
 end
 
 def x86_64_emit_op_not_eq cc, ir in
     check_ir_kind(IrKind::OpNotEq, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "setne");
 end
 
 def x86_64_emit_op_less cc, ir in
     check_ir_kind(IrKind::OpLess, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "setl");
 end
 
 def x86_64_emit_op_less_eq cc, ir in
     check_ir_kind(IrKind::OpLessEq, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "setle");
 end
 
 def x86_64_emit_op_greater cc, ir in
     check_ir_kind(IrKind::OpGreater, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "setg");
 end
 
 def x86_64_emit_op_greater_eq cc, ir in
     check_ir_kind(IrKind::OpGreaterEq, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     _x86_64_emit_compare(cc, "setge");
 end
 
 def x86_64_emit_pop_return cc, ir in
     check_ir_kind(IrKind::PopReturn, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    leave");
     cc_out(cc, "    ret");
@@ -347,7 +347,7 @@ end
 def x86_64_emit_return_void cc, ir in
     check_ir_kind(IrKind::ReturnVoid, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    xorq %rax, %rax");
     cc_out(cc, "    leave");
     cc_out(cc, "    ret");
@@ -356,12 +356,12 @@ end
 def x86_64_emit_set_local cc, ir in
     check_ir_kind(IrKind::SetLocal, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax");
     var str = String::new(20);
-    var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
+    var offs = (ir.n() + 1) * REG_SIZE;
     if g_Experimental then
-        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+        offs = (ir.expr_offs + PTR_BITS) / BYTE_BITS;
     end
     str.append_cstr("    movq %rax, -");
     str.append_int(offs);
@@ -373,16 +373,16 @@ end
 def x86_64_emit_new_def cc, ir in
     check_ir_kind(IrKind::NewDef, ir);
     //print_ir(ir);
-    var label = ir_instr_label(ir);
+    var label = ir.label();
     cc_out_global(cc, label);
     cc_out(cc, "    .align 16");
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out_label(cc, label);
     cc_out(cc, "    pushq %rbp");
     cc_out(cc, "    movq %rsp, %rbp");
-    var n = ir_instr_nlocals(ir) * REG_SIZE;
+    var n = ir.nlocals * REG_SIZE;
     if g_Experimental then
-        n = ir_instr_expr_size(ir) / BYTE_BITS;
+        n = ir.expr_size / BYTE_BITS;
     end
     if n > 0 then
         var str = String::new(20);
@@ -397,13 +397,13 @@ end
 def x86_64_emit_set_local_arg cc, ir in
     check_ir_kind(IrKind::SetLocalArg, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var local_n = ir_instr_n(ir);
+    cc_out_src_loc(cc, ir.src_loc);
+    var local_n = ir.n();
     var offs = REG_SIZE * (local_n+1);
     if g_Experimental then
-        offs = (ir_instr_expr_offs(ir) + PTR_BITS) / BYTE_BITS;
+        offs = (ir.expr_offs + PTR_BITS) / BYTE_BITS;
     end
-    var arg_n = ir_instr_arg(ir);
+    var arg_n = ir.arg();
     var str = String::new(20);
     if arg_n < SYSV_REGISTERS then
         str.append_cstr("    movq ");
@@ -434,7 +434,7 @@ end
 def x86_64_emit_close_def cc, ir in
     check_ir_kind(IrKind::CloseDef, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    movq %rbp, %rsp");
     cc_out(cc, "    popq %rbp");
     cc_out(cc, "    ret");
@@ -443,11 +443,11 @@ end
 def x86_64_emit_goto_top_false cc, ir in
     check_ir_kind(IrKind::GotoTopFalse, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    cmpq $0, (%rsp)");
     var str = String::new(20);
     str.append_cstr("    je ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     cc_out(cc, str.cstr());
     str.delete();
     cc_out(cc, "    addq $8, %rsp");
@@ -456,11 +456,11 @@ end
 def x86_64_emit_goto_top_true cc, ir in
     check_ir_kind(IrKind::GotoTopTrue, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    cmpq $0, (%rsp)");
     var str = String::new(20);
     str.append_cstr("    jne ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     cc_out(cc, str.cstr());
     str.delete();
     cc_out(cc, "    addq $8, %rsp");
@@ -469,12 +469,12 @@ end
 def x86_64_emit_goto_false cc, ir in
     check_ir_kind(IrKind::GotoFalse, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    cmpq $0, %rax");
     var str = String::new(20);
     str.append_cstr("    je ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     cc_out(cc, str.cstr());
     str.delete();
 end
@@ -482,10 +482,10 @@ end
 def x86_64_emit_goto cc, ir in
     check_ir_kind(IrKind::Goto, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     var str = String::new(20);
     str.append_cstr("    jmp ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     cc_out(cc, str.cstr());
     str.delete();
 end
@@ -493,15 +493,15 @@ end
 def x86_64_emit_label cc, ir in
     check_ir_kind(IrKind::Label, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    cc_out_label(cc, ir_instr_label(ir));
+    cc_out_src_loc(cc, ir.src_loc);
+    cc_out_label(cc, ir.label());
 end
 
 def x86_64_emit_ptr_read cc, ir in
     check_ir_kind(IrKind::PtrRead, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var size = ir_instr_size(ir);
+    cc_out_src_loc(cc, ir.src_loc);
+    var size = ir.ir_size();
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    xorl %edx, %edx");
     var str = String::new(20);
@@ -535,8 +535,8 @@ end
 def x86_64_emit_ptr_write cc, ir in
     check_ir_kind(IrKind::PtrWrite, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    var size = ir_instr_size(ir);
+    cc_out_src_loc(cc, ir.src_loc);
+    var size = ir.ir_size();
     cc_out(cc, "    popq %rax"); // -- ptr
     cc_out(cc, "    popq %rdx"); // -- value
     var str = String::new(20);
@@ -569,12 +569,12 @@ end
 def x86_64_emit_ptr_copy cc, ir in
     check_ir_kind(IrKind::PtrCopy, ir);
     //print_ir(ir);
-    var bits = ir_instr_size(ir);
+    var bits = ir.ir_size();
     if bits <= 0 then
         return;
     end
     var size = (bits + 7) / 8; // num of bytes to copy
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax"); // -- dest
     cc_out(cc, "    popq %rdx"); // -- src
 
@@ -695,11 +695,11 @@ end
 def x86_64_emit_ptr_offset cc, ir in
     check_ir_kind(IrKind::PtrOffset, ir);
     //print_ir(ir);
-    var offset = ir_instr_offset(ir) / BYTE_BITS;
+    var offset = ir.ir_offset() / BYTE_BITS;
     if offset == 0 then
         return;
     end
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax");
 
     var str = String::new(20);
@@ -715,7 +715,7 @@ end
 def x86_64_emit_bit_not cc, ir in
     check_ir_kind(IrKind::BitNot, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    not %rax");
     cc_out(cc, "    pushq %rax");
@@ -724,7 +724,7 @@ end
 def x86_64_emit_logic_not cc, ir in
     check_ir_kind(IrKind::LogicNot, ir);
     //print_ir(ir);
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
+    cc_out_src_loc(cc, ir.src_loc);
     cc_out(cc, "    popq %rax"); // -- a
     cc_out(cc, "    cmpq $0, %rax");
     cc_out(cc, "    sete %al");
@@ -735,9 +735,9 @@ end
 def x86_64_emit_inline_asm cc, ir in
     check_ir_kind(IrKind::InlineAsm, ir);
     cc_out(cc, "    .align 16");
-    cc_out_label(cc, ir_instr_name(ir));
-    cc_out_src_loc(cc, ir_instr_src_loc(ir));
-    cc_out(cc, ir_instr_asm(ir));
+    cc_out_label(cc, ir.name());
+    cc_out_src_loc(cc, ir.src_loc);
+    cc_out(cc, ir.asm_code());
 end
 
 def x86_64_emit_lazy_ident cc, ir in
@@ -762,7 +762,7 @@ def x86_64_emit_set_global cc, ir in
     cc_out(cc, "    popq %rax");
     var str = String::new(20);
     str.append_cstr("    movq %rax, (");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     str.append_cstr(")");
     cc_out(cc, str.cstr());
     str.delete();
@@ -773,7 +773,7 @@ def x86_64_emit_get_global cc, ir in
     //print_ir(ir);
     var str = String::new(20);
     str.append_cstr("    movq (");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     str.append_cstr("), %rax");
     cc_out(cc, str.cstr());
     cc_out(cc, "    pushq %rax");
@@ -785,7 +785,7 @@ def x86_64_emit_ref_global cc, ir in
     //print_ir(ir);
     var str = String::new(20);
     str.append_cstr("    leaq ");
-    str.append_cstr(ir_instr_label(ir));
+    str.append_cstr(ir.label());
     str.append_cstr(", %rax");
     cc_out(cc, str.cstr());
     cc_out(cc, "    pushq %rax");
@@ -801,7 +801,7 @@ def x86_64_emit_negative cc, ir in
 end
 
 def x86_64_emit_instruction cc: CompilerContext&, ir: IrInstr& in
-    var k = ir_instr_kind(ir);
+    var k = ir.kind;
     if k == IrKind::GetLocal then x86_64_emit_get_local(cc, ir);
     elif k == IrKind::PushLabel then x86_64_emit_push_label(cc, ir);
     elif k == IrKind::PushInt then x86_64_emit_push_int(cc, ir);
