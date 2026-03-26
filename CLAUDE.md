@@ -22,15 +22,14 @@ Randy is a self-hosting compiled programming language targeting x86_64 Linux. Th
 
 ## Build & Run
 
-The compiler binary is at `bin/randy`. It requires musl libc as the dynamic linker. Since the binary's ELF interpreter is hardcoded to a path that may not exist, invoke it via musl directly:
+The compiler binary is at `bin/randy`. It requires musl libc as the dynamic linker. A wrapper script handles this transparently:
 
 ```bash
-# Run the compiler
-/tmp/musl-install/lib/libc.so bin/randy -c <file>.randy -o <output> -I include \
+./randy -c <file>.randy -o <output> -I include \
   -ld -dynamic-linker /tmp/musl-install/lib/libc.so -lc
 ```
 
-If musl is not installed at `/tmp/musl-install/`, build it from source:
+All tools (`./randy`, `bootstrap.sh`, `test.py`) read musl's location from the `MUSL_LIBC` env var, defaulting to `/tmp/musl-install/lib/libc.so`. If musl is not installed there, build it from source:
 ```bash
 cd /tmp && curl -sL https://musl.libc.org/releases/musl-1.2.4.tar.gz | tar xz
 cd musl-1.2.4 && ./configure --prefix=/tmp/musl-install && make -j$(nproc) && make install
@@ -42,7 +41,7 @@ cd musl-1.2.4 && ./configure --prefix=/tmp/musl-install && make -j$(nproc) && ma
 ./bootstrap.sh
 ```
 
-This runs a 3-stage bootstrap: bin/randy compiles the compiler source to randy0, randy0 compiles to randy1, randy1 compiles to randy2, then verifies randy1.s and randy2.s are identical (fixed-point proof). On success, randy2 becomes the new bin/randy. **Note:** bootstrap.sh has a hardcoded musl path that may need updating.
+This runs a 3-stage bootstrap: bin/randy compiles the compiler source to randy0, randy0 compiles to randy1, randy1 compiles to randy2, then verifies randy1.s and randy2.s are identical (fixed-point proof). On success, randy2 becomes the new bin/randy.
 
 ### Compiler CLI Flags
 

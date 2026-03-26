@@ -1,0 +1,17 @@
+#!/bin/bash
+# Wrapper to invoke bin/randy via musl libc.
+# Usage: ./randy -c file.randy -o output -I include -ld -lc
+#
+# The compiled binary requires musl as its dynamic linker. This script
+# handles that transparently. Set MUSL_LIBC to override the default path.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MUSL="${MUSL_LIBC:-/tmp/musl-install/lib/libc.so}"
+
+if [[ ! -f "$MUSL" ]]; then
+    echo "ERROR: musl libc not found at $MUSL" >&2
+    echo "Set MUSL_LIBC or install musl at /tmp/musl-install/" >&2
+    exit 1
+fi
+
+exec "$MUSL" "$SCRIPT_DIR/bin/randy" "$@"
