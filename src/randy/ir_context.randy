@@ -642,7 +642,7 @@ end
 
 struct DefInfo in
     label: cstr;
-    _pad: ptr;
+    _pad: ptr; // padding to match legacy layout (varargs must be at offset 16)
     varargs: bool;
 end
 
