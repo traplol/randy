@@ -1,5 +1,5 @@
 
-enum IRK in
+enum IrKind in
     GetLocal;       // 0
     PushLabel;      // 1
     PushInt;        // 2
@@ -58,60 +58,60 @@ enum IRK in
     RefGlobal;      // 55
 end
 
-def ir_instr_kind_cstr k: IRK -> cstr in
-    if k == IRK::GetLocal then return "IRK::GetLocal"; end
-    if k == IRK::PushLabel then return "IRK::PushLabel"; end
-    if k == IRK::PushInt then return "IRK::PushInt"; end
-    if k == IRK::AllocTemps then return "IRK::AllocTemps"; end
-    if k == IRK::FreeTemps then return "IRK::FreeTemps"; end
-    if k == IRK::StoreTemp then return "IRK::StoreTemp"; end
-    if k == IRK::SetArgTemp then return "IRK::SetArgTemp"; end
-    if k == IRK::Call then return "IRK::Call"; end
-    if k == IRK::PopCall then return "IRK::PopCall"; end
-    if k == IRK::OpAdd then return "IRK::OpAdd"; end
-    if k == IRK::OpSub then return "IRK::OpSub"; end
-    if k == IRK::OpMul then return "IRK::OpMul"; end
-    if k == IRK::OpDiv then return "IRK::OpDiv"; end
-    if k == IRK::OpMod then return "IRK::OpMod"; end
-    if k == IRK::OpEq then return "IRK::OpEq"; end
-    if k == IRK::OpNotEq then return "IRK::OpNotEq"; end
-    if k == IRK::OpLess then return "IRK::OpLess"; end
-    if k == IRK::OpLessEq then return "IRK::OpLessEq"; end
-    if k == IRK::OpGreater then return "IRK::OpGreater"; end
-    if k == IRK::OpGreaterEq then return "IRK::OpGreaterEq"; end
-    if k == IRK::PopReturn then return "IRK::PopReturn"; end
-    if k == IRK::ReturnVoid then return "IRK::ReturnVoid"; end
-    if k == IRK::SetLocal then return "IRK::SetLocal"; end
-    if k == IRK::NewDef then return "IRK::NewDef"; end
-    if k == IRK::SetLocalArg then return "IRK::SetLocalArg"; end
-    if k == IRK::CloseDef then return "IRK::CloseDef"; end
-    if k == IRK::GotoTopFalse then return "IRK::GotoTopFalse"; end
-    if k == IRK::GotoTopTrue then return "IRK::GotoTopTrue"; end
-    if k == IRK::GotoFalse then return "IRK::GotoFalse"; end
-    if k == IRK::Goto then return "IRK::Goto"; end
-    if k == IRK::Label then return "IRK::Label"; end
-    if k == IRK::PtrRead then return "IRK::PtrRead"; end
-    if k == IRK::PtrWrite then return "IRK::PtrWrite"; end
-    if k == IRK::BitNot then return "IRK::BitNot"; end
-    if k == IRK::LogicNot then return "IRK::LogicNot"; end
-    if k == IRK::InlineAsm then return "IRK::InlineAsm"; end
-    if k == IRK::LazyIdent then return "IRK::LazyIdent"; end
-    if k == IRK::CallLazyIdent then return "IRK::CallLazyIdent"; end
-    if k == IRK::DropTop then return "IRK::DropTop"; end
-    if k == IRK::SetGlobal then return "IRK::SetGlobal"; end
-    if k == IRK::GetGlobal then return "IRK::GetGlobal"; end
-    if k == IRK::Negative then return "IRK::Negative"; end
-    if k == IRK::OpBitXOR then return "IRK::OpBitXOR"; end
-    if k == IRK::OpBitAND then return "IRK::OpBitAND"; end
-    if k == IRK::OpBitOR then return "IRK::OpBitOR"; end
-    if k == IRK::OpBitShiftL then return "IRK::OpBitShiftL"; end
-    if k == IRK::OpBitShiftR then return "IRK::OpBitShiftR"; end
-    if k == IRK::ScopeOpen then return "IRK::ScopeOpen"; end
-    if k == IRK::ScopeClose then return "IRK::ScopeClose"; end
-    if k == IRK::PtrCopy then return "IRK::PtrCopy"; end
-    if k == IRK::PtrOffset then return "IRK::PtrOffset"; end
-    if k == IRK::RefLocal then return "IRK::RefLocal"; end
-    if k == IRK::RefGlobal then return "IRK::RefGlobal"; end
+def ir_instr_kind_cstr k: IrKind -> cstr in
+    if k == IrKind::GetLocal then return "IrKind::GetLocal"; end
+    if k == IrKind::PushLabel then return "IrKind::PushLabel"; end
+    if k == IrKind::PushInt then return "IrKind::PushInt"; end
+    if k == IrKind::AllocTemps then return "IrKind::AllocTemps"; end
+    if k == IrKind::FreeTemps then return "IrKind::FreeTemps"; end
+    if k == IrKind::StoreTemp then return "IrKind::StoreTemp"; end
+    if k == IrKind::SetArgTemp then return "IrKind::SetArgTemp"; end
+    if k == IrKind::Call then return "IrKind::Call"; end
+    if k == IrKind::PopCall then return "IrKind::PopCall"; end
+    if k == IrKind::OpAdd then return "IrKind::OpAdd"; end
+    if k == IrKind::OpSub then return "IrKind::OpSub"; end
+    if k == IrKind::OpMul then return "IrKind::OpMul"; end
+    if k == IrKind::OpDiv then return "IrKind::OpDiv"; end
+    if k == IrKind::OpMod then return "IrKind::OpMod"; end
+    if k == IrKind::OpEq then return "IrKind::OpEq"; end
+    if k == IrKind::OpNotEq then return "IrKind::OpNotEq"; end
+    if k == IrKind::OpLess then return "IrKind::OpLess"; end
+    if k == IrKind::OpLessEq then return "IrKind::OpLessEq"; end
+    if k == IrKind::OpGreater then return "IrKind::OpGreater"; end
+    if k == IrKind::OpGreaterEq then return "IrKind::OpGreaterEq"; end
+    if k == IrKind::PopReturn then return "IrKind::PopReturn"; end
+    if k == IrKind::ReturnVoid then return "IrKind::ReturnVoid"; end
+    if k == IrKind::SetLocal then return "IrKind::SetLocal"; end
+    if k == IrKind::NewDef then return "IrKind::NewDef"; end
+    if k == IrKind::SetLocalArg then return "IrKind::SetLocalArg"; end
+    if k == IrKind::CloseDef then return "IrKind::CloseDef"; end
+    if k == IrKind::GotoTopFalse then return "IrKind::GotoTopFalse"; end
+    if k == IrKind::GotoTopTrue then return "IrKind::GotoTopTrue"; end
+    if k == IrKind::GotoFalse then return "IrKind::GotoFalse"; end
+    if k == IrKind::Goto then return "IrKind::Goto"; end
+    if k == IrKind::Label then return "IrKind::Label"; end
+    if k == IrKind::PtrRead then return "IrKind::PtrRead"; end
+    if k == IrKind::PtrWrite then return "IrKind::PtrWrite"; end
+    if k == IrKind::BitNot then return "IrKind::BitNot"; end
+    if k == IrKind::LogicNot then return "IrKind::LogicNot"; end
+    if k == IrKind::InlineAsm then return "IrKind::InlineAsm"; end
+    if k == IrKind::LazyIdent then return "IrKind::LazyIdent"; end
+    if k == IrKind::CallLazyIdent then return "IrKind::CallLazyIdent"; end
+    if k == IrKind::DropTop then return "IrKind::DropTop"; end
+    if k == IrKind::SetGlobal then return "IrKind::SetGlobal"; end
+    if k == IrKind::GetGlobal then return "IrKind::GetGlobal"; end
+    if k == IrKind::Negative then return "IrKind::Negative"; end
+    if k == IrKind::OpBitXOR then return "IrKind::OpBitXOR"; end
+    if k == IrKind::OpBitAND then return "IrKind::OpBitAND"; end
+    if k == IrKind::OpBitOR then return "IrKind::OpBitOR"; end
+    if k == IrKind::OpBitShiftL then return "IrKind::OpBitShiftL"; end
+    if k == IrKind::OpBitShiftR then return "IrKind::OpBitShiftR"; end
+    if k == IrKind::ScopeOpen then return "IrKind::ScopeOpen"; end
+    if k == IrKind::ScopeClose then return "IrKind::ScopeClose"; end
+    if k == IrKind::PtrCopy then return "IrKind::PtrCopy"; end
+    if k == IrKind::PtrOffset then return "IrKind::PtrOffset"; end
+    if k == IrKind::RefLocal then return "IrKind::RefLocal"; end
+    if k == IrKind::RefGlobal then return "IrKind::RefGlobal"; end
     return "IRK_OUT_OF_RANGE";
 end
 
@@ -120,7 +120,7 @@ end
 //   slot_b (offset 24): n / nargs / params / size
 //   slot_c (offset 32): value / symbol / varargs / asm / arg / src_name / offset
 struct IrInstr in
-    kind: IRK;
+    kind: IrKind;
     src_loc: SrcLoc&;
     slot_a: ptr;    // name, ident, local, label
     slot_b: ptr;    // n, nargs, params, size
@@ -130,7 +130,7 @@ struct IrInstr in
     expr_offs: int;
 end
 
-def ir_instr_kind self: IrInstr& -> IRK in return self.kind; end
+def ir_instr_kind self: IrInstr& -> IrKind in return self.kind; end
 def ir_instr_src_loc self: IrInstr& -> SrcLoc& in return self.src_loc; end
 def ir_instr_name self: IrInstr& -> cstr in return cast(self.slot_a, cstr); end
 def ir_instr_ident self: IrInstr& -> Token& in return cast(self.slot_a, Token&); end
@@ -153,27 +153,27 @@ def ir_instr_expr_offs self: IrInstr& -> int in return self.expr_offs; end
 
 def make_ir_alloc_temps n -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::AllocTemps;
+    self.kind = IrKind::AllocTemps;
     self.slot_b = n;
     return self;
 end
 def make_ir_call label, varargs -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::Call;
+    self.kind = IrKind::Call;
     self.slot_a = label;
     self.slot_c = varargs;
     return self;
 end
 def make_ir_lazy_ident ident, symbol -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::LazyIdent;
+    self.kind = IrKind::LazyIdent;
     self.slot_a = ident;
     self.slot_c = symbol;
     return self;
 end
 def make_ir_call_lazy_ident ident, symbol, nargs -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::CallLazyIdent;
+    self.kind = IrKind::CallLazyIdent;
     self.slot_a = ident;
     self.slot_c = symbol;
     self.slot_b = nargs;
@@ -181,20 +181,20 @@ def make_ir_call_lazy_ident ident, symbol, nargs -> IrInstr& in
 end
 def make_ir_close_def src_name, name -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::CloseDef;
+    self.kind = IrKind::CloseDef;
     self.slot_c = src_name;
     self.slot_a = name;
     return self;
 end
 def make_ir_free_temps n -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::FreeTemps;
+    self.kind = IrKind::FreeTemps;
     self.slot_b = n;
     return self;
 end
 def make_ir_get_local local, n, offs: int -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::GetLocal;
+    self.kind = IrKind::GetLocal;
     self.slot_a = local;
     self.slot_b = n;
     self.expr_offs = offs;
@@ -202,7 +202,7 @@ def make_ir_get_local local, n, offs: int -> IrInstr& in
 end
 def make_ir_ref_local local, n, offs: int -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::RefLocal;
+    self.kind = IrKind::RefLocal;
     self.slot_a = local;
     self.slot_b = n;
     self.expr_offs = offs;
@@ -210,139 +210,139 @@ def make_ir_ref_local local, n, offs: int -> IrInstr& in
 end
 def make_ir_goto label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::Goto;
+    self.kind = IrKind::Goto;
     self.slot_a = label;
     return self;
 end
 def make_ir_goto_false label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::GotoFalse;
+    self.kind = IrKind::GotoFalse;
     self.slot_a = label;
     return self;
 end
 def make_ir_goto_top_false label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::GotoTopFalse;
+    self.kind = IrKind::GotoTopFalse;
     self.slot_a = label;
     return self;
 end
 def make_ir_goto_top_true label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::GotoTopTrue;
+    self.kind = IrKind::GotoTopTrue;
     self.slot_a = label;
     return self;
 end
 def make_ir_inline_asm name, asmcode -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::InlineAsm;
+    self.kind = IrKind::InlineAsm;
     self.slot_a = name;
     self.slot_c = asmcode;
     return self;
 end
 def make_ir_label label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::Label;
+    self.kind = IrKind::Label;
     self.slot_a = label;
     return self;
 end
 def make_ir_bit_not -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::BitNot;
+    self.kind = IrKind::BitNot;
     return self;
 end
 def make_ir_logic_not -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::LogicNot;
+    self.kind = IrKind::LogicNot;
     return self;
 end
 def make_ir_negative -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::Negative;
+    self.kind = IrKind::Negative;
     return self;
 end
 def make_ir_scope_open -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::ScopeOpen;
+    self.kind = IrKind::ScopeOpen;
     return self;
 end
 def make_ir_scope_close -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::ScopeClose;
+    self.kind = IrKind::ScopeClose;
     return self;
 end
 def make_ir_new_def src_name, name, params -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::NewDef;
+    self.kind = IrKind::NewDef;
     self.slot_c = src_name;
     self.slot_a = name;
     self.slot_b = params;
     return self;
 end
-def make_ir_simple_op op: IRK -> IrInstr& in
+def make_ir_simple_op op: IrKind -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
     self.kind = op;
     return self;
 end
 def make_ir_pop_call -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PopCall;
+    self.kind = IrKind::PopCall;
     return self;
 end
 def make_ir_pop_return -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PopReturn;
+    self.kind = IrKind::PopReturn;
     return self;
 end
 def make_ir_ptr_read size -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PtrRead;
+    self.kind = IrKind::PtrRead;
     self.slot_b = size;
     return self;
 end
 def make_ir_ptr_write size -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PtrWrite;
+    self.kind = IrKind::PtrWrite;
     self.slot_b = size;
     return self;
 end
 def make_ir_ptr_copy size -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PtrCopy;
+    self.kind = IrKind::PtrCopy;
     self.slot_b = size;
     return self;
 end
 def make_ir_ptr_offs offset -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PtrOffset;
+    self.kind = IrKind::PtrOffset;
     self.slot_c = offset;
     return self;
 end
 def make_ir_push_int value -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PushInt;
+    self.kind = IrKind::PushInt;
     self.slot_c = value;
     return self;
 end
 def make_ir_push_label label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::PushLabel;
+    self.kind = IrKind::PushLabel;
     self.slot_a = label;
     return self;
 end
 def make_ir_return_void -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::ReturnVoid;
+    self.kind = IrKind::ReturnVoid;
     return self;
 end
 def make_ir_set_arg_temp n -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::SetArgTemp;
+    self.kind = IrKind::SetArgTemp;
     self.slot_b = n;
     return self;
 end
 def make_ir_set_local local, n, offs: int -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::SetLocal;
+    self.kind = IrKind::SetLocal;
     self.slot_a = local;
     self.slot_b = n;
     self.expr_offs = offs;
@@ -350,7 +350,7 @@ def make_ir_set_local local, n, offs: int -> IrInstr& in
 end
 def make_ir_set_local_arg local, local_n, arg, offs: int -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::SetLocalArg;
+    self.kind = IrKind::SetLocalArg;
     self.slot_a = local;
     self.slot_b = local_n;
     self.slot_c = arg;
@@ -359,32 +359,32 @@ def make_ir_set_local_arg local, local_n, arg, offs: int -> IrInstr& in
 end
 def make_ir_store_temp n -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::StoreTemp;
+    self.kind = IrKind::StoreTemp;
     self.slot_b = n;
     return self;
 end
 def make_ir_drop_top -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::DropTop;
+    self.kind = IrKind::DropTop;
     return self;
 end
 def make_ir_set_global name, label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::SetGlobal;
+    self.kind = IrKind::SetGlobal;
     self.slot_a = label;
     self.slot_c = name;
     return self;
 end
 def make_ir_get_global name, label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::GetGlobal;
+    self.kind = IrKind::GetGlobal;
     self.slot_a = label;
     self.slot_c = name;
     return self;
 end
 def make_ir_ref_global name, label -> IrInstr& in
     var self = cast(calloc(1, __sizeof(IrInstr)), IrInstr&);
-    self.kind = IRK::RefGlobal;
+    self.kind = IrKind::RefGlobal;
     self.slot_a = label;
     self.slot_c = name;
     return self;
@@ -587,54 +587,54 @@ def print_ir_ref_global self in
 end
 def print_ir ir: IrInstr& in
     var k = ir_instr_kind(ir);
-    if k == IRK::AllocTemps then print_ir_alloc_temps(ir);
-    elif k == IRK::Call then print_ir_call(ir);
-    elif k == IRK::CallLazyIdent then print_ir_call_lazy_ident(ir);
-    elif k == IRK::CloseDef then print_ir_close_def(ir);
-    elif k == IRK::FreeTemps then print_ir_free_temps(ir);
-    elif k == IRK::GetLocal then print_ir_get_local(ir);
-    elif k == IRK::Goto then print_ir_goto(ir);
-    elif k == IRK::GotoFalse then print_ir_goto_false(ir);
-    elif k == IRK::GotoTopFalse then print_ir_goto_top_false(ir);
-    elif k == IRK::GotoTopTrue then print_ir_goto_top_true(ir);
-    elif k == IRK::InlineAsm then print_ir_inline_asm(ir);
-    elif k == IRK::Label then print_ir_label(ir);
-    elif k == IRK::BitNot then print_ir_bit_not(ir);
-    elif k == IRK::LogicNot then print_ir_logic_not(ir);
-    elif k == IRK::NewDef then print_ir_new_def(ir);
-    elif k == IRK::OpAdd then print_ir_op_add(ir);
-    elif k == IRK::OpDiv then print_ir_op_div(ir);
-    elif k == IRK::OpEq then print_ir_op_eq(ir);
-    elif k == IRK::OpGreater then print_ir_op_greater(ir);
-    elif k == IRK::OpGreaterEq then print_ir_op_greater_eq(ir);
-    elif k == IRK::OpLess then print_ir_op_less(ir);
-    elif k == IRK::OpLessEq then print_ir_op_less_eq(ir);
-    elif k == IRK::OpMod then print_ir_op_mod(ir);
-    elif k == IRK::OpMul then print_ir_op_mul(ir);
-    elif k == IRK::OpNotEq then print_ir_op_not_eq(ir);
-    elif k == IRK::OpSub then print_ir_op_sub(ir);
-    elif k == IRK::PopCall then print_ir_pop_call(ir);
-    elif k == IRK::PopReturn then print_ir_pop_return(ir);
-    elif k == IRK::PtrRead then print_ir_ptr_read(ir);
-    elif k == IRK::PtrWrite then print_ir_ptr_write(ir);
-    elif k == IRK::PushInt then print_ir_push_int(ir);
-    elif k == IRK::PushLabel then print_ir_push_label(ir);
-    elif k == IRK::ReturnVoid then print_ir_return_void(ir);
-    elif k == IRK::SetArgTemp then print_ir_set_arg_temp(ir);
-    elif k == IRK::SetLocal then print_ir_set_local(ir);
-    elif k == IRK::SetLocalArg then print_ir_set_local_arg(ir);
-    elif k == IRK::StoreTemp then print_ir_store_temp(ir);
-    elif k == IRK::LazyIdent then print_ir_lazy_ident(ir);
-    elif k == IRK::DropTop then print_ir_drop_top(ir);
-    elif k == IRK::SetGlobal then print_ir_set_global(ir);
-    elif k == IRK::GetGlobal then print_ir_get_global(ir);
-    elif k == IRK::Negative then print_ir_negative(ir);
-    elif k == IRK::ScopeOpen then print_ir_scope_open(ir);
-    elif k == IRK::ScopeClose then print_ir_scope_close(ir);
-    elif k == IRK::PtrCopy then print_ir_ptr_copy(ir);
-    elif k == IRK::PtrOffset then print_ir_ptr_offset(ir);
-    elif k == IRK::RefLocal then print_ir_ref_local(ir);
-    elif k == IRK::RefGlobal then print_ir_ref_global(ir);
+    if k == IrKind::AllocTemps then print_ir_alloc_temps(ir);
+    elif k == IrKind::Call then print_ir_call(ir);
+    elif k == IrKind::CallLazyIdent then print_ir_call_lazy_ident(ir);
+    elif k == IrKind::CloseDef then print_ir_close_def(ir);
+    elif k == IrKind::FreeTemps then print_ir_free_temps(ir);
+    elif k == IrKind::GetLocal then print_ir_get_local(ir);
+    elif k == IrKind::Goto then print_ir_goto(ir);
+    elif k == IrKind::GotoFalse then print_ir_goto_false(ir);
+    elif k == IrKind::GotoTopFalse then print_ir_goto_top_false(ir);
+    elif k == IrKind::GotoTopTrue then print_ir_goto_top_true(ir);
+    elif k == IrKind::InlineAsm then print_ir_inline_asm(ir);
+    elif k == IrKind::Label then print_ir_label(ir);
+    elif k == IrKind::BitNot then print_ir_bit_not(ir);
+    elif k == IrKind::LogicNot then print_ir_logic_not(ir);
+    elif k == IrKind::NewDef then print_ir_new_def(ir);
+    elif k == IrKind::OpAdd then print_ir_op_add(ir);
+    elif k == IrKind::OpDiv then print_ir_op_div(ir);
+    elif k == IrKind::OpEq then print_ir_op_eq(ir);
+    elif k == IrKind::OpGreater then print_ir_op_greater(ir);
+    elif k == IrKind::OpGreaterEq then print_ir_op_greater_eq(ir);
+    elif k == IrKind::OpLess then print_ir_op_less(ir);
+    elif k == IrKind::OpLessEq then print_ir_op_less_eq(ir);
+    elif k == IrKind::OpMod then print_ir_op_mod(ir);
+    elif k == IrKind::OpMul then print_ir_op_mul(ir);
+    elif k == IrKind::OpNotEq then print_ir_op_not_eq(ir);
+    elif k == IrKind::OpSub then print_ir_op_sub(ir);
+    elif k == IrKind::PopCall then print_ir_pop_call(ir);
+    elif k == IrKind::PopReturn then print_ir_pop_return(ir);
+    elif k == IrKind::PtrRead then print_ir_ptr_read(ir);
+    elif k == IrKind::PtrWrite then print_ir_ptr_write(ir);
+    elif k == IrKind::PushInt then print_ir_push_int(ir);
+    elif k == IrKind::PushLabel then print_ir_push_label(ir);
+    elif k == IrKind::ReturnVoid then print_ir_return_void(ir);
+    elif k == IrKind::SetArgTemp then print_ir_set_arg_temp(ir);
+    elif k == IrKind::SetLocal then print_ir_set_local(ir);
+    elif k == IrKind::SetLocalArg then print_ir_set_local_arg(ir);
+    elif k == IrKind::StoreTemp then print_ir_store_temp(ir);
+    elif k == IrKind::LazyIdent then print_ir_lazy_ident(ir);
+    elif k == IrKind::DropTop then print_ir_drop_top(ir);
+    elif k == IrKind::SetGlobal then print_ir_set_global(ir);
+    elif k == IrKind::GetGlobal then print_ir_get_global(ir);
+    elif k == IrKind::Negative then print_ir_negative(ir);
+    elif k == IrKind::ScopeOpen then print_ir_scope_open(ir);
+    elif k == IrKind::ScopeClose then print_ir_scope_close(ir);
+    elif k == IrKind::PtrCopy then print_ir_ptr_copy(ir);
+    elif k == IrKind::PtrOffset then print_ir_ptr_offset(ir);
+    elif k == IrKind::RefLocal then print_ir_ref_local(ir);
+    elif k == IrKind::RefGlobal then print_ir_ref_global(ir);
     else
         printf("Unknown IR Kind: %d\n", k);
     end
@@ -675,18 +675,18 @@ def make_const_info kind: CIK, value: ptr, ast_value: Ast& -> ConstInfo& in
     return self;
 end
 
-enum GIK in
+enum GlobalInfoKind in
     String;
     Integer;
 end
 
 struct GlobalInfo in
-    kind: GIK;
+    kind: GlobalInfoKind;
     label: cstr;
     value: ptr;
 end
 
-def make_global_info kind: GIK, label: cstr, value: ptr -> GlobalInfo& in
+def make_global_info kind: GlobalInfoKind, label: cstr, value: ptr -> GlobalInfo& in
     var self = cast(malloc(__sizeof(GlobalInfo)), GlobalInfo&);
     self.kind = kind;
     self.label = label;
@@ -694,7 +694,7 @@ def make_global_info kind: GIK, label: cstr, value: ptr -> GlobalInfo& in
     return self;
 end
 
-def global_info_kind self: GlobalInfo& -> GIK in return self.kind; end
+def global_info_kind self: GlobalInfo& -> GlobalInfoKind in return self.kind; end
 def global_info_label self: GlobalInfo& -> cstr in return self.label; end
 def global_info_value self: GlobalInfo& -> ptr in return self.value; end
 
@@ -1042,14 +1042,14 @@ end
 def ir_add_global_string self, ident, value in
     var label = ir_new_label(self, "G");
     var val_label = ir_string_label(self, value);
-    var gi = make_global_info(GIK::String, label, val_label);
+    var gi = make_global_info(GlobalInfoKind::String, label, val_label);
     ir_globals_map(self).set(ident, gi);
     ir_globals(self).push(gi);
 end
 
 def ir_add_global_int self, ident, value in
     var label = ir_new_label(self, "G");
-    var gi = make_global_info(GIK::Integer, label, value);
+    var gi = make_global_info(GlobalInfoKind::Integer, label, value);
     ir_globals_map(self).set(ident, gi);
     ir_globals(self).push(gi);
 end
@@ -1217,23 +1217,23 @@ end
 def ir_emit_binop self, ast, st, tt in
     check_ast_kind(AstK::BinOp, ast);
     var op = ast.u.binop.op;
-    var simple: IRK = cast(-1, IRK);
-    if op == TK::Plus then simple = IRK::OpAdd;
-    elif op == TK::Minus then simple = IRK::OpSub;
-    elif op == TK::Star then simple = IRK::OpMul;
-    elif op == TK::Slash then simple = IRK::OpDiv;
-    elif op == TK::Percent then simple = IRK::OpMod;
-    elif op == TK::EqEq then simple = IRK::OpEq;
-    elif op == TK::NotEq then simple = IRK::OpNotEq;
-    elif op == TK::Less then simple = IRK::OpLess;
-    elif op == TK::Greater then simple = IRK::OpGreater;
-    elif op == TK::LessEq then simple = IRK::OpLessEq;
-    elif op == TK::GreaterEq then simple = IRK::OpGreaterEq;
-    elif op == TK::Caret then simple = IRK::OpBitXOR;
-    elif op == TK::Amper then simple = IRK::OpBitAND;
-    elif op == TK::Bar then simple = IRK::OpBitOR;
-    elif op == TK::LShift then simple = IRK::OpBitShiftL;
-    elif op == TK::RShift then simple = IRK::OpBitShiftR;
+    var simple: IrKind = cast(-1, IrKind);
+    if op == TK::Plus then simple = IrKind::OpAdd;
+    elif op == TK::Minus then simple = IrKind::OpSub;
+    elif op == TK::Star then simple = IrKind::OpMul;
+    elif op == TK::Slash then simple = IrKind::OpDiv;
+    elif op == TK::Percent then simple = IrKind::OpMod;
+    elif op == TK::EqEq then simple = IrKind::OpEq;
+    elif op == TK::NotEq then simple = IrKind::OpNotEq;
+    elif op == TK::Less then simple = IrKind::OpLess;
+    elif op == TK::Greater then simple = IrKind::OpGreater;
+    elif op == TK::LessEq then simple = IrKind::OpLessEq;
+    elif op == TK::GreaterEq then simple = IrKind::OpGreaterEq;
+    elif op == TK::Caret then simple = IrKind::OpBitXOR;
+    elif op == TK::Amper then simple = IrKind::OpBitAND;
+    elif op == TK::Bar then simple = IrKind::OpBitOR;
+    elif op == TK::LShift then simple = IrKind::OpBitShiftL;
+    elif op == TK::RShift then simple = IrKind::OpBitShiftR;
     elif op == TK::KW_and then ir_emit_logic_and(self, ast, st, tt);
     elif op == TK::KW_or then ir_emit_logic_or(self, ast, st, tt);
     else
@@ -1312,17 +1312,17 @@ def ir_emit_assign_op self, ast, st, tt in
     end
     ir_compile(self, ast.u.assign_op.expr, st, tt);
 
-    var ir_op: IRK = cast(-1, IRK);
-    if op == TK::PlusEq then ir_op = IRK::OpAdd;
-    elif op == TK::MinusEq then ir_op = IRK::OpSub;
-    elif op == TK::StarEq then ir_op = IRK::OpMul;
-    elif op == TK::SlashEq then ir_op = IRK::OpDiv;
-    elif op == TK::PercentEq then ir_op = IRK::OpMod;
-    elif op == TK::LShiftEq then ir_op = IRK::OpBitShiftL;
-    elif op == TK::RShiftEq then ir_op = IRK::OpBitShiftR;
-    elif op == TK::AmperEq then ir_op = IRK::OpBitAND;
-    elif op == TK::CaretEq then ir_op = IRK::OpBitXOR;
-    elif op == TK::BarEq then ir_op = IRK::OpBitOR;
+    var ir_op: IrKind = cast(-1, IrKind);
+    if op == TK::PlusEq then ir_op = IrKind::OpAdd;
+    elif op == TK::MinusEq then ir_op = IrKind::OpSub;
+    elif op == TK::StarEq then ir_op = IrKind::OpMul;
+    elif op == TK::SlashEq then ir_op = IrKind::OpDiv;
+    elif op == TK::PercentEq then ir_op = IrKind::OpMod;
+    elif op == TK::LShiftEq then ir_op = IrKind::OpBitShiftL;
+    elif op == TK::RShiftEq then ir_op = IrKind::OpBitShiftR;
+    elif op == TK::AmperEq then ir_op = IrKind::OpBitAND;
+    elif op == TK::CaretEq then ir_op = IrKind::OpBitXOR;
+    elif op == TK::BarEq then ir_op = IrKind::OpBitOR;
     elif op == TK::Assign then // nothing
     else
         print_ast_src_loc(ast);
@@ -1365,17 +1365,17 @@ def ir_emit_assign_member self, ast, st, tt in
 
     ir_compile(self, rhs, st, tt);
 
-    var ir_op: IRK = cast(-1, IRK);
-    if op == TK::PlusEq then ir_op = IRK::OpAdd;
-    elif op == TK::MinusEq then ir_op = IRK::OpSub;
-    elif op == TK::StarEq then ir_op = IRK::OpMul;
-    elif op == TK::SlashEq then ir_op = IRK::OpDiv;
-    elif op == TK::PercentEq then ir_op = IRK::OpMod;
-    elif op == TK::LShiftEq then ir_op = IRK::OpBitShiftL;
-    elif op == TK::RShiftEq then ir_op = IRK::OpBitShiftR;
-    elif op == TK::AmperEq then ir_op = IRK::OpBitAND;
-    elif op == TK::CaretEq then ir_op = IRK::OpBitXOR;
-    elif op == TK::BarEq then ir_op = IRK::OpBitOR;
+    var ir_op: IrKind = cast(-1, IrKind);
+    if op == TK::PlusEq then ir_op = IrKind::OpAdd;
+    elif op == TK::MinusEq then ir_op = IrKind::OpSub;
+    elif op == TK::StarEq then ir_op = IrKind::OpMul;
+    elif op == TK::SlashEq then ir_op = IrKind::OpDiv;
+    elif op == TK::PercentEq then ir_op = IrKind::OpMod;
+    elif op == TK::LShiftEq then ir_op = IrKind::OpBitShiftL;
+    elif op == TK::RShiftEq then ir_op = IrKind::OpBitShiftR;
+    elif op == TK::AmperEq then ir_op = IrKind::OpBitAND;
+    elif op == TK::CaretEq then ir_op = IrKind::OpBitXOR;
+    elif op == TK::BarEq then ir_op = IrKind::OpBitOR;
     elif op == TK::Assign then // nothing
     else
         print_ast_src_loc(ast);
@@ -1802,11 +1802,11 @@ def ir_emit_tuple_get self, ast, st, tt in
     check_ast_kind(AstK::TupleGet, ast);
     ir_compile(self, ast.u.tuple_get.idx, st, tt);
     ir_append(self, make_ir_push_int(1));
-    ir_append(self, make_ir_simple_op(IRK::OpAdd)); // N+1
+    ir_append(self, make_ir_simple_op(IrKind::OpAdd)); // N+1
     ir_append(self, make_ir_push_int(8));
-    ir_append(self, make_ir_simple_op(IRK::OpMul)); // (N+1) * 8
+    ir_append(self, make_ir_simple_op(IrKind::OpMul)); // (N+1) * 8
     ir_compile(self, ast.u.tuple_get.expr, st, tt);
-    ir_append(self, make_ir_simple_op(IRK::OpAdd));
+    ir_append(self, make_ir_simple_op(IrKind::OpAdd));
     ir_append(self, make_ir_ptr_read(INT_BITS));
 end
 
@@ -1870,7 +1870,7 @@ def ir_resolve_lazy_idents self in
     while i < len do
         ir = instrs.get(i);
         k = ir_instr_kind(ir);
-        if k == IRK::LazyIdent then
+        if k == IrKind::LazyIdent then
             token = ir_instr_ident(ir);
             var symbol = ir_instr_symbol(ir);
             var new_ir;
@@ -1896,7 +1896,7 @@ def ir_resolve_lazy_idents self in
             end
             new_ir.src_loc = token.src_loc;
             instrs.set(i, new_ir);
-        elif k == IRK::CallLazyIdent then
+        elif k == IrKind::CallLazyIdent then
             token = ir_instr_ident(ir);
             var symbol = ir_instr_symbol(ir);
             var nargs = ir_instr_nargs(ir);

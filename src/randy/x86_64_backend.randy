@@ -13,7 +13,7 @@ def systemv_arg n in
 end
 
 def x86_64_emit_get_local cc, ir in
-    check_ir_kind(IRK::GetLocal, ir);
+    check_ir_kind(IrKind::GetLocal, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
@@ -30,7 +30,7 @@ def x86_64_emit_get_local cc, ir in
 end
 
 def x86_64_emit_ref_local cc, ir in
-    check_ir_kind(IRK::RefLocal, ir);
+    check_ir_kind(IrKind::RefLocal, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
@@ -47,7 +47,7 @@ def x86_64_emit_ref_local cc, ir in
 end
 
 def x86_64_emit_push_label cc, ir in
-    check_ir_kind(IRK::PushLabel, ir);
+    check_ir_kind(IrKind::PushLabel, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var str = String::new(20);
@@ -60,7 +60,7 @@ def x86_64_emit_push_label cc, ir in
 end
 
 def x86_64_emit_push_int cc, ir in
-    check_ir_kind(IRK::PushInt, ir);
+    check_ir_kind(IrKind::PushInt, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var str = String::new(20);
@@ -78,7 +78,7 @@ def x86_64_emit_push_int cc, ir in
 end
 
 def x86_64_emit_alloc_temps cc, ir in
-    check_ir_kind(IRK::AllocTemps, ir);
+    check_ir_kind(IrKind::AllocTemps, ir);
     //print_ir(ir);
     var n = ir_instr_n(ir);
     if n > 0 then
@@ -94,7 +94,7 @@ def x86_64_emit_alloc_temps cc, ir in
 end
 
 def x86_64_emit_free_temps cc, ir in
-    check_ir_kind(IRK::FreeTemps, ir);
+    check_ir_kind(IrKind::FreeTemps, ir);
     //print_ir(ir);
     var n = ir_instr_n(ir);
     if n > 0 then
@@ -110,7 +110,7 @@ def x86_64_emit_free_temps cc, ir in
 end
 
 def x86_64_emit_store_temp cc, ir in
-    check_ir_kind(IRK::StoreTemp, ir);
+    check_ir_kind(IrKind::StoreTemp, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var offs = (ir_instr_n(ir) + 1) * REG_SIZE;
@@ -124,7 +124,7 @@ def x86_64_emit_store_temp cc, ir in
 end
 
 def x86_64_emit_set_arg_temp cc, ir in
-    check_ir_kind(IRK::SetArgTemp, ir);
+    check_ir_kind(IrKind::SetArgTemp, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var n = ir_instr_n(ir);
@@ -145,7 +145,7 @@ def x86_64_emit_set_arg_temp cc, ir in
 end
 
 def x86_64_emit_call cc, ir in
-    check_ir_kind(IRK::Call, ir);
+    check_ir_kind(IrKind::Call, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
 
@@ -168,7 +168,7 @@ def x86_64_emit_call cc, ir in
 end
 
 def x86_64_emit_pop_call cc, ir in
-    check_ir_kind(IRK::PopCall, ir);
+    check_ir_kind(IrKind::PopCall, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rcx");
@@ -178,7 +178,7 @@ def x86_64_emit_pop_call cc, ir in
 end
 
 def x86_64_emit_op_add cc, ir in
-    check_ir_kind(IRK::OpAdd, ir);
+    check_ir_kind(IrKind::OpAdd, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -188,7 +188,7 @@ def x86_64_emit_op_add cc, ir in
 end
 
 def x86_64_emit_op_sub cc, ir in
-    check_ir_kind(IRK::OpSub, ir);
+    check_ir_kind(IrKind::OpSub, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -198,7 +198,7 @@ def x86_64_emit_op_sub cc, ir in
 end
 
 def x86_64_emit_op_mul cc, ir in
-    check_ir_kind(IRK::OpMul, ir);
+    check_ir_kind(IrKind::OpMul, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -208,7 +208,7 @@ def x86_64_emit_op_mul cc, ir in
 end
 
 def x86_64_emit_op_div cc, ir in
-    check_ir_kind(IRK::OpDiv, ir);
+    check_ir_kind(IrKind::OpDiv, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rcx"); // -- b
@@ -219,7 +219,7 @@ def x86_64_emit_op_div cc, ir in
 end
 
 def x86_64_emit_op_mod cc, ir in
-    check_ir_kind(IRK::OpMod, ir);
+    check_ir_kind(IrKind::OpMod, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rcx"); // -- b
@@ -230,7 +230,7 @@ def x86_64_emit_op_mod cc, ir in
 end
 
 def x86_64_emit_op_bit_xor cc, ir in
-    check_ir_kind(IRK::OpBitXOR, ir);
+    check_ir_kind(IrKind::OpBitXOR, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -240,7 +240,7 @@ def x86_64_emit_op_bit_xor cc, ir in
 end
 
 def x86_64_emit_op_bit_and cc, ir in
-    check_ir_kind(IRK::OpBitAND, ir);
+    check_ir_kind(IrKind::OpBitAND, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -250,7 +250,7 @@ def x86_64_emit_op_bit_and cc, ir in
 end
 
 def x86_64_emit_op_bit_or cc, ir in
-    check_ir_kind(IRK::OpBitOR, ir);
+    check_ir_kind(IrKind::OpBitOR, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rdx"); // -- b
@@ -260,7 +260,7 @@ def x86_64_emit_op_bit_or cc, ir in
 end
 
 def x86_64_emit_op_bit_shift_l cc, ir in
-    check_ir_kind(IRK::OpBitShiftL, ir);
+    check_ir_kind(IrKind::OpBitShiftL, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rcx"); // -- b
@@ -270,7 +270,7 @@ def x86_64_emit_op_bit_shift_l cc, ir in
 end
 
 def x86_64_emit_op_bit_shift_r cc, ir in
-    check_ir_kind(IRK::OpBitShiftR, ir);
+    check_ir_kind(IrKind::OpBitShiftR, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rcx"); // -- b
@@ -294,49 +294,49 @@ def _x86_64_emit_compare cc, op in
 end
 
 def x86_64_emit_op_eq cc, ir in
-    check_ir_kind(IRK::OpEq, ir);
+    check_ir_kind(IrKind::OpEq, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "sete");
 end
 
 def x86_64_emit_op_not_eq cc, ir in
-    check_ir_kind(IRK::OpNotEq, ir);
+    check_ir_kind(IrKind::OpNotEq, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "setne");
 end
 
 def x86_64_emit_op_less cc, ir in
-    check_ir_kind(IRK::OpLess, ir);
+    check_ir_kind(IrKind::OpLess, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "setl");
 end
 
 def x86_64_emit_op_less_eq cc, ir in
-    check_ir_kind(IRK::OpLessEq, ir);
+    check_ir_kind(IrKind::OpLessEq, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "setle");
 end
 
 def x86_64_emit_op_greater cc, ir in
-    check_ir_kind(IRK::OpGreater, ir);
+    check_ir_kind(IrKind::OpGreater, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "setg");
 end
 
 def x86_64_emit_op_greater_eq cc, ir in
-    check_ir_kind(IRK::OpGreaterEq, ir);
+    check_ir_kind(IrKind::OpGreaterEq, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     _x86_64_emit_compare(cc, "setge");
 end
 
 def x86_64_emit_pop_return cc, ir in
-    check_ir_kind(IRK::PopReturn, ir);
+    check_ir_kind(IrKind::PopReturn, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
@@ -345,7 +345,7 @@ def x86_64_emit_pop_return cc, ir in
 end
 
 def x86_64_emit_return_void cc, ir in
-    check_ir_kind(IRK::ReturnVoid, ir);
+    check_ir_kind(IrKind::ReturnVoid, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    xorq %rax, %rax");
@@ -354,7 +354,7 @@ def x86_64_emit_return_void cc, ir in
 end
 
 def x86_64_emit_set_local cc, ir in
-    check_ir_kind(IRK::SetLocal, ir);
+    check_ir_kind(IrKind::SetLocal, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
@@ -371,7 +371,7 @@ def x86_64_emit_set_local cc, ir in
 end
 
 def x86_64_emit_new_def cc, ir in
-    check_ir_kind(IRK::NewDef, ir);
+    check_ir_kind(IrKind::NewDef, ir);
     //print_ir(ir);
     var label = ir_instr_label(ir);
     cc_out_global(cc, label);
@@ -395,7 +395,7 @@ def x86_64_emit_new_def cc, ir in
 end
 
 def x86_64_emit_set_local_arg cc, ir in
-    check_ir_kind(IRK::SetLocalArg, ir);
+    check_ir_kind(IrKind::SetLocalArg, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var local_n = ir_instr_n(ir);
@@ -432,7 +432,7 @@ def x86_64_emit_set_local_arg cc, ir in
 end
 
 def x86_64_emit_close_def cc, ir in
-    check_ir_kind(IRK::CloseDef, ir);
+    check_ir_kind(IrKind::CloseDef, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    movq %rbp, %rsp");
@@ -441,7 +441,7 @@ def x86_64_emit_close_def cc, ir in
 end
 
 def x86_64_emit_goto_top_false cc, ir in
-    check_ir_kind(IRK::GotoTopFalse, ir);
+    check_ir_kind(IrKind::GotoTopFalse, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    cmpq $0, (%rsp)");
@@ -454,7 +454,7 @@ def x86_64_emit_goto_top_false cc, ir in
 end
 
 def x86_64_emit_goto_top_true cc, ir in
-    check_ir_kind(IRK::GotoTopTrue, ir);
+    check_ir_kind(IrKind::GotoTopTrue, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    cmpq $0, (%rsp)");
@@ -467,7 +467,7 @@ def x86_64_emit_goto_top_true cc, ir in
 end
 
 def x86_64_emit_goto_false cc, ir in
-    check_ir_kind(IRK::GotoFalse, ir);
+    check_ir_kind(IrKind::GotoFalse, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax");
@@ -480,7 +480,7 @@ def x86_64_emit_goto_false cc, ir in
 end
 
 def x86_64_emit_goto cc, ir in
-    check_ir_kind(IRK::Goto, ir);
+    check_ir_kind(IrKind::Goto, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var str = String::new(20);
@@ -491,14 +491,14 @@ def x86_64_emit_goto cc, ir in
 end
 
 def x86_64_emit_label cc, ir in
-    check_ir_kind(IRK::Label, ir);
+    check_ir_kind(IrKind::Label, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out_label(cc, ir_instr_label(ir));
 end
 
 def x86_64_emit_ptr_read cc, ir in
-    check_ir_kind(IRK::PtrRead, ir);
+    check_ir_kind(IrKind::PtrRead, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var size = ir_instr_size(ir);
@@ -533,7 +533,7 @@ def x86_64_emit_ptr_read cc, ir in
 end
 
 def x86_64_emit_ptr_write cc, ir in
-    check_ir_kind(IRK::PtrWrite, ir);
+    check_ir_kind(IrKind::PtrWrite, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     var size = ir_instr_size(ir);
@@ -567,7 +567,7 @@ def x86_64_emit_ptr_write cc, ir in
 end
 
 def x86_64_emit_ptr_copy cc, ir in
-    check_ir_kind(IRK::PtrCopy, ir);
+    check_ir_kind(IrKind::PtrCopy, ir);
     //print_ir(ir);
     var bits = ir_instr_size(ir);
     if bits <= 0 then
@@ -693,7 +693,7 @@ def x86_64_emit_ptr_copy cc, ir in
 end
 
 def x86_64_emit_ptr_offset cc, ir in
-    check_ir_kind(IRK::PtrOffset, ir);
+    check_ir_kind(IrKind::PtrOffset, ir);
     //print_ir(ir);
     var offset = ir_instr_offset(ir) / BYTE_BITS;
     if offset == 0 then
@@ -713,7 +713,7 @@ def x86_64_emit_ptr_offset cc, ir in
 end
 
 def x86_64_emit_bit_not cc, ir in
-    check_ir_kind(IRK::BitNot, ir);
+    check_ir_kind(IrKind::BitNot, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax"); // -- a
@@ -722,7 +722,7 @@ def x86_64_emit_bit_not cc, ir in
 end
 
 def x86_64_emit_logic_not cc, ir in
-    check_ir_kind(IRK::LogicNot, ir);
+    check_ir_kind(IrKind::LogicNot, ir);
     //print_ir(ir);
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
     cc_out(cc, "    popq %rax"); // -- a
@@ -733,7 +733,7 @@ def x86_64_emit_logic_not cc, ir in
 end
 
 def x86_64_emit_inline_asm cc, ir in
-    check_ir_kind(IRK::InlineAsm, ir);
+    check_ir_kind(IrKind::InlineAsm, ir);
     cc_out(cc, "    .align 16");
     cc_out_label(cc, ir_instr_name(ir));
     cc_out_src_loc(cc, ir_instr_src_loc(ir));
@@ -741,23 +741,23 @@ def x86_64_emit_inline_asm cc, ir in
 end
 
 def x86_64_emit_lazy_ident cc, ir in
-    check_ir_kind(IRK::LazyIdent, ir);
-    NYI_ERR(__FILE__, __LINE__, "IRK::LazyIdent should have been handled in ir_context.randy");
+    check_ir_kind(IrKind::LazyIdent, ir);
+    NYI_ERR(__FILE__, __LINE__, "IrKind::LazyIdent should have been handled in ir_context.randy");
 end
 
 def x86_64_emit_call_lazy_ident cc, ir in
-    check_ir_kind(IRK::CallLazyIdent, ir);
-    NYI_ERR(__FILE__, __LINE__, "IRK::CallLazyIdent should have been handled in ir_context.randy");
+    check_ir_kind(IrKind::CallLazyIdent, ir);
+    NYI_ERR(__FILE__, __LINE__, "IrKind::CallLazyIdent should have been handled in ir_context.randy");
 end
 
 def x86_64_emit_drop_top cc, ir in
-    check_ir_kind(IRK::DropTop, ir);
+    check_ir_kind(IrKind::DropTop, ir);
     //print_ir(ir);
     cc_out(cc, "    addq $8, %rsp");
 end
 
 def x86_64_emit_set_global cc, ir in
-    check_ir_kind(IRK::SetGlobal, ir);
+    check_ir_kind(IrKind::SetGlobal, ir);
     //print_ir(ir);
     cc_out(cc, "    popq %rax");
     var str = String::new(20);
@@ -769,7 +769,7 @@ def x86_64_emit_set_global cc, ir in
 end
 
 def x86_64_emit_get_global cc, ir in
-    check_ir_kind(IRK::GetGlobal, ir);
+    check_ir_kind(IrKind::GetGlobal, ir);
     //print_ir(ir);
     var str = String::new(20);
     str.append_cstr("    movq (");
@@ -781,7 +781,7 @@ def x86_64_emit_get_global cc, ir in
 end
 
 def x86_64_emit_ref_global cc, ir in
-    check_ir_kind(IRK::RefGlobal, ir);
+    check_ir_kind(IrKind::RefGlobal, ir);
     //print_ir(ir);
     var str = String::new(20);
     str.append_cstr("    leaq ");
@@ -793,7 +793,7 @@ def x86_64_emit_ref_global cc, ir in
 end
 
 def x86_64_emit_negative cc, ir in
-    check_ir_kind(IRK::Negative, ir);
+    check_ir_kind(IrKind::Negative, ir);
     //print_ir(ir);
     cc_out(cc, "    popq %rax");
     cc_out(cc, "    neg %rax");
@@ -802,59 +802,59 @@ end
 
 def x86_64_emit_instruction cc: CompilerContext&, ir: IrInstr& in
     var k = ir_instr_kind(ir);
-    if k == IRK::GetLocal then x86_64_emit_get_local(cc, ir);
-    elif k == IRK::PushLabel then x86_64_emit_push_label(cc, ir);
-    elif k == IRK::PushInt then x86_64_emit_push_int(cc, ir);
-    elif k == IRK::AllocTemps then x86_64_emit_alloc_temps(cc, ir);
-    elif k == IRK::FreeTemps then x86_64_emit_free_temps(cc, ir);
-    elif k == IRK::StoreTemp then x86_64_emit_store_temp(cc, ir);
-    elif k == IRK::SetArgTemp then x86_64_emit_set_arg_temp(cc, ir);
-    elif k == IRK::Call then x86_64_emit_call(cc, ir);
-    elif k == IRK::PopCall then x86_64_emit_pop_call(cc, ir);
-    elif k == IRK::OpAdd then x86_64_emit_op_add(cc, ir);
-    elif k == IRK::OpSub then x86_64_emit_op_sub(cc, ir);
-    elif k == IRK::OpMul then x86_64_emit_op_mul(cc, ir);
-    elif k == IRK::OpDiv then x86_64_emit_op_div(cc, ir);
-    elif k == IRK::OpMod then x86_64_emit_op_mod(cc, ir);
-    elif k == IRK::OpEq then x86_64_emit_op_eq(cc, ir);
-    elif k == IRK::OpNotEq then x86_64_emit_op_not_eq(cc, ir);
-    elif k == IRK::OpLess then x86_64_emit_op_less(cc, ir);
-    elif k == IRK::OpLessEq then x86_64_emit_op_less_eq(cc, ir);
-    elif k == IRK::OpGreater then x86_64_emit_op_greater(cc, ir);
-    elif k == IRK::OpGreaterEq then x86_64_emit_op_greater_eq(cc, ir);
-    elif k == IRK::PopReturn then x86_64_emit_pop_return(cc, ir);
-    elif k == IRK::ReturnVoid then x86_64_emit_return_void(cc, ir);
-    elif k == IRK::SetLocal then x86_64_emit_set_local(cc, ir);
-    elif k == IRK::NewDef then x86_64_emit_new_def(cc, ir);
-    elif k == IRK::SetLocalArg then x86_64_emit_set_local_arg(cc, ir);
-    elif k == IRK::CloseDef then x86_64_emit_close_def(cc, ir);
-    elif k == IRK::GotoTopFalse then x86_64_emit_goto_top_false(cc, ir);
-    elif k == IRK::GotoTopTrue then x86_64_emit_goto_top_true(cc, ir);
-    elif k == IRK::GotoFalse then x86_64_emit_goto_false(cc, ir);
-    elif k == IRK::Goto then x86_64_emit_goto(cc, ir);
-    elif k == IRK::Label then x86_64_emit_label(cc, ir);
-    elif k == IRK::PtrRead then x86_64_emit_ptr_read(cc, ir);
-    elif k == IRK::PtrWrite then x86_64_emit_ptr_write(cc, ir);
-    elif k == IRK::BitNot then x86_64_emit_bit_not(cc, ir);
-    elif k == IRK::LogicNot then x86_64_emit_logic_not(cc, ir);
-    elif k == IRK::InlineAsm then x86_64_emit_inline_asm(cc, ir);
-    elif k == IRK::LazyIdent then x86_64_emit_lazy_ident(cc, ir);
-    elif k == IRK::CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
-    elif k == IRK::DropTop then x86_64_emit_drop_top(cc, ir);
-    elif k == IRK::SetGlobal then x86_64_emit_set_global(cc, ir);
-    elif k == IRK::GetGlobal then x86_64_emit_get_global(cc, ir);
-    elif k == IRK::Negative then x86_64_emit_negative(cc, ir);
-    elif k == IRK::OpBitXOR then x86_64_emit_op_bit_xor(cc, ir);
-    elif k == IRK::OpBitAND then x86_64_emit_op_bit_and(cc, ir);
-    elif k == IRK::OpBitOR then x86_64_emit_op_bit_or(cc, ir);
-    elif k == IRK::OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
-    elif k == IRK::OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
-    elif k == IRK::ScopeOpen then // nothing to do
-    elif k == IRK::ScopeClose then // nothing to do
-    elif k == IRK::PtrCopy then x86_64_emit_ptr_copy(cc, ir);
-    elif k == IRK::PtrOffset then x86_64_emit_ptr_offset(cc, ir);
-    elif k == IRK::RefLocal then x86_64_emit_ref_local(cc, ir);
-    elif k == IRK::RefGlobal then x86_64_emit_ref_global(cc, ir);
+    if k == IrKind::GetLocal then x86_64_emit_get_local(cc, ir);
+    elif k == IrKind::PushLabel then x86_64_emit_push_label(cc, ir);
+    elif k == IrKind::PushInt then x86_64_emit_push_int(cc, ir);
+    elif k == IrKind::AllocTemps then x86_64_emit_alloc_temps(cc, ir);
+    elif k == IrKind::FreeTemps then x86_64_emit_free_temps(cc, ir);
+    elif k == IrKind::StoreTemp then x86_64_emit_store_temp(cc, ir);
+    elif k == IrKind::SetArgTemp then x86_64_emit_set_arg_temp(cc, ir);
+    elif k == IrKind::Call then x86_64_emit_call(cc, ir);
+    elif k == IrKind::PopCall then x86_64_emit_pop_call(cc, ir);
+    elif k == IrKind::OpAdd then x86_64_emit_op_add(cc, ir);
+    elif k == IrKind::OpSub then x86_64_emit_op_sub(cc, ir);
+    elif k == IrKind::OpMul then x86_64_emit_op_mul(cc, ir);
+    elif k == IrKind::OpDiv then x86_64_emit_op_div(cc, ir);
+    elif k == IrKind::OpMod then x86_64_emit_op_mod(cc, ir);
+    elif k == IrKind::OpEq then x86_64_emit_op_eq(cc, ir);
+    elif k == IrKind::OpNotEq then x86_64_emit_op_not_eq(cc, ir);
+    elif k == IrKind::OpLess then x86_64_emit_op_less(cc, ir);
+    elif k == IrKind::OpLessEq then x86_64_emit_op_less_eq(cc, ir);
+    elif k == IrKind::OpGreater then x86_64_emit_op_greater(cc, ir);
+    elif k == IrKind::OpGreaterEq then x86_64_emit_op_greater_eq(cc, ir);
+    elif k == IrKind::PopReturn then x86_64_emit_pop_return(cc, ir);
+    elif k == IrKind::ReturnVoid then x86_64_emit_return_void(cc, ir);
+    elif k == IrKind::SetLocal then x86_64_emit_set_local(cc, ir);
+    elif k == IrKind::NewDef then x86_64_emit_new_def(cc, ir);
+    elif k == IrKind::SetLocalArg then x86_64_emit_set_local_arg(cc, ir);
+    elif k == IrKind::CloseDef then x86_64_emit_close_def(cc, ir);
+    elif k == IrKind::GotoTopFalse then x86_64_emit_goto_top_false(cc, ir);
+    elif k == IrKind::GotoTopTrue then x86_64_emit_goto_top_true(cc, ir);
+    elif k == IrKind::GotoFalse then x86_64_emit_goto_false(cc, ir);
+    elif k == IrKind::Goto then x86_64_emit_goto(cc, ir);
+    elif k == IrKind::Label then x86_64_emit_label(cc, ir);
+    elif k == IrKind::PtrRead then x86_64_emit_ptr_read(cc, ir);
+    elif k == IrKind::PtrWrite then x86_64_emit_ptr_write(cc, ir);
+    elif k == IrKind::BitNot then x86_64_emit_bit_not(cc, ir);
+    elif k == IrKind::LogicNot then x86_64_emit_logic_not(cc, ir);
+    elif k == IrKind::InlineAsm then x86_64_emit_inline_asm(cc, ir);
+    elif k == IrKind::LazyIdent then x86_64_emit_lazy_ident(cc, ir);
+    elif k == IrKind::CallLazyIdent then x86_64_emit_call_lazy_ident(cc, ir);
+    elif k == IrKind::DropTop then x86_64_emit_drop_top(cc, ir);
+    elif k == IrKind::SetGlobal then x86_64_emit_set_global(cc, ir);
+    elif k == IrKind::GetGlobal then x86_64_emit_get_global(cc, ir);
+    elif k == IrKind::Negative then x86_64_emit_negative(cc, ir);
+    elif k == IrKind::OpBitXOR then x86_64_emit_op_bit_xor(cc, ir);
+    elif k == IrKind::OpBitAND then x86_64_emit_op_bit_and(cc, ir);
+    elif k == IrKind::OpBitOR then x86_64_emit_op_bit_or(cc, ir);
+    elif k == IrKind::OpBitShiftL then x86_64_emit_op_bit_shift_l(cc, ir);
+    elif k == IrKind::OpBitShiftR then x86_64_emit_op_bit_shift_r(cc, ir);
+    elif k == IrKind::ScopeOpen then // nothing to do
+    elif k == IrKind::ScopeClose then // nothing to do
+    elif k == IrKind::PtrCopy then x86_64_emit_ptr_copy(cc, ir);
+    elif k == IrKind::PtrOffset then x86_64_emit_ptr_offset(cc, ir);
+    elif k == IrKind::RefLocal then x86_64_emit_ref_local(cc, ir);
+    elif k == IrKind::RefGlobal then x86_64_emit_ref_global(cc, ir);
     else
         printf("`x86_64_emit_instruction` in File \"%s\", line %d\n", __FILE__, __LINE__);
         printf("Unhandled IRK: %s (%d)\n", ir_instr_kind_cstr(k), k);
